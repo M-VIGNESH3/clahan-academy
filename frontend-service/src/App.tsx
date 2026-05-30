@@ -1038,26 +1038,9 @@ export default function App() {
     setMicPermission(false);
     setFaceCheck(false);
 
-    const isInsecure = window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-
-    if (isInsecure || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      showToast("Insecure Connection (HTTP): Browser camera access blocked. Running in Simulated Proctoring Mode for testing.", "warning");
-      
-      setTimeout(() => {
-        setCameraPermission(true);
-        setHardwareProgress(50);
-      }, 800);
-      
-      setTimeout(() => {
-        setMicPermission(true);
-        setHardwareProgress(80);
-      }, 1600);
-
-      setTimeout(() => {
-        setFaceCheck(true);
-        setHardwareProgress(100);
-        showToast('Simulated hardware validation successful!', 'success');
-      }, 2400);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert("Security Block: Browsers restrict camera/microphone access on non-secure (HTTP) connections. Please host over HTTPS or test on localhost.");
+      setHardwareProgress(0);
       return;
     }
 
@@ -1084,14 +1067,8 @@ export default function App() {
 
     } catch (err: any) {
       console.error("Hardware permission denied:", err);
-      showToast(`Permission Denied: Reverting to Simulated Proctoring Mode for testing.`, 'warning');
-      
-      setTimeout(() => {
-        setCameraPermission(true);
-        setMicPermission(true);
-        setFaceCheck(true);
-        setHardwareProgress(100);
-      }, 1000);
+      alert(`Hardware Access Denied: Please allow access to your camera and microphone in your browser settings to proceed with the proctored exam.\nDetails: ${err.message || err}`);
+      setHardwareProgress(0);
     }
   };
 
