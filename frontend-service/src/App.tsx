@@ -126,8 +126,9 @@ export default function App() {
     collegeId: '', departmentId: '', year: '1st Year'
   });
   const [selectedExamIdForQuestions, setSelectedExamIdForQuestions] = useState<string | null>(null);
-  
-  // Manual MCQ configuration
+  const [adminSelectedExamMCQs, setAdminSelectedExamMCQs] = useState<MCQQuestion[]>([]);
+  const [adminSelectedExamCodings, setAdminSelectedExamCodings] = useState<CodingQuestion[]>([]);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [mcqForm, setMcqForm] = useState({
     question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A', marks: 1, difficulty: 'medium'
   });
@@ -176,6 +177,12 @@ export default function App() {
   // View Result Detail State
   const [selectedResultAttemptId, setSelectedResultAttemptId] = useState<string | null>(null);
   const [detailedResult, setDetailedResult] = useState<any>(null);
+
+  useEffect(() => {
+    if (cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream;
+    }
+  }, [cameraStream, validationStep]);
   
   // Toast notifications
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }>>([]);
@@ -515,6 +522,21 @@ export default function App() {
     }
   };
 
+  const loadAdminExamQuestions = async (examId: string) => {
+    try {
+      const res = await fetch(`${API_EXAMS}/${examId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAdminSelectedExamMCQs(data.mcqQuestions || []);
+        setAdminSelectedExamCodings(data.codingQuestions || []);
+      }
+    } catch (err) {
+      console.error("Error loading questions for admin", err);
+    }
+  };
+
   const createCollege = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCollegeName) return;
@@ -776,9 +798,23 @@ export default function App() {
       if (res.ok) {
         showToast('MCQ Question added');
         setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A', marks: 1, difficulty: 'medium' });
+        loadAdminExamQuestions(selectedExamIdForQuestions);
+        loadAdminDashboard();
       }
     } catch (err) {
       setAdminExams(prev => prev.map(e => e.id === selectedExamIdForQuestions ? { ...e, mcq_count: (e.mcq_count || 0) + 1 } : e));
+      const mockMcq: MCQQuestion = {
+        id: `mock-q-${Date.now()}`,
+        question: mcqForm.question,
+        option_a: mcqForm.optionA,
+        option_b: mcqForm.optionB,
+        option_c: mcqForm.optionC,
+        option_d: mcqForm.optionD,
+        correct_answer: mcqForm.correctAnswer,
+        marks: mcqForm.marks,
+        difficulty: mcqForm.difficulty
+      };
+      setAdminSelectedExamMCQs(prev => [...prev, mockMcq]);
       setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A', marks: 1, difficulty: 'medium' });
       showToast('MCQ Question added (Simulated)');
     }
@@ -796,11 +832,27 @@ export default function App() {
       if (res.ok) {
         showToast('MCQ Questions imported successfully!');
         setMcqCsvInput('');
+        loadAdminExamQuestions(selectedExamIdForQuestions);
         loadAdminDashboard();
       }
     } catch (err) {
       const lines = mcqCsvInput.split('\n').filter(l => l.trim().length > 0).slice(1);
       setAdminExams(prev => prev.map(e => e.id === selectedExamIdForQuestions ? { ...e, mcq_count: (e.mcq_count || 0) + lines.length } : e));
+      const imported: MCQQuestion[] = lines.map((line, idx) => {
+        const parts = line.split(',');
+        return {
+          id: `mock-imported-${Date.now()}-${idx}`,
+          question: parts[0] || 'Imported MCQ',
+          option_a: parts[1] || 'A',
+          option_b: parts[2] || 'B',
+          option_c: parts[3] || 'C',
+          option_d: parts[4] || 'D',
+          correct_answer: parts[5] || 'A',
+          marks: parseInt(parts[6]) || 1,
+          difficulty: parts[7] || 'medium'
+        };
+      });
+      setAdminSelectedExamMCQs(prev => [...prev, ...imported]);
       setMcqCsvInput('');
       showToast(`MCQ Questions imported successfully (Simulated, count: ${lines.length})`);
     }
@@ -820,9 +872,23 @@ export default function App() {
         showToast('Coding question added successfully');
         setCodingForm({ title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python', starterCode: '', timeLimit: 2000, memoryLimit: 512000 });
         setCodingTestCases([]);
+        loadAdminExamQuestions(selectedExamIdForQuestions);
+        loadAdminDashboard();
       }
     } catch (err) {
       setAdminExams(prev => prev.map(e => e.id === selectedExamIdForQuestions ? { ...e, coding_count: (e.coding_count || 0) + 1 } : e));
+      const mockCoding: CodingQuestion = {
+        id: `mock-c-${Date.now()}`,
+        title: codingForm.title,
+        description: codingForm.description,
+        difficulty: codingForm.difficulty,
+        marks: codingForm.marks,
+        language: codingForm.language,
+        starter_code: codingForm.starterCode,
+        time_limit: codingForm.timeLimit,
+        memory_limit: codingForm.memoryLimit
+      };
+      setAdminSelectedExamCodings(prev => [...prev, mockCoding]);
       showToast('Coding question added successfully (Simulated)');
       setCodingForm({ title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python', starterCode: '', timeLimit: 2000, memoryLimit: 512000 });
       setCodingTestCases([]);
@@ -1095,6 +1161,10 @@ export default function App() {
     if (socketRef.current) {
       socketRef.current.disconnect();
       socketRef.current = null;
+    }
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
     }
     window.removeEventListener('blur', handleTabSwitch);
     if (document.exitFullscreen && document.fullscreenElement) {
@@ -2661,6 +2731,60 @@ export default function App() {
                           </form>
                         </div>
                       </div>
+
+                      {/* Currently Configured Questions List */}
+                      <div className="mt-8 border-t border-slate-200/30 dark:border-slate-800/30 pt-6">
+                        <h5 className="font-extrabold text-xs uppercase tracking-wider text-indigo-800 dark:text-indigo-300 mb-4">Currently Configured Questions ({adminSelectedExamMCQs.length + adminSelectedExamCodings.length})</h5>
+                        <div className="space-y-6 max-h-[400px] overflow-y-auto pr-1">
+                          {adminSelectedExamMCQs.length > 0 && (
+                            <div className="space-y-3">
+                              <h6 className="font-bold text-xs text-slate-800 dark:text-slate-200 border-l-2 border-indigo-500 pl-2">Multiple Choice Questions ({adminSelectedExamMCQs.length})</h6>
+                              <div className="grid grid-cols-1 gap-3">
+                                {adminSelectedExamMCQs.map((q, idx) => (
+                                  <div key={q.id || idx} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs text-left shadow-sm">
+                                    <div className="font-bold text-slate-800 dark:text-slate-100">{idx + 1}. {q.question}</div>
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-[11px] text-muted-foreground">
+                                      <div>A: {q.option_a || (q as any).optionA}</div>
+                                      <div>B: {q.option_b || (q as any).optionB}</div>
+                                      <div>C: {q.option_c || (q as any).optionC}</div>
+                                      <div>D: {q.option_d || (q as any).optionD}</div>
+                                    </div>
+                                    <div className="flex gap-2 mt-3">
+                                      <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[9px]">Correct: {q.correct_answer || (q as any).correctAnswer}</span>
+                                      <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[9px]">{q.marks} Marks</span>
+                                      <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[9px] capitalize">{q.difficulty}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {adminSelectedExamCodings.length > 0 && (
+                            <div className="space-y-3">
+                              <h6 className="font-bold text-xs text-slate-800 dark:text-slate-200 border-l-2 border-indigo-500 pl-2">Coding Challenges ({adminSelectedExamCodings.length})</h6>
+                              <div className="grid grid-cols-1 gap-3">
+                                {adminSelectedExamCodings.map((q, idx) => (
+                                  <div key={q.id || idx} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs text-left shadow-sm">
+                                    <div className="font-bold text-slate-800 dark:text-slate-100">{idx + 1}. {q.title} ({q.language})</div>
+                                    <div className="mt-2 text-[11px] text-muted-foreground whitespace-pre-wrap font-mono line-clamp-3 bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg">{q.description}</div>
+                                    <div className="flex gap-2 mt-3">
+                                      <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[9px]">{q.marks} Marks</span>
+                                      <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[9px] capitalize">{q.difficulty}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {adminSelectedExamMCQs.length === 0 && adminSelectedExamCodings.length === 0 && (
+                            <div className="text-center py-8 text-muted-foreground text-xs italic bg-white dark:bg-slate-950 rounded-xl border border-dashed">
+                              No questions configured for this exam yet.
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -2698,7 +2822,7 @@ export default function App() {
                                 </span>
                               </td>
                               <td className="text-right py-3 px-2 space-x-1 whitespace-nowrap">
-                                <button onClick={() => setSelectedExamIdForQuestions(ex.id)} className="text-[10px] font-bold px-2 py-1 border rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500 hover:text-white transition-colors">Questions</button>
+                                <button onClick={() => { setSelectedExamIdForQuestions(ex.id); loadAdminExamQuestions(ex.id); }} className="text-[10px] font-bold px-2 py-1 border rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500 hover:text-white transition-colors">Questions</button>
                                 {!ex.is_published && <button onClick={() => publishExam(ex.id)} className="text-[10px] font-bold px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-500">Publish</button>}
                                 <button onClick={() => duplicateExam(ex.id)} className="text-[10px] font-bold px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded hover:bg-slate-200">Duplicate</button>
                                 <button onClick={() => deleteExam(ex.id)} className="text-rose-500 hover:text-rose-600 p-1"><Trash2 className="h-4 w-4 inline" /></button>
