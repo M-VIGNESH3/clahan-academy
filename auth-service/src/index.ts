@@ -158,6 +158,7 @@ app.post('/api/auth/register', async (req, res) => {
     // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     await setCache(`otp:${email}`, otp, 600); // 10 minutes expiry
+    console.log(`[TESTING] Generated OTP for student ${email}: ${otp}`);
 
     // Queue OTP email
     await sendNotification('STUDENT_REGISTRATION', {
@@ -168,7 +169,8 @@ app.post('/api/auth/register', async (req, res) => {
 
     res.status(201).json({
       message: 'Registration successful. OTP sent for verification.',
-      user: student
+      user: student,
+      otp: otp
     });
   } catch (err: any) {
     console.error('Registration error:', err);
@@ -384,6 +386,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     const user = result.rows[0];
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     await setCache(`reset_otp:${email}`, otp, 600); // 10 minutes
+    console.log(`[TESTING] Generated Reset Password OTP for ${email}: ${otp}`);
 
     await sendNotification('PASSWORD_RESET', {
       email,
@@ -391,7 +394,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       otp
     });
 
-    res.json({ message: 'Password reset OTP has been sent to your email.' });
+    res.json({ message: 'Password reset OTP has been sent to your email.', otp });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

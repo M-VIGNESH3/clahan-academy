@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   BookOpen, Code, Shield, Video, Bell, Settings, Award, Users, CheckCircle, AlertTriangle, 
   Trash2, Copy, Send, Download, Upload, Plus, Play, Check, Moon, Sun, ArrowRight, User, 
-  LogOut, RefreshCw, Layers, Cpu, Laptop, Terminal, Mail, Phone, MapPin, Eye, Lock
+  LogOut, RefreshCw, Layers, Cpu, Laptop, Terminal, Mail, Phone, MapPin, Eye, EyeOff, Lock
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
@@ -62,6 +62,10 @@ export default function App() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetOtp, setResetOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
   
   // Student registration state
   const [regForm, setRegForm] = useState({
@@ -1292,9 +1296,15 @@ export default function App() {
         body: JSON.stringify(regForm)
       });
       if (res.ok) {
+        const data = await res.json();
         setUnverifiedEmail(regForm.email);
         setShowOtpVerification(true);
-        showToast('Registration successful! OTP sent to email.');
+        if (data.otp) {
+          showToast(`[TESTING] OTP Code: ${data.otp}`, 'info');
+          setOtpInput(data.otp);
+        } else {
+          showToast('Registration successful! OTP sent to email.');
+        }
       } else {
         const data = await res.json();
         showToast(data.error || 'Registration failed', 'error');
@@ -1302,7 +1312,8 @@ export default function App() {
     } catch (err) {
       setUnverifiedEmail(regForm.email);
       setShowOtpVerification(true);
-      showToast('Registration simulated. Verification required.');
+      setOtpInput('123456');
+      showToast('Registration simulated. OTP pre-filled with 123456.', 'info');
     }
   };
 
@@ -1340,11 +1351,18 @@ export default function App() {
         body: JSON.stringify({ email: resetEmail })
       });
       if (res.ok) {
-        showToast('Password reset OTP sent to your email.');
+        const data = await res.json();
+        if (data.otp) {
+          showToast(`[TESTING] OTP Code: ${data.otp}`, 'info');
+          setResetOtp(data.otp);
+        } else {
+          showToast('Password reset OTP sent to your email.');
+        }
         setCurrentPage('reset-pw');
       }
     } catch (err) {
-      showToast('OTP sent to email (Simulated)');
+      setResetOtp('123456');
+      showToast('OTP sent to email. OTP pre-filled with 123456.', 'info');
       setCurrentPage('reset-pw');
     }
   };
@@ -1669,14 +1687,23 @@ export default function App() {
                     <label className="text-xs font-semibold text-muted-foreground">Password</label>
                     <span onClick={() => setCurrentPage('forgot-pw')} className="text-xs font-semibold text-indigo-600 hover:underline cursor-pointer">Forgot?</span>
                   </div>
-                  <input 
-                    type="password" 
-                    value={loginPassword} 
-                    onChange={e => setLoginPassword(e.target.value)}
-                    placeholder="••••••••" 
-                    className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl bg-transparent focus:outline-indigo-500 text-sm"
-                    required 
-                  />
+                  <div className="relative">
+                    <input 
+                      type={showLoginPassword ? "text" : "password"} 
+                      value={loginPassword} 
+                      onChange={e => setLoginPassword(e.target.value)}
+                      placeholder="••••••••" 
+                      className="w-full p-3.5 pr-10 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl bg-transparent focus:outline-indigo-500 text-sm"
+                      required 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
                 <button type="submit" className="w-full p-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition-colors">
                   Log In
@@ -1785,11 +1812,43 @@ export default function App() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground">Password *</label>
-                    <input type="password" placeholder="••••••••" value={regForm.password} onChange={e => setRegForm({...regForm, password: e.target.value})} className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-indigo-500 bg-transparent" required />
+                    <div className="relative">
+                      <input 
+                        type={showRegPassword ? "text" : "password"} 
+                        placeholder="••••••••" 
+                        value={regForm.password} 
+                        onChange={e => setRegForm({...regForm, password: e.target.value})} 
+                        className="w-full p-3 pr-10 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-indigo-500 bg-transparent" 
+                        required 
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowRegPassword(!showRegPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        {showRegPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground">Confirm Password *</label>
-                    <input type="password" placeholder="••••••••" value={regForm.confirmPassword} onChange={e => setRegForm({...regForm, confirmPassword: e.target.value})} className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-indigo-500 bg-transparent" required />
+                    <div className="relative">
+                      <input 
+                        type={showRegConfirmPassword ? "text" : "password"} 
+                        placeholder="••••••••" 
+                        value={regForm.confirmPassword} 
+                        onChange={e => setRegForm({...regForm, confirmPassword: e.target.value})} 
+                        className="w-full p-3 pr-10 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-indigo-500 bg-transparent" 
+                        required 
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      >
+                        {showRegConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -1863,7 +1922,23 @@ export default function App() {
               </div>
               <div>
                 <label className="text-xs font-semibold text-muted-foreground">New Password</label>
-                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="••••••••" className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl bg-transparent focus:outline-indigo-500 text-sm" required />
+                <div className="relative">
+                  <input 
+                    type={showNewPassword ? "text" : "password"} 
+                    value={newPassword} 
+                    onChange={e => setNewPassword(e.target.value)} 
+                    placeholder="••••••••" 
+                    className="w-full p-3.5 pr-10 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl bg-transparent focus:outline-indigo-500 text-sm" 
+                    required 
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  >
+                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <button type="submit" className="w-full p-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition-colors">
                 Save New Password
