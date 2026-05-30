@@ -557,8 +557,13 @@ app.post('/api/exams/student/attempts/:attemptId/mcq-response', authenticate, re
   try {
     const { attemptId } = req.params;
     const { questionId, selectedOption } = req.body;
-    if (!questionId || !selectedOption) {
-      return res.status(400).json({ error: 'Question ID and option are required' });
+    if (!questionId) {
+      return res.status(400).json({ error: 'Question ID is required' });
+    }
+
+    if (selectedOption === undefined || selectedOption === null || selectedOption === '') {
+      await query('DELETE FROM mcq_responses WHERE attempt_id = $1 AND question_id = $2', [attemptId, questionId]);
+      return res.json({ success: true, cleared: true });
     }
 
     // Check correct answer

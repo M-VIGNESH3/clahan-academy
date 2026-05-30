@@ -1033,37 +1033,43 @@ export default function App() {
 
   const requestHardwarePermissions = async () => {
     setValidationStep('validation');
-    setHardwareProgress(20);
-    
-    // Simulate validation sequences
-    setTimeout(async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        setCameraPermission(true);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (err) {
-        setCameraPermission(true); // Fallback mock true if browser blocks in dev
+    setHardwareProgress(10);
+    setCameraPermission(false);
+    setMicPermission(false);
+    setFaceCheck(false);
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert("Security Block: Browsers restrict camera/microphone access on non-secure (HTTP) connections. Please host over HTTPS or test on localhost.");
+      setHardwareProgress(0);
+      return;
+    }
+
+    try {
+      setHardwareProgress(25);
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      setCameraPermission(true);
+      setCameraStream(stream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
       }
       setHardwareProgress(50);
-    }, 1000);
 
-    setTimeout(async () => {
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        setMicPermission(true);
-      } catch (err) {
-        setMicPermission(true); // Fallback true
-      }
-      setHardwareProgress(80);
-    }, 2000);
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStream.getTracks().forEach(track => track.stop());
+      setMicPermission(true);
+      setHardwareProgress(75);
 
-    setTimeout(() => {
-      setFaceCheck(true);
-      setHardwareProgress(100);
-      showToast('Hardware permissions validated successfully!', 'success');
-    }, 3000);
+      setTimeout(() => {
+        setFaceCheck(true);
+        setHardwareProgress(100);
+        showToast('Hardware verification completed successfully!', 'success');
+      }, 1000);
+
+    } catch (err: any) {
+      console.error("Hardware permission denied:", err);
+      alert(`Hardware Access Denied: Please allow access to your camera and microphone in your browser settings to proceed with the proctored exam.\nDetails: ${err.message || err}`);
+      setHardwareProgress(0);
+    }
   };
 
   const enterFullscreen = () => {
@@ -1224,6 +1230,13 @@ export default function App() {
 
     // Track tab switching browser events
     window.addEventListener('blur', handleTabSwitch);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'hidden') {
+      handleTabSwitch();
+    }
   };
 
   const handleTabSwitch = () => {
@@ -1232,22 +1245,22 @@ export default function App() {
       const logMsg = `Tab Switch Violation #${updated} detected.`;
       setProctorLogs(p => [`[Violation] ${logMsg} (${new Date().toLocaleTimeString()})`, ...p]);
       
-      // Emit to server
+      // Emit to server if socket is active
       if (socketRef.current) {
         socketRef.current.emit('proctor-event', {
           eventType: 'TAB_SWITCH',
-          details: 'Browser focus lost (blur event)',
+          details: 'Browser focus lost or tab switched',
           severity: updated >= 2 ? 'critical' : 'warning'
         });
+      }
+
+      // Local warning & enforcement (always active)
+      if (updated >= 2) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        alert('Exam terminated: 2 Tab switches detected.');
+        handleExamTermination();
       } else {
-        // Mock termination logic if offline
-        if (updated >= 2) {
-          clearInterval(timerRef.current);
-          alert('Exam terminated: 2 Tab switches detected.');
-          handleExamTermination();
-        } else {
-          showToast(`Warning: Tab switch detected! (Limit: 2). Exam will terminate on next tab switch.`, 'error');
-        }
+        showToast(`Warning: Tab switch detected! (Limit: 2). Exam will terminate on next tab switch.`, 'error');
       }
 
       return updated;
@@ -1273,6 +1286,7 @@ export default function App() {
       setCameraStream(null);
     }
     window.removeEventListener('blur', handleTabSwitch);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
     if (document.exitFullscreen && document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
     }
@@ -1288,6 +1302,26 @@ export default function App() {
           Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ questionId, selectedOption: option })
+      });
+    } catch (err) {
+      // Mock local saving
+    }
+  };
+
+  const clearMcqChoice = async (questionId: string) => {
+    setMcqAnswers(prev => {
+      const updated = { ...prev };
+      delete updated[questionId];
+      return updated;
+    });
+    try {
+      await fetch(`${API_EXAMS}/student/attempts/${currentAttempt?.id}/mcq-response`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ questionId, selectedOption: '' })
       });
     } catch (err) {
       // Mock local saving
@@ -3274,6 +3308,14 @@ export default function App() {
                         >
                           Previous Question
                         </button>
+                        {mcqAnswers[examMCQs[activeQuestionIndex].id] && (
+                          <button
+                            onClick={() => clearMcqChoice(examMCQs[activeQuestionIndex].id)}
+                            className="px-4 py-2 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 rounded-xl text-xs font-semibold border border-rose-500/20 transition-all"
+                          >
+                            Clear Response
+                          </button>
+                        )}
                         <button
                           onClick={() => setActiveQuestionIndex(p => Math.min(examMCQs.length - 1, p + 1))}
                           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs disabled:opacity-50"
