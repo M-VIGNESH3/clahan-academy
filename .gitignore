@@ -1,6 +1,6 @@
-# Graphify output
+# Graphify files
 graphify-out/
-
+.agents/
 # Node dependencies
 node_modules/
 **/node_modules/

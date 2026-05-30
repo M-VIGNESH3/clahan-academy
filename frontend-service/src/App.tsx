@@ -134,6 +134,9 @@ export default function App() {
   const [selectedExamIdForQuestions, setSelectedExamIdForQuestions] = useState<string | null>(null);
   const [adminSelectedExamMCQs, setAdminSelectedExamMCQs] = useState<MCQQuestion[]>([]);
   const [adminSelectedExamCodings, setAdminSelectedExamCodings] = useState<CodingQuestion[]>([]);
+  const [adminSelectedExamResults, setAdminSelectedExamResults] = useState<any[]>([]);
+  const [selectedExamIdForResults, setSelectedExamIdForResults] = useState<string | null>(null);
+  const [selectedExamNameForResults, setSelectedExamNameForResults] = useState<string>('');
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [mcqForm, setMcqForm] = useState({
     question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A', marks: 1, difficulty: 'medium'
@@ -839,6 +842,55 @@ export default function App() {
       showToast(`Loaded "${file.name}"! Click "Import MCQ CSV" to upload.`, 'success');
     };
     reader.readAsText(file);
+  };
+
+  const loadAdminExamResults = async (examId: string, examName: string) => {
+    try {
+      const res = await fetch(`${API_EXAMS}/${examId}/results`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAdminSelectedExamResults(data);
+        setSelectedExamIdForResults(examId);
+        setSelectedExamNameForResults(examName);
+        showToast(`Loaded results for "${examName}"`, 'success');
+      } else {
+        showToast('Failed to load exam results.', 'error');
+      }
+    } catch (err) {
+      setAdminSelectedExamResults([
+        { id: '1', full_name: 'John Doe', roll_number: 'CS202601', department_name: 'Computer Science', year: '3rd Year', score: 14, maxScore: 15, percentage: 93.33, passed: true, created_at: new Date().toISOString() },
+        { id: '2', full_name: 'Jane Smith', roll_number: 'CS202602', department_name: 'Computer Science', year: '3rd Year', score: 11, maxScore: 15, percentage: 73.33, passed: true, created_at: new Date().toISOString() },
+        { id: '3', full_name: 'Bob Johnson', roll_number: 'CS202603', department_name: 'Computer Science', year: '3rd Year', score: 7, maxScore: 15, percentage: 46.67, passed: false, created_at: new Date().toISOString() }
+      ]);
+      setSelectedExamIdForResults(examId);
+      setSelectedExamNameForResults(examName);
+      showToast('Loaded simulated exam results (Offline mode).', 'warning');
+    }
+  };
+
+  const downloadExamResultsCsv = () => {
+    if (adminSelectedExamResults.length === 0) {
+      showToast('No results available to download.', 'error');
+      return;
+    }
+    const headers = 'Student Name,Roll Number,Department,Year,Score,Percentage,Status,Submission Date\n';
+    const rows = adminSelectedExamResults.map(r => {
+      const status = r.passed ? 'PASSED' : 'FAILED';
+      const date = new Date(r.created_at).toLocaleDateString();
+      return `"${r.full_name || 'N/A'}","${r.roll_number || 'N/A'}","${r.department_name || 'N/A'}","${r.year || 'N/A'}",${r.score},${r.percentage}%,${status},"${date}"`;
+    }).join('\n');
+    
+    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `results_${selectedExamNameForResults.replace(/\s+/g, '_').toLowerCase()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Downloaded results CSV successfully!', 'success');
   };
 
   const publishExam = async (id: string) => {
@@ -2986,6 +3038,71 @@ export default function App() {
                     </div>
                   )}
 
+                  {/* Exam wise Results Panel */}
+                  {selectedExamIdForResults && (
+                    <div className="p-6 rounded-2xl border-2 border-emerald-500/20 bg-emerald-500/5 space-y-6">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="font-extrabold text-base text-emerald-700 dark:text-emerald-400">Exam Results & Scorecard Reports</h4>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">Showing student attempts for: <span className="font-bold text-slate-800 dark:text-slate-100">{selectedExamNameForResults}</span></p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={downloadExamResultsCsv}
+                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1 shadow-sm transition-colors"
+                          >
+                            <Download className="h-3.5 w-3.5" /> Download CSV
+                          </button>
+                          <button
+                            onClick={() => setSelectedExamIdForResults(null)}
+                            className="text-xs font-bold text-muted-foreground hover:underline px-2 py-1"
+                          >
+                            Close Reports
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="overflow-x-auto rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950">
+                        <table className="w-full text-xs text-left">
+                          <thead>
+                            <tr className="border-b text-muted-foreground bg-slate-50/50 dark:bg-slate-900/50 uppercase tracking-wider font-semibold">
+                              <th className="py-3 px-4">Student Info</th>
+                              <th className="py-3 px-2">Roll Number</th>
+                              <th className="py-3 px-2">Dept & Year</th>
+                              <th className="py-3 px-2 text-center">Score</th>
+                              <th className="py-3 px-2 text-center">Percentage</th>
+                              <th className="py-3 px-4 text-center">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {adminSelectedExamResults.length === 0 ? (
+                              <tr>
+                                <td colSpan={6} className="text-center py-8 text-muted-foreground italic">
+                                  No student attempts found for this exam yet.
+                                </td>
+                              </tr>
+                            ) : (
+                              adminSelectedExamResults.map(r => (
+                                <tr key={r.id} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/20">
+                                  <td className="py-3.5 px-4 font-bold text-slate-800 dark:text-slate-200">{r.full_name || 'N/A'}</td>
+                                  <td className="py-3.5 px-2 font-mono">{r.roll_number || 'N/A'}</td>
+                                  <td className="py-3.5 px-2 text-muted-foreground">{r.department_name || 'N/A'} - {r.year || 'N/A'}</td>
+                                  <td className="py-3.5 px-2 text-center font-bold">{r.score} pts</td>
+                                  <td className="py-3.5 px-2 text-center font-black text-indigo-600 dark:text-indigo-400">{r.percentage}%</td>
+                                  <td className="py-3.5 px-4 text-center">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${r.passed ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>
+                                      {r.passed ? 'Passed' : 'Failed'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
                   {/* List of configured Exams */}
                   <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
                     <h3 className="font-extrabold text-base mb-4">Configured Exams</h3>
@@ -3020,6 +3137,7 @@ export default function App() {
                                 </span>
                               </td>
                               <td className="text-right py-3 px-2 space-x-1 whitespace-nowrap">
+                                <button onClick={() => { setSelectedExamIdForResults(null); loadAdminExamResults(ex.id, ex.name); }} className="text-[10px] font-bold px-2 py-1 border rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors">Results</button>
                                 <button onClick={() => { setSelectedExamIdForQuestions(ex.id); loadAdminExamQuestions(ex.id); }} className="text-[10px] font-bold px-2 py-1 border rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500 hover:text-white transition-colors">Questions</button>
                                 <button onClick={() => startEditingExam(ex)} className="text-[10px] font-bold px-2 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded hover:bg-amber-500 hover:text-white transition-colors">Edit</button>
                                 {!ex.is_published && <button onClick={() => publishExam(ex.id)} className="text-[10px] font-bold px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-500">Publish</button>}
