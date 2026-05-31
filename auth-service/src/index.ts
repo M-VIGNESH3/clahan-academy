@@ -169,8 +169,7 @@ app.post('/api/auth/register', async (req, res) => {
 
     res.status(201).json({
       message: 'Registration successful. OTP sent for verification.',
-      user: student,
-      otp: otp
+      user: student
     });
   } catch (err: any) {
     console.error('Registration error:', err);
@@ -245,8 +244,7 @@ app.post('/api/auth/login', async (req, res) => {
       });
       return res.status(403).json({
         error: 'Email not verified. A new OTP has been sent to your email.',
-        unverified: true,
-        otp
+        unverified: true
       });
     }
 

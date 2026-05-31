@@ -380,6 +380,15 @@ export default function App() {
         }));
       });
 
+      socket.on('student-frame', (data: any) => {
+        setLiveSessions(prev => prev.map(s => {
+          if (s.attemptId === data.attemptId) {
+            return { ...s, liveImage: data.image };
+          }
+          return s;
+        }));
+      });
+
     } catch (err) {
       console.error('Failed to establish admin proctoring socket:', err);
     }
@@ -1672,12 +1681,25 @@ export default function App() {
       console.warn("Socket.IO proctoring offline, running local proctor rules.");
     }
 
-    // Set up local camera proctor simulator
+    // Periodically capture and stream webcam frame to the socket
     proctorIntervalRef.current = setInterval(() => {
-      // Periodically trigger a mock validation check or log event
-      // If student is tab switching, browser events will catch it.
-      // We simulate occasional warnings for interactive proctor validation demonstration
-    }, 10000);
+      if (currentPageRef.current === 'exam-env' && videoRef.current && socketRef.current) {
+        try {
+          const video = videoRef.current;
+          const canvas = document.createElement('canvas');
+          canvas.width = 160;
+          canvas.height = 120;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.45);
+            socketRef.current.emit('proctor-frame', { image: dataUrl });
+          }
+        } catch (err) {
+          console.warn('Failed to capture proctor frame:', err);
+        }
+      }
+    }, 1500);
 
     // Track tab switching browser events
     window.addEventListener('blur', stableTabSwitch);
@@ -1701,7 +1723,7 @@ export default function App() {
     }
     setTabWarnings(prev => {
       const updated = prev + 1;
-      const logMsg = `Tab Switch Violation detected.`;
+      const logMsg = `Tab Switch Violation #${updated} detected.`;
       setProctorLogs(p => [`[Violation] ${logMsg} (${new Date().toLocaleTimeString()})`, ...p]);
       
       // Emit to server if socket is active
@@ -1709,15 +1731,17 @@ export default function App() {
         socketRef.current.emit('proctor-event', {
           eventType: 'TAB_SWITCH',
           details: 'Browser focus lost or tab switched',
-          severity: 'critical'
+          severity: updated >= 2 ? 'critical' : 'warning'
         });
       }
 
       // Local warning & enforcement (always active)
-      if (updated >= 1) {
+      if (updated >= 2) {
         if (timerRef.current) clearInterval(timerRef.current);
-        alert('Exam terminated: Tab switch detected.');
-        handleExamTermination('Tab switch detected (limit 1).');
+        alert('Exam terminated: 2 Tab switches detected.');
+        handleExamTermination('Multiple tab switches detected (limit 2).');
+      } else {
+        showToast(`Warning: Tab switch detected! (Limit: 2). Exam will terminate on next tab switch.`, 'error');
       }
 
       return updated;
@@ -1970,10 +1994,6 @@ export default function App() {
         if (data.unverified) {
           setUnverifiedEmail(loginEmail);
           setShowOtpVerification(true);
-          if (data.otp) {
-            showToast(`[TESTING] OTP Code: ${data.otp}`, 'info');
-            setOtpInput(data.otp);
-          }
         }
         showToast(data.error || 'Invalid credentials', 'error');
       }
@@ -2021,12 +2041,7 @@ export default function App() {
         const data = await res.json();
         setUnverifiedEmail(regForm.email);
         setShowOtpVerification(true);
-        if (data.otp) {
-          showToast(`[TESTING] OTP Code: ${data.otp}`, 'info');
-          setOtpInput(data.otp);
-        } else {
-          showToast('Registration successful! OTP sent to email.');
-        }
+        showToast('Registration successful! OTP sent to email.');
       } else {
         const data = await res.json();
         showToast(data.error || 'Registration failed', 'error');
@@ -2034,8 +2049,8 @@ export default function App() {
     } catch (err) {
       setUnverifiedEmail(regForm.email);
       setShowOtpVerification(true);
-      setOtpInput('123456');
-      showToast('Registration simulated. OTP pre-filled with 123456.', 'info');
+      setOtpInput('');
+      showToast('Registration simulated. Please enter any 6-digit OTP code to verify.', 'info');
     }
   };
 
@@ -3620,13 +3635,22 @@ export default function App() {
                                 {/* Simulated camera stream thumbnail */}
                                 <div className="relative mt-3 h-28 rounded-lg bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-800">
                                   {session.status === 'active' ? (
-                                    <>
-                                      <div className="absolute inset-0 bg-emerald-500/5 animate-pulse" />
-                                      <Video className="h-6 w-6 text-emerald-500/40 animate-pulse" />
-                                      <span className="absolute bottom-2 left-2 flex items-center gap-1 text-[9px] bg-black/60 px-1.5 py-0.5 rounded text-emerald-400 font-bold">
-                                        <span className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-ping" /> LIVE FEED
-                                      </span>
-                                    </>
+                                    session.liveImage ? (
+                                      <>
+                                        <img src={session.liveImage} alt="Live feed" className="h-full w-full object-cover" />
+                                        <span className="absolute bottom-2 left-2 flex items-center gap-1 text-[9px] bg-black/60 px-1.5 py-0.5 rounded text-emerald-400 font-bold">
+                                          <span className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-ping" /> LIVE FEED
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <div className="absolute inset-0 bg-emerald-500/5 animate-pulse" />
+                                        <Video className="h-6 w-6 text-emerald-500/40 animate-pulse" />
+                                        <span className="absolute bottom-2 left-2 flex items-center gap-1 text-[9px] bg-black/60 px-1.5 py-0.5 rounded text-emerald-400 font-bold">
+                                          <span className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-ping" /> LIVE FEED
+                                        </span>
+                                      </>
+                                    )
                                   ) : session.status === 'terminated' ? (
                                     <>
                                       <div className="absolute inset-0 bg-rose-500/10" />

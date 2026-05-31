@@ -144,10 +144,10 @@ io.on('connection', (socket: Socket) => {
       let shouldTerminate = false;
       let terminationReason = '';
 
-      // Rule 1: 1 Tab switch -> Terminate
-      if ((counts['TAB_SWITCH'] || 0) >= 1) {
+      // Rule 1: 2 Tab switches -> Terminate
+      if ((counts['TAB_SWITCH'] || 0) >= 2) {
         shouldTerminate = true;
-        terminationReason = 'Tab switch detected (limit 1).';
+        terminationReason = 'Multiple tab switches detected (limit 2).';
       }
       // Rule 2: Camera disabled -> Terminate
       else if (eventType === 'CAMERA_DISABLED') {
@@ -213,6 +213,18 @@ io.on('connection', (socket: Socket) => {
     } catch (err: any) {
       console.error('Proctor event handler error:', err);
     }
+  });
+
+  // Client streams camera frame (low resolution base64 JPEG)
+  socket.on('proctor-frame', (data: { image: string }) => {
+    const session = activeSessions[socket.id];
+    if (!session || session.role !== 'student') return;
+
+    // Broadcast student webcam frame to admin monitor room
+    io.to('admin-monitor').emit('student-frame', {
+      attemptId: session.attemptId,
+      image: data.image
+    });
   });
 
   socket.on('disconnect', () => {
