@@ -54,11 +54,23 @@ export default function App() {
   });
 
   // App Routing
-  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor'>('landing');
+  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'admin-login'>(() => {
+    const path = window.location.pathname.toLowerCase();
+    if (path === '/admin-login' || path === '/admin-login/') {
+      return 'admin-login';
+    }
+    if (path === '/login' || path === '/login/') {
+      return 'login';
+    }
+    if (path === '/register' || path === '/register/') {
+      return 'register';
+    }
+    return 'landing';
+  });
   const [isExamFullscreen, setIsExamFullscreen] = useState(true);
   
   // Auth state
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem('token'));
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
   const [showOtpVerification, setShowOtpVerification] = useState(false);
@@ -211,6 +223,43 @@ export default function App() {
   // View Result Detail State
   const [selectedResultAttemptId, setSelectedResultAttemptId] = useState<string | null>(null);
   const [detailedResult, setDetailedResult] = useState<any>(null);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.toLowerCase();
+      if (path === '/admin-login' || path === '/admin-login/') {
+        setCurrentPage('admin-login');
+      } else if (path === '/login' || path === '/login/') {
+        setCurrentPage('login');
+      } else if (path === '/register' || path === '/register/') {
+        setCurrentPage('register');
+      } else {
+        setCurrentPage('landing');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (currentPage === 'admin-login') {
+      if (window.location.pathname !== '/admin-login') {
+        window.history.pushState(null, '', '/admin-login');
+      }
+    } else if (currentPage === 'landing') {
+      if (window.location.pathname !== '/') {
+        window.history.pushState(null, '', '/');
+      }
+    } else if (currentPage === 'login') {
+      if (window.location.pathname !== '/login') {
+        window.history.pushState(null, '', '/login');
+      }
+    } else if (currentPage === 'register') {
+      if (window.location.pathname !== '/register') {
+        window.history.pushState(null, '', '/register');
+      }
+    }
+  }, [currentPage]);
 
   useEffect(() => {
     if (cameraStream && videoRef.current) {
@@ -396,7 +445,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
     setToken(null);
     setCurrentUser(null);
     setCurrentPage('landing');
@@ -1054,6 +1103,35 @@ export default function App() {
     link.click();
     document.body.removeChild(link);
     showToast('Downloaded results CSV successfully!', 'success');
+  };
+
+  const downloadStudentsExcel = () => {
+    if (adminStudents.length === 0) {
+      showToast('No students available to download.', 'error');
+      return;
+    }
+    const headers = 'Full Name,Email,Phone,Roll Number,College,Department,Year,Status\n';
+    const rows = adminStudents.map(s => {
+      const fullName = s.fullName || s.full_name || 'N/A';
+      const email = s.email || 'N/A';
+      const phone = s.phone || 'N/A';
+      const rollNumber = s.rollNumber || s.roll_number || 'N/A';
+      const college = s.college_name || 'N/A';
+      const dept = s.department_name || 'N/A';
+      const year = s.year || 'N/A';
+      const status = s.status || 'N/A';
+      return `"${fullName.replace(/"/g, '""')}","${email.replace(/"/g, '""')}","${phone.replace(/"/g, '""')}","${rollNumber.replace(/"/g, '""')}","${college.replace(/"/g, '""')}","${dept.replace(/"/g, '""')}","${year.replace(/"/g, '""')}","${status.replace(/"/g, '""')}"`;
+    }).join('\n');
+
+    const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'registered_students.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast('Downloaded registered students CSV successfully!', 'success');
   };
 
   const publishExam = async (id: string) => {
@@ -1743,7 +1821,7 @@ export default function App() {
       });
       const data = await res.json();
       if (res.ok) {
-        localStorage.setItem('token', data.accessToken);
+        sessionStorage.setItem('token', data.accessToken);
         setToken(data.accessToken);
         showToast('Login successful!');
       } else {
@@ -1780,7 +1858,7 @@ export default function App() {
       const payload = btoa(JSON.stringify(mockPayload));
       const mockJwt = `${header}.${payload}.signature`;
       
-      localStorage.setItem('token', mockJwt);
+      sessionStorage.setItem('token', mockJwt);
       setToken(mockJwt);
       showToast('Logged in successfully (Simulated)');
     }
@@ -2161,7 +2239,7 @@ export default function App() {
       {currentPage === 'login' && (
         <main className="max-w-md mx-auto py-24 px-4">
           <div className="p-8 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-xl relative overflow-hidden">
-            <h2 className="text-2xl font-extrabold text-center mb-6">Welcome Back</h2>
+            <h2 className="text-2xl font-extrabold text-center mb-6">Student Login</h2>
             
             {showOtpVerification ? (
               <form onSubmit={verifyOtp} className="space-y-4">
@@ -2184,23 +2262,7 @@ export default function App() {
                 </button>
               </form>
             ) : (
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-xl mb-4">
-                  <button 
-                    type="button" 
-                    onClick={() => setLoginRole('student')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${loginRole === 'student' ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-muted-foreground'}`}
-                  >
-                    Student
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => setLoginRole('admin')}
-                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${loginRole === 'admin' ? 'bg-white dark:bg-slate-800 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-muted-foreground'}`}
-                  >
-                    Admin
-                  </button>
-                </div>
+              <form onSubmit={(e) => { setLoginRole('student'); handleLogin(e); }} className="space-y-4">
                 <div>
                   <label className="text-xs font-semibold text-muted-foreground">Email Address</label>
                   <input 
@@ -2245,6 +2307,78 @@ export default function App() {
               New to Clahan Academy?{' '}
               <span onClick={() => setCurrentPage('register')} className="text-indigo-600 font-bold hover:underline cursor-pointer">Register</span>
             </p>
+          </div>
+        </main>
+      )}
+
+      {/* ADMIN LOGIN ROUTE */}
+      {currentPage === 'admin-login' && (
+        <main className="max-w-md mx-auto py-24 px-4">
+          <div className="p-8 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-600 to-violet-600" />
+            <h2 className="text-2xl font-extrabold text-center mb-6">Management Portal</h2>
+            
+            {showOtpVerification ? (
+              <form onSubmit={verifyOtp} className="space-y-4">
+                <div className="bg-indigo-50 dark:bg-indigo-950/20 p-4 rounded-xl border border-indigo-500/20 text-xs text-indigo-600 dark:text-indigo-400 mb-2">
+                  Enter the verification code sent to {unverifiedEmail} to activate your account.
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground">OTP Code</label>
+                  <input 
+                    type="text" 
+                    value={otpInput} 
+                    onChange={e => setOtpInput(e.target.value)} 
+                    placeholder="Enter 6-digit OTP" 
+                    className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl bg-transparent focus:outline-indigo-500 text-center font-bold tracking-widest text-lg"
+                    required
+                  />
+                </div>
+                <button type="submit" className="w-full p-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition-colors">
+                  Verify & Activate
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={(e) => { setLoginRole('admin'); handleLogin(e); }} className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground">Management Email Address</label>
+                  <input 
+                    type="email" 
+                    value={loginEmail} 
+                    onChange={e => setLoginEmail(e.target.value)}
+                    placeholder="admin@clahan.com" 
+                    className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl bg-transparent focus:outline-indigo-500 text-sm"
+                    required 
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-semibold text-muted-foreground">Password</label>
+                    <span onClick={() => setCurrentPage('forgot-pw')} className="text-xs font-semibold text-indigo-600 hover:underline cursor-pointer">Forgot?</span>
+                  </div>
+                  <div className="relative">
+                    <input 
+                      type={showLoginPassword ? "text" : "password"} 
+                      value={loginPassword} 
+                      onChange={e => setLoginPassword(e.target.value)}
+                      placeholder="••••••••" 
+                      className="w-full p-3.5 pr-10 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl bg-transparent focus:outline-indigo-500 text-sm"
+                      required 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+                <button type="submit" className="w-full p-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition-colors">
+                  Log In as Admin
+                </button>
+              </form>
+            )}
           </div>
         </main>
       )}
@@ -2999,7 +3133,15 @@ export default function App() {
 
                   {/* List of onboarded Students */}
                   <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
-                    <h4 className="font-bold text-sm mb-4">Registered Students</h4>
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="font-bold text-sm">Registered Students</h4>
+                      <button
+                        onClick={downloadStudentsExcel}
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1 shadow-sm transition-colors"
+                      >
+                        <Download className="h-3.5 w-3.5" /> Download Excel
+                      </button>
+                    </div>
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs text-left">
                         <thead>
