@@ -255,6 +255,8 @@ app.post('/api/auth/login', async (req, res) => {
         id: user.id,
         email: user.email,
         role: user.role,
+        full_name: user.full_name,
+        roll_number: user.roll_number,
         college_id: user.college_id,
         department_id: user.department_id,
         year: user.year
@@ -328,6 +330,8 @@ app.post('/api/auth/refresh', async (req, res) => {
           id: user.id,
           email: user.email,
           role: user.role,
+          full_name: user.full_name,
+          roll_number: user.roll_number,
           college_id: user.college_id,
           department_id: user.department_id,
           year: user.year

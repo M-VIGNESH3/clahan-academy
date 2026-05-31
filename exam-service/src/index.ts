@@ -398,7 +398,7 @@ app.get('/api/exams/:id/results', authenticate, requireRole('admin'), async (req
        FROM exam_attempts ea
        JOIN users u ON ea.student_id = u.id
        LEFT JOIN departments d ON u.department_id = d.id
-       WHERE ea.exam_id = $1 AND ea.status = 'completed'
+       WHERE ea.exam_id = $1 AND ea.status IN ('completed', 'terminated')
        ORDER BY ea.percentage DESC`,
       [id]
     );

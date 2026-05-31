@@ -148,6 +148,7 @@ export default function App() {
   });
   // MCQ bulk import
   const [mcqCsvInput, setMcqCsvInput] = useState('');
+  const [selectedMcqFileName, setSelectedMcqFileName] = useState<string | null>(null);
 
   // Manual Coding Question Configuration
   const [isCodingModalOpen, setIsCodingModalOpen] = useState(false);
@@ -188,6 +189,7 @@ export default function App() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const proctorIntervalRef = useRef<any>(null);
+  const currentPageRef = useRef(currentPage);
 
   // View Result Detail State
   const [selectedResultAttemptId, setSelectedResultAttemptId] = useState<string | null>(null);
@@ -228,6 +230,11 @@ export default function App() {
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
+  }, [currentPage]);
+
+  // Keep currentPageRef in sync (fixes stale closure in tab-switch handlers)
+  useEffect(() => {
+    currentPageRef.current = currentPage;
   }, [currentPage]);
   
   // Toast notifications
@@ -945,6 +952,7 @@ export default function App() {
   const handleMcqFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setSelectedMcqFileName(file.name);
     const name = file.name.toLowerCase();
     if (!name.endsWith('.csv') && !name.endsWith('.xlsx') && !name.endsWith('.xls')) {
       showToast('Please select a valid CSV or Excel (.xlsx, .xls) file.', 'error');
@@ -1012,11 +1020,12 @@ export default function App() {
       showToast('No results available to download.', 'error');
       return;
     }
-    const headers = 'Student Name,Roll Number,Department,Year,Score,Percentage,Status,Submission Date\n';
+    const headers = 'Student Name,Roll Number,Department,Year,Score,Percentage,Status,Reason,Submission Date\n';
     const rows = adminSelectedExamResults.map(r => {
-      const status = r.passed ? 'PASSED' : 'FAILED';
+      const status = r.status === 'terminated' ? 'TERMINATED' : r.passed ? 'PASSED' : 'FAILED';
+      const reason = r.status === 'terminated' && r.feedback ? r.feedback.replace(/"/g, '""') : '';
       const date = new Date(r.created_at).toLocaleDateString();
-      return `"${r.full_name || 'N/A'}","${r.roll_number || 'N/A'}","${r.department_name || 'N/A'}","${r.year || 'N/A'}",${r.score},${r.percentage}%,${status},"${date}"`;
+      return `"${r.full_name || 'N/A'}","${r.roll_number || 'N/A'}","${r.department_name || 'N/A'}","${r.year || 'N/A'}",${r.score},${r.percentage}%,${status},"${reason}","${date}"`;
     }).join('\n');
     
     const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
@@ -1445,7 +1454,7 @@ export default function App() {
   };
 
   const handleVisibilityChange = () => {
-    if (currentPage !== 'exam-env') {
+    if (currentPageRef.current !== 'exam-env') {
       cleanupProctoring();
       return;
     }
@@ -1455,7 +1464,7 @@ export default function App() {
   };
 
   const handleTabSwitch = () => {
-    if (currentPage !== 'exam-env') {
+    if (currentPageRef.current !== 'exam-env') {
       cleanupProctoring();
       return;
     }
@@ -3166,6 +3175,11 @@ export default function App() {
                                     }`}>
                                       {r.status === 'terminated' ? 'Terminated' : r.passed ? 'Passed' : 'Failed'}
                                     </span>
+                                    {r.status === 'terminated' && r.feedback && (
+                                      <div className="mt-1.5 text-[9px] text-rose-600 dark:text-rose-400 font-semibold max-w-[200px] mx-auto leading-relaxed">
+                                        {r.feedback}
+                                      </div>
+                                    )}
                                   </td>
                                 </tr>
                               ))
@@ -3443,7 +3457,12 @@ export default function App() {
                       <div className="border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-2xl p-6 text-center hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors relative cursor-pointer">
                         <label className="cursor-pointer block">
                           <span className="text-sm text-indigo-600 dark:text-indigo-400 font-extrabold block">📂 Choose CSV / Excel File</span>
-                          <span className="text-xs text-muted-foreground block mt-1">Select a valid .csv, .xlsx, or .xls template</span>
+                          <span className="text-xs text-muted-foreground block mt-1">
+                            {selectedMcqFileName 
+                              ? <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓ Selected: {selectedMcqFileName}</span>
+                              : 'Select a valid .csv, .xlsx, or .xls template'
+                            }
+                          </span>
                           <input
                             type="file"
                             accept=".csv,.xlsx,.xls"
