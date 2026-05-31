@@ -128,7 +128,7 @@ services:
       SMTP_USER: aiexamplatform123@gmail.com
       SMTP_PASS: "zmso iaml jdkh wpxn"
       SMTP_FROM: aiexamplatform123@gmail.com
-      FRONTEND_URL: http://localhost:5173
+      FRONTEND_URL: https://smartpg.online
     depends_on:
       redis:
         condition: service_healthy
@@ -151,8 +151,7 @@ services:
       dockerfile: Dockerfile
     container_name: clahan-frontend-service
     ports:
-      - "5173:5173"
-      - "80:5173"
+      - "127.0.0.1:5173:5173"
     depends_on:
       - auth-service
       - admin-service
