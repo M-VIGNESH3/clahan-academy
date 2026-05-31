@@ -148,3 +148,25 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   filter: invert(1) brightness(1.2);
 }
+
+/* Theme-matching styles for dropdown selects and options */
+select, option {
+  background-color: #ffffff !important;
+  color: #0f172a !important; /* slate-900 */
+}
+
+.dark select, .dark option {
+  background-color: #0f172a !important; /* slate-900 */
+  color: #f8fafc !important; /* slate-50 */
+}
+
+/* Specific styling for disabled dropdowns */
+select:disabled, option:disabled {
+  background-color: #f1f5f9 !important; /* slate-100 */
+  color: #94a3b8 !important; /* slate-400 */
+}
+
+.dark select:disabled, .dark option:disabled {
+  background-color: #1e293b !important; /* slate-800 */
+  color: #64748b !important; /* slate-500 */
+}

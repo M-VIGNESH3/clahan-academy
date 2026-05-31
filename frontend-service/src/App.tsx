@@ -52,7 +52,7 @@ export default function App() {
   });
 
   // App Routing
-  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view'>('landing');
+  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor'>('landing');
   
   // Auth state
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
@@ -133,6 +133,7 @@ export default function App() {
   });
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [selectedExamIdForQuestions, setSelectedExamIdForQuestions] = useState<string | null>(null);
+  const [questionEditorTab, setQuestionEditorTab] = useState<'mcq' | 'coding'>('mcq');
   const [adminSelectedExamMCQs, setAdminSelectedExamMCQs] = useState<MCQQuestion[]>([]);
   const [adminSelectedExamCodings, setAdminSelectedExamCodings] = useState<CodingQuestion[]>([]);
   const [adminSelectedExamResults, setAdminSelectedExamResults] = useState<any[]>([]);
@@ -711,15 +712,21 @@ export default function App() {
   const createExam = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...examForm,
+        scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString()
+      };
       const res = await fetch(`${API_EXAMS}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(examForm)
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         const data = await res.json();
         showToast('Exam created successfully. Now customize questions.');
         setSelectedExamIdForQuestions(data.id);
+        loadAdminExamQuestions(data.id);
+        setCurrentPage('questions-editor');
         loadAdminDashboard();
       }
     } catch (err) {
@@ -731,7 +738,7 @@ export default function App() {
         duration_minutes: examForm.durationMinutes,
         cutoff_percentage: examForm.cutoffPercentage,
         allowed_attempts: examForm.allowedAttempts,
-        schedule_date: examForm.scheduleDate || new Date().toISOString(),
+        schedule_date: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
         window_open_minutes: examForm.windowOpenMinutes || 10,
         is_published: false,
         mcq_count: 0,
@@ -742,6 +749,7 @@ export default function App() {
       };
       setAdminExams(prev => [mockE, ...prev]);
       setSelectedExamIdForQuestions(mockId);
+      setCurrentPage('questions-editor');
       showToast('Exam created successfully (Simulated). Add questions now.');
     }
   };
@@ -750,10 +758,14 @@ export default function App() {
     e.preventDefault();
     if (!editingExamId) return;
     try {
+      const payload = {
+        ...examForm,
+        scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString()
+      };
       const res = await fetch(`${API_EXAMS}/${editingExamId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(examForm)
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         showToast('Exam configuration updated successfully!');
@@ -774,7 +786,7 @@ export default function App() {
         duration_minutes: examForm.durationMinutes,
         cutoff_percentage: examForm.cutoffPercentage,
         allowed_attempts: examForm.allowedAttempts,
-        schedule_date: examForm.scheduleDate,
+        schedule_date: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
         window_open_minutes: examForm.windowOpenMinutes,
         year: examForm.year,
         college_id: examForm.collegeId,
@@ -2871,199 +2883,7 @@ export default function App() {
                     </form>
                   </div>
 
-                  {/* Add Questions Panel (appears after exam creation or when exam is selected) */}
-                  {selectedExamIdForQuestions && (
-                    <div className="p-6 rounded-2xl border-2 border-indigo-500/20 bg-indigo-500/5 space-y-6">
-                      <div className="flex justify-between items-center">
-                        <h4 className="font-extrabold text-base text-indigo-700 dark:text-indigo-400">Configure Questions for Selected Exam</h4>
-                        <button onClick={() => setSelectedExamIdForQuestions(null)} className="text-xs font-bold text-muted-foreground hover:underline">Close Editor</button>
-                      </div>
-
-                      {/* Toggle MCQ or Coding Question Form */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* MCQ Questions form */}
-                        <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 space-y-4">
-                          <h5 className="font-bold text-xs">Add MCQ Question</h5>
-                          <form onSubmit={addMcqQuestion} className="space-y-3">
-                            <input type="text" value={mcqForm.question} onChange={e => setMcqForm({...mcqForm, question: e.target.value})} placeholder="Question Statement" className="w-full p-2 border rounded-lg text-xs bg-transparent" required />
-                            <div className="grid grid-cols-2 gap-2">
-                              <input type="text" value={mcqForm.optionA} onChange={e => setMcqForm({...mcqForm, optionA: e.target.value})} placeholder="Option A" className="p-2 border rounded-lg text-xs bg-transparent" required />
-                              <input type="text" value={mcqForm.optionB} onChange={e => setMcqForm({...mcqForm, optionB: e.target.value})} placeholder="Option B" className="p-2 border rounded-lg text-xs bg-transparent" required />
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <input type="text" value={mcqForm.optionC} onChange={e => setMcqForm({...mcqForm, optionC: e.target.value})} placeholder="Option C" className="p-2 border rounded-lg text-xs bg-transparent" required />
-                              <input type="text" value={mcqForm.optionD} onChange={e => setMcqForm({...mcqForm, optionD: e.target.value})} placeholder="Option D" className="p-2 border rounded-lg text-xs bg-transparent" required />
-                            </div>
-                            <div className="grid grid-cols-3 gap-2">
-                              <select value={mcqForm.correctAnswer} onChange={e => setMcqForm({...mcqForm, correctAnswer: e.target.value})} className="p-2 border rounded-lg text-xs bg-transparent text-slate-900 dark:text-white" required>
-                                <option value="A" className="text-slate-900">Ans: A</option>
-                                <option value="B" className="text-slate-900">Ans: B</option>
-                                <option value="C" className="text-slate-900">Ans: C</option>
-                                <option value="D" className="text-slate-900">Ans: D</option>
-                              </select>
-                              <input type="number" value={mcqForm.marks} onChange={e => setMcqForm({...mcqForm, marks: parseInt(e.target.value) || 1})} placeholder="Marks" className="p-2 border rounded-lg text-xs bg-transparent" required />
-                              <select value={mcqForm.difficulty} onChange={e => setMcqForm({...mcqForm, difficulty: e.target.value})} className="p-2 border rounded-lg text-xs bg-transparent text-slate-900 dark:text-white" required>
-                                <option value="easy" className="text-slate-900">Easy</option>
-                                <option value="medium" className="text-slate-900">Medium</option>
-                                <option value="hard" className="text-slate-900">Hard</option>
-                              </select>
-                            </div>
-                            <button type="submit" className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs">
-                              Add Question
-                            </button>
-                          </form>
-
-                          <div className="border-t pt-4">
-                            <div className="flex justify-between items-center mb-2">
-                              <h6 className="font-bold text-[10px] text-muted-foreground uppercase">Or Bulk Import MCQs</h6>
-                              <button
-                                type="button"
-                                onClick={downloadMcqTemplate}
-                                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-500 hover:underline flex items-center gap-0.5"
-                              >
-                                <Download className="h-3 w-3 inline" /> Download Template
-                              </button>
-                            </div>
-                            
-                            <form onSubmit={importMcqCsv} className="space-y-2">
-                              <div className="border border-dashed border-slate-300 dark:border-slate-800 rounded-lg p-3 text-center hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors relative">
-                                <label className="cursor-pointer block">
-                                  <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-bold block">📂 Choose CSV File</span>
-                                  <span className="text-[9px] text-muted-foreground block mt-0.5">Select a .csv file to load questions</span>
-                                  <input
-                                    type="file"
-                                    accept=".csv"
-                                    onChange={handleMcqFileChange}
-                                    className="hidden"
-                                  />
-                                </label>
-                              </div>
-
-                              <textarea
-                                value={mcqCsvInput}
-                                onChange={e => setMcqCsvInput(e.target.value)}
-                                placeholder="Or paste CSV rows here (Header: Question,Option A,Option B,Option C,Option D,Correct Answer,Marks,Difficulty)"
-                                rows={3}
-                                className="w-full p-2 border rounded-lg text-xs bg-transparent font-mono"
-                                required
-                              />
-                              <button type="submit" className="w-full py-2 border border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white font-bold rounded-lg text-xs transition-colors">
-                                Import MCQ CSV
-                              </button>
-                            </form>
-                          </div>
-                        </div>
-
-                        {/* Coding Question Form */}
-                        <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 space-y-4">
-                          <h5 className="font-bold text-xs">Add Coding Challenge</h5>
-                          <form onSubmit={addCodingQuestion} className="space-y-3">
-                            <div className="grid grid-cols-2 gap-2">
-                              <input type="text" value={codingForm.title} onChange={e => setCodingForm({...codingForm, title: e.target.value})} placeholder="Challenge Title" className="p-2 border rounded-lg text-xs bg-transparent" required />
-                              <select value={codingForm.language} onChange={e => setCodingForm({...codingForm, language: e.target.value})} className="p-2 border rounded-lg text-xs bg-transparent text-slate-900 dark:text-white" required>
-                                <option value="Python" className="text-slate-900">Python</option>
-                                <option value="Java" className="text-slate-900">Java</option>
-                                <option value="C++" className="text-slate-900">C++</option>
-                                <option value="JavaScript" className="text-slate-900">JavaScript</option>
-                              </select>
-                            </div>
-                            <textarea value={codingForm.description} onChange={e => setCodingForm({...codingForm, description: e.target.value})} placeholder="Challenge description & examples..." rows={3} className="w-full p-2 border rounded-lg text-xs bg-transparent" required />
-                            <textarea value={codingForm.starterCode} onChange={e => setCodingForm({...codingForm, starterCode: e.target.value})} placeholder="Starter template code..." rows={2} className="w-full p-2 border rounded-lg text-xs bg-transparent font-mono" />
-                            
-                            {/* Testcases */}
-                            <div className="border-t pt-2">
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase">Evaluation Test Cases</span>
-                                <button type="button" onClick={addTestCaseInput} className="text-xs font-bold text-indigo-600 flex items-center gap-0.5"><Plus className="h-3.5 w-3.5" /> Add Case</button>
-                              </div>
-                              <div className="space-y-2 max-h-28 overflow-y-auto pr-1">
-                                {codingTestCases.map((tc, idx) => (
-                                  <div key={idx} className="grid grid-cols-3 gap-1">
-                                    <input type="text" placeholder="Input" value={tc.input} onChange={e => {
-                                      const updated = [...codingTestCases];
-                                      updated[idx].input = e.target.value;
-                                      setCodingTestCases(updated);
-                                    }} className="p-1 border rounded text-[10px]" required />
-                                    <input type="text" placeholder="Expected Out" value={tc.expected_output} onChange={e => {
-                                      const updated = [...codingTestCases];
-                                      updated[idx].expected_output = e.target.value;
-                                      setCodingTestCases(updated);
-                                    }} className="p-1 border rounded text-[10px]" required />
-                                    <select value={tc.isHidden ? 'true' : 'false'} onChange={e => {
-                                      const updated = [...codingTestCases];
-                                      updated[idx].isHidden = e.target.value === 'true';
-                                      setCodingTestCases(updated);
-                                    }} className="p-1 border rounded text-[10px]">
-                                      <option value="false">Visible</option>
-                                      <option value="true">Hidden</option>
-                                    </select>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            <button type="submit" className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs">
-                              Save Coding Question
-                            </button>
-                          </form>
-                        </div>
-                      </div>
-
-                      {/* Currently Configured Questions List */}
-                      <div className="mt-8 border-t border-slate-200/30 dark:border-slate-800/30 pt-6">
-                        <h5 className="font-extrabold text-xs uppercase tracking-wider text-indigo-800 dark:text-indigo-300 mb-4">Currently Configured Questions ({adminSelectedExamMCQs.length + adminSelectedExamCodings.length})</h5>
-                        <div className="space-y-6 max-h-[400px] overflow-y-auto pr-1">
-                          {adminSelectedExamMCQs.length > 0 && (
-                            <div className="space-y-3">
-                              <h6 className="font-bold text-xs text-slate-800 dark:text-slate-200 border-l-2 border-indigo-500 pl-2">Multiple Choice Questions ({adminSelectedExamMCQs.length})</h6>
-                              <div className="grid grid-cols-1 gap-3">
-                                {adminSelectedExamMCQs.map((q, idx) => (
-                                  <div key={q.id || idx} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs text-left shadow-sm">
-                                    <div className="font-bold text-slate-800 dark:text-slate-100">{idx + 1}. {q.question}</div>
-                                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-[11px] text-muted-foreground">
-                                      <div>A: {q.option_a || (q as any).optionA}</div>
-                                      <div>B: {q.option_b || (q as any).optionB}</div>
-                                      <div>C: {q.option_c || (q as any).optionC}</div>
-                                      <div>D: {q.option_d || (q as any).optionD}</div>
-                                    </div>
-                                    <div className="flex gap-2 mt-3">
-                                      <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[9px]">Correct: {q.correct_answer || (q as any).correctAnswer}</span>
-                                      <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[9px]">{q.marks} Marks</span>
-                                      <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[9px] capitalize">{q.difficulty}</span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {adminSelectedExamCodings.length > 0 && (
-                            <div className="space-y-3">
-                              <h6 className="font-bold text-xs text-slate-800 dark:text-slate-200 border-l-2 border-indigo-500 pl-2">Coding Challenges ({adminSelectedExamCodings.length})</h6>
-                              <div className="grid grid-cols-1 gap-3">
-                                {adminSelectedExamCodings.map((q, idx) => (
-                                  <div key={q.id || idx} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs text-left shadow-sm">
-                                    <div className="font-bold text-slate-800 dark:text-slate-100">{idx + 1}. {q.title} ({q.language})</div>
-                                    <div className="mt-2 text-[11px] text-muted-foreground whitespace-pre-wrap font-mono line-clamp-3 bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg">{q.description}</div>
-                                    <div className="flex gap-2 mt-3">
-                                      <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[9px]">{q.marks} Marks</span>
-                                      <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[9px] capitalize">{q.difficulty}</span>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {adminSelectedExamMCQs.length === 0 && adminSelectedExamCodings.length === 0 && (
-                            <div className="text-center py-8 text-muted-foreground text-xs italic bg-white dark:bg-slate-950 rounded-xl border border-dashed">
-                              No questions configured for this exam yet.
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  {/* Questions configuration is now managed in the dedicated full-screen Questions Editor page */}
 
                   {/* Exam wise Results Panel */}
                   {selectedExamIdForResults && (
@@ -3165,7 +2985,7 @@ export default function App() {
                               </td>
                               <td className="text-right py-3 px-2 space-x-1 whitespace-nowrap">
                                 <button onClick={() => { setSelectedExamIdForResults(null); loadAdminExamResults(ex.id, ex.name); }} className="text-[10px] font-bold px-2 py-1 border rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors">Results</button>
-                                <button onClick={() => { setSelectedExamIdForQuestions(ex.id); loadAdminExamQuestions(ex.id); }} className="text-[10px] font-bold px-2 py-1 border rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500 hover:text-white transition-colors">Questions</button>
+                                <button onClick={() => { setSelectedExamIdForQuestions(ex.id); loadAdminExamQuestions(ex.id); setCurrentPage('questions-editor'); }} className="text-[10px] font-bold px-2 py-1 border rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500 hover:text-white transition-colors">Questions</button>
                                 <button onClick={() => startEditingExam(ex)} className="text-[10px] font-bold px-2 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded hover:bg-amber-500 hover:text-white transition-colors">Edit</button>
                                 {!ex.is_published && <button onClick={() => publishExam(ex.id)} className="text-[10px] font-bold px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-500">Publish</button>}
                                 <button onClick={() => duplicateExam(ex.id)} className="text-[10px] font-bold px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded hover:bg-slate-200">Duplicate</button>
@@ -3248,6 +3068,452 @@ export default function App() {
                 </div>
               )}
 
+            </div>
+          </div>
+        </main>
+      )}
+
+      {/* DEDICATED FULL-PAGE QUESTIONS EDITOR PAGE */}
+      {currentPage === 'questions-editor' && selectedExamIdForQuestions && (
+        <main className="max-w-7xl mx-auto py-10 px-4">
+          <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-lg">
+            <div>
+              <button 
+                onClick={() => {
+                  setSelectedExamIdForQuestions(null);
+                  setCurrentPage('admin-dash');
+                }}
+                className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors mb-2"
+              >
+                &larr; Back to Admin Dashboard
+              </button>
+              <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
+                <BookOpen className="h-6 w-6 text-indigo-600" />
+                Exam Questions Manager
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Configure, create, and bulk-import test scenarios for exam: <span className="font-extrabold text-indigo-600 dark:text-indigo-400">{adminExams.find(ex => ex.id === selectedExamIdForQuestions)?.name || 'Selected Exam'}</span>
+              </p>
+            </div>
+            
+            <div className="flex gap-4">
+              <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-950 rounded-2xl text-center min-w-[100px]">
+                <div className="text-lg font-black text-indigo-600 dark:text-indigo-400">{adminSelectedExamMCQs.length}</div>
+                <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">Total MCQs</div>
+              </div>
+              <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-950 rounded-2xl text-center min-w-[100px]">
+                <div className="text-lg font-black text-emerald-600 dark:text-emerald-400">{adminSelectedExamCodings.length}</div>
+                <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">Coding Challenges</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Side: Question Creator Forms */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Tab selector */}
+              <div className="flex gap-1.5 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 w-full md:w-fit shadow-sm">
+                <button
+                  onClick={() => setQuestionEditorTab('mcq')}
+                  className={`flex-1 md:flex-initial px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${questionEditorTab === 'mcq' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10' : 'text-muted-foreground hover:bg-slate-100/50 dark:hover:bg-slate-900/50 hover:text-foreground'}`}
+                >
+                  Multiple Choice Questions (MCQ)
+                </button>
+                <button
+                  onClick={() => setQuestionEditorTab('coding')}
+                  className={`flex-1 md:flex-initial px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${questionEditorTab === 'coding' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10' : 'text-muted-foreground hover:bg-slate-100/50 dark:hover:bg-slate-900/50 hover:text-foreground'}`}
+                >
+                  Coding Challenges
+                </button>
+              </div>
+
+              {questionEditorTab === 'mcq' ? (
+                <div className="bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-md space-y-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Add MCQ Question</h3>
+                    <p className="text-[11px] text-muted-foreground">Add multiple choice questions manually or use CSV import below.</p>
+                  </div>
+
+                  <form onSubmit={addMcqQuestion} className="space-y-4">
+                    <div>
+                      <label className="text-xs font-bold text-muted-foreground">Question Statement</label>
+                      <textarea 
+                        value={mcqForm.question} 
+                        onChange={e => setMcqForm({...mcqForm, question: e.target.value})} 
+                        placeholder="What is the output of print(type(1/2)) in Python 3?" 
+                        rows={3} 
+                        className="w-full p-3.5 mt-1 border rounded-xl text-xs bg-transparent focus:outline-indigo-500 text-slate-900 dark:text-white" 
+                        required 
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground">Option A</label>
+                        <input type="text" value={mcqForm.optionA} onChange={e => setMcqForm({...mcqForm, optionA: e.target.value})} placeholder="Option A" className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground">Option B</label>
+                        <input type="text" value={mcqForm.optionB} onChange={e => setMcqForm({...mcqForm, optionB: e.target.value})} placeholder="Option B" className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground">Option C</label>
+                        <input type="text" value={mcqForm.optionC} onChange={e => setMcqForm({...mcqForm, optionC: e.target.value})} placeholder="Option C" className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground">Option D</label>
+                        <input type="text" value={mcqForm.optionD} onChange={e => setMcqForm({...mcqForm, optionD: e.target.value})} placeholder="Option D" className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground">Correct Option</label>
+                        <select value={mcqForm.correctAnswer} onChange={e => setMcqForm({...mcqForm, correctAnswer: e.target.value})} className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required>
+                          <option value="A">Option A</option>
+                          <option value="B">Option B</option>
+                          <option value="C">Option C</option>
+                          <option value="D">Option D</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground">Question Marks</label>
+                        <input type="number" value={mcqForm.marks} onChange={e => setMcqForm({...mcqForm, marks: parseInt(e.target.value) || 1})} placeholder="Marks" className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground">Difficulty Level</label>
+                        <select value={mcqForm.difficulty} onChange={e => setMcqForm({...mcqForm, difficulty: e.target.value})} className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required>
+                          <option value="easy">Easy</option>
+                          <option value="medium">Medium</option>
+                          <option value="hard">Hard</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <button type="submit" className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-colors flex justify-center items-center gap-2">
+                      <Plus className="h-4 w-4" /> Save MCQ Question
+                    </button>
+                  </form>
+
+                  <div className="border-t border-slate-200/50 dark:border-slate-800/50 pt-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Bulk Import via CSV</h4>
+                        <p className="text-[10px] text-muted-foreground">Add multiple questions at once using a formatted CSV file.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={downloadMcqTemplate}
+                        className="text-xs font-bold text-indigo-600 hover:text-indigo-500 hover:underline flex items-center gap-1"
+                      >
+                        <Download className="h-3.5 w-3.5" /> Download Template
+                      </button>
+                    </div>
+                    
+                    <form onSubmit={importMcqCsv} className="space-y-4">
+                      <div className="border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-2xl p-6 text-center hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors relative cursor-pointer">
+                        <label className="cursor-pointer block">
+                          <span className="text-sm text-indigo-600 dark:text-indigo-400 font-extrabold block">📂 Choose CSV File</span>
+                          <span className="text-xs text-muted-foreground block mt-1">Select a valid .csv template from your computer</span>
+                          <input
+                            type="file"
+                            accept=".csv"
+                            onChange={handleMcqFileChange}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-muted-foreground">Or Paste CSV Content</label>
+                        <textarea
+                          value={mcqCsvInput}
+                          onChange={e => setMcqCsvInput(e.target.value)}
+                          placeholder="Header: Question,Option A,Option B,Option C,Option D,Correct Answer,Marks,Difficulty"
+                          rows={4}
+                          className="w-full p-3 border rounded-xl text-xs bg-transparent font-mono focus:outline-indigo-500 text-slate-900 dark:text-white"
+                          required
+                        />
+                      </div>
+                      <button type="submit" className="w-full py-3 border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white font-extrabold rounded-xl text-xs transition-all">
+                        Import MCQ CSV Data
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-md space-y-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Add Coding Challenge</h3>
+                    <p className="text-[11px] text-muted-foreground">Provide coding challenge details, default starter template code, and validation test cases.</p>
+                  </div>
+
+                  <form onSubmit={addCodingQuestion} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground">Challenge Title</label>
+                        <input 
+                          type="text" 
+                          value={codingForm.title} 
+                          onChange={e => setCodingForm({...codingForm, title: e.target.value})} 
+                          placeholder="Fibonacci Sequence Generator" 
+                          className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" 
+                          required 
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground">Target Language</label>
+                        <select 
+                          value={codingForm.language} 
+                          onChange={e => {
+                            const lang = e.target.value;
+                            const starterTemplates: Record<string, string> = {
+                              'Python': 'def solve(input_val):\n    # Write your code here\n    pass',
+                              'Java': 'import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        // Write your code here\n    }\n}',
+                              'C++': '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Write your code here\n    return 0;\n}',
+                              'JavaScript': 'function solve(inputVal) {\n    // Write your code here\n    return null;\n}'
+                            };
+                            setCodingForm({
+                              ...codingForm,
+                              language: lang,
+                              starterCode: starterTemplates[lang] || ''
+                            });
+                          }} 
+                          className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" 
+                          required
+                        >
+                          <option value="Python">Python</option>
+                          <option value="Java">Java</option>
+                          <option value="C++">C++</option>
+                          <option value="JavaScript">JavaScript</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground">Marks</label>
+                        <input type="number" value={codingForm.marks} onChange={e => setCodingForm({...codingForm, marks: parseInt(e.target.value) || 10})} className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground">Time Limit (ms)</label>
+                        <input type="number" value={codingForm.timeLimit} onChange={e => setCodingForm({...codingForm, timeLimit: parseInt(e.target.value) || 2000})} className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required />
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground">Memory Limit (KB)</label>
+                        <input type="number" value={codingForm.memoryLimit} onChange={e => setCodingForm({...codingForm, memoryLimit: parseInt(e.target.value) || 512000})} className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-muted-foreground">Challenge Description & Examples</label>
+                      <textarea 
+                        value={codingForm.description} 
+                        onChange={e => setCodingForm({...codingForm, description: e.target.value})} 
+                        placeholder="Write clear instructions for the student, detailing inputs, outputs, constraints, and test scenarios..." 
+                        rows={5} 
+                        className="w-full p-3.5 mt-1 border rounded-xl text-xs bg-transparent focus:outline-indigo-500 text-slate-900 dark:text-white" 
+                        required 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-muted-foreground">Starter template code (Reflected automatically on changing language)</label>
+                      <textarea 
+                        value={codingForm.starterCode} 
+                        onChange={e => setCodingForm({...codingForm, starterCode: e.target.value})} 
+                        placeholder="Code shown to students at the beginning of the test..." 
+                        rows={6} 
+                        className="w-full p-3.5 mt-1 border rounded-xl text-xs bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 font-mono focus:outline-indigo-500" 
+                      />
+                    </div>
+                    
+                    {/* Test cases selection */}
+                    <div className="border-t border-slate-200/50 dark:border-slate-800/50 pt-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <div>
+                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">Evaluation Test Cases</h4>
+                          <p className="text-[10px] text-muted-foreground">Minimum 1 testcase is required for automated evaluation.</p>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={addTestCaseInput} 
+                          className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg flex items-center gap-1 transition-all"
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Add Case
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                        {codingTestCases.map((tc, idx) => (
+                          <div key={idx} className="flex flex-col md:flex-row gap-3 p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200/50 dark:border-slate-800/50 items-end">
+                            <div className="flex-1 w-full">
+                              <label className="text-[10px] font-bold text-muted-foreground block mb-1">Standard Input</label>
+                              <input 
+                                type="text" 
+                                placeholder="Input" 
+                                value={tc.input} 
+                                onChange={e => {
+                                  const updated = [...codingTestCases];
+                                  updated[idx].input = e.target.value;
+                                  setCodingTestCases(updated);
+                                }} 
+                                className="w-full p-2 border rounded-lg text-xs bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white" 
+                                required 
+                              />
+                            </div>
+                            <div className="flex-1 w-full">
+                              <label className="text-[10px] font-bold text-muted-foreground block mb-1">Expected Output</label>
+                              <input 
+                                type="text" 
+                                placeholder="Output" 
+                                value={tc.expected_output} 
+                                onChange={e => {
+                                  const updated = [...codingTestCases];
+                                  updated[idx].expected_output = e.target.value;
+                                  setCodingTestCases(updated);
+                                }} 
+                                className="w-full p-2 border rounded-lg text-xs bg-white dark:bg-slate-955 border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white" 
+                                required 
+                              />
+                            </div>
+                            <div className="w-full md:w-32">
+                              <label className="text-[10px] font-bold text-muted-foreground block mb-1">Visibility</label>
+                              <select 
+                                value={tc.isHidden ? 'true' : 'false'} 
+                                onChange={e => {
+                                  const updated = [...codingTestCases];
+                                  updated[idx].isHidden = e.target.value === 'true';
+                                  setCodingTestCases(updated);
+                                }} 
+                                className="w-full p-2 border rounded-lg text-xs bg-white dark:bg-slate-955 border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white"
+                              >
+                                <option value="false">Visible</option>
+                                <option value="true">Hidden</option>
+                              </select>
+                            </div>
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                setCodingTestCases(prev => prev.filter((_, i) => i !== idx));
+                              }}
+                              className="p-2.5 rounded-lg border border-rose-200 dark:border-rose-950 hover:bg-rose-500 hover:text-white text-rose-500 transition-all flex items-center justify-center shrink-0 w-full md:w-auto"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button type="submit" className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-colors flex justify-center items-center gap-2">
+                      <Plus className="h-4 w-4" /> Save Coding Question
+                    </button>
+                  </form>
+                </div>
+              )}
+            </div>
+
+            {/* Right Side: Configured Questions List (Interactive & beautifully styled) */}
+            <div className="lg:col-span-5 bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-md space-y-6">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                  Configured Questions
+                  <span className="text-[11px] font-normal px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
+                    {adminSelectedExamMCQs.length + adminSelectedExamCodings.length} Total
+                  </span>
+                </h3>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Manage existing questions that will appear in the exam test environment.</p>
+              </div>
+
+              <div className="space-y-6 max-h-[680px] overflow-y-auto pr-1">
+                {adminSelectedExamMCQs.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center border-b border-slate-200/40 dark:border-slate-800/40 pb-2">
+                      <h4 className="font-extrabold text-xs text-indigo-700 dark:text-indigo-400 uppercase tracking-widest">MCQ List ({adminSelectedExamMCQs.length})</h4>
+                    </div>
+                    <div className="space-y-3">
+                      {adminSelectedExamMCQs.map((q, idx) => (
+                        <div key={q.id || idx} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-xs text-left shadow-sm group relative">
+                          <div className="font-bold text-slate-800 dark:text-slate-100 pr-6">{idx + 1}. {q.question}</div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2.5 text-[11px] text-muted-foreground border-t border-slate-200/20 dark:border-slate-800/20 pt-2">
+                            <div>A: {q.option_a || (q as any).optionA}</div>
+                            <div>B: {q.option_b || (q as any).optionB}</div>
+                            <div>C: {q.option_c || (q as any).optionC}</div>
+                            <div>D: {q.option_d || (q as any).optionD}</div>
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-slate-200/20 dark:border-slate-800/20">
+                            <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[9px]">Correct: {q.correct_answer || (q as any).correctAnswer}</span>
+                            <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[9px]">{q.marks} Marks</span>
+                            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[9px] capitalize">{q.difficulty}</span>
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this MCQ question?')) {
+                                  setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
+                                  setAdminExams(prev => prev.map(ex => ex.id === selectedExamIdForQuestions ? { ...ex, mcq_count: Math.max(0, (ex.mcq_count || 1) - 1) } : ex));
+                                  showToast('MCQ Question deleted (Simulated)');
+                                }
+                              }}
+                              className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-rose-500 hover:text-rose-600 hover:scale-105 transition-all p-1"
+                              title="Delete Question"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {adminSelectedExamCodings.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center border-b border-slate-200/40 dark:border-slate-800/40 pb-2">
+                      <h4 className="font-extrabold text-xs text-indigo-700 dark:text-indigo-400 uppercase tracking-widest">Coding List ({adminSelectedExamCodings.length})</h4>
+                    </div>
+                    <div className="space-y-3">
+                      {adminSelectedExamCodings.map((q, idx) => (
+                        <div key={q.id || idx} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-xs text-left shadow-sm group relative">
+                          <div className="font-bold text-slate-800 dark:text-slate-100 pr-6">{idx + 1}. {q.title} ({q.language})</div>
+                          <div className="mt-2 text-[11px] text-muted-foreground whitespace-pre-wrap font-mono line-clamp-3 bg-white dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200/40 dark:border-slate-800/40">{q.description}</div>
+                          
+                          <div className="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-slate-200/20 dark:border-slate-800/20">
+                            <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[9px]">{q.marks} Marks</span>
+                            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[9px] capitalize">{q.difficulty}</span>
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this coding question?')) {
+                                  setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
+                                  setAdminExams(prev => prev.map(ex => ex.id === selectedExamIdForQuestions ? { ...ex, coding_count: Math.max(0, (ex.coding_count || 1) - 1) } : ex));
+                                  showToast('Coding Question deleted (Simulated)');
+                                }
+                              }}
+                              className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-rose-500 hover:text-rose-600 hover:scale-105 transition-all p-1"
+                              title="Delete Question"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {adminSelectedExamMCQs.length === 0 && adminSelectedExamCodings.length === 0 && (
+                  <div className="text-center py-12 text-muted-foreground text-xs italic bg-slate-50 dark:bg-slate-900/30 rounded-3xl border border-dashed border-slate-200 dark:border-slate-850">
+                    No questions configured for this exam yet.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </main>
