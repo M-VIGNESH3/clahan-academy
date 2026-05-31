@@ -137,6 +137,8 @@ export default function App() {
   const [githubUpdate, setGithubUpdate] = useState('');
   const [linkedinUpdate, setLinkedinUpdate] = useState('');
   const [photoUpdate, setPhotoUpdate] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newProfilePassword, setNewProfilePassword] = useState('');
 
   // Bulk student import state
   const [studentCsvInput, setStudentCsvInput] = useState('');
@@ -726,6 +728,38 @@ export default function App() {
         });
         showToast('Profile updated successfully (Simulated)');
       }
+    }
+  };
+
+  const changeStudentPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword || !newProfilePassword) {
+      return showToast('Both password fields are required.', 'error');
+    }
+    try {
+      const res = await fetch(`${API_AUTH}/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword: newProfilePassword
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Password updated successfully!');
+        setCurrentPassword('');
+        setNewProfilePassword('');
+      } else {
+        showToast(data.error || 'Password update failed', 'error');
+      }
+    } catch (err) {
+      showToast('Password updated successfully (Simulated)');
+      setCurrentPassword('');
+      setNewProfilePassword('');
     }
   };
 
@@ -2088,18 +2122,13 @@ export default function App() {
         body: JSON.stringify({ email: resetEmail })
       });
       if (res.ok) {
-        const data = await res.json();
-        if (data.otp) {
-          showToast(`[TESTING] OTP Code: ${data.otp}`, 'info');
-          setResetOtp(data.otp);
-        } else {
-          showToast('Password reset OTP sent to your email.');
-        }
+        showToast('Password reset OTP has been sent to your email.');
+        setResetOtp('');
         setCurrentPage('reset-pw');
       }
     } catch (err) {
-      setResetOtp('123456');
-      showToast('OTP sent to email. OTP pre-filled with 123456.', 'info');
+      setResetOtp('');
+      showToast('Password reset simulated. Please enter any 6-digit OTP code to reset.', 'info');
       setCurrentPage('reset-pw');
     }
   };
@@ -3000,6 +3029,41 @@ export default function App() {
                     </div>
                     <button type="submit" className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition-colors text-sm">
                       Update Profile
+                    </button>
+                  </form>
+
+                  {/* Change Password Panel */}
+                  <div>
+                    <h2 className="text-xl font-extrabold tracking-tight mt-8">Change Password</h2>
+                    <p className="text-sm text-muted-foreground">Modify your account security credentials.</p>
+                  </div>
+                  <form onSubmit={changeStudentPassword} className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Current Password</label>
+                        <input 
+                          type="password" 
+                          value={currentPassword} 
+                          onChange={e => setCurrentPassword(e.target.value)} 
+                          placeholder="••••••••" 
+                          className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent focus:outline-indigo-500" 
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">New Password</label>
+                        <input 
+                          type="password" 
+                          value={newProfilePassword} 
+                          onChange={e => setNewProfilePassword(e.target.value)} 
+                          placeholder="••••••••" 
+                          className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent focus:outline-indigo-500" 
+                          required
+                        />
+                      </div>
+                    </div>
+                    <button type="submit" className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl shadow-md transition-colors text-sm">
+                      Update Password
                     </button>
                   </form>
                 </div>

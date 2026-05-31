@@ -397,7 +397,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
       otp
     });
 
-    res.json({ message: 'Password reset OTP has been sent to your email.', otp });
+    res.json({ message: 'Password reset OTP has been sent to your email.' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -427,6 +427,35 @@ app.post('/api/auth/reset-password', async (req, res) => {
     }
 
     res.json({ message: 'Password has been reset successfully. You can now login.' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Change Password (authenticated)
+app.post('/api/auth/change-password', authenticateToken, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+
+    const userResult = await query('SELECT * FROM users WHERE id = $1', [userId]);
+    if (userResult.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    const user = userResult.rows[0];
+
+    const validPassword = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!validPassword) {
+      return res.status(400).json({ error: 'Incorrect current password' });
+    }
+
+    const hashedPw = await bcrypt.hash(newPassword, 10);
+    await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hashedPw, userId]);
+
+    res.json({ message: 'Password has been updated successfully' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
