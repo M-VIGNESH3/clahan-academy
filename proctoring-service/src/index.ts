@@ -144,10 +144,10 @@ io.on('connection', (socket: Socket) => {
       let shouldTerminate = false;
       let terminationReason = '';
 
-      // Rule 1: 2 Tab switches -> Terminate
-      if ((counts['TAB_SWITCH'] || 0) >= 2) {
+      // Rule 1: 1 Tab switch -> Terminate
+      if ((counts['TAB_SWITCH'] || 0) >= 1) {
         shouldTerminate = true;
-        terminationReason = 'Multiple tab switches detected (limit 2).';
+        terminationReason = 'Tab switch detected (limit 1).';
       }
       // Rule 2: Camera disabled -> Terminate
       else if (eventType === 'CAMERA_DISABLED') {

@@ -1701,7 +1701,7 @@ export default function App() {
     }
     setTabWarnings(prev => {
       const updated = prev + 1;
-      const logMsg = `Tab Switch Violation #${updated} detected.`;
+      const logMsg = `Tab Switch Violation detected.`;
       setProctorLogs(p => [`[Violation] ${logMsg} (${new Date().toLocaleTimeString()})`, ...p]);
       
       // Emit to server if socket is active
@@ -1709,17 +1709,15 @@ export default function App() {
         socketRef.current.emit('proctor-event', {
           eventType: 'TAB_SWITCH',
           details: 'Browser focus lost or tab switched',
-          severity: updated >= 2 ? 'critical' : 'warning'
+          severity: 'critical'
         });
       }
 
       // Local warning & enforcement (always active)
-      if (updated >= 2) {
+      if (updated >= 1) {
         if (timerRef.current) clearInterval(timerRef.current);
-        alert('Exam terminated: 2 Tab switches detected.');
-        handleExamTermination('Multiple tab switches detected (limit 2).');
-      } else {
-        showToast(`Warning: Tab switch detected! (Limit: 2). Exam will terminate on next tab switch.`, 'error');
+        alert('Exam terminated: Tab switch detected.');
+        handleExamTermination('Tab switch detected (limit 1).');
       }
 
       return updated;
