@@ -139,6 +139,8 @@ export default function App() {
   const [photoUpdate, setPhotoUpdate] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newProfilePassword, setNewProfilePassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewProfilePassword, setShowNewProfilePassword] = useState(false);
 
   // Bulk student import state
   const [studentCsvInput, setStudentCsvInput] = useState('');
@@ -3041,25 +3043,43 @@ export default function App() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground">Current Password</label>
-                        <input 
-                          type="password" 
-                          value={currentPassword} 
-                          onChange={e => setCurrentPassword(e.target.value)} 
-                          placeholder="••••••••" 
-                          className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent focus:outline-indigo-500" 
-                          required
-                        />
+                        <div className="relative">
+                          <input 
+                            type={showCurrentPassword ? "text" : "password"} 
+                            value={currentPassword} 
+                            onChange={e => setCurrentPassword(e.target.value)} 
+                            placeholder="••••••••" 
+                            className="w-full p-3.5 pr-10 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent focus:outline-indigo-500" 
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                          >
+                            {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
                       </div>
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground">New Password</label>
-                        <input 
-                          type="password" 
-                          value={newProfilePassword} 
-                          onChange={e => setNewProfilePassword(e.target.value)} 
-                          placeholder="••••••••" 
-                          className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent focus:outline-indigo-500" 
-                          required
-                        />
+                        <div className="relative">
+                          <input 
+                            type={showNewProfilePassword ? "text" : "password"} 
+                            value={newProfilePassword} 
+                            onChange={e => setNewProfilePassword(e.target.value)} 
+                            placeholder="••••••••" 
+                            className="w-full p-3.5 pr-10 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent focus:outline-indigo-500" 
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewProfilePassword(!showNewProfilePassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                          >
+                            {showNewProfilePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
                       </div>
                     </div>
                     <button type="submit" className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl shadow-md transition-colors text-sm">
