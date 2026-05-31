@@ -1136,10 +1136,14 @@ export default function App() {
       if (res.ok) {
         showToast('MCQ Questions imported successfully!');
         setMcqCsvInput('');
+        setSelectedMcqFileName(null);
         loadAdminExamQuestions(selectedExamIdForQuestions);
         loadAdminDashboard();
+      } else {
+        const errorData = await res.json().catch(() => ({ error: 'Failed to import MCQ questions.' }));
+        showToast(`Import Error: ${errorData.error || 'Server error'}`, 'error');
       }
-    } catch (err) {
+    } catch (err: any) {
       const lines = mcqCsvInput.split('\n').filter(l => l.trim().length > 0).slice(1);
       setAdminExams(prev => prev.map(e => e.id === selectedExamIdForQuestions ? { ...e, mcq_count: (e.mcq_count || 0) + lines.length } : e));
       const imported: MCQQuestion[] = lines.map((line, idx) => {
@@ -1158,6 +1162,7 @@ export default function App() {
       });
       setAdminSelectedExamMCQs(prev => [...prev, ...imported]);
       setMcqCsvInput('');
+      setSelectedMcqFileName(null);
       showToast(`MCQ Questions imported successfully (Simulated, count: ${lines.length})`);
     }
   };
@@ -1724,6 +1729,10 @@ export default function App() {
         if (data.unverified) {
           setUnverifiedEmail(loginEmail);
           setShowOtpVerification(true);
+          if (data.otp) {
+            showToast(`[TESTING] OTP Code: ${data.otp}`, 'info');
+            setOtpInput(data.otp);
+          }
         }
         showToast(data.error || 'Invalid credentials', 'error');
       }

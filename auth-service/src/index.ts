@@ -245,7 +245,8 @@ app.post('/api/auth/login', async (req, res) => {
       });
       return res.status(403).json({
         error: 'Email not verified. A new OTP has been sent to your email.',
-        unverified: true
+        unverified: true,
+        otp
       });
     }
 

@@ -20,13 +20,19 @@ app.get('/health', (req, res) => {
 });
 
 // SMTP Transporter configuration
+const smtpHost = (process.env.SMTP_HOST || 'smtp.gmail.com').replace(/^"|"$/g, '');
+const smtpPort = parseInt((process.env.SMTP_PORT || '587').replace(/^"|"$/g, ''));
+const smtpUser = (process.env.SMTP_USER || 'aiexamplatform123@gmail.com').replace(/^"|"$/g, '');
+const smtpPass = (process.env.SMTP_PASS || 'zmso iaml jdkh wpxn').replace(/^"|"$/g, '');
+const smtpFrom = (process.env.SMTP_FROM || 'aiexamplatform123@gmail.com').replace(/^"|"$/g, '');
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false, // true for 465, false for other ports
+  host: smtpHost,
+  port: smtpPort,
+  secure: smtpPort === 465,
   auth: {
-    user: process.env.SMTP_USER || 'aiexamplatform123@gmail.com',
-    pass: process.env.SMTP_PASS || 'zmso iaml jdkh wpxn',
+    user: smtpUser,
+    pass: smtpPass,
   },
 });
 
@@ -227,7 +233,7 @@ async function startWorker() {
       while (attempts < 3 && !sent) {
         try {
           await transporter.sendMail({
-            from: process.env.SMTP_FROM || 'aiexamplatform123@gmail.com',
+            from: smtpFrom,
             to: payload.email,
             subject: subject,
             html: html,

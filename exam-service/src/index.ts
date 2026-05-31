@@ -296,6 +296,31 @@ app.get('/api/exams/templates/mcq', (req, res) => {
   res.status(200).send(template);
 });
 
+// Helper function to parse a CSV line properly handling double quotes and embedded commas
+function parseCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current.trim());
+  return result;
+}
+
 // Upload MCQ Questions (CSV)
 app.post('/api/exams/:id/mcq/import', authenticate, requireRole('admin'), async (req, res) => {
   try {
@@ -303,12 +328,12 @@ app.post('/api/exams/:id/mcq/import', authenticate, requireRole('admin'), async 
     const { csvContent } = req.body;
     if (!csvContent) return res.status(400).json({ error: 'CSV content required' });
 
-    const lines = csvContent.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+    const lines = csvContent.replace(/\r/g, '').split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
     const dataRows = lines.slice(1);
 
     let inserted = 0;
     for (const row of dataRows) {
-      const parts = row.split(',').map((p: string) => p.trim());
+      const parts = parseCsvLine(row);
       if (parts.length < 8) continue;
 
       const question = parts[0];
@@ -319,6 +344,10 @@ app.post('/api/exams/:id/mcq/import', authenticate, requireRole('admin'), async 
       const correct = parts[5];
       const marks = parseInt(parts[6]) || 1;
       const difficulty = parts[7] || 'medium';
+
+      if (!question || !optA || !optB || !optC || !optD || !correct) {
+        continue;
+      }
 
       await query(
         `INSERT INTO mcq_questions (exam_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty)
