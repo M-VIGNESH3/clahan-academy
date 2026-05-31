@@ -341,9 +341,20 @@ app.post('/api/exams/:id/mcq/import', authenticate, requireRole('admin'), async 
       const optB = parts[2];
       const optC = parts[3];
       const optD = parts[4];
-      const correct = parts[5];
+      let correct = parts[5] ? parts[5].trim() : 'A';
       const marks = parseInt(parts[6]) || 1;
       const difficulty = parts[7] || 'medium';
+
+      if (correct.length > 1) {
+        const cleanCorrect = correct.toUpperCase();
+        if (cleanCorrect.startsWith('OPTION ')) {
+          correct = cleanCorrect.replace('OPTION ', '').trim();
+        } else if (cleanCorrect.startsWith('A') || cleanCorrect.startsWith('B') || cleanCorrect.startsWith('C') || cleanCorrect.startsWith('D')) {
+          correct = cleanCorrect.charAt(0);
+        }
+      } else {
+        correct = correct.toUpperCase();
+      }
 
       if (!question || !optA || !optB || !optC || !optD || !correct) {
         continue;

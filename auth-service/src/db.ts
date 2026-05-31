@@ -99,6 +99,11 @@ export async function initDb() {
       );
     `);
 
+    // Migration to increase correct_answer length constraint
+    await client.query(`
+      ALTER TABLE mcq_questions ALTER COLUMN correct_answer TYPE VARCHAR(255);
+    `);
+
     // Coding Questions
     await client.query(`
       CREATE TABLE IF NOT EXISTS coding_questions (

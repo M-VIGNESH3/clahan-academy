@@ -124,9 +124,9 @@ services:
       PORT: 4006
       REDIS_URL: redis://redis:6379
       SMTP_HOST: smtp.gmail.com
-      SMTP_PORT: 587
+      SMTP_PORT: 465
       SMTP_USER: aiexamplatform123@gmail.com
-      SMTP_PASS: "zmso iaml jdkh wpxn"
+      SMTP_PASS: zmso iaml jdkh wpxn
       SMTP_FROM: aiexamplatform123@gmail.com
       FRONTEND_URL: https://smartpg.online
     depends_on:
