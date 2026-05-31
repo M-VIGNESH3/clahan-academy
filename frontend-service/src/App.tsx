@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   BookOpen, Code, Shield, Video, Bell, Settings, Award, Users, CheckCircle, AlertTriangle, 
   Trash2, Copy, Send, Download, Upload, Plus, Play, Check, Moon, Sun, ArrowRight, User, 
@@ -190,6 +190,23 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const proctorIntervalRef = useRef<any>(null);
   const currentPageRef = useRef(currentPage);
+  const isSubmittingRef = useRef(false);
+
+  const handleTabSwitchRef = useRef<any>(null);
+  const handleVisibilityChangeRef = useRef<any>(null);
+
+  useEffect(() => {
+    handleTabSwitchRef.current = handleTabSwitch;
+    handleVisibilityChangeRef.current = handleVisibilityChange;
+  });
+
+  const stableTabSwitch = useCallback(() => {
+    if (handleTabSwitchRef.current) handleTabSwitchRef.current();
+  }, []);
+
+  const stableVisibilityChange = useCallback(() => {
+    if (handleVisibilityChangeRef.current) handleVisibilityChangeRef.current();
+  }, []);
 
   // View Result Detail State
   const [selectedResultAttemptId, setSelectedResultAttemptId] = useState<string | null>(null);
@@ -1454,12 +1471,12 @@ export default function App() {
     }, 10000);
 
     // Track tab switching browser events
-    window.addEventListener('blur', handleTabSwitch);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', stableTabSwitch);
+    document.addEventListener('visibilitychange', stableVisibilityChange);
   };
 
   const handleVisibilityChange = () => {
-    if (currentPageRef.current !== 'exam-env') {
+    if (currentPageRef.current !== 'exam-env' || isSubmittingRef.current) {
       cleanupProctoring();
       return;
     }
@@ -1469,7 +1486,7 @@ export default function App() {
   };
 
   const handleTabSwitch = () => {
-    if (currentPageRef.current !== 'exam-env') {
+    if (currentPageRef.current !== 'exam-env' || isSubmittingRef.current) {
       cleanupProctoring();
       return;
     }
@@ -1518,8 +1535,8 @@ export default function App() {
       cameraStream.getTracks().forEach(track => track.stop());
       setCameraStream(null);
     }
-    window.removeEventListener('blur', handleTabSwitch);
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.removeEventListener('blur', stableTabSwitch);
+    document.removeEventListener('visibilitychange', stableVisibilityChange);
     if (document.exitFullscreen && document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
     }
@@ -1616,14 +1633,16 @@ export default function App() {
   };
 
   const submitEntireExam = async (isAuto = false) => {
+    isSubmittingRef.current = true;
     if (!isAuto) {
-      window.removeEventListener('blur', handleTabSwitch);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', stableTabSwitch);
+      document.removeEventListener('visibilitychange', stableVisibilityChange);
     }
     if (!isAuto && !confirm('Are you sure you want to finish and submit your exam?')) {
+      isSubmittingRef.current = false;
       if (currentPage === 'exam-env') {
-        window.addEventListener('blur', handleTabSwitch);
-        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('blur', stableTabSwitch);
+        document.addEventListener('visibilitychange', stableVisibilityChange);
       }
       return;
     }
@@ -1669,6 +1688,8 @@ export default function App() {
       };
       setDetailedResult(mockResult);
       setCurrentPage('result-view');
+    } finally {
+      isSubmittingRef.current = false;
     }
   };
 

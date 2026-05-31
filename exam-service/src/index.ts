@@ -636,11 +636,40 @@ app.post('/api/exams/student/attempts/:attemptId/mcq-response', authenticate, re
     }
 
     // Check correct answer
-    const q = await query('SELECT correct_answer, marks FROM mcq_questions WHERE id = $1', [questionId]);
+    const q = await query('SELECT correct_answer, option_a, option_b, option_c, option_d, marks FROM mcq_questions WHERE id = $1', [questionId]);
     if (q.rows.length === 0) return res.status(404).json({ error: 'Question not found' });
 
-    const isCorrect = q.rows[0].correct_answer.trim().toUpperCase() === selectedOption.trim().toUpperCase();
-    const marksObtained = isCorrect ? q.rows[0].marks : 0;
+    const questionData = q.rows[0];
+    const correctAnswer = (questionData.correct_answer || '').trim().toUpperCase();
+    const cleanSelected = (selectedOption || '').trim().toUpperCase();
+
+    // Check 1: Direct key match (e.g. 'A' === 'A')
+    let isCorrect = correctAnswer === cleanSelected;
+
+    // Check 2: Option prefix format match (e.g. 'Option A' or 'A.' prefix)
+    if (!isCorrect) {
+      if (correctAnswer === 'OPTION A' || correctAnswer === 'A.') {
+        isCorrect = cleanSelected === 'A';
+      } else if (correctAnswer === 'OPTION B' || correctAnswer === 'B.') {
+        isCorrect = cleanSelected === 'B';
+      } else if (correctAnswer === 'OPTION C' || correctAnswer === 'C.') {
+        isCorrect = cleanSelected === 'C';
+      } else if (correctAnswer === 'OPTION D' || correctAnswer === 'D.') {
+        isCorrect = cleanSelected === 'D';
+      }
+    }
+
+    // Check 3: Full option text match (e.g. database has 'Paris' and student selected 'A' which corresponds to option_a = 'Paris')
+    if (!isCorrect && cleanSelected) {
+      const optionKey = `option_${cleanSelected.toLowerCase()}`;
+      const selectedOptionText = questionData[optionKey];
+      if (selectedOptionText) {
+        const cleanOptionText = selectedOptionText.trim().toUpperCase();
+        isCorrect = (correctAnswer === cleanOptionText);
+      }
+    }
+
+    const marksObtained = isCorrect ? questionData.marks : 0;
 
     await query(
       `INSERT INTO mcq_responses (attempt_id, question_id, selected_option, is_correct, marks_obtained)
