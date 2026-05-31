@@ -129,7 +129,9 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req: Authe
               (SELECT COUNT(*) FROM exam_attempts ea WHERE ea.exam_id = e.id AND ea.student_id = $4) as attempts_made
        FROM exams e
        WHERE e.college_id = $1 AND e.department_id = $2 AND e.year = $3
-         AND e.is_published = TRUE AND e.schedule_date <= CURRENT_TIMESTAMP
+         AND e.is_published = TRUE 
+         AND e.schedule_date <= CURRENT_TIMESTAMP
+         AND CURRENT_TIMESTAMP <= e.schedule_date + (COALESCE(e.window_open_minutes, 10) * INTERVAL '1 minute')
        ORDER BY e.schedule_date DESC`,
       [collegeId, departmentId, year, studentId]
     );

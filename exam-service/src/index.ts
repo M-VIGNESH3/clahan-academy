@@ -118,7 +118,7 @@ app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res)
 // Create Exam
 app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
   try {
-    const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, year } = req.body;
+    const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, year, windowOpenMinutes } = req.body;
     if (!name || !examType || !durationMinutes || !scheduleDate || !collegeId || !departmentId || !year) {
       return res.status(400).json({ error: 'Missing required parameters' });
     }
@@ -126,9 +126,9 @@ app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
     const result = await query(
       `INSERT INTO exams (
         name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts,
-        schedule_date, college_id, department_id, year, is_published
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, FALSE) RETURNING *`,
-      [name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, departmentId, year]
+        schedule_date, college_id, department_id, year, window_open_minutes, is_published
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, FALSE) RETURNING *`,
+      [name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, departmentId, year, windowOpenMinutes !== undefined ? windowOpenMinutes : 10]
     );
 
     res.status(201).json(result.rows[0]);
@@ -174,15 +174,15 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
 // Update Exam
 app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) => {
   try {
-    const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, year } = req.body;
+    const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, year, windowOpenMinutes } = req.body;
     
     const result = await query(
       `UPDATE exams 
        SET name = $1, description = $2, exam_type = $3, duration_minutes = $4,
            cutoff_percentage = $5, allowed_attempts = $6, schedule_date = $7,
-           college_id = $8, department_id = $9, year = $10
-       WHERE id = $11 RETURNING *`,
-      [name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, year, req.params.id]
+           college_id = $8, department_id = $9, year = $10, window_open_minutes = $11
+       WHERE id = $12 RETURNING *`,
+      [name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, year, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, req.params.id]
     );
 
     if (result.rows.length === 0) return res.status(404).json({ error: 'Exam not found' });
@@ -203,9 +203,9 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
     const ex = examCheck.rows[0];
 
     const newExam = await query(
-      `INSERT INTO exams (name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts, schedule_date, college_id, department_id, year, is_published)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, FALSE) RETURNING *`,
-      [`Copy of ${ex.name}`, ex.description, ex.exam_type, ex.duration_minutes, ex.cutoff_percentage, ex.allowed_attempts, ex.schedule_date, ex.college_id, ex.department_id, ex.year]
+      `INSERT INTO exams (name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts, schedule_date, college_id, department_id, year, window_open_minutes, is_published)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, FALSE) RETURNING *`,
+      [`Copy of ${ex.name}`, ex.description, ex.exam_type, ex.duration_minutes, ex.cutoff_percentage, ex.allowed_attempts, ex.schedule_date, ex.college_id, ex.department_id, ex.year, ex.window_open_minutes]
     );
     const newExamId = newExam.rows[0].id;
 
@@ -418,7 +418,9 @@ app.get('/api/exams/student/active', authenticate, requireRole('student'), async
               (SELECT COUNT(*) FROM exam_attempts ea WHERE ea.exam_id = e.id AND ea.student_id = $4) as attempts_made
        FROM exams e
        WHERE e.college_id = $1 AND e.department_id = $2 AND e.year = $3
-         AND e.is_published = TRUE AND e.schedule_date <= CURRENT_TIMESTAMP
+         AND e.is_published = TRUE 
+         AND e.schedule_date <= CURRENT_TIMESTAMP
+         AND CURRENT_TIMESTAMP <= e.schedule_date + (COALESCE(e.window_open_minutes, 10) * INTERVAL '1 minute')
        ORDER BY e.schedule_date DESC`,
       [college_id, department_id, year, studentId]
     );
@@ -440,13 +442,26 @@ app.get('/api/exams/student/:id/instructions', authenticate, requireRole('studen
     const exam = await query('SELECT * FROM exams WHERE id = $1', [id]);
     if (exam.rows.length === 0) return res.status(404).json({ error: 'Exam not found' });
 
+    const examData = exam.rows[0];
+    const now = new Date();
+    const sched = new Date(examData.schedule_date);
+    const windowOpenMins = examData.window_open_minutes !== null && examData.window_open_minutes !== undefined ? examData.window_open_minutes : 10;
+    const windowClose = new Date(sched.getTime() + windowOpenMins * 60 * 1000);
+
+    if (now < sched) {
+      return res.status(403).json({ error: 'This exam has not started yet.' });
+    }
+    if (now > windowClose) {
+      return res.status(403).json({ error: 'The entry window for this exam has closed.' });
+    }
+
     const attemptsResult = await query(
       'SELECT count(*) FROM exam_attempts WHERE exam_id = $1 AND student_id = $2',
       [id, studentId]
     );
     const attemptsMade = parseInt(attemptsResult.rows[0].count);
 
-    if (attemptsMade >= exam.rows[0].allowed_attempts) {
+    if (attemptsMade >= examData.allowed_attempts) {
       return res.status(403).json({ error: 'Maximum attempts reached for this exam' });
     }
 
@@ -476,13 +491,26 @@ app.post('/api/exams/student/:id/start', authenticate, requireRole('student'), a
     const exam = await query('SELECT * FROM exams WHERE id = $1', [id]);
     if (exam.rows.length === 0) return res.status(404).json({ error: 'Exam not found' });
 
+    const examData = exam.rows[0];
+    const now = new Date();
+    const sched = new Date(examData.schedule_date);
+    const windowOpenMins = examData.window_open_minutes !== null && examData.window_open_minutes !== undefined ? examData.window_open_minutes : 10;
+    const windowClose = new Date(sched.getTime() + windowOpenMins * 60 * 1000);
+
+    if (now < sched) {
+      return res.status(403).json({ error: 'This exam has not started yet.' });
+    }
+    if (now > windowClose) {
+      return res.status(403).json({ error: 'The entry window for this exam has closed.' });
+    }
+
     const attemptsResult = await query(
       'SELECT count(*) FROM exam_attempts WHERE exam_id = $1 AND student_id = $2',
       [id, studentId]
     );
     const attemptsMade = parseInt(attemptsResult.rows[0].count);
 
-    if (attemptsMade >= exam.rows[0].allowed_attempts) {
+    if (attemptsMade >= examData.allowed_attempts) {
       return res.status(403).json({ error: 'Maximum attempts reached for this exam' });
     }
 

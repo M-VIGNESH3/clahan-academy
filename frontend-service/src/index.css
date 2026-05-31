@@ -119,3 +119,32 @@
 .code-editor {
   font-family: 'JetBrains Mono', monospace;
 }
+
+/* Calendar Icon custom styles for input[type="date"] and input[type="datetime-local"] */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 4px;
+  transition: all 0.2s ease-in-out;
+  background-position: center;
+  background-size: contain;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  background-color: rgba(99, 102, 241, 0.15);
+  transform: scale(1.05);
+}
+
+/* Light mode visibility */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.2) sepia(1) saturate(5) hue-rotate(200deg);
+}
+
+/* Dark mode visibility */
+.dark input[type="date"]::-webkit-calendar-picker-indicator,
+.dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.2);
+}

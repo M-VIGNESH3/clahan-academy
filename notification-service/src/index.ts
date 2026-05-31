@@ -26,7 +26,7 @@ const transporter = nodemailer.createTransport({
   secure: false, // true for 465, false for other ports
   auth: {
     user: process.env.SMTP_USER || 'aiexamplatform123@gmail.com',
-    pass: process.env.SMTP_PASS || 'read_from_environment',
+    pass: process.env.SMTP_PASS || 'zmso iaml jdkh wpxn',
   },
 });
 

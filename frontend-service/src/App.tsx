@@ -21,7 +21,7 @@ interface Exam {
   id: string; name: string; description: string; exam_type: 'mcq' | 'coding' | 'both';
   duration_minutes: number; cutoff_percentage: number; allowed_attempts: number;
   schedule_date: string; college_id: string; department_id: string; year: string;
-  is_published: boolean; mcq_count?: number; coding_count?: number;
+  is_published: boolean; window_open_minutes?: number; mcq_count?: number; coding_count?: number;
 }
 interface MCQQuestion {
   id: string; question: string; option_a: string; option_b: string; option_c: string; option_d: string;
@@ -128,6 +128,7 @@ export default function App() {
   const [examForm, setExamForm] = useState({
     name: '', description: '', examType: 'mcq' as 'mcq' | 'coding' | 'both',
     durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
+    windowOpenMinutes: 10,
     collegeId: '', departmentId: '', year: '1st Year'
   });
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
@@ -731,6 +732,7 @@ export default function App() {
         cutoff_percentage: examForm.cutoffPercentage,
         allowed_attempts: examForm.allowedAttempts,
         schedule_date: examForm.scheduleDate || new Date().toISOString(),
+        window_open_minutes: examForm.windowOpenMinutes || 10,
         is_published: false,
         mcq_count: 0,
         coding_count: 0,
@@ -759,6 +761,7 @@ export default function App() {
         setExamForm({
           name: '', description: '', examType: 'mcq' as 'mcq' | 'coding' | 'both',
           durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
+          windowOpenMinutes: 10,
           collegeId: '', departmentId: '', year: '1st Year'
         });
         loadAdminDashboard();
@@ -772,6 +775,7 @@ export default function App() {
         cutoff_percentage: examForm.cutoffPercentage,
         allowed_attempts: examForm.allowedAttempts,
         schedule_date: examForm.scheduleDate,
+        window_open_minutes: examForm.windowOpenMinutes,
         year: examForm.year,
         college_id: examForm.collegeId,
         department_id: examForm.departmentId
@@ -780,6 +784,7 @@ export default function App() {
       setExamForm({
         name: '', description: '', examType: 'mcq' as 'mcq' | 'coding' | 'both',
         durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
+        windowOpenMinutes: 10,
         collegeId: '', departmentId: '', year: '1st Year'
       });
       showToast('Exam configuration updated successfully (Simulated)');
@@ -807,6 +812,7 @@ export default function App() {
       cutoffPercentage: ex.cutoff_percentage,
       allowedAttempts: ex.allowed_attempts || 1,
       scheduleDate: localSched,
+      windowOpenMinutes: ex.window_open_minutes !== undefined ? ex.window_open_minutes : 10,
       collegeId: ex.college_id || '',
       departmentId: ex.department_id || '',
       year: ex.year || '1st Year'
@@ -2299,11 +2305,19 @@ export default function App() {
                       {activeExams.map(ex => (
                         <div key={ex.id} className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm flex flex-col justify-between">
                           <div>
-                            <div className="flex justify-between items-start gap-2 mb-4">
+                            <div className="flex justify-between items-start gap-2 mb-3">
                               <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase">{ex.exam_type}</span>
-                              <span className="text-xs text-muted-foreground font-mono">{ex.duration_minutes} Mins</span>
+                              <div className="text-right">
+                                <span className="text-xs text-muted-foreground font-mono block">{ex.duration_minutes} Mins</span>
+                                <span className="text-[10px] text-rose-500 dark:text-rose-400 font-semibold block mt-0.5">
+                                  Entry Window: {ex.window_open_minutes || 10} Mins
+                                </span>
+                              </div>
                             </div>
-                            <h3 className="font-extrabold text-base mb-2 text-slate-900 dark:text-white">{ex.name}</h3>
+                            <h3 className="font-extrabold text-base mb-1 text-slate-900 dark:text-white">{ex.name}</h3>
+                            <p className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 mb-3">
+                              Scheduled at: {new Date(ex.schedule_date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                            </p>
                             <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 mb-6">{ex.description}</p>
                           </div>
                           <button
@@ -2328,7 +2342,12 @@ export default function App() {
                           <div key={ex.id} className="p-4 rounded-xl border border-slate-200/40 dark:border-slate-800/40 bg-white dark:bg-slate-950 flex items-center justify-between">
                             <div>
                               <p className="font-bold text-sm">{ex.name}</p>
-                              <p className="text-xs text-muted-foreground mt-1">Scheduled for: {new Date(ex.schedule_date).toLocaleString()}</p>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                                <p className="text-xs text-muted-foreground">Scheduled for: {new Date(ex.schedule_date).toLocaleString()}</p>
+                                <span className="text-[10px] px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 font-semibold font-mono">
+                                  Entry Window: {ex.window_open_minutes || 10} Mins
+                                </span>
+                              </div>
                             </div>
                             <span className="text-xs font-mono text-indigo-500 dark:text-indigo-400 font-semibold">{ex.duration_minutes} Mins</span>
                           </div>
@@ -2765,6 +2784,7 @@ export default function App() {
                           setExamForm({
                             name: '', description: '', examType: 'mcq',
                             durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
+                            windowOpenMinutes: 10,
                             collegeId: '', departmentId: '', year: '1st Year'
                           });
                         }} className="text-xs font-bold text-amber-600 hover:underline">Cancel Edit</button>
@@ -2806,7 +2826,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-4 gap-3">
+                      <div className="grid grid-cols-3 gap-3">
                         <div>
                           <label className="text-xs font-semibold text-muted-foreground">College Eligibility</label>
                           <select value={examForm.collegeId} onChange={e => { setExamForm({...examForm, collegeId: e.target.value}); fetchDepartments(e.target.value); }} className="w-full p-3 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white mt-1" required>
@@ -2830,9 +2850,16 @@ export default function App() {
                             <option value="4th Year" className="text-slate-900">4th Year</option>
                           </select>
                         </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="text-xs font-semibold text-muted-foreground">Schedule Date & Time</label>
                           <input type="datetime-local" value={examForm.scheduleDate} onChange={e => setExamForm({...examForm, scheduleDate: e.target.value})} className="w-full p-2.5 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white mt-1" required />
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-muted-foreground">Entry Window (Minutes)</label>
+                          <input type="number" value={examForm.windowOpenMinutes} onChange={e => setExamForm({...examForm, windowOpenMinutes: parseInt(e.target.value) || 10})} className="w-full p-2.5 border rounded-xl text-xs bg-transparent mt-1" min={1} max={1440} placeholder="By default 10 mins" required />
                         </div>
                       </div>
 

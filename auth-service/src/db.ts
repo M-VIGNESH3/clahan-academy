@@ -70,9 +70,15 @@ export async function initDb() {
         college_id UUID REFERENCES colleges(id) ON DELETE CASCADE,
         department_id UUID REFERENCES departments(id) ON DELETE CASCADE,
         year VARCHAR(50) NOT NULL,
+        window_open_minutes INTEGER DEFAULT 10,
         is_published BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    // Migrate existing DB if needed
+    await client.query(`
+      ALTER TABLE exams ADD COLUMN IF NOT EXISTS window_open_minutes INTEGER DEFAULT 10;
     `);
 
     // MCQ Questions
