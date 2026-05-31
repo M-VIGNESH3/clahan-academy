@@ -42,7 +42,11 @@ app.get('/api/proctor/live', async (req, res) => {
       WHERE ea.status = 'ongoing'
       ORDER BY ea.created_at DESC
     `);
-    res.json(result.rows);
+    
+    // Filter to only return attempts that are actively connected right now
+    const activeAttemptIds = Object.values(activeSessions).map(s => s.attemptId);
+    const activeOnly = result.rows.filter(row => activeAttemptIds.includes(row.attempt_id));
+    res.json(activeOnly);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
