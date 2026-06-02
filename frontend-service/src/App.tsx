@@ -121,11 +121,11 @@ export default function App() {
 
   // Settings State
   const [companySettings, setCompanySettings] = useState({
-    companyName: 'Clahan Academy',
-    contactPhone: '+1-555-123-4567',
-    contactEmail: 'support@clahan.com',
-    companyAddress: '100 Innovation Way, Silicon Valley, CA',
-    footerText: 'Powered by Clahan Academy Enterprise Assessment Engine. All rights reserved.',
+    companyName: 'Clahan Technologies',
+    contactPhone: '+91 83173 37694',
+    contactEmail: 'info@clahantechnologies.com',
+    companyAddress: 'Maruthi Nagar, BTM 1st Stage, Bangalore, Karnataka, India – 560068',
+    footerText: 'Powered by Clahan Technologies Enterprise Assessment Engine. All rights reserved.',
     smtpHost: 'smtp.gmail.com',
     smtpPort: '587',
     smtpUser: 'aiexamplatform123@gmail.com',
@@ -2210,7 +2210,7 @@ export default function App() {
               C
             </div>
             <span className="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300">
-              CLAHAN ACADEMY
+              CLAHAN TECHNOLOGIES
             </span>
           </div>
 
@@ -2300,7 +2300,7 @@ export default function App() {
             <div className="max-w-7xl mx-auto">
               <h2 className="text-3xl font-extrabold text-center mb-4 tracking-tight">Enterprise Assessment Domains</h2>
               <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-12">
-                Clahan Academy supports deep-dive assessments mapped exactly to modern technology stacks and systems engineering roles.
+                Clahan Technologies supports deep-dive assessments mapped exactly to modern technology stacks and systems engineering roles.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
@@ -2328,7 +2328,7 @@ export default function App() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div>
                 <span className="text-sm font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Secure Examination Portal</span>
-                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mt-2 mb-6">Why Clahan Academy?</h2>
+                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mt-2 mb-6">Why Clahan Technologies?</h2>
                 <div className="space-y-6">
                   {[
                     { title: 'Robust Coding Engine', desc: 'Local Judge0 compiler integration supporting Java, Python, C++, and JavaScript with execution timeouts and safety sandboxes.' },
@@ -2389,8 +2389,15 @@ export default function App() {
                       <span>{companySettings.contactPhone}</span>
                     </div>
                     <div className="flex items-center gap-3 text-sm">
-                      <MapPin className="h-5 w-5 text-indigo-500" />
-                      <span>{companySettings.companyAddress}</span>
+                      <MapPin className="h-5 w-5 text-indigo-500 shrink-0" />
+                      <a 
+                        href="https://maps.app.goo.gl/pHDHZ4r2LRdm3Yst7?g_st=ac" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="hover:underline text-left"
+                      >
+                        {companySettings.companyAddress}
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -2486,7 +2493,7 @@ export default function App() {
             )}
             
             <p className="text-xs text-center text-muted-foreground mt-6">
-              New to Clahan Academy?{' '}
+              New to Clahan Technologies?{' '}
               <span onClick={() => setCurrentPage('register')} className="text-indigo-600 font-bold hover:underline cursor-pointer">Register</span>
             </p>
           </div>

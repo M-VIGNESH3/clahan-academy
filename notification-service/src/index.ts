@@ -91,8 +91,8 @@ function compileEmail(event: string, payload: any): { subject: string; html: str
   const brandColor = '#4f46e5'; // Premium Indigo
   const footerHtml = `
     <div style="margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px; font-size: 12px; color: #6b7280; text-align: center;">
-      <p>This is an automated notification from Clahan Academy. Please do not reply to this email.</p>
-      <p>&copy; ${new Date().getFullYear()} Clahan Academy. All rights reserved.</p>
+      <p>This is an automated notification from Clahan Technologies. Please do not reply to this email.</p>
+      <p>&copy; ${new Date().getFullYear()} Clahan Technologies. All rights reserved.</p>
     </div>
   `;
 
@@ -101,20 +101,20 @@ function compileEmail(event: string, payload: any): { subject: string; html: str
 
   switch (event) {
     case 'STUDENT_REGISTRATION':
-      subject = 'Verify Your Email - Clahan Academy';
+      subject = 'Verify Your Email - Clahan Technologies';
       bodyContent = `
-        <h2 style="color: ${brandColor}; margin-bottom: 20px;">Welcome to Clahan Academy!</h2>
+        <h2 style="color: ${brandColor}; margin-bottom: 20px;">Welcome to Clahan Technologies!</h2>
         <p>Dear <strong>${payload.fullName}</strong>,</p>
         <p>Thank you for registering. Please use the following One-Time Password (OTP) to verify your email address and activate your account:</p>
         <div style="background-color: #f3f4f6; border-radius: 8px; padding: 15px; margin: 20px 0; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: ${brandColor}; border: 1px solid #e5e7eb;">
           ${payload.otp}
         </div>
-        <p>This OTP is valid for 10 minutes. If you did not register for a Clahan Academy account, please ignore this email.</p>
+        <p>This OTP is valid for 10 minutes. If you did not register for a Clahan Technologies account, please ignore this email.</p>
       `;
       break;
 
     case 'OTP_VERIFICATION':
-      subject = 'Email Successfully Verified - Clahan Academy';
+      subject = 'Email Successfully Verified - Clahan Technologies';
       bodyContent = `
         <h2 style="color: ${brandColor}; margin-bottom: 20px;">Verification Successful</h2>
         <p>Hello,</p>
@@ -125,7 +125,7 @@ function compileEmail(event: string, payload: any): { subject: string; html: str
       break;
 
     case 'PASSWORD_RESET':
-      subject = 'Password Reset Request - Clahan Academy';
+      subject = 'Password Reset Request - Clahan Technologies';
       bodyContent = `
         <h2 style="color: ${brandColor}; margin-bottom: 20px;">Password Reset Request</h2>
         <p>Dear <strong>${payload.fullName}</strong>,</p>
@@ -138,11 +138,11 @@ function compileEmail(event: string, payload: any): { subject: string; html: str
       break;
 
     case 'CREDENTIAL_EMAIL':
-      subject = 'Your Account Credentials - Clahan Academy';
+      subject = 'Your Account Credentials - Clahan Technologies';
       bodyContent = `
         <h2 style="color: ${brandColor}; margin-bottom: 20px;">Your Account Credentials</h2>
         <p>Dear <strong>${payload.fullName}</strong>,</p>
-        <p>An administrator has created an account for you on Clahan Academy.</p>
+        <p>An administrator has created an account for you on Clahan Technologies.</p>
         <p>Here are your temporary login credentials:</p>
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
           <tr>
@@ -199,7 +199,7 @@ function compileEmail(event: string, payload: any): { subject: string; html: str
       break;
 
     default:
-      subject = 'Alert - Clahan Academy';
+      subject = 'Alert - Clahan Technologies';
       bodyContent = `<p>You have a new update. Please log into the portal to check details.</p>`;
       break;
   }
@@ -215,7 +215,7 @@ function compileEmail(event: string, payload: any): { subject: string; html: str
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 0;">
         <div style="max-width: 600px; margin: 40px auto; background-color: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
           <div style="text-align: center; border-bottom: 2px solid ${brandColor}; padding-bottom: 20px; margin-bottom: 30px;">
-            <h1 style="color: ${brandColor}; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">CLAHAN ACADEMY</h1>
+            <h1 style="color: ${brandColor}; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">CLAHAN TECHNOLOGIES</h1>
           </div>
           <div style="color: #374151; font-size: 16px; line-height: 1.6;">
             ${bodyContent}

@@ -10,7 +10,7 @@ from pydantic import BaseModel
 import requests
 from PIL import Image
 
-app = FastAPI(title="Clahan Academy AI Service", version="2.0.0")
+app = FastAPI(title="Clahan Technologies AI Service", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -44,7 +44,7 @@ def generate_feedback(req: FeedbackRequest):
     logger.info(f"Generating feedback for score {req.percentage}% on {req.examName}")
     
     prompt = (
-        f"You are Clahan Academy's AI mentor. Write a concise, 1-sentence, motivational, professional exam review feedback. "
+        f"You are Clahan Technologies' AI mentor. Write a concise, 1-sentence, motivational, professional exam review feedback. "
         f"The student scored {req.percentage}% in the exam '{req.examName}' ({req.examType} test). "
         f"Provide specific guidance based on their percentage. Keep it under 25 words. Do not prefix with 'Here is your feedback' or quotes."
     )
