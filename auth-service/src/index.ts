@@ -121,14 +121,26 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'Required fields are missing' });
     }
 
-    const checkUser = await query('SELECT id FROM users WHERE email = $1', [email]);
+    const checkUser = await query('SELECT id, email_verified FROM users WHERE email = $1', [email]);
     if (checkUser.rows.length > 0) {
-      return res.status(400).json({ error: 'Email already registered' });
+      const existing = checkUser.rows[0];
+      if (existing.email_verified) {
+        return res.status(400).json({ error: 'Email already registered' });
+      } else {
+        // Delete unverified user to allow clean re-registration
+        await query('DELETE FROM users WHERE id = $1', [existing.id]);
+      }
     }
 
-    const checkRoll = await query('SELECT id FROM users WHERE roll_number = $1', [rollNumber]);
+    const checkRoll = await query('SELECT id, email_verified FROM users WHERE roll_number = $1', [rollNumber]);
     if (checkRoll.rows.length > 0) {
-      return res.status(400).json({ error: 'Roll number already registered' });
+      const existing = checkRoll.rows[0];
+      if (existing.email_verified) {
+        return res.status(400).json({ error: 'Roll number already registered' });
+      } else {
+        // Delete unverified user to allow clean re-registration
+        await query('DELETE FROM users WHERE id = $1', [existing.id]);
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -204,6 +216,43 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 
     res.json({ message: 'Email verified successfully. Account is now active.' });
   } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Resend Verification OTP
+app.post('/api/auth/resend-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const checkUser = await query('SELECT full_name, email_verified FROM users WHERE email = $1', [email]);
+    if (checkUser.rows.length === 0) {
+      return res.status(404).json({ error: 'No account registered with this email address' });
+    }
+
+    const user = checkUser.rows[0];
+    if (user.email_verified) {
+      return res.status(400).json({ error: 'Email is already verified and active. Please log in.' });
+    }
+
+    // Generate new OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await setCache(`otp:${email}`, otp, 600); // 10 minutes expiry
+    console.log(`[TESTING] Re-generated OTP for student ${email}: ${otp}`);
+
+    // Queue OTP email
+    await sendNotification('STUDENT_REGISTRATION', {
+      email,
+      fullName: user.full_name,
+      otp
+    });
+
+    res.json({ message: 'A new verification OTP has been sent to your email.' });
+  } catch (err: any) {
+    console.error('Resend OTP error:', err);
     res.status(500).json({ error: err.message });
   }
 });

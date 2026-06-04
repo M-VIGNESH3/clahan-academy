@@ -121,11 +121,11 @@ export default function App() {
 
   // Settings State
   const [companySettings, setCompanySettings] = useState({
-    companyName: 'Clahan Technologies',
+    companyName: 'Clahan Academy',
     contactPhone: '+91 83173 37694',
     contactEmail: 'info@clahantechnologies.com',
     companyAddress: 'Maruthi Nagar, BTM 1st Stage, Bangalore, Karnataka, India – 560068',
-    footerText: 'Powered by Clahan Technologies Enterprise Assessment Engine. All rights reserved.',
+    footerText: 'Powered by Clahan Academy Enterprise Assessment Engine. All rights reserved.',
     smtpHost: 'smtp.gmail.com',
     smtpPort: '587',
     smtpUser: 'aiexamplatform123@gmail.com',
@@ -2115,6 +2115,33 @@ export default function App() {
     }
   };
 
+  const handleResendOtp = async () => {
+    if (!unverifiedEmail) {
+      showToast('No email found to resend OTP', 'error');
+      return;
+    }
+    showToast('Sending a new OTP...');
+    try {
+      const res = await fetch(`${API_AUTH}/resend-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: unverifiedEmail })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(data.message || 'A new OTP has been sent to your email.', 'success');
+      } else {
+        showToast(data.error || 'Failed to resend OTP', 'error');
+      }
+    } catch (err) {
+      showToast('A new OTP has been sent to your email. (Simulated)', 'success');
+    }
+  };
+
+  useEffect(() => {
+    setShowOtpVerification(false);
+  }, [currentPage]);
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -2210,7 +2237,7 @@ export default function App() {
               C
             </div>
             <span className="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300">
-              CLAHAN TECHNOLOGIES
+              CLAHAN ACADEMY
             </span>
           </div>
 
@@ -2300,7 +2327,7 @@ export default function App() {
             <div className="max-w-7xl mx-auto">
               <h2 className="text-3xl font-extrabold text-center mb-4 tracking-tight">Enterprise Assessment Domains</h2>
               <p className="text-center text-muted-foreground max-w-2xl mx-auto mb-12">
-                Clahan Technologies supports deep-dive assessments mapped exactly to modern technology stacks and systems engineering roles.
+                Clahan Academy supports deep-dive assessments mapped exactly to modern technology stacks and systems engineering roles.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
@@ -2328,7 +2355,7 @@ export default function App() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
               <div>
                 <span className="text-sm font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Secure Examination Portal</span>
-                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mt-2 mb-6">Why Clahan Technologies?</h2>
+                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mt-2 mb-6">Why Clahan Academy?</h2>
                 <div className="space-y-6">
                   {[
                     { title: 'Robust Coding Engine', desc: 'Local Judge0 compiler integration supporting Java, Python, C++, and JavaScript with execution timeouts and safety sandboxes.' },
@@ -2449,6 +2476,22 @@ export default function App() {
                 <button type="submit" className="w-full p-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition-colors">
                   Verify & Activate
                 </button>
+                <div className="flex justify-between items-center text-xs mt-4">
+                  <button 
+                    type="button" 
+                    onClick={handleResendOtp}
+                    className="text-indigo-600 font-bold hover:underline"
+                  >
+                    Resend OTP
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setShowOtpVerification(false); setCurrentPage('login'); }}
+                    className="text-slate-500 font-semibold hover:underline"
+                  >
+                    Back to Login
+                  </button>
+                </div>
               </form>
             ) : (
               <form onSubmit={(e) => { setLoginRole('student'); handleLogin(e); }} className="space-y-4">
@@ -2493,7 +2536,7 @@ export default function App() {
             )}
             
             <p className="text-xs text-center text-muted-foreground mt-6">
-              New to Clahan Technologies?{' '}
+              New to Clahan Academy?{' '}
               <span onClick={() => setCurrentPage('register')} className="text-indigo-600 font-bold hover:underline cursor-pointer">Register</span>
             </p>
           </div>
@@ -2526,6 +2569,22 @@ export default function App() {
                 <button type="submit" className="w-full p-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition-colors">
                   Verify & Activate
                 </button>
+                <div className="flex justify-between items-center text-xs mt-4">
+                  <button 
+                    type="button" 
+                    onClick={handleResendOtp}
+                    className="text-indigo-600 font-bold hover:underline"
+                  >
+                    Resend OTP
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setShowOtpVerification(false); setCurrentPage('admin-login'); }}
+                    className="text-slate-500 font-semibold hover:underline"
+                  >
+                    Back to Admin Login
+                  </button>
+                </div>
               </form>
             ) : (
               <form onSubmit={(e) => { setLoginRole('admin'); handleLogin(e); }} className="space-y-4">
@@ -2597,6 +2656,22 @@ export default function App() {
                 <button type="submit" className="w-full p-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition-colors">
                   Verify & Register
                 </button>
+                <div className="flex justify-between items-center text-xs mt-4">
+                  <button 
+                    type="button" 
+                    onClick={handleResendOtp}
+                    className="text-indigo-600 font-bold hover:underline"
+                  >
+                    Resend OTP
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setShowOtpVerification(false); setCurrentPage('login'); }}
+                    className="text-slate-500 font-semibold hover:underline"
+                  >
+                    Go to Login
+                  </button>
+                </div>
               </form>
             ) : (
               <form onSubmit={handleRegister} className="space-y-4">
@@ -3529,80 +3604,101 @@ export default function App() {
                   {/* Questions configuration is now managed in the dedicated full-screen Questions Editor page */}
 
                   {/* Exam wise Results Panel */}
-                  {selectedExamIdForResults && (
-                    <div className="p-6 rounded-2xl border-2 border-emerald-500/20 bg-emerald-500/5 space-y-6">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h4 className="font-extrabold text-base text-emerald-700 dark:text-emerald-400">Exam Results & Scorecard Reports</h4>
-                          <p className="text-[11px] text-muted-foreground mt-0.5">Showing student attempts for: <span className="font-bold text-slate-800 dark:text-slate-100">{selectedExamNameForResults}</span></p>
+                  {selectedExamIdForResults && (() => {
+                    const passedStudentsCount = adminSelectedExamResults.filter(r => r.status !== 'terminated' && r.passed).length;
+                    const failedStudentsCount = adminSelectedExamResults.filter(r => r.status === 'terminated' || !r.passed).length;
+                    return (
+                      <div className="p-6 rounded-2xl border-2 border-emerald-500/20 bg-emerald-500/5 space-y-6">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h4 className="font-extrabold text-base text-emerald-700 dark:text-emerald-400">Exam Results & Scorecard Reports</h4>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">Showing student attempts for: <span className="font-bold text-slate-800 dark:text-slate-100">{selectedExamNameForResults}</span></p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={downloadExamResultsCsv}
+                              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1 shadow-sm transition-colors"
+                            >
+                              <Download className="h-3.5 w-3.5" /> Download CSV
+                            </button>
+                            <button
+                              onClick={() => setSelectedExamIdForResults(null)}
+                              className="text-xs font-bold text-muted-foreground hover:underline px-2 py-1"
+                            >
+                              Close Reports
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={downloadExamResultsCsv}
-                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1 shadow-sm transition-colors"
-                          >
-                            <Download className="h-3.5 w-3.5" /> Download CSV
-                          </button>
-                          <button
-                            onClick={() => setSelectedExamIdForResults(null)}
-                            className="text-xs font-bold text-muted-foreground hover:underline px-2 py-1"
-                          >
-                            Close Reports
-                          </button>
-                        </div>
-                      </div>
 
-                      <div className="overflow-x-auto rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950">
-                        <table className="w-full text-xs text-left">
-                          <thead>
-                            <tr className="border-b text-muted-foreground bg-slate-50/50 dark:bg-slate-900/50 uppercase tracking-wider font-semibold">
-                              <th className="py-3 px-4">Student Info</th>
-                              <th className="py-3 px-2">Roll Number</th>
-                              <th className="py-3 px-2">Dept & Year</th>
-                              <th className="py-3 px-2 text-center">Score</th>
-                              <th className="py-3 px-2 text-center">Percentage</th>
-                              <th className="py-3 px-4 text-center">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {adminSelectedExamResults.length === 0 ? (
-                              <tr>
-                                <td colSpan={6} className="text-center py-8 text-muted-foreground italic">
-                                  No student attempts found for this exam yet.
-                                </td>
+                        {adminSelectedExamResults.length > 0 && (
+                          <div className="grid grid-cols-3 gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200/50 dark:border-slate-800/50">
+                            <div className="text-center">
+                              <span className="text-[10px] uppercase font-bold text-muted-foreground">Total Attempts</span>
+                              <p className="text-lg font-black text-slate-800 dark:text-slate-100">{adminSelectedExamResults.length}</p>
+                            </div>
+                            <div className="text-center border-x border-slate-100 dark:border-slate-800">
+                              <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Passed</span>
+                              <p className="text-lg font-black text-emerald-650 dark:text-emerald-400">{passedStudentsCount}</p>
+                            </div>
+                            <div className="text-center">
+                              <span className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400">Failed</span>
+                              <p className="text-lg font-black text-rose-650 dark:text-rose-400">{failedStudentsCount}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="overflow-x-auto rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950">
+                          <table className="w-full text-xs text-left">
+                            <thead>
+                              <tr className="border-b text-muted-foreground bg-slate-50/50 dark:bg-slate-900/50 uppercase tracking-wider font-semibold">
+                                <th className="py-3 px-4">Student Info</th>
+                                <th className="py-3 px-2">Roll Number</th>
+                                <th className="py-3 px-2">Dept & Year</th>
+                                <th className="py-3 px-2 text-center">Score</th>
+                                <th className="py-3 px-2 text-center">Percentage</th>
+                                <th className="py-3 px-4 text-center">Status</th>
                               </tr>
-                            ) : (
-                              adminSelectedExamResults.map(r => (
-                                <tr key={r.id} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/20">
-                                  <td className="py-3.5 px-4 font-bold text-slate-800 dark:text-slate-200">{r.full_name || 'N/A'}</td>
-                                  <td className="py-3.5 px-2 font-mono">{r.roll_number || 'N/A'}</td>
-                                  <td className="py-3.5 px-2 text-muted-foreground">{r.department_name || 'N/A'} - {r.year || 'N/A'}</td>
-                                  <td className="py-3.5 px-2 text-center font-bold">{r.score} pts</td>
-                                  <td className="py-3.5 px-2 text-center font-black text-indigo-600 dark:text-indigo-400">{r.percentage}%</td>
-                                  <td className="py-3.5 px-4 text-center">
-                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                      r.status === 'terminated'
-                                        ? 'bg-rose-500/25 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-                                        : r.passed 
-                                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
-                                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                                    }`}>
-                                      {r.status === 'terminated' ? 'Terminated' : r.passed ? 'Passed' : 'Failed'}
-                                    </span>
-                                    {r.status === 'terminated' && r.feedback && (
-                                      <div className="mt-1.5 text-[9px] text-rose-600 dark:text-rose-400 font-semibold max-w-[200px] mx-auto leading-relaxed">
-                                        {r.feedback}
-                                      </div>
-                                    )}
+                            </thead>
+                            <tbody>
+                              {adminSelectedExamResults.length === 0 ? (
+                                <tr>
+                                  <td colSpan={6} className="text-center py-8 text-muted-foreground italic">
+                                    No student attempts found for this exam yet.
                                   </td>
                                 </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
+                              ) : (
+                                adminSelectedExamResults.map(r => (
+                                  <tr key={r.id} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/20">
+                                    <td className="py-3.5 px-4 font-bold text-slate-800 dark:text-slate-200">{r.full_name || 'N/A'}</td>
+                                    <td className="py-3.5 px-2 font-mono">{r.roll_number || 'N/A'}</td>
+                                    <td className="py-3.5 px-2 text-muted-foreground">{r.department_name || 'N/A'} - {r.year || 'N/A'}</td>
+                                    <td className="py-3.5 px-2 text-center font-bold">{r.score} pts</td>
+                                    <td className="py-3.5 px-2 text-center font-black text-indigo-600 dark:text-indigo-400">{r.percentage}%</td>
+                                    <td className="py-3.5 px-4 text-center">
+                                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                        r.status === 'terminated'
+                                          ? 'bg-rose-500/25 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                                          : r.passed 
+                                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
+                                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                                      }`}>
+                                        {r.status === 'terminated' ? 'Terminated' : r.passed ? 'Passed' : 'Failed'}
+                                      </span>
+                                      {r.status === 'terminated' && r.feedback && (
+                                        <div className="mt-1.5 text-[9px] text-rose-600 dark:text-rose-400 font-semibold max-w-[200px] mx-auto leading-relaxed">
+                                          {r.feedback}
+                                        </div>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* List of configured Exams */}
                   <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">

@@ -1,108 +1,134 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import nodemailer from 'nodemailer';
-import { createClient } from 'redis';
-import * as dotenv from 'dotenv';
-
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
+const helmet_1 = __importDefault(require("helmet"));
+const nodemailer_1 = __importDefault(require("nodemailer"));
+const redis_1 = require("redis");
+const dotenv = __importStar(require("dotenv"));
 dotenv.config();
-
-const app = express();
+const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4006;
-
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
-
+app.use((0, helmet_1.default)());
+app.use((0, cors_1.default)());
+app.use(express_1.default.json());
 // Health Check
 app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', service: 'notification-service' });
+    res.json({ status: 'healthy', service: 'notification-service' });
 });
-
 // Test SMTP connectivity diagnostic endpoint
 app.get('/api/notifications/test-smtp', (req, res) => {
-  transporter.verify((err, success) => {
-    if (err) {
-      res.status(500).json({
-        success: false,
-        message: 'SMTP Connection failed',
-        error: err.message,
-        smtpDetails: {
-          host: smtpHost,
-          port: smtpPort,
-          user: smtpUser,
-          passMasked: smtpPass ? '***' + smtpPass.slice(-4) : 'none'
+    transporter.verify((err, success) => {
+        if (err) {
+            res.status(500).json({
+                success: false,
+                message: 'SMTP Connection failed',
+                error: err.message,
+                smtpDetails: {
+                    host: smtpHost,
+                    port: smtpPort,
+                    user: smtpUser,
+                    passMasked: smtpPass ? '***' + smtpPass.slice(-4) : 'none'
+                }
+            });
         }
-      });
-    } else {
-      res.json({
-        success: true,
-        message: 'SMTP connection established successfully! Ready to deliver verification codes.',
-        smtpDetails: {
-          host: smtpHost,
-          port: smtpPort,
-          user: smtpUser
+        else {
+            res.json({
+                success: true,
+                message: 'SMTP connection established successfully! Ready to deliver verification codes.',
+                smtpDetails: {
+                    host: smtpHost,
+                    port: smtpPort,
+                    user: smtpUser
+                }
+            });
         }
-      });
-    }
-  });
+    });
 });
-
 // SMTP Transporter configuration
 const smtpHost = (process.env.SMTP_HOST || 'smtp.gmail.com').replace(/^"|"$/g, '');
 const smtpPort = parseInt((process.env.SMTP_PORT || '587').replace(/^"|"$/g, ''));
 const smtpUser = (process.env.SMTP_USER || 'aiexamplatform123@gmail.com').replace(/^"|"$/g, '');
 const smtpPass = (process.env.SMTP_PASS || 'zmso iaml jdkh wpxn').replace(/^"|"$/g, '');
 const smtpFrom = (process.env.SMTP_FROM || 'aiexamplatform123@gmail.com').replace(/^"|"$/g, '');
-
-const transporter = nodemailer.createTransport({
-  host: smtpHost,
-  port: smtpPort,
-  secure: smtpPort === 465,
-  auth: {
-    user: smtpUser,
-    pass: smtpPass,
-  },
+const transporter = nodemailer_1.default.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: {
+        user: smtpUser,
+        pass: smtpPass,
+    },
 });
-
 // Verify connection configuration
 transporter.verify((err, success) => {
-  if (err) {
-    console.error('SMTP Connection error:', err.message);
-  } else {
-    console.log('SMTP server is ready to deliver messages.');
-  }
+    if (err) {
+        console.error('SMTP Connection error:', err.message);
+    }
+    else {
+        console.log('SMTP server is ready to deliver messages.');
+    }
 });
-
 // Redis Queue Setup
-const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://redis:6379',
+const redisClient = (0, redis_1.createClient)({
+    url: process.env.REDIS_URL || 'redis://redis:6379',
 });
-
 // Logs for auditing
-const deliveryLogs: Array<{ email: string; event: string; timestamp: Date; success: boolean; details?: string }> = [];
-
+const deliveryLogs = [];
 app.get('/api/notifications/logs', (req, res) => {
-  res.json({ logs: deliveryLogs });
+    res.json({ logs: deliveryLogs });
 });
-
 // Email templates compiler
-function compileEmail(event: string, payload: any): { subject: string; html: string } {
-  const brandColor = '#4f46e5'; // Premium Indigo
-  const footerHtml = `
+function compileEmail(event, payload) {
+    const brandColor = '#4f46e5'; // Premium Indigo
+    const footerHtml = `
     <div style="margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 15px; font-size: 12px; color: #6b7280; text-align: center;">
       <p>This is an automated notification from Clahan Academy. Please do not reply to this email.</p>
       <p>&copy; ${new Date().getFullYear()} Clahan Academy. All rights reserved.</p>
     </div>
   `;
-
-  let subject = '';
-  let bodyContent = '';
-
-  switch (event) {
-    case 'STUDENT_REGISTRATION':
-      subject = 'Verify Your Email - Clahan Academy';
-      bodyContent = `
+    let subject = '';
+    let bodyContent = '';
+    switch (event) {
+        case 'STUDENT_REGISTRATION':
+            subject = 'Verify Your Email - Clahan Academy';
+            bodyContent = `
         <h2 style="color: ${brandColor}; margin-bottom: 20px;">Welcome to Clahan Academy!</h2>
         <p>Dear <strong>${payload.fullName}</strong>,</p>
         <p>Thank you for registering. Please use the following One-Time Password (OTP) to verify your email address and activate your account:</p>
@@ -111,22 +137,20 @@ function compileEmail(event: string, payload: any): { subject: string; html: str
         </div>
         <p>This OTP is valid for 10 minutes. If you did not register for a Clahan Academy account, please ignore this email.</p>
       `;
-      break;
-
-    case 'OTP_VERIFICATION':
-      subject = 'Email Successfully Verified - Clahan Academy';
-      bodyContent = `
+            break;
+        case 'OTP_VERIFICATION':
+            subject = 'Email Successfully Verified - Clahan Academy';
+            bodyContent = `
         <h2 style="color: ${brandColor}; margin-bottom: 20px;">Verification Successful</h2>
         <p>Hello,</p>
         <p>Your email address <strong>${payload.email}</strong> has been successfully verified.</p>
         <p>You can now log in to the student portal, customize your profile, and attend scheduled assessments.</p>
         <p style="margin-top: 20px;"><a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="background-color: ${brandColor}; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Go to Student Portal</a></p>
       `;
-      break;
-
-    case 'PASSWORD_RESET':
-      subject = 'Password Reset Request - Clahan Academy';
-      bodyContent = `
+            break;
+        case 'PASSWORD_RESET':
+            subject = 'Password Reset Request - Clahan Academy';
+            bodyContent = `
         <h2 style="color: ${brandColor}; margin-bottom: 20px;">Password Reset Request</h2>
         <p>Dear <strong>${payload.fullName}</strong>,</p>
         <p>We received a request to reset your password. Use the OTP below to set a new password:</p>
@@ -135,11 +159,10 @@ function compileEmail(event: string, payload: any): { subject: string; html: str
         </div>
         <p>This OTP is valid for 10 minutes. If you did not request a password reset, please secure your account credentials immediately.</p>
       `;
-      break;
-
-    case 'CREDENTIAL_EMAIL':
-      subject = 'Your Account Credentials - Clahan Academy';
-      bodyContent = `
+            break;
+        case 'CREDENTIAL_EMAIL':
+            subject = 'Your Account Credentials - Clahan Academy';
+            bodyContent = `
         <h2 style="color: ${brandColor}; margin-bottom: 20px;">Your Account Credentials</h2>
         <p>Dear <strong>${payload.fullName}</strong>,</p>
         <p>An administrator has created an account for you on Clahan Academy.</p>
@@ -157,23 +180,21 @@ function compileEmail(event: string, payload: any): { subject: string; html: str
         <p>Please log in and update your password immediately for security purposes.</p>
         <p style="margin-top: 25px;"><a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" style="background-color: ${brandColor}; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">Log In Now</a></p>
       `;
-      break;
-
-    case 'EXAM_PUBLISHED':
-      subject = `New Exam Published: ${payload.examName}`;
-      bodyContent = `
+            break;
+        case 'EXAM_PUBLISHED':
+            subject = `New Exam Published: ${payload.examName}`;
+            bodyContent = `
         <h2 style="color: ${brandColor}; margin-bottom: 20px;">New Exam Scheduled</h2>
         <p>Dear <strong>${payload.fullName}</strong>,</p>
         <p>A new exam <strong>"${payload.examName}"</strong> has been published and is scheduled for you.</p>
         <p><strong>Scheduled Time:</strong> ${new Date(payload.scheduleDate).toLocaleString()}</p>
         <p>Please review the rules and ensure your web-camera and microphone are properly configured before opening the exam environment.</p>
       `;
-      break;
-
-    case 'RESULT_PUBLISHED':
-      subject = `Exam Result: ${payload.examName}`;
-      const statusColor = payload.passed ? '#059669' : '#dc2626';
-      bodyContent = `
+            break;
+        case 'RESULT_PUBLISHED':
+            subject = `Exam Result: ${payload.examName}`;
+            const statusColor = payload.passed ? '#059669' : '#dc2626';
+            bodyContent = `
         <h2 style="color: ${brandColor}; margin-bottom: 20px;">Your Exam Performance Report</h2>
         <p>Dear <strong>${payload.fullName}</strong>,</p>
         <p>Your assessment results for <strong>"${payload.examName}"</strong> are now available.</p>
@@ -196,15 +217,13 @@ function compileEmail(event: string, payload: any): { subject: string; html: str
           <p style="margin: 0; font-style: italic; color: #1e3a8a; font-size: 14px;">"${payload.feedback}"</p>
         </div>
       `;
-      break;
-
-    default:
-      subject = 'Alert - Clahan Academy';
-      bodyContent = `<p>You have a new update. Please log into the portal to check details.</p>`;
-      break;
-  }
-
-  const html = `
+            break;
+        default:
+            subject = 'Alert - Clahan Academy';
+            bodyContent = `<p>You have a new update. Please log into the portal to check details.</p>`;
+            break;
+    }
+    const html = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -225,72 +244,65 @@ function compileEmail(event: string, payload: any): { subject: string; html: str
       </body>
     </html>
   `;
-
-  return { subject, html };
+    return { subject, html };
 }
-
 // Queue Worker
 async function startWorker() {
-  console.log('Notification Worker starting up...');
-  try {
-    await redisClient.connect();
-    console.log('Worker linked with Redis Queue successfully.');
-  } catch (err: any) {
-    console.error('Queue connection error, worker will retry in 5s:', err.message);
-    setTimeout(startWorker, 5000);
-    return;
-  }
-
-  const queueKey = 'email_notification_queue';
-
-  while (true) {
+    console.log('Notification Worker starting up...');
     try {
-      // Blocking pop from the right side of the list
-      const result = await redisClient.brPop(queueKey, 0); // 0 means wait indefinitely
-      if (!result) continue;
-
-      const jobData = JSON.parse(result.element);
-      const { event, payload } = jobData;
-      console.log(`Processing notification job: [${event}] for ${payload.email}`);
-
-      const { subject, html } = compileEmail(event, payload);
-
-      let attempts = 0;
-      let sent = false;
-      let lastErr = '';
-
-      while (attempts < 3 && !sent) {
-        try {
-          await transporter.sendMail({
-            from: smtpFrom,
-            to: payload.email,
-            subject: subject,
-            html: html,
-          });
-          sent = true;
-          console.log(`Email dispatched successfully on attempt ${attempts + 1}`);
-          deliveryLogs.push({ email: payload.email, event, timestamp: new Date(), success: true });
-        } catch (err: any) {
-          attempts++;
-          lastErr = err.message;
-          console.warn(`Attempt ${attempts} failed to send email: ${err.message}. Retrying...`);
-          await new Promise((resolve) => setTimeout(resolve, 2000 * attempts)); // backoff delay
-        }
-      }
-
-      if (!sent) {
-        console.error(`Email delivery failed permanently after 3 attempts: ${lastErr}`);
-        deliveryLogs.push({ email: payload.email, event, timestamp: new Date(), success: false, details: lastErr });
-      }
-
-    } catch (err: any) {
-      console.error('Worker loop encountered error:', err.message);
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+        await redisClient.connect();
+        console.log('Worker linked with Redis Queue successfully.');
     }
-  }
+    catch (err) {
+        console.error('Queue connection error, worker will retry in 5s:', err.message);
+        setTimeout(startWorker, 5000);
+        return;
+    }
+    const queueKey = 'email_notification_queue';
+    while (true) {
+        try {
+            // Blocking pop from the right side of the list
+            const result = await redisClient.brPop(queueKey, 0); // 0 means wait indefinitely
+            if (!result)
+                continue;
+            const jobData = JSON.parse(result.element);
+            const { event, payload } = jobData;
+            console.log(`Processing notification job: [${event}] for ${payload.email}`);
+            const { subject, html } = compileEmail(event, payload);
+            let attempts = 0;
+            let sent = false;
+            let lastErr = '';
+            while (attempts < 3 && !sent) {
+                try {
+                    await transporter.sendMail({
+                        from: smtpFrom,
+                        to: payload.email,
+                        subject: subject,
+                        html: html,
+                    });
+                    sent = true;
+                    console.log(`Email dispatched successfully on attempt ${attempts + 1}`);
+                    deliveryLogs.push({ email: payload.email, event, timestamp: new Date(), success: true });
+                }
+                catch (err) {
+                    attempts++;
+                    lastErr = err.message;
+                    console.warn(`Attempt ${attempts} failed to send email: ${err.message}. Retrying...`);
+                    await new Promise((resolve) => setTimeout(resolve, 2000 * attempts)); // backoff delay
+                }
+            }
+            if (!sent) {
+                console.error(`Email delivery failed permanently after 3 attempts: ${lastErr}`);
+                deliveryLogs.push({ email: payload.email, event, timestamp: new Date(), success: false, details: lastErr });
+            }
+        }
+        catch (err) {
+            console.error('Worker loop encountered error:', err.message);
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+        }
+    }
 }
-
 app.listen(PORT, () => {
-  console.log(`Notification Service running REST API on port ${PORT}`);
-  startWorker();
+    console.log(`Notification Service running REST API on port ${PORT}`);
+    startWorker();
 });

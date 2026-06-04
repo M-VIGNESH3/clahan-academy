@@ -964,12 +964,34 @@ app.post('/api/exams/student/attempts/:attemptId/terminate', authenticate, requi
       return res.status(400).json({ error: 'Exam has already been submitted or terminated' });
     }
 
+    const feedbackStr = `Exam automatically terminated: ${reason || 'Multiple warnings exceeded / screen violations detected.'}`;
     await query(
       `UPDATE exam_attempts
        SET status = 'terminated', score = 0, percentage = 0.00, passed = FALSE, feedback = $1
        WHERE id = $2`,
-      [`Exam automatically terminated: ${reason || 'Multiple warnings exceeded / screen violations detected.'}`, attemptId]
+      [feedbackStr, attemptId]
     );
+
+    // Retrieve student email and exam details to queue email notification
+    try {
+      const studentResult = await query('SELECT email, full_name FROM users WHERE id = $1', [attempt.student_id]);
+      const examResult = await query('SELECT name FROM exams WHERE id = $1', [attempt.exam_id]);
+      
+      if (studentResult.rows.length > 0 && examResult.rows.length > 0) {
+        await queueNotification('RESULT_PUBLISHED', {
+          email: studentResult.rows[0].email,
+          fullName: studentResult.rows[0].full_name,
+          examName: examResult.rows[0].name,
+          score: 0,
+          maxScore: 100,
+          percentage: 0,
+          passed: false,
+          feedback: feedbackStr
+        });
+      }
+    } catch (notifyErr) {
+      console.error('Failed to queue termination notification email:', notifyErr);
+    }
 
     res.json({ success: true });
   } catch (err: any) {
