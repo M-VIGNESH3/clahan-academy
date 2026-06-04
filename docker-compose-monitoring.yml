@@ -12,6 +12,8 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.route-prefix=/prometheus'
+      - '--web.external-url=https://smartpg.online/prometheus'
     ports:
       - "9090:9090"
     restart: unless-stopped
@@ -25,6 +27,8 @@ services:
       - grafana_data:/var/lib/grafana
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_ROOT_URL=https://smartpg.online/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
     restart: unless-stopped
     depends_on:
       - prometheus
