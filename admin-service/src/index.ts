@@ -9,7 +9,7 @@ import * as bcrypt from 'bcryptjs';
 import { createClient } from 'redis';
 
 const app = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 const PORT = process.env.PORT || 4002;
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_access_token_key';

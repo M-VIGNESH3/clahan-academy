@@ -9,7 +9,7 @@ import pool, { initDb, query } from './db';
 import { authenticateToken, AuthenticatedRequest } from './middleware';
 
 const app = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 const PORT = process.env.PORT || 4001;
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_access_token_key';

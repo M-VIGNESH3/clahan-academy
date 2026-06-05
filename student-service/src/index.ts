@@ -7,7 +7,7 @@ types.setTypeParser(1114, (str) => new Date(str.replace(' ', 'T') + 'Z'));
 import * as jwt from 'jsonwebtoken';
 
 const app = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', true);
 const PORT = process.env.PORT || 4003;
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_access_token_key';
