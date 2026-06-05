@@ -22,7 +22,7 @@ interface UserProfile {
 interface Exam {
   id: string; name: string; description: string; exam_type: 'mcq' | 'coding' | 'both';
   duration_minutes: number; cutoff_percentage: number; allowed_attempts: number;
-  schedule_date: string; college_id: string; department_id: string; year: string;
+  schedule_date: string; college_id: string; department_id: string; department_ids?: string[]; year: string;
   is_published: boolean; window_open_minutes?: number; mcq_count?: number; coding_count?: number;
 }
 interface MCQQuestion {
@@ -151,7 +151,7 @@ export default function App() {
     name: '', description: '', examType: 'mcq' as 'mcq' | 'coding' | 'both',
     durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
     windowOpenMinutes: 10,
-    collegeId: '', departmentId: '', year: '1st Year'
+    collegeId: '', departmentId: '', departmentIds: [] as string[], year: '1st Year'
   });
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [selectedExamIdForQuestions, setSelectedExamIdForQuestions] = useState<string | null>(null);
@@ -1136,7 +1136,7 @@ export default function App() {
           name: '', description: '', examType: 'mcq' as 'mcq' | 'coding' | 'both',
           durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
           windowOpenMinutes: 10,
-          collegeId: '', departmentId: '', year: '1st Year'
+          collegeId: '', departmentId: '', departmentIds: [], year: '1st Year'
         });
         loadAdminDashboard();
       }
@@ -1152,14 +1152,15 @@ export default function App() {
         window_open_minutes: examForm.windowOpenMinutes,
         year: examForm.year,
         college_id: examForm.collegeId,
-        department_id: examForm.departmentId
+        department_id: examForm.departmentId,
+        department_ids: examForm.departmentIds
       } : e));
       setEditingExamId(null);
       setExamForm({
         name: '', description: '', examType: 'mcq' as 'mcq' | 'coding' | 'both',
         durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
         windowOpenMinutes: 10,
-        collegeId: '', departmentId: '', year: '1st Year'
+        collegeId: '', departmentId: '', departmentIds: [], year: '1st Year'
       });
       showToast('Exam configuration updated successfully (Simulated)');
     }
@@ -1189,6 +1190,7 @@ export default function App() {
       windowOpenMinutes: ex.window_open_minutes !== undefined ? ex.window_open_minutes : 10,
       collegeId: ex.college_id || '',
       departmentId: ex.department_id || '',
+      departmentIds: ex.department_ids || (ex.department_id ? [ex.department_id] : []),
       year: ex.year || '1st Year'
     });
     if (ex.college_id) {
@@ -2256,8 +2258,13 @@ export default function App() {
       {/* HEADER NAVBAR */}
       <header className="sticky top-0 z-40 w-full border-b border-slate-200/40 dark:border-slate-800/40 bg-white/70 dark:bg-slate-950/70 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentPage('landing')}>
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-black text-xl shadow-md shadow-indigo-500/20">
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setCurrentPage('landing')}>
+            <img src="/logo.png" alt="Clahan Academy Logo" className="h-9 w-auto object-contain" onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              const fallback = document.getElementById('logo-fallback-nav');
+              if (fallback) fallback.style.display = 'flex';
+            }} />
+            <div id="logo-fallback-nav" style={{ display: 'none' }} className="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 items-center justify-center text-white font-black text-lg shadow-md shadow-indigo-500/20">
               C
             </div>
             <span className="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300">
@@ -3539,7 +3546,7 @@ export default function App() {
                             name: '', description: '', examType: 'mcq',
                             durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
                             windowOpenMinutes: 10,
-                            collegeId: '', departmentId: '', year: '1st Year'
+                            collegeId: '', departmentId: '', departmentIds: [], year: '1st Year'
                           });
                         }} className="text-xs font-bold text-amber-600 hover:underline">Cancel Edit</button>
                       )}
@@ -3589,11 +3596,43 @@ export default function App() {
                           </select>
                         </div>
                         <div>
-                          <label className="text-xs font-semibold text-muted-foreground">Department Eligibility</label>
-                          <select value={examForm.departmentId} onChange={e => setExamForm({...examForm, departmentId: e.target.value})} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required disabled={!examForm.collegeId}>
-                            <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Dept</option>
-                            {departments.map(d => <option key={d.id} value={d.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{d.name}</option>)}
-                          </select>
+                          <label className="text-xs font-semibold text-muted-foreground mb-1 block">Department Eligibility</label>
+                          {!examForm.collegeId ? (
+                            <div className="text-[10px] text-slate-400 italic p-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50 mt-1">
+                              Select a college first
+                            </div>
+                          ) : departments.length === 0 ? (
+                            <div className="text-[10px] text-slate-400 italic p-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50 mt-1">
+                              No departments found
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-1.5 p-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 max-h-28 overflow-y-auto mt-1">
+                              {departments.map(d => {
+                                const isChecked = examForm.departmentIds?.includes(d.id);
+                                return (
+                                  <label key={d.id} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] cursor-pointer select-none transition-all ${isChecked ? 'bg-indigo-500/10 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-400'}`}>
+                                    <input 
+                                      type="checkbox" 
+                                      className="sr-only" 
+                                      checked={isChecked || false}
+                                      onChange={() => {
+                                        const currentIds = examForm.departmentIds || [];
+                                        const newIds = isChecked 
+                                          ? currentIds.filter(id => id !== d.id)
+                                          : [...currentIds, d.id];
+                                        setExamForm({
+                                          ...examForm, 
+                                          departmentIds: newIds,
+                                          departmentId: newIds[0] || ''
+                                        });
+                                      }}
+                                    />
+                                    {d.name}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                         <div>
                           <label className="text-xs font-semibold text-muted-foreground">Year Eligibility</label>

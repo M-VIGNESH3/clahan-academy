@@ -131,7 +131,7 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req: Authe
        FROM exams e
        LEFT JOIN colleges c ON e.college_id = c.id
        LEFT JOIN departments d ON e.department_id = d.id
-       WHERE e.college_id = $1 AND e.department_id = $2 AND e.year = $3
+       WHERE e.college_id = $1 AND (e.department_id = $2 OR $2 = ANY(e.department_ids)) AND e.year = $3
          AND e.is_published = TRUE AND e.schedule_date > CURRENT_TIMESTAMP
        ORDER BY e.schedule_date ASC`,
       [collegeId, departmentId, year]
@@ -143,7 +143,7 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req: Authe
       `SELECT e.*, 
               (SELECT COUNT(*) FROM exam_attempts ea WHERE ea.exam_id = e.id AND ea.student_id = $4) as attempts_made
        FROM exams e
-       WHERE e.college_id = $1 AND e.department_id = $2 AND e.year = $3
+       WHERE e.college_id = $1 AND (e.department_id = $2 OR $2 = ANY(e.department_ids)) AND e.year = $3
          AND e.is_published = TRUE 
          AND e.schedule_date <= CURRENT_TIMESTAMP
          AND CURRENT_TIMESTAMP <= e.schedule_date + (GREATEST(COALESCE(e.window_open_minutes, 10), COALESCE(e.duration_minutes, 60)) * INTERVAL '1 minute')

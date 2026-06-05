@@ -6,7 +6,7 @@ This guide walks you through setting up your application on a brand new Virtual 
 
 ## Prerequisites
 1. A fresh Virtual Machine (Ubuntu 22.04 LTS or 24.04 LTS recommended) with a public IP address.
-2. A registered domain name (e.g., `smartpg.online`) pointed to your VM's public IP address via an **A Record** in your DNS settings.
+2. A registered domain name (e.g., `clahanacademy.com`) pointed to your VM's public IP address via an **A Record** in your DNS settings.
 3. Open ports **80** (HTTP) and **443** (HTTPS) in your VM's firewall/security group settings.
 
 ---
@@ -86,11 +86,11 @@ Caddy automatically handles Let's Encrypt certificates, renewal, and routing ins
 In the root directory of your project (where `docker-compose.yml` resides), create a file named `Caddyfile` with the following content:
 
 ```caddy
-smartpg.online, www.smartpg.online {
+clahanacademy.com, www.clahanacademy.com {
     reverse_proxy frontend-service:5173
 }
 ```
-*(Replace `smartpg.online` with your active domain name).*
+*(Replace `clahanacademy.com` with your active domain name).*
 
 ---
 
@@ -107,14 +107,14 @@ sudo apt install -y nginx certbot python3-certbot-nginx
 #### 2. Configure the Nginx Site
 Create a configuration file for your domain:
 ```bash
-sudo nano /etc/nginx/sites-available/smartpg.online
+sudo nano /etc/nginx/sites-available/clahanacademy.com
 ```
 
 Paste the following configuration:
 ```nginx
 server {
     listen 80;
-    server_name smartpg.online www.smartpg.online;
+    server_name clahanacademy.com www.clahanacademy.com;
 
     client_max_body_size 50M;
 
@@ -152,7 +152,7 @@ server {
 
 Enable the configuration and restart Nginx:
 ```bash
-sudo ln -s /etc/nginx/sites-available/smartpg.online /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/clahanacademy.com /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -160,7 +160,7 @@ sudo systemctl reload nginx
 #### 3. Provision Let's Encrypt SSL Certificates
 Run Certbot to request certificates and automatically configure HTTPS redirects:
 ```bash
-sudo certbot --nginx -d smartpg.online -d www.smartpg.online
+sudo certbot --nginx -d clahanacademy.com -d www.clahanacademy.com
 ```
 Follow the prompts (enter your email, accept the license, and opt to redirect all HTTP traffic to HTTPS).
 
@@ -180,4 +180,4 @@ Verify that all containers are healthy:
 docker compose ps
 ```
 
-You can now visit `https://smartpg.online` (or your domain name) in your browser!
+You can now visit `https://clahanacademy.com` (or your domain name) in your browser!

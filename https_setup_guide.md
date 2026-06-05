@@ -1,6 +1,6 @@
 # HTTPS (SSL/TLS) Setup Guide for Clahan Academy
 
-This guide details three options to configure HTTPS (SSL/TLS) on your server with your domain `smartpg.online`. Enabling HTTPS is **mandatory** for browsers to allow camera/microphone access in the online examination proctored environment.
+This guide details three options to configure HTTPS (SSL/TLS) on your server with your domain `clahanacademy.com`. Enabling HTTPS is **mandatory** for browsers to allow camera/microphone access in the online examination proctored environment.
 
 ---
 
@@ -10,13 +10,13 @@ If you manage your domain name through Cloudflare (which is completely free), yo
 
 ### Step 1: Change Nameservers
 1. Sign up for a free account at [Cloudflare](https://www.cloudflare.com/).
-2. Add your domain `smartpg.online`.
+2. Add your domain `clahanacademy.com`.
 3. Cloudflare will provide you with two nameservers. Log in to your domain registrar (e.g., GoDaddy, Namecheap, Hostinger) and replace the existing nameservers with Cloudflare's nameservers.
 
 ### Step 2: Configure DNS and Proxy
 1. In the Cloudflare dashboard, go to **DNS > Records**.
 2. Add an **A Record**:
-   - **Name**: `@` (represents your root domain `smartpg.online`)
+   - **Name**: `@` (represents your root domain `clahanacademy.com`)
    - **IPv4 address**: Your server's public IP address
    - **Proxy status**: **Proxied** (Orange cloud icon enabled)
 3. (Optional) Add a CNAME record for `www` pointing to `@` (with Proxy status: **Proxied**).
@@ -42,14 +42,14 @@ sudo apt install nginx certbot python3-certbot-nginx -y
 ### Step 2: Configure Nginx Host Site
 Create a new configuration file for your site:
 ```bash
-sudo nano /etc/nginx/sites-available/smartpg.online
+sudo nano /etc/nginx/sites-available/clahanacademy.com
 ```
 
 Paste the following configuration (redirecting host traffic to your running Docker frontend container):
 ```nginx
 server {
     listen 80;
-    server_name smartpg.online www.smartpg.online;
+    server_name clahanacademy.com www.clahanacademy.com;
 
     # Maximum upload size for assets (CSV, profiles)
     client_max_body_size 50M;
@@ -70,7 +70,7 @@ server {
 
 Enable the configuration and reload Nginx:
 ```bash
-sudo ln -s /etc/nginx/sites-available/smartpg.online /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/clahanacademy.com /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
 ```
@@ -78,7 +78,7 @@ sudo systemctl reload nginx
 ### Step 3: Obtain SSL Certificate
 Run Certbot to automatically obtain and configure the certificates:
 ```bash
-sudo certbot --nginx -d smartpg.online -d www.smartpg.online
+sudo certbot --nginx -d clahanacademy.com -d www.clahanacademy.com
 ```
 - Enter your email address.
 - Agree to the Terms of Service.
@@ -116,7 +116,7 @@ Add Caddy to your services list:
 In the root directory of your project, create a file named `Caddyfile`:
 
 ```caddy
-smartpg.online, www.smartpg.online {
+clahanacademy.com, www.clahanacademy.com {
     reverse_proxy frontend-service:5173
 }
 ```
@@ -132,7 +132,7 @@ Once HTTPS is working for your domain:
 2. Locate the `notification-service` environment variables.
 3. Change the `FRONTEND_URL` variable to use your HTTPS domain:
    ```yaml
-   FRONTEND_URL: https://smartpg.online
+   FRONTEND_URL: https://clahanacademy.com
    ```
 4. Restart the containers to apply the change:
    ```bash

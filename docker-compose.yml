@@ -128,7 +128,7 @@ services:
       SMTP_USER: aiexamplatform123@gmail.com
       SMTP_PASS: zmso iaml jdkh wpxn
       SMTP_FROM: aiexamplatform123@gmail.com
-      FRONTEND_URL: https://smartpg.online
+      FRONTEND_URL: https://clahanacademy.com
     depends_on:
       redis:
         condition: service_healthy
