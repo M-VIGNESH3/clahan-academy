@@ -40,6 +40,12 @@ pg_1.types.setTypeParser(1114, (str) => new Date(str.replace(' ', 'T') + 'Z'));
 const bcrypt = __importStar(require("bcryptjs"));
 const pool = new pg_1.Pool({
     connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@postgres:5432/clahan_academy?sslmode=disable',
+    max: 50,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+});
+pool.on('error', (err) => {
+    console.error('Unexpected error on idle pg client in auth-service:', err);
 });
 const query = (text, params) => pool.query(text, params);
 exports.query = query;

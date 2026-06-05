@@ -863,6 +863,9 @@ export default function App() {
         showToast('College added successfully!');
         setNewCollegeName('');
         fetchColleges();
+        loadAdminDashboard();
+      } else {
+        throw new Error(`Colleges API returned status ${res.status}`);
       }
     } catch (err) {
       // Mock insert
@@ -888,6 +891,9 @@ export default function App() {
         setNewDeptName('');
         // Reload departments
         fetchDepartments(newDeptCollegeId);
+        loadAdminDashboard();
+      } else {
+        throw new Error(`Departments API returned status ${res.status}`);
       }
     } catch (err) {
       const mockD = { id: `dept-${Date.now()}`, college_id: newDeptCollegeId, name: newDeptName, college_name: adminColleges.find(c => c.id === newDeptCollegeId)?.name || 'Default' };
@@ -993,12 +999,20 @@ export default function App() {
       }
     } catch (err) {
       // Parse CSV clientside for simulation
-      const lines = studentCsvInput.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      let sanitizedContent = studentCsvInput;
+      if (sanitizedContent.startsWith('\ufeff')) {
+        sanitizedContent = sanitizedContent.slice(1);
+      }
+      const lines = sanitizedContent.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
       const rows = lines.slice(1);
       const parsed: UserProfile[] = [];
       let success = 0, failed = 0;
+      let delimiter = ',';
+      if (lines[0] && lines[0].includes(';')) {
+        delimiter = ';';
+      }
       rows.forEach((row, index) => {
-        const parts = row.split(',');
+        const parts = row.split(delimiter);
         if (parts.length >= 7) {
           success++;
           parsed.push({
@@ -1074,6 +1088,8 @@ export default function App() {
         loadAdminExamQuestions(data.id);
         setCurrentPage('questions-editor');
         loadAdminDashboard();
+      } else {
+        throw new Error(`Exams API returned status ${res.status}`);
       }
     } catch (err) {
       const mockId = `exam-${Date.now()}`;

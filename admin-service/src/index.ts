@@ -14,9 +14,22 @@ const PORT = process.env.PORT || 4002;
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_access_token_key';
 
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception in admin-service:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection in admin-service at:', promise, 'reason:', reason);
+});
+
 // Database Pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@postgres:5432/clahan_academy?sslmode=disable',
+  max: 50,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle pg client in admin-service:', err);
 });
 const query = (text: string, params?: any[]) => pool.query(text, params);
 
@@ -214,14 +227,22 @@ app.post('/api/admin/students/import', authenticateAdmin, async (req, res) => {
     if (!csvContent) {
       return res.status(400).json({ error: 'CSV data is required' });
     }
+    let sanitizedContent = csvContent;
+    if (sanitizedContent.startsWith('\ufeff')) {
+      sanitizedContent = sanitizedContent.slice(1);
+    }
 
-    // Parse lines manually (handling possible double quotes/escapes basic way or split)
-    const lines = csvContent.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+    const lines = sanitizedContent.split(/\r?\n/).map((l: string) => l.trim()).filter((l: string) => l.length > 0);
     if (lines.length <= 1) {
       return res.status(400).json({ error: 'No student data rows found' });
     }
 
-    const header = lines[0].split(',').map((h: string) => h.trim().toLowerCase());
+    let delimiter = ',';
+    if (lines[0].includes(';')) {
+      delimiter = ';';
+    }
+
+    const header = lines[0].split(delimiter).map((h: string) => h.trim().toLowerCase());
     const dataRows = lines.slice(1);
 
     const importSummary = {
@@ -244,7 +265,7 @@ app.post('/api/admin/students/import', authenticateAdmin, async (req, res) => {
     }
 
     for (const row of dataRows) {
-      const parts = row.split(',').map((p: string) => p.trim());
+      const parts = row.split(delimiter).map((p: string) => p.trim());
       if (parts.length < 7) {
         importSummary.failed++;
         importSummary.errors.push(`Row has missing fields: ${row}`);

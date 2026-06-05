@@ -7,6 +7,13 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception in notification-service:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection in notification-service at:', promise, 'reason:', reason);
+});
+
 const app = express();
 const PORT = process.env.PORT || 4006;
 

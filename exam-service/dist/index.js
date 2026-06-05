@@ -46,13 +46,26 @@ const jwt = __importStar(require("jsonwebtoken"));
 const redis_1 = require("redis");
 const axios_1 = __importDefault(require("axios"));
 const app = (0, express_1.default)();
+app.set('trust proxy', true);
 const PORT = process.env.PORT || 4004;
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_access_token_key';
 const JUDGE0_URL = process.env.JUDGE0_URL || 'http://judge0-service:2358';
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://ai-service:8000';
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception in exam-service:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection in exam-service at:', promise, 'reason:', reason);
+});
 // Database Pool
 const pool = new pg_1.Pool({
     connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@postgres:5432/clahan_academy?sslmode=disable',
+    max: 50,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+});
+pool.on('error', (err) => {
+    console.error('Unexpected error on idle pg client in exam-service:', err);
 });
 const query = (text, params) => pool.query(text, params);
 // Redis client for notifications
@@ -416,7 +429,7 @@ app.get('/api/exams/student/active', authenticate, requireRole('student'), async
        WHERE e.college_id = $1 AND e.department_id = $2 AND e.year = $3
          AND e.is_published = TRUE 
          AND e.schedule_date <= CURRENT_TIMESTAMP
-         AND CURRENT_TIMESTAMP <= e.schedule_date + (COALESCE(e.window_open_minutes, 10) * INTERVAL '1 minute')
+         AND CURRENT_TIMESTAMP <= e.schedule_date + (GREATEST(COALESCE(e.window_open_minutes, 10), COALESCE(e.duration_minutes, 60)) * INTERVAL '1 minute')
        ORDER BY e.schedule_date DESC`, [college_id, department_id, year, studentId]);
         // Filters down active exams where they still have attempts left
         const eligible = result.rows.filter(row => parseInt(row.attempts_made) < parseInt(row.allowed_attempts));

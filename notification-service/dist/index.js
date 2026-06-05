@@ -43,6 +43,12 @@ const nodemailer_1 = __importDefault(require("nodemailer"));
 const redis_1 = require("redis");
 const dotenv = __importStar(require("dotenv"));
 dotenv.config();
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception in notification-service:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection in notification-service at:', promise, 'reason:', reason);
+});
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4006;
 app.use((0, helmet_1.default)());

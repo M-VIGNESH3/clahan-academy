@@ -4,6 +4,13 @@ import * as bcrypt from 'bcryptjs';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@postgres:5432/clahan_academy?sslmode=disable',
+  max: 50,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
+
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle pg client in auth-service:', err);
 });
 
 export const query = (text: string, params?: any[]) => pool.query(text, params);

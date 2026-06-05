@@ -40,12 +40,19 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception in auth-service:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection in auth-service at:', promise, 'reason:', reason);
+});
 const bcrypt = __importStar(require("bcryptjs"));
 const jwt = __importStar(require("jsonwebtoken"));
 const redis_1 = require("redis");
 const db_1 = require("./db");
 const middleware_1 = require("./middleware");
 const app = (0, express_1.default)();
+app.set('trust proxy', true);
 const PORT = process.env.PORT || 4001;
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_access_token_key';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_token_key';
@@ -101,10 +108,12 @@ app.get('/health', (req, res) => {
 // Helper for publishing events to notification-service (using Redis pub/sub or queue)
 async function sendNotification(event, payload) {
     try {
-        const redisQueueClient = (0, redis_1.createClient)({ url: process.env.REDIS_URL || 'redis://redis:6379' });
-        await redisQueueClient.connect();
-        await redisQueueClient.rPush('email_notification_queue', JSON.stringify({ event, payload }));
-        await redisQueueClient.disconnect();
+        if (redisClient.isOpen) {
+            await redisClient.rPush('email_notification_queue', JSON.stringify({ event, payload }));
+        }
+        else {
+            console.log(`[Notification Fallback] Event: ${event}, Payload:`, payload);
+        }
     }
     catch (err) {
         console.error('Failed to queue email notification:', err);
@@ -301,7 +310,7 @@ app.post('/api/auth/login', async (req, res) => {
             college_id: user.college_id,
             department_id: user.department_id,
             year: user.year
-        }, JWT_SECRET, { expiresIn: '15m' });
+        }, JWT_SECRET, { expiresIn: '24h' });
         const refreshToken = jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
         // Save refresh token to Redis/DB (optional, for session revocation)
         await setCache(`refresh_token:${user.id}`, refreshToken, 7 * 24 * 60 * 60);
@@ -357,7 +366,7 @@ app.post('/api/auth/refresh', async (req, res) => {
                 college_id: user.college_id,
                 department_id: user.department_id,
                 year: user.year
-            }, JWT_SECRET, { expiresIn: '15m' });
+            }, JWT_SECRET, { expiresIn: '24h' });
             res.json({ accessToken: newAccessToken });
         });
     }

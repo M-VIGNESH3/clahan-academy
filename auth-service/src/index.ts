@@ -2,6 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception in auth-service:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection in auth-service at:', promise, 'reason:', reason);
+});
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import { createClient } from 'redis';
@@ -72,10 +79,11 @@ app.get('/health', (req, res) => {
 // Helper for publishing events to notification-service (using Redis pub/sub or queue)
 async function sendNotification(event: string, payload: any) {
   try {
-    const redisQueueClient = createClient({ url: process.env.REDIS_URL || 'redis://redis:6379' });
-    await redisQueueClient.connect();
-    await redisQueueClient.rPush('email_notification_queue', JSON.stringify({ event, payload }));
-    await redisQueueClient.disconnect();
+    if (redisClient.isOpen) {
+      await redisClient.rPush('email_notification_queue', JSON.stringify({ event, payload }));
+    } else {
+      console.log(`[Notification Fallback] Event: ${event}, Payload:`, payload);
+    }
   } catch (err) {
     console.error('Failed to queue email notification:', err);
   }
@@ -311,7 +319,7 @@ app.post('/api/auth/login', async (req, res) => {
         year: user.year
       },
       JWT_SECRET,
-      { expiresIn: '15m' }
+      { expiresIn: '24h' }
     );
 
     const refreshToken = jwt.sign(
@@ -386,7 +394,7 @@ app.post('/api/auth/refresh', async (req, res) => {
           year: user.year
         },
         JWT_SECRET,
-        { expiresIn: '15m' }
+        { expiresIn: '24h' }
       );
 
       res.json({ accessToken: newAccessToken });

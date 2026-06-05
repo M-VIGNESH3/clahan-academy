@@ -44,11 +44,24 @@ const pg_1 = require("pg");
 pg_1.types.setTypeParser(1114, (str) => new Date(str.replace(' ', 'T') + 'Z'));
 const jwt = __importStar(require("jsonwebtoken"));
 const app = (0, express_1.default)();
+app.set('trust proxy', true);
 const PORT = process.env.PORT || 4003;
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_access_token_key';
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception in student-service:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection in student-service at:', promise, 'reason:', reason);
+});
 // Database Pool
 const pool = new pg_1.Pool({
     connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@postgres:5432/clahan_academy?sslmode=disable',
+    max: 50,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+});
+pool.on('error', (err) => {
+    console.error('Unexpected error on idle pg client in student-service:', err);
 });
 const query = (text, params) => pool.query(text, params);
 // Security Middlewares
@@ -134,7 +147,7 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req, res) 
        WHERE e.college_id = $1 AND e.department_id = $2 AND e.year = $3
          AND e.is_published = TRUE 
          AND e.schedule_date <= CURRENT_TIMESTAMP
-         AND CURRENT_TIMESTAMP <= e.schedule_date + (COALESCE(e.window_open_minutes, 10) * INTERVAL '1 minute')
+         AND CURRENT_TIMESTAMP <= e.schedule_date + (GREATEST(COALESCE(e.window_open_minutes, 10), COALESCE(e.duration_minutes, 60)) * INTERVAL '1 minute')
        ORDER BY e.schedule_date DESC`, [collegeId, departmentId, year, studentId]);
         // Filter active exams where attempts_made < allowed_attempts
         const activeExams = active.rows.filter(row => parseInt(row.attempts_made) < parseInt(row.allowed_attempts));
