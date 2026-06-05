@@ -9,6 +9,7 @@ import { createClient } from 'redis';
 import axios from 'axios';
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 4004;
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_access_token_key';
