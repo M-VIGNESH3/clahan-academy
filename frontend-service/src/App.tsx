@@ -490,6 +490,8 @@ export default function App() {
         const data = await res.json();
         setColleges(data);
         setAdminColleges(data);
+      } else {
+        throw new Error(`Colleges API returned status ${res.status}`);
       }
     } catch (err) {
       console.warn("REST Colleges API failed, loading mock colleges data.");
@@ -510,6 +512,8 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setDepartments(data);
+      } else {
+        throw new Error(`Departments API returned status ${res.status}`);
       }
     } catch (err) {
       // Fallback departments mapping
@@ -607,6 +611,8 @@ export default function App() {
         setUpcomingExams(data.upcomingExams);
         setActiveExams(data.activeExams);
         setCompletedAttempts(data.completedExams);
+      } else {
+        throw new Error(`Student summary API returned status ${res.status}`);
       }
       
       const notifRes = await fetch(`${API_STUDENT}/notifications`, {
@@ -774,6 +780,8 @@ export default function App() {
       });
       if (metricsRes.ok) {
         setAdminMetrics(await metricsRes.json());
+      } else {
+        throw new Error(`Metrics API returned status ${metricsRes.status}`);
       }
       
       // Load students
