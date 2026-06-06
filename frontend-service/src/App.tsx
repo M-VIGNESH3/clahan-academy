@@ -748,7 +748,17 @@ export default function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (studRes.ok) {
-        setAdminStudents(await studRes.json());
+        const rawStudents = await studRes.json();
+        const mappedStudents = rawStudents.map((s: any) => ({
+          ...s,
+          fullName: s.full_name || s.fullName,
+          rollNumber: s.roll_number || s.rollNumber,
+          collegeId: s.college_id || s.collegeId,
+          departmentId: s.department_id || s.departmentId,
+          batchId: s.batch_id || s.batchId,
+          batchName: s.batch_name || s.batchName,
+        }));
+        setAdminStudents(mappedStudents);
       }
 
       // Load exams
@@ -3719,9 +3729,9 @@ export default function App() {
                         <span>Registered Students</span>
                         <span className="px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full font-mono font-bold text-slate-700 dark:text-slate-300">
                           {adminStudents.filter(student => {
-                            if (studentFilterCollegeId && student.college_id !== studentFilterCollegeId && student.collegeId !== studentFilterCollegeId) return false;
+                            if (studentFilterCollegeId && student.collegeId !== studentFilterCollegeId) return false;
                             if (studentFilterDeptId && student.departmentId !== studentFilterDeptId) return false;
-                            if (studentFilterBatchId && student.batch_id !== studentFilterBatchId && student.batchId !== studentFilterBatchId) return false;
+                            if (studentFilterBatchId && student.batchId !== studentFilterBatchId) return false;
                             if (studentFilterYear && student.year !== studentFilterYear) return false;
                             return true;
                           }).length} / {adminStudents.length}
@@ -3811,9 +3821,9 @@ export default function App() {
                         <tbody>
                           {adminStudents
                             .filter(student => {
-                              if (studentFilterCollegeId && student.college_id !== studentFilterCollegeId && student.collegeId !== studentFilterCollegeId) return false;
+                              if (studentFilterCollegeId && student.collegeId !== studentFilterCollegeId) return false;
                               if (studentFilterDeptId && student.departmentId !== studentFilterDeptId) return false;
-                              if (studentFilterBatchId && student.batch_id !== studentFilterBatchId && student.batchId !== studentFilterBatchId) return false;
+                              if (studentFilterBatchId && student.batchId !== studentFilterBatchId) return false;
                               if (studentFilterYear && student.year !== studentFilterYear) return false;
                               return true;
                             })
