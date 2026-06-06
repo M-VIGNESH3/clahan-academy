@@ -184,12 +184,33 @@ app.post('/api/admin/colleges', authenticateAdmin, async (req, res) => {
 });
 
 app.delete('/api/admin/colleges/:id', authenticateAdmin, async (req, res) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const { id } = req.params;
-    await query('DELETE FROM colleges WHERE id = $1', [id]);
-    res.json({ message: 'College deleted successfully' });
+    
+    // Delete exams associated with college
+    await client.query('DELETE FROM exams WHERE college_id = $1', [id]);
+    
+    // Delete batches associated with college
+    await client.query('DELETE FROM batches WHERE college_id = $1', [id]);
+    
+    // Delete departments associated with college
+    await client.query('DELETE FROM departments WHERE college_id = $1', [id]);
+    
+    // Set college_id, department_id, batch_id to NULL for students of this college
+    await client.query('UPDATE users SET college_id = NULL, department_id = NULL, batch_id = NULL WHERE college_id = $1', [id]);
+    
+    // Finally delete the college itself
+    await client.query('DELETE FROM colleges WHERE id = $1', [id]);
+    
+    await client.query('COMMIT');
+    res.json({ message: 'College and all associated data deleted successfully' });
   } catch (err: any) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
@@ -224,12 +245,20 @@ app.post('/api/admin/departments', authenticateAdmin, async (req, res) => {
 });
 
 app.delete('/api/admin/departments/:id', authenticateAdmin, async (req, res) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const { id } = req.params;
-    await query('DELETE FROM departments WHERE id = $1', [id]);
-    res.json({ message: 'Department deleted successfully' });
+    await client.query('DELETE FROM exams WHERE department_id = $1', [id]);
+    await client.query('UPDATE users SET department_id = NULL WHERE department_id = $1', [id]);
+    await client.query('DELETE FROM departments WHERE id = $1', [id]);
+    await client.query('COMMIT');
+    res.json({ message: 'Department and associated data deleted successfully' });
   } catch (err: any) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
@@ -275,12 +304,20 @@ app.post('/api/admin/colleges/:collegeId/batches', authenticateAdmin, async (req
 });
 
 app.delete('/api/admin/batches/:id', authenticateAdmin, async (req, res) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const { id } = req.params;
-    await query('DELETE FROM batches WHERE id = $1', [id]);
-    res.json({ message: 'Batch deleted successfully' });
+    await client.query('UPDATE exams SET batch_id = NULL WHERE batch_id = $1', [id]);
+    await client.query('UPDATE users SET batch_id = NULL WHERE batch_id = $1', [id]);
+    await client.query('DELETE FROM batches WHERE id = $1', [id]);
+    await client.query('COMMIT');
+    res.json({ message: 'Batch and references deleted successfully' });
   } catch (err: any) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 

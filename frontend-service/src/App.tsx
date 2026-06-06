@@ -142,10 +142,18 @@ export default function App() {
   const [githubUpdate, setGithubUpdate] = useState('');
   const [linkedinUpdate, setLinkedinUpdate] = useState('');
   const [photoUpdate, setPhotoUpdate] = useState('');
+  const [batchUpdate, setBatchUpdate] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newProfilePassword, setNewProfilePassword] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewProfilePassword, setShowNewProfilePassword] = useState(false);
+
+  // Administrative list and student filters
+  const [selectedConfigCollegeId, setSelectedConfigCollegeId] = useState('');
+  const [studentFilterCollegeId, setStudentFilterCollegeId] = useState('');
+  const [studentFilterDeptId, setStudentFilterDeptId] = useState('');
+  const [studentFilterBatchId, setStudentFilterBatchId] = useState('');
+  const [studentFilterYear, setStudentFilterYear] = useState('');
 
   // Bulk student import state
   const [studentCsvInput, setStudentCsvInput] = useState('');
@@ -557,12 +565,16 @@ export default function App() {
               department_name: 'CSE'
             };
             setCurrentUser(mockUser);
+            setBatchUpdate(mockUser.batch_id || mockUser.batchId || '');
             if (mockUser.role === 'admin') {
               setCurrentPage('admin-dash');
               loadAdminDashboard();
             } else {
               setCurrentPage('student-dash');
               loadStudentDashboard();
+              if (mockUser.collegeId) {
+                fetchBatches(mockUser.collegeId);
+              }
             }
             showToast('Using local session fallback due to server connection issues.', 'warning');
           }
@@ -595,12 +607,16 @@ export default function App() {
           departmentId: user.department_id || user.departmentId,
         };
         setCurrentUser(mappedUser);
+        setBatchUpdate(mappedUser.batch_id || mappedUser.batchId || '');
         if (mappedUser.role === 'admin') {
           setCurrentPage('admin-dash');
           loadAdminDashboard();
         } else {
           setCurrentPage('student-dash');
           loadStudentDashboard();
+          if (mappedUser.collegeId) {
+            fetchBatches(mappedUser.collegeId);
+          }
         }
       } else {
         if (res.status === 401 || res.status === 403) {
@@ -663,7 +679,8 @@ export default function App() {
           phone: phoneUpdate,
           githubProfile: githubUpdate,
           linkedinProfile: linkedinUpdate,
-          profilePhotoUrl: photoUpdate
+          profilePhotoUrl: photoUpdate,
+          batchId: batchUpdate || ''
         })
       });
       if (res.ok) {
@@ -3205,6 +3222,24 @@ export default function App() {
                         <input type="text" value={linkedinUpdate} onChange={e => setLinkedinUpdate(e.target.value)} placeholder={currentUser.linkedinProfile || "https://linkedin.com/..."} className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent focus:outline-indigo-500" />
                       </div>
                     </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Academic Batch (Change Batch)</label>
+                        <select
+                          value={batchUpdate}
+                          onChange={e => setBatchUpdate(e.target.value)}
+                          className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-indigo-500"
+                        >
+                          <option value="">No Batch Assigned</option>
+                          {batches.map(b => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                          ))}
+                        </select>
+                        <p className="text-[10px] text-muted-foreground mt-1.5">
+                          Currently enrolled in: <span className="font-bold text-indigo-600 dark:text-indigo-400">{currentUser.batch_name || currentUser.batchName || 'None'}</span>
+                        </p>
+                      </div>
+                    </div>
                     <button type="submit" className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition-colors text-sm">
                       Update Profile
                     </button>
@@ -3445,6 +3480,21 @@ export default function App() {
                   </div>
 
                   {/* Lists of Colleges, Departments, and Batches */}
+                  <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-250/50 dark:border-slate-800/50 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Filter Departments & Batches by College:</span>
+                      <p className="text-[10px] text-muted-foreground">Select a college below to only display its associated depts and batches.</p>
+                    </div>
+                    <select
+                      value={selectedConfigCollegeId}
+                      onChange={(e) => setSelectedConfigCollegeId(e.target.value)}
+                      className="text-xs p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-w-[200px]"
+                    >
+                      <option value="">Show All Colleges</option>
+                      {adminColleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Colleges */}
                     <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-4">
@@ -3474,25 +3524,27 @@ export default function App() {
                     <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-4">
                       <h4 className="font-extrabold text-sm border-b pb-2">Configured Departments</h4>
                       <div className="max-h-60 overflow-y-auto space-y-2">
-                        {adminDepts.length === 0 ? (
-                          <p className="text-xs text-muted-foreground">No departments configured.</p>
+                        {adminDepts.filter(d => !selectedConfigCollegeId || d.college_id === selectedConfigCollegeId || d.collegeId === selectedConfigCollegeId).length === 0 ? (
+                          <p className="text-xs text-muted-foreground">No departments configured for this selection.</p>
                         ) : (
-                          adminDepts.map(d => (
-                            <div key={d.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs flex justify-between items-center">
-                              <div className="space-y-1 truncate mr-2">
-                                <p className="font-bold">{d.name}</p>
-                                <p className="text-[10px] text-muted-foreground truncate">{d.college_name || 'College'}</p>
+                          adminDepts
+                            .filter(d => !selectedConfigCollegeId || d.college_id === selectedConfigCollegeId || d.collegeId === selectedConfigCollegeId)
+                            .map(d => (
+                              <div key={d.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs flex justify-between items-center">
+                                <div className="space-y-1 truncate mr-2">
+                                  <p className="font-bold">{d.name}</p>
+                                  <p className="text-[10px] text-muted-foreground truncate">{d.college_name || 'College'}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteDepartment(d.id)}
+                                  className="text-red-500 hover:text-red-700 transition-colors p-1 shrink-0"
+                                  title="Delete Department"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => deleteDepartment(d.id)}
-                                className="text-red-500 hover:text-red-700 transition-colors p-1 shrink-0"
-                                title="Delete Department"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          ))
+                            ))
                         )}
                       </div>
                     </div>
@@ -3501,25 +3553,27 @@ export default function App() {
                     <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-4">
                       <h4 className="font-extrabold text-sm border-b pb-2">Configured Batches</h4>
                       <div className="max-h-60 overflow-y-auto space-y-2">
-                        {adminBatches.length === 0 ? (
-                          <p className="text-xs text-muted-foreground">No batches configured.</p>
+                        {adminBatches.filter(b => !selectedConfigCollegeId || b.college_id === selectedConfigCollegeId || b.collegeId === selectedConfigCollegeId).length === 0 ? (
+                          <p className="text-xs text-muted-foreground">No batches configured for this selection.</p>
                         ) : (
-                          adminBatches.map(b => (
-                            <div key={b.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs flex justify-between items-center">
-                              <div className="space-y-1 truncate mr-2">
-                                <p className="font-bold">{b.name}</p>
-                                <p className="text-[10px] text-muted-foreground truncate">{b.college_name || 'College'}</p>
+                          adminBatches
+                            .filter(b => !selectedConfigCollegeId || b.college_id === selectedConfigCollegeId || b.collegeId === selectedConfigCollegeId)
+                            .map(b => (
+                              <div key={b.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs flex justify-between items-center">
+                                <div className="space-y-1 truncate mr-2">
+                                  <p className="font-bold">{b.name}</p>
+                                  <p className="text-[10px] text-muted-foreground truncate">{b.college_name || 'College'}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteBatch(b.id)}
+                                  className="text-red-500 hover:text-red-700 transition-colors p-1 shrink-0"
+                                  title="Delete Batch"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => deleteBatch(b.id)}
-                                className="text-red-500 hover:text-red-700 transition-colors p-1 shrink-0"
-                                title="Delete Batch"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          ))
+                            ))
                         )}
                       </div>
                     </div>
@@ -3666,6 +3720,68 @@ export default function App() {
                         <Download className="h-3.5 w-3.5" /> Download Excel
                       </button>
                     </div>
+
+                    {/* Filter controls */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200/50 dark:border-slate-800/50">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter College</label>
+                        <select
+                          value={studentFilterCollegeId}
+                          onChange={(e) => {
+                            setStudentFilterCollegeId(e.target.value);
+                            setStudentFilterDeptId('');
+                            setStudentFilterBatchId('');
+                          }}
+                          className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                        >
+                          <option value="">All Colleges</option>
+                          {adminColleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter Department</label>
+                        <select
+                          value={studentFilterDeptId}
+                          onChange={(e) => setStudentFilterDeptId(e.target.value)}
+                          className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                          disabled={!studentFilterCollegeId}
+                        >
+                          <option value="">All Departments</option>
+                          {adminDepts
+                            .filter(d => d.college_id === studentFilterCollegeId || d.collegeId === studentFilterCollegeId)
+                            .map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter Batch</label>
+                        <select
+                          value={studentFilterBatchId}
+                          onChange={(e) => setStudentFilterBatchId(e.target.value)}
+                          className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                          disabled={!studentFilterCollegeId}
+                        >
+                          <option value="">All Batches</option>
+                          {adminBatches
+                            .filter(b => b.college_id === studentFilterCollegeId || b.collegeId === studentFilterCollegeId)
+                            .map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter Year</label>
+                        <select
+                          value={studentFilterYear}
+                          onChange={(e) => setStudentFilterYear(e.target.value)}
+                          className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                        >
+                          <option value="">All Years</option>
+                          <option value="1st Year">1st Year</option>
+                          <option value="2nd Year">2nd Year</option>
+                          <option value="3rd Year">3rd Year</option>
+                          <option value="4th Year">4th Year</option>
+                        </select>
+                      </div>
+                    </div>
+
                     <div className="overflow-x-auto">
                       <table className="w-full text-xs text-left">
                         <thead>
@@ -3679,7 +3795,15 @@ export default function App() {
                           </tr>
                         </thead>
                         <tbody>
-                          {adminStudents.map(student => (
+                          {adminStudents
+                            .filter(student => {
+                              if (studentFilterCollegeId && student.college_id !== studentFilterCollegeId && student.collegeId !== studentFilterCollegeId) return false;
+                              if (studentFilterDeptId && student.departmentId !== studentFilterDeptId) return false;
+                              if (studentFilterBatchId && student.batch_id !== studentFilterBatchId && student.batchId !== studentFilterBatchId) return false;
+                              if (studentFilterYear && student.year !== studentFilterYear) return false;
+                              return true;
+                            })
+                            .map(student => (
                             <tr key={student.id} className="border-b hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
                               <td className="py-3.5 px-2">
                                 <div className="font-bold">{student.fullName || student.full_name || 'N/A'}</div>
