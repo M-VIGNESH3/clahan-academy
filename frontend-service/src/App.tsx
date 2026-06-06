@@ -596,7 +596,7 @@ export default function App() {
       });
       if (res.ok) {
         const user = await res.json();
-        const mappedUser = {
+         const mappedUser = {
           ...user,
           fullName: user.full_name || user.fullName,
           rollNumber: user.roll_number || user.rollNumber,
@@ -605,9 +605,11 @@ export default function App() {
           linkedinProfile: user.linkedin_profile || user.linkedinProfile,
           collegeId: user.college_id || user.collegeId,
           departmentId: user.department_id || user.departmentId,
+          batchId: user.batch_id || user.batchId,
+          batchName: user.batch_name || user.batchName,
         };
         setCurrentUser(mappedUser);
-        setBatchUpdate(mappedUser.batch_id || mappedUser.batchId || '');
+        setBatchUpdate(mappedUser.batchId || mappedUser.batch_id || '');
         if (mappedUser.role === 'admin') {
           setCurrentPage('admin-dash');
           loadAdminDashboard();
@@ -3009,6 +3011,7 @@ export default function App() {
                   <div className="flex justify-between"><span className="font-semibold text-slate-500">College:</span><span className="truncate max-w-[130px] text-xs font-bold" title={currentUser.college_name}>{currentUser.college_name || 'N/A'}</span></div>
                   <div className="flex justify-between"><span className="font-semibold text-slate-500">Dept:</span><span className="font-bold">{currentUser.department_name || 'N/A'}</span></div>
                   <div className="flex justify-between"><span className="font-semibold text-slate-500">Year:</span><span className="font-bold">{currentUser.year || 'N/A'}</span></div>
+                  <div className="flex justify-between"><span className="font-semibold text-slate-500">Batch:</span><span className="font-bold text-indigo-600 dark:text-indigo-400">{currentUser.batchName || currentUser.batch_name || 'N/A'}</span></div>
                 </div>
               </div>
 
@@ -3712,7 +3715,18 @@ export default function App() {
                   {/* List of onboarded Students */}
                   <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
                     <div className="flex justify-between items-center mb-4">
-                      <h4 className="font-bold text-sm">Registered Students</h4>
+                      <h4 className="font-bold text-sm flex items-center gap-2">
+                        <span>Registered Students</span>
+                        <span className="px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full font-mono font-bold text-slate-700 dark:text-slate-300">
+                          {adminStudents.filter(student => {
+                            if (studentFilterCollegeId && student.college_id !== studentFilterCollegeId && student.collegeId !== studentFilterCollegeId) return false;
+                            if (studentFilterDeptId && student.departmentId !== studentFilterDeptId) return false;
+                            if (studentFilterBatchId && student.batch_id !== studentFilterBatchId && student.batchId !== studentFilterBatchId) return false;
+                            if (studentFilterYear && student.year !== studentFilterYear) return false;
+                            return true;
+                          }).length} / {adminStudents.length}
+                        </span>
+                      </h4>
                       <button
                         onClick={downloadStudentsExcel}
                         className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1 shadow-sm transition-colors"
