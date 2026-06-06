@@ -35,6 +35,14 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+// Disable caching for all API responses
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
+
 // Health Check
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', service: 'proctoring-service' });

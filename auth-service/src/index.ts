@@ -19,7 +19,7 @@ const app = express();
 app.set('trust proxy', true);
 const PORT = process.env.PORT || 4001;
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_access_token_key';
+const JWT_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'super_secret_access_token_key';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_token_key';
 
 // Redis Client
@@ -62,6 +62,14 @@ async function getCache(key: string): Promise<string | null> {
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+
+// Disable caching for all API responses
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes

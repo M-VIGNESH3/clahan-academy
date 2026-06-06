@@ -107,6 +107,7 @@ async function initDb() {
         schedule_date TIMESTAMP NOT NULL,
         college_id UUID REFERENCES colleges(id) ON DELETE CASCADE,
         department_id UUID REFERENCES departments(id) ON DELETE CASCADE,
+        department_ids UUID[],
         year VARCHAR(50) NOT NULL,
         window_open_minutes INTEGER DEFAULT 10,
         is_published BOOLEAN DEFAULT FALSE,
@@ -116,6 +117,12 @@ async function initDb() {
         // Migrate existing DB if needed
         await client.query(`
       ALTER TABLE exams ADD COLUMN IF NOT EXISTS window_open_minutes INTEGER DEFAULT 10;
+    `);
+        await client.query(`
+      ALTER TABLE exams ADD COLUMN IF NOT EXISTS department_ids UUID[];
+    `);
+        await client.query(`
+      UPDATE exams SET department_ids = ARRAY[department_id] WHERE department_ids IS NULL AND department_id IS NOT NULL;
     `);
         // MCQ Questions
         await client.query(`

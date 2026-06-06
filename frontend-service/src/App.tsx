@@ -529,9 +529,50 @@ export default function App() {
   };
 
   const fetchCurrentUser = async () => {
+    const tryLocalDecode = () => {
+      if (token) {
+        try {
+          const parts = token.split('.');
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1]));
+            const mockUser: UserProfile = {
+              id: payload.id || 'usr-mock',
+              email: payload.email || 'student@clahan.com',
+              role: payload.role || 'student',
+              fullName: payload.fullName || payload.full_name || 'Demo Student',
+              rollNumber: payload.roll_number || payload.rollNumber || '2026CSE104',
+              collegeId: payload.college_id || payload.collegeId || 'col-1',
+              departmentId: payload.department_id || payload.departmentId || 'dept-1',
+              year: payload.year || '3rd Year',
+              status: 'active',
+              college_name: 'ABC Engineering College',
+              department_name: 'CSE'
+            };
+            setCurrentUser(mockUser);
+            if (mockUser.role === 'admin') {
+              setCurrentPage('admin-dash');
+              loadAdminDashboard();
+            } else {
+              setCurrentPage('student-dash');
+              loadStudentDashboard();
+            }
+            showToast('Using local session fallback due to server connection issues.', 'warning');
+          }
+        } catch (e) {
+          handleLogout();
+        }
+      } else {
+        handleLogout();
+      }
+    };
+
     try {
-      const res = await fetch(`${API_AUTH}/me`, {
-        headers: { Authorization: `Bearer ${token}` }
+      const res = await fetch(`${API_AUTH}/me?t=${Date.now()}`, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
       });
       if (res.ok) {
         const user = await res.json();
@@ -554,41 +595,14 @@ export default function App() {
           loadStudentDashboard();
         }
       } else {
-        handleLogout();
-      }
-    } catch (err) {
-      // Decode JWT locally for mock usage if REST API offline
-      if (token) {
-        try {
-          const parts = token.split('.');
-          if (parts.length === 3) {
-            const payload = JSON.parse(atob(parts[1]));
-            const mockUser: UserProfile = {
-              id: payload.id || 'usr-mock',
-              email: payload.email || 'student@clahan.com',
-              role: payload.role || 'student',
-              fullName: payload.fullName || 'Demo Student',
-              rollNumber: payload.roll_number || '2026CSE104',
-              collegeId: payload.college_id || 'col-1',
-              departmentId: payload.department_id || 'dept-1',
-              year: payload.year || '3rd Year',
-              status: 'active',
-              college_name: 'ABC Engineering College',
-              department_name: 'CSE'
-            };
-            setCurrentUser(mockUser);
-            if (mockUser.role === 'admin') {
-              setCurrentPage('admin-dash');
-              loadAdminDashboard();
-            } else {
-              setCurrentPage('student-dash');
-              loadStudentDashboard();
-            }
-          }
-        } catch (e) {
+        if (res.status === 401 || res.status === 403) {
           handleLogout();
+        } else {
+          tryLocalDecode();
         }
       }
+    } catch (err) {
+      tryLocalDecode();
     }
   };
 

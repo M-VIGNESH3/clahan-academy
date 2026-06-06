@@ -12,7 +12,7 @@ const app = express();
 app.set('trust proxy', true);
 const PORT = process.env.PORT || 4002;
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_access_token_key';
+const JWT_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'super_secret_access_token_key';
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception in admin-service:', err);
@@ -62,6 +62,14 @@ async function queueNotification(event: string, payload: any) {
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+// Disable caching for all API responses
+app.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
