@@ -58,6 +58,21 @@ async function queueNotification(event: string, payload: any) {
   }
 }
 
+async function queueNotificationsBulk(event: string, payloads: any[]) {
+  try {
+    if (redisClient.isOpen) {
+      const messages = payloads.map(payload => JSON.stringify({ event, payload }));
+      if (messages.length > 0) {
+        await redisClient.rPush('email_notification_queue', messages);
+      }
+    } else {
+      console.log(`[Notification Fallback] Bulk Event: ${event}, Count: ${payloads.length}`);
+    }
+  } catch (err) {
+    console.error('Queue bulk notification error:', err);
+  }
+}
+
 // Security Middlewares
 app.use(helmet());
 app.use(cors());
@@ -272,6 +287,8 @@ app.post('/api/admin/students/import', authenticateAdmin, async (req, res) => {
       deptMap[`${d.college_id}:${d.name.toLowerCase()}`] = d.id;
     }
 
+    const notificationPayloads: any[] = [];
+
     for (const row of dataRows) {
       const parts = row.split(delimiter).map((p: string) => p.trim());
       if (parts.length < 7) {
@@ -332,7 +349,7 @@ app.post('/api/admin/students/import', authenticateAdmin, async (req, res) => {
         );
 
         // Queue credentials email
-        await queueNotification('CREDENTIAL_EMAIL', {
+        notificationPayloads.push({
           email,
           fullName,
           password: plainPassword
@@ -343,6 +360,10 @@ app.post('/api/admin/students/import', authenticateAdmin, async (req, res) => {
         importSummary.failed++;
         importSummary.errors.push(`Database error for row [${row}]: ${err.message}`);
       }
+    }
+
+    if (notificationPayloads.length > 0) {
+      await queueNotificationsBulk('CREDENTIAL_EMAIL', notificationPayloads);
     }
 
     res.json({ message: 'Import completed', summary: importSummary });

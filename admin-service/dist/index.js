@@ -48,7 +48,7 @@ const redis_1 = require("redis");
 const app = (0, express_1.default)();
 app.set('trust proxy', true);
 const PORT = process.env.PORT || 4002;
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_access_token_key';
+const JWT_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'super_secret_access_token_key';
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception in admin-service:', err);
 });
@@ -92,10 +92,33 @@ async function queueNotification(event, payload) {
         console.error('Queue notification error:', err);
     }
 }
+async function queueNotificationsBulk(event, payloads) {
+    try {
+        if (redisClient.isOpen) {
+            const messages = payloads.map(payload => JSON.stringify({ event, payload }));
+            if (messages.length > 0) {
+                await redisClient.rPush('email_notification_queue', messages);
+            }
+        }
+        else {
+            console.log(`[Notification Fallback] Bulk Event: ${event}, Count: ${payloads.length}`);
+        }
+    }
+    catch (err) {
+        console.error('Queue bulk notification error:', err);
+    }
+}
 // Security Middlewares
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)());
 app.use(express_1.default.json({ limit: '10mb' }));
+// Disable caching for all API responses
+app.use((req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    next();
+});
 const limiter = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000,
     max: 200,
@@ -262,6 +285,7 @@ app.post('/api/admin/students/import', authenticateAdmin, async (req, res) => {
         for (const d of depts.rows) {
             deptMap[`${d.college_id}:${d.name.toLowerCase()}`] = d.id;
         }
+        const notificationPayloads = [];
         for (const row of dataRows) {
             const parts = row.split(delimiter).map((p) => p.trim());
             if (parts.length < 7) {
@@ -311,7 +335,7 @@ app.post('/api/admin/students/import', authenticateAdmin, async (req, res) => {
             college_id, department_id, year, status, email_verified
           ) VALUES ($1, $2, 'student', $3, $4, $5, $6, $7, $8, 'active', TRUE)`, [email, hashedPassword, fullName, phone || null, rollNumber, collegeId, departmentId, year]);
                 // Queue credentials email
-                await queueNotification('CREDENTIAL_EMAIL', {
+                notificationPayloads.push({
                     email,
                     fullName,
                     password: plainPassword
@@ -322,6 +346,9 @@ app.post('/api/admin/students/import', authenticateAdmin, async (req, res) => {
                 importSummary.failed++;
                 importSummary.errors.push(`Database error for row [${row}]: ${err.message}`);
             }
+        }
+        if (notificationPayloads.length > 0) {
+            await queueNotificationsBulk('CREDENTIAL_EMAIL', notificationPayloads);
         }
         res.json({ message: 'Import completed', summary: importSummary });
     }

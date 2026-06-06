@@ -85,6 +85,9 @@ transporter.verify((err, success) => {
 const redisClient = createClient({
   url: process.env.REDIS_URL || 'redis://redis:6379',
 });
+redisClient.on('error', (err) => {
+  console.error('Redis Client Error in notification-service:', err);
+});
 
 // Logs for auditing
 const deliveryLogs: Array<{ email: string; event: string; timestamp: Date; success: boolean; details?: string }> = [];
@@ -236,6 +239,50 @@ function compileEmail(event: string, payload: any): { subject: string; html: str
   return { subject, html };
 }
 
+const CONCURRENCY_LIMIT = 10;
+let activeJobsCount = 0;
+
+async function processJob(event: string, payload: any) {
+  try {
+    console.log(`[Active Jobs: ${activeJobsCount}] Processing job: [${event}] for ${payload.email}`);
+    const { subject, html } = compileEmail(event, payload);
+
+    let attempts = 0;
+    let sent = false;
+    let lastErr = '';
+
+    while (attempts < 3 && !sent) {
+      try {
+        await transporter.sendMail({
+          from: smtpFrom,
+          to: payload.email,
+          subject: subject,
+          html: html,
+        });
+        sent = true;
+        console.log(`Email dispatched successfully on attempt ${attempts + 1} to ${payload.email}`);
+        deliveryLogs.push({ email: payload.email, event, timestamp: new Date(), success: true });
+      } catch (err: any) {
+        attempts++;
+        lastErr = err.message;
+        console.warn(`Attempt ${attempts} failed to send email to ${payload.email}: ${err.message}. Retrying...`);
+        if (attempts < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 2000 * attempts)); // backoff delay
+        }
+      }
+    }
+
+    if (!sent) {
+      console.error(`Email delivery failed permanently to ${payload.email} after 3 attempts: ${lastErr}`);
+      deliveryLogs.push({ email: payload.email, event, timestamp: new Date(), success: false, details: lastErr });
+    }
+  } catch (err: any) {
+    console.error(`Error processing job for ${payload?.email}:`, err.message);
+  } finally {
+    activeJobsCount = Math.max(0, activeJobsCount - 1);
+  }
+}
+
 // Queue Worker
 async function startWorker() {
   console.log('Notification Worker starting up...');
@@ -252,43 +299,33 @@ async function startWorker() {
 
   while (true) {
     try {
-      // Blocking pop from the right side of the list
-      const result = await redisClient.brPop(queueKey, 0); // 0 means wait indefinitely
+      if (activeJobsCount >= CONCURRENCY_LIMIT) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        continue;
+      }
+
+      if (!redisClient.isOpen) {
+        console.log('Redis client is not open. Waiting for reconnect...');
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        continue;
+      }
+
+      // Pop from the right side of the list with a 5s timeout
+      const result = await redisClient.brPop(queueKey, 5);
       if (!result) continue;
 
       const jobData = JSON.parse(result.element);
       const { event, payload } = jobData;
-      console.log(`Processing notification job: [${event}] for ${payload.email}`);
 
-      const { subject, html } = compileEmail(event, payload);
-
-      let attempts = 0;
-      let sent = false;
-      let lastErr = '';
-
-      while (attempts < 3 && !sent) {
-        try {
-          await transporter.sendMail({
-            from: smtpFrom,
-            to: payload.email,
-            subject: subject,
-            html: html,
-          });
-          sent = true;
-          console.log(`Email dispatched successfully on attempt ${attempts + 1}`);
-          deliveryLogs.push({ email: payload.email, event, timestamp: new Date(), success: true });
-        } catch (err: any) {
-          attempts++;
-          lastErr = err.message;
-          console.warn(`Attempt ${attempts} failed to send email: ${err.message}. Retrying...`);
-          await new Promise((resolve) => setTimeout(resolve, 2000 * attempts)); // backoff delay
-        }
+      if (!payload || !payload.email) {
+        console.warn('Skipping notification job due to missing payload email:', jobData);
+        continue;
       }
 
-      if (!sent) {
-        console.error(`Email delivery failed permanently after 3 attempts: ${lastErr}`);
-        deliveryLogs.push({ email: payload.email, event, timestamp: new Date(), success: false, details: lastErr });
-      }
+      activeJobsCount++;
+      processJob(event, payload).catch((err) => {
+        console.error('Unhandled error in processJob:', err);
+      });
 
     } catch (err: any) {
       console.error('Worker loop encountered error:', err.message);

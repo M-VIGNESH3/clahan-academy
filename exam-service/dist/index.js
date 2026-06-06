@@ -48,7 +48,7 @@ const axios_1 = __importDefault(require("axios"));
 const app = (0, express_1.default)();
 app.set('trust proxy', true);
 const PORT = process.env.PORT || 4004;
-const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_access_token_key';
+const JWT_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'super_secret_access_token_key';
 const JUDGE0_URL = process.env.JUDGE0_URL || 'http://judge0-service:2358';
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://ai-service:8000';
 process.on('uncaughtException', (err) => {
@@ -94,10 +94,33 @@ async function queueNotification(event, payload) {
         console.error('Queue notification error:', err);
     }
 }
+async function queueNotificationsBulk(event, payloads) {
+    try {
+        if (redisClient.isOpen) {
+            const messages = payloads.map(payload => JSON.stringify({ event, payload }));
+            if (messages.length > 0) {
+                await redisClient.rPush('email_notification_queue', messages);
+            }
+        }
+        else {
+            console.log(`[Notification Fallback] Bulk Event: ${event}, Count: ${payloads.length}`);
+        }
+    }
+    catch (err) {
+        console.error('Queue bulk notification error:', err);
+    }
+}
 // Security Middlewares
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)());
 app.use(express_1.default.json({ limit: '10mb' }));
+// Disable caching for all API responses
+app.use((req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    next();
+});
 const limiter = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000,
     max: 300,
@@ -132,7 +155,13 @@ app.get('/health', (req, res) => {
 app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res) => {
     try {
         const result = await query(`
-      SELECT e.*, c.name as college_name, d.name as department_name,
+      SELECT e.*, c.name as college_name,
+             COALESCE(
+               (SELECT string_agg(dept.name, ', ') 
+                FROM departments dept 
+                WHERE dept.id = ANY(e.department_ids)), 
+               d.name
+             ) as department_name,
              (SELECT COUNT(*) FROM mcq_questions mq WHERE mq.exam_id = e.id) as mcq_count,
              (SELECT COUNT(*) FROM coding_questions cq WHERE cq.exam_id = e.id) as coding_count
       FROM exams e
@@ -149,14 +178,16 @@ app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res)
 // Create Exam
 app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
     try {
-        const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, year, windowOpenMinutes } = req.body;
-        if (!name || !examType || !durationMinutes || !scheduleDate || !collegeId || !departmentId || !year) {
+        const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, year, windowOpenMinutes } = req.body;
+        if (!name || !examType || !durationMinutes || !scheduleDate || !collegeId || (!departmentId && (!departmentIds || departmentIds.length === 0)) || !year) {
             return res.status(400).json({ error: 'Missing required parameters' });
         }
+        const finalDeptId = departmentId || (departmentIds && departmentIds[0]) || null;
+        const finalDeptIds = departmentIds || (departmentId ? [departmentId] : []);
         const result = await query(`INSERT INTO exams (
         name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts,
-        schedule_date, college_id, department_id, year, window_open_minutes, is_published
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, FALSE) RETURNING *`, [name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, departmentId, year, windowOpenMinutes !== undefined ? windowOpenMinutes : 10]);
+        schedule_date, college_id, department_id, department_ids, year, window_open_minutes, is_published
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, FALSE) RETURNING *`, [name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, finalDeptId, finalDeptIds, year, windowOpenMinutes !== undefined ? windowOpenMinutes : 10]);
         res.status(201).json(result.rows[0]);
     }
     catch (err) {
@@ -166,7 +197,13 @@ app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
 // Get detailed exam for admin editing
 app.get('/api/exams/:id', authenticate, async (req, res) => {
     try {
-        const examResult = await query(`SELECT e.*, c.name as college_name, d.name as department_name
+        const examResult = await query(`SELECT e.*, c.name as college_name,
+              COALESCE(
+                (SELECT string_agg(dept.name, ', ') 
+                 FROM departments dept 
+                 WHERE dept.id = ANY(e.department_ids)), 
+                d.name
+              ) as department_name
        FROM exams e
        LEFT JOIN colleges c ON e.college_id = c.id
        LEFT JOIN departments d ON e.department_id = d.id
@@ -194,12 +231,14 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
 // Update Exam
 app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) => {
     try {
-        const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, year, windowOpenMinutes } = req.body;
+        const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, year, windowOpenMinutes } = req.body;
+        const finalDeptId = departmentId || (departmentIds && departmentIds[0]) || null;
+        const finalDeptIds = departmentIds || (departmentId ? [departmentId] : []);
         const result = await query(`UPDATE exams 
        SET name = $1, description = $2, exam_type = $3, duration_minutes = $4,
            cutoff_percentage = $5, allowed_attempts = $6, schedule_date = $7,
-           college_id = $8, department_id = $9, year = $10, window_open_minutes = $11
-       WHERE id = $12 RETURNING *`, [name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, year, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, req.params.id]);
+           college_id = $8, department_id = $9, department_ids = $10, year = $11, window_open_minutes = $12
+       WHERE id = $13 RETURNING *`, [name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, finalDeptId, finalDeptIds, year, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, req.params.id]);
         if (result.rows.length === 0)
             return res.status(404).json({ error: 'Exam not found' });
         res.json(result.rows[0]);
@@ -217,8 +256,21 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
         if (examCheck.rows.length === 0)
             return res.status(404).json({ error: 'Exam not found' });
         const ex = examCheck.rows[0];
-        const newExam = await query(`INSERT INTO exams (name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts, schedule_date, college_id, department_id, year, window_open_minutes, is_published)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, FALSE) RETURNING *`, [`Copy of ${ex.name}`, ex.description, ex.exam_type, ex.duration_minutes, ex.cutoff_percentage, ex.allowed_attempts, ex.schedule_date, ex.college_id, ex.department_id, ex.year, ex.window_open_minutes]);
+        const newExam = await query(`INSERT INTO exams (name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts, schedule_date, college_id, department_id, department_ids, year, window_open_minutes, is_published)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, FALSE) RETURNING *`, [
+            `Copy of ${ex.name}`,
+            ex.description,
+            ex.exam_type,
+            ex.duration_minutes,
+            ex.cutoff_percentage,
+            ex.allowed_attempts,
+            ex.schedule_date,
+            ex.college_id,
+            ex.department_id,
+            ex.department_ids || (ex.department_id ? [ex.department_id] : []),
+            ex.year,
+            ex.window_open_minutes
+        ]);
         const newExamId = newExam.rows[0].id;
         // Copy MCQs
         const mcqs = await query('SELECT * FROM mcq_questions WHERE exam_id = $1', [id]);
@@ -254,14 +306,17 @@ app.post('/api/exams/:id/publish', authenticate, requireRole('admin'), async (re
             return res.status(404).json({ error: 'Exam not found' });
         const exam = result.rows[0];
         // Find eligible students to notify
-        const students = await query('SELECT email, full_name FROM users WHERE role = \'student\' AND college_id = $1 AND department_id = $2 AND year = $3', [exam.college_id, exam.department_id, exam.year]);
-        for (const student of students.rows) {
-            await queueNotification('EXAM_PUBLISHED', {
-                email: student.email,
-                fullName: student.full_name,
-                examName: exam.name,
-                scheduleDate: exam.schedule_date
-            });
+        const students = await query(`SELECT email, full_name FROM users 
+       WHERE role = 'student' AND college_id = $1 AND year = $2 
+         AND (department_id = $3 OR department_id = ANY($4))`, [exam.college_id, exam.year, exam.department_id, exam.department_ids || []]);
+        const notificationPayloads = students.rows.map(student => ({
+            email: student.email,
+            fullName: student.full_name,
+            examName: exam.name,
+            scheduleDate: exam.schedule_date
+        }));
+        if (notificationPayloads.length > 0) {
+            await queueNotificationsBulk('EXAM_PUBLISHED', notificationPayloads);
         }
         res.json({ message: 'Exam published successfully', exam });
     }
@@ -426,7 +481,7 @@ app.get('/api/exams/student/active', authenticate, requireRole('student'), async
         const result = await query(`SELECT e.*, 
               (SELECT COUNT(*) FROM exam_attempts ea WHERE ea.exam_id = e.id AND ea.student_id = $4) as attempts_made
        FROM exams e
-       WHERE e.college_id = $1 AND e.department_id = $2 AND e.year = $3
+       WHERE e.college_id = $1 AND (e.department_id = $2 OR $2 = ANY(e.department_ids)) AND e.year = $3
          AND e.is_published = TRUE 
          AND e.schedule_date <= CURRENT_TIMESTAMP
          AND CURRENT_TIMESTAMP <= e.schedule_date + (GREATEST(COALESCE(e.window_open_minutes, 10), COALESCE(e.duration_minutes, 60)) * INTERVAL '1 minute')

@@ -60,6 +60,21 @@ async function queueNotification(event: string, payload: any) {
   }
 }
 
+async function queueNotificationsBulk(event: string, payloads: any[]) {
+  try {
+    if (redisClient.isOpen) {
+      const messages = payloads.map(payload => JSON.stringify({ event, payload }));
+      if (messages.length > 0) {
+        await redisClient.rPush('email_notification_queue', messages);
+      }
+    } else {
+      console.log(`[Notification Fallback] Bulk Event: ${event}, Count: ${payloads.length}`);
+    }
+  } catch (err) {
+    console.error('Queue bulk notification error:', err);
+  }
+}
+
 // Security Middlewares
 app.use(helmet());
 app.use(cors());
@@ -317,13 +332,15 @@ app.post('/api/exams/:id/publish', authenticate, requireRole('admin'), async (re
       [exam.college_id, exam.year, exam.department_id, exam.department_ids || []]
     );
 
-    for (const student of students.rows) {
-      await queueNotification('EXAM_PUBLISHED', {
-        email: student.email,
-        fullName: student.full_name,
-        examName: exam.name,
-        scheduleDate: exam.schedule_date
-      });
+    const notificationPayloads = students.rows.map(student => ({
+      email: student.email,
+      fullName: student.full_name,
+      examName: exam.name,
+      scheduleDate: exam.schedule_date
+    }));
+
+    if (notificationPayloads.length > 0) {
+      await queueNotificationsBulk('EXAM_PUBLISHED', notificationPayloads);
     }
 
     res.json({ message: 'Exam published successfully', exam });
