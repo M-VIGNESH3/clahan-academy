@@ -213,15 +213,21 @@ app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res)
 app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
     try {
         const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes } = req.body;
-        if (!name || !examType || !durationMinutes || !scheduleDate || !collegeId || (!departmentId && (!departmentIds || departmentIds.length === 0)) || !year) {
+        if (!name || !examType || !durationMinutes || !scheduleDate || !collegeId) {
             return res.status(400).json({ error: 'Missing required parameters' });
         }
-        const finalDeptId = departmentId || (departmentIds && departmentIds[0]) || null;
-        const finalDeptIds = departmentIds || (departmentId ? [departmentId] : []);
+        if (!batchId) {
+            if ((!departmentId && (!departmentIds || departmentIds.length === 0)) || !year) {
+                return res.status(400).json({ error: 'When scheduling without a batch, department and year are required' });
+            }
+        }
+        const finalDeptId = batchId ? null : (departmentId || (departmentIds && departmentIds[0]) || null);
+        const finalDeptIds = batchId ? [] : (departmentIds || (departmentId ? [departmentId] : []));
+        const finalYear = batchId ? null : year;
         const result = await query(`INSERT INTO exams (
         name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts,
         schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE) RETURNING *`, [name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, year, windowOpenMinutes !== undefined ? windowOpenMinutes : 10]);
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE) RETURNING *`, [name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10]);
         res.status(201).json(result.rows[0]);
     }
     catch (err) {
@@ -268,13 +274,22 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
 app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) => {
     try {
         const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes } = req.body;
-        const finalDeptId = departmentId || (departmentIds && departmentIds[0]) || null;
-        const finalDeptIds = departmentIds || (departmentId ? [departmentId] : []);
+        if (!name || !examType || !durationMinutes || !scheduleDate || !collegeId) {
+            return res.status(400).json({ error: 'Missing required parameters' });
+        }
+        if (!batchId) {
+            if ((!departmentId && (!departmentIds || departmentIds.length === 0)) || !year) {
+                return res.status(400).json({ error: 'When scheduling without a batch, department and year are required' });
+            }
+        }
+        const finalDeptId = batchId ? null : (departmentId || (departmentIds && departmentIds[0]) || null);
+        const finalDeptIds = batchId ? [] : (departmentIds || (departmentId ? [departmentId] : []));
+        const finalYear = batchId ? null : year;
         const result = await query(`UPDATE exams 
        SET name = $1, description = $2, exam_type = $3, duration_minutes = $4,
            cutoff_percentage = $5, allowed_attempts = $6, schedule_date = $7,
            college_id = $8, department_id = $9, department_ids = $10, batch_id = $11, year = $12, window_open_minutes = $13
-       WHERE id = $14 RETURNING *`, [name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, year, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, req.params.id]);
+       WHERE id = $14 RETURNING *`, [name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, req.params.id]);
         if (result.rows.length === 0)
             return res.status(404).json({ error: 'Exam not found' });
         res.json(result.rows[0]);

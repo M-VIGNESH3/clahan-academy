@@ -183,6 +183,16 @@ app.post('/api/admin/colleges', authenticateAdmin, async (req, res) => {
   }
 });
 
+app.delete('/api/admin/colleges/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await query('DELETE FROM colleges WHERE id = $1', [id]);
+    res.json({ message: 'College deleted successfully' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Departments ---
 app.get('/api/admin/departments', authenticateAdmin, async (req, res) => {
   try {
@@ -208,6 +218,16 @@ app.post('/api/admin/departments', authenticateAdmin, async (req, res) => {
       [collegeId, name]
     );
     res.status(201).json(result.rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/departments/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await query('DELETE FROM departments WHERE id = $1', [id]);
+    res.json({ message: 'Department deleted successfully' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -286,7 +306,7 @@ app.get('/api/admin/students', authenticateAdmin, async (req, res) => {
 // Manual Student Creation
 app.post('/api/admin/students', authenticateAdmin, async (req, res) => {
   try {
-    const { email, fullName, phone, rollNumber, collegeId, departmentId, year } = req.body;
+    const { email, fullName, phone, rollNumber, collegeId, departmentId, batchId, year } = req.body;
     if (!email || !fullName || !rollNumber || !collegeId || !departmentId || !year) {
       return res.status(400).json({ error: 'Required fields missing' });
     }
@@ -303,9 +323,9 @@ app.post('/api/admin/students', authenticateAdmin, async (req, res) => {
     const result = await query(
       `INSERT INTO users (
         email, password_hash, role, full_name, phone, roll_number,
-        college_id, department_id, year, status, email_verified
-      ) VALUES ($1, $2, 'student', $3, $4, $5, $6, $7, $8, 'active', TRUE) RETURNING *`,
-      [email, hashedPassword, fullName, phone || null, rollNumber, collegeId, departmentId, year]
+        college_id, department_id, batch_id, year, status, email_verified
+      ) VALUES ($1, $2, 'student', $3, $4, $5, $6, $7, $8, $9, 'active', TRUE) RETURNING *`,
+      [email, hashedPassword, fullName, phone || null, rollNumber, collegeId, departmentId, batchId || null, year]
     );
 
     // Queue notification email
@@ -517,6 +537,37 @@ app.delete('/api/admin/students/:id', authenticateAdmin, async (req, res) => {
     const { id } = req.params;
     await query('DELETE FROM users WHERE id = $1 AND role = \'student\'', [id]);
     res.json({ message: 'Student deleted successfully' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/admin/students/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fullName, email, phone, rollNumber, collegeId, departmentId, batchId, year, status } = req.body;
+    
+    const check = await query('SELECT id FROM users WHERE id = $1 AND role = \'student\'', [id]);
+    if (check.rows.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+
+    const result = await query(
+      `UPDATE users
+       SET full_name = COALESCE($1, full_name),
+           email = COALESCE($2, email),
+           phone = COALESCE($3, phone),
+           roll_number = COALESCE($4, roll_number),
+           college_id = COALESCE($5, college_id),
+           department_id = COALESCE($6, department_id),
+           batch_id = $7,
+           year = COALESCE($8, year),
+           status = COALESCE($9, status)
+       WHERE id = $10 RETURNING *`,
+      [fullName, email, phone, rollNumber, collegeId, departmentId, batchId || null, year, status, id]
+    );
+
+    res.json({ message: 'Student updated successfully', student: result.rows[0] });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

@@ -119,14 +119,37 @@ app.get('/api/student/profile', authenticateStudent, async (req, res) => {
 });
 app.put('/api/student/profile', authenticateStudent, async (req, res) => {
     try {
-        const { phone, githubProfile, linkedinProfile, profilePhotoUrl } = req.body;
+        const { phone, githubProfile, linkedinProfile, profilePhotoUrl, batchId } = req.body;
         const result = await query(`UPDATE users
        SET phone = COALESCE($1, phone),
            github_profile = COALESCE($2, github_profile),
            linkedin_profile = COALESCE($3, linkedin_profile),
-           profile_photo_url = COALESCE($4, profile_photo_url)
-       WHERE id = $5 RETURNING *`, [phone || null, githubProfile || null, linkedinProfile || null, profilePhotoUrl || null, req.user.id]);
+           profile_photo_url = COALESCE($4, profile_photo_url),
+           batch_id = CASE WHEN $5 = TRUE THEN $6 ELSE batch_id END
+       WHERE id = $7 RETURNING *`, [
+            phone !== undefined ? phone : null,
+            githubProfile !== undefined ? githubProfile : null,
+            linkedinProfile !== undefined ? linkedinProfile : null,
+            profilePhotoUrl !== undefined ? profilePhotoUrl : null,
+            batchId !== undefined,
+            batchId === '' ? null : (batchId || null),
+            req.user.id
+        ]);
         res.json({ message: 'Profile updated successfully', profile: result.rows[0] });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.get('/api/student/batches', authenticateStudent, async (req, res) => {
+    try {
+        const userRes = await query('SELECT college_id FROM users WHERE id = $1', [req.user.id]);
+        if (userRes.rows.length === 0) {
+            return res.status(404).json({ error: 'Student profile not found' });
+        }
+        const { college_id: collegeId } = userRes.rows[0];
+        const result = await query(`SELECT id, name FROM batches WHERE college_id = $1 ORDER BY name ASC`, [collegeId]);
+        res.json(result.rows);
     }
     catch (err) {
         res.status(500).json({ error: err.message });
@@ -148,9 +171,12 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req, res) 
        FROM exams e
        LEFT JOIN colleges c ON e.college_id = c.id
        LEFT JOIN departments d ON e.department_id = d.id
-       WHERE e.college_id = $1 AND (e.department_id = $2 OR $2 = ANY(e.department_ids)) AND e.year = $3
-         AND (e.batch_id IS NULL OR e.batch_id = $4)
-         AND e.is_published = TRUE AND e.schedule_date > CURRENT_TIMESTAMP
+       WHERE e.college_id = $1 AND e.is_published = TRUE AND e.schedule_date > CURRENT_TIMESTAMP
+         AND (
+           (e.batch_id IS NOT NULL AND e.batch_id = $4)
+           OR
+           (e.batch_id IS NULL AND (e.department_id = $2 OR $2 = ANY(e.department_ids)) AND e.year = $3)
+         )
        ORDER BY e.schedule_date ASC`, [collegeId, departmentId, year, batchId]);
         // Active Exams (scheduled in the past/present, still open, or simply published with allowed attempts left)
         // We fetch all eligible published exams, and check the attempts the student has made.
@@ -158,11 +184,14 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req, res) 
               (SELECT COUNT(*) FROM exam_attempts ea WHERE ea.exam_id = e.id AND ea.student_id = $5) as attempts_made,
               (SELECT name FROM batches b WHERE b.id = e.batch_id) as batch_name
        FROM exams e
-       WHERE e.college_id = $1 AND (e.department_id = $2 OR $2 = ANY(e.department_ids)) AND e.year = $3
-         AND (e.batch_id IS NULL OR e.batch_id = $4)
-         AND e.is_published = TRUE 
+       WHERE e.college_id = $1 AND e.is_published = TRUE 
          AND e.schedule_date <= CURRENT_TIMESTAMP
          AND CURRENT_TIMESTAMP <= e.schedule_date + (GREATEST(COALESCE(e.window_open_minutes, 10), COALESCE(e.duration_minutes, 60)) * INTERVAL '1 minute')
+         AND (
+           (e.batch_id IS NOT NULL AND e.batch_id = $4)
+           OR
+           (e.batch_id IS NULL AND (e.department_id = $2 OR $2 = ANY(e.department_ids)) AND e.year = $3)
+         )
        ORDER BY e.schedule_date DESC`, [collegeId, departmentId, year, batchId, studentId]);
         // Filter active exams where attempts_made < allowed_attempts
         const activeExams = active.rows.filter(row => parseInt(row.attempts_made) < parseInt(row.allowed_attempts));
@@ -194,8 +223,12 @@ app.get('/api/student/notifications', authenticateStudent, async (req, res) => {
         const { college_id: collegeId, department_id: departmentId, year, batch_id: batchId } = userRes.rows[0];
         // Let's dynamically generate a list of relevant in-app announcements
         const publishedExams = await query(`SELECT id, name, schedule_date FROM exams 
-       WHERE college_id = $1 AND (department_id = $2 OR $2 = ANY(department_ids)) AND year = $3 
-         AND (batch_id IS NULL OR batch_id = $4) AND is_published = TRUE
+       WHERE college_id = $1 AND is_published = TRUE
+         AND (
+           (batch_id IS NOT NULL AND batch_id = $4)
+           OR
+           (batch_id IS NULL AND (department_id = $2 OR $2 = ANY(department_ids)) AND year = $3)
+         )
        ORDER BY schedule_date DESC LIMIT 10`, [collegeId, departmentId, year, batchId]);
         const notifications = publishedExams.rows.map(exam => ({
             id: exam.id,

@@ -18,6 +18,7 @@ interface UserProfile {
   githubProfile?: string; linkedinProfile?: string; profilePhotoUrl?: string;
   college_name?: string; department_name?: string; status?: string;
   email_verified?: boolean;
+  batchId?: string | null; batch_id?: string | null; batchName?: string | null; batch_name?: string | null; college_id?: string | null;
 }
 interface Exam {
   id: string; name: string; description: string; exam_type: 'mcq' | 'coding' | 'both';
@@ -1017,6 +1018,41 @@ export default function App() {
       }
     } catch (err) {
       alert(`New password generated (Simulated): Clahan@${Math.floor(1000 + Math.random() * 9000)}`);
+    }
+  };
+
+  const updateStudentBatch = async (studentId: string, batchId: string) => {
+    try {
+      const res = await fetch(`${API_ADMIN}/students/${studentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          batchId: batchId || null
+        })
+      });
+      if (res.ok) {
+        showToast('Student batch updated successfully!');
+        loadAdminDashboard();
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Failed to update student batch', 'error');
+      }
+    } catch (err: any) {
+      setAdminStudents(prev => prev.map(s => {
+        if (s.id === studentId) {
+          const selectedBatchObj = adminBatches.find(b => b.id === batchId);
+          return {
+            ...s,
+            batch_id: batchId || null,
+            batch_name: selectedBatchObj ? selectedBatchObj.name : null
+          };
+        }
+        return s;
+      }));
+      showToast('Student batch updated successfully (Simulated)');
     }
   };
 
@@ -3564,8 +3600,24 @@ export default function App() {
                               </td>
                               <td>{student.rollNumber || student.roll_number || 'N/A'}</td>
                               <td>
-                                <div className="truncate max-w-[120px]" title={student.college_name}>{student.college_name}</div>
+                                <div className="truncate max-w-[120px] font-semibold" title={student.college_name}>{student.college_name}</div>
                                 <div className="text-[10px] text-muted-foreground mt-0.5">{student.department_name}</div>
+                                <div className="mt-1 flex items-center gap-1">
+                                  <span className="text-[10px] text-muted-foreground">Batch:</span>
+                                  <select
+                                    value={student.batch_id || student.batchId || ''}
+                                    onChange={(e) => updateStudentBatch(student.id, e.target.value)}
+                                    className="text-[10px] p-0.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500"
+                                  >
+                                    <option value="">No Batch</option>
+                                    {adminBatches
+                                      .filter(b => b.college_id === student.college_id || b.collegeId === student.collegeId)
+                                      .map(b => (
+                                        <option key={b.id} value={b.id}>{b.name}</option>
+                                      ))
+                                    }
+                                  </select>
+                                </div>
                               </td>
                               <td>{student.year}</td>
                               <td>
@@ -3643,9 +3695,21 @@ export default function App() {
                       <div className="grid grid-cols-4 gap-3">
                         <div>
                           <label className="text-xs font-semibold text-muted-foreground">College Eligibility</label>
-                          <select value={examForm.collegeId} onChange={e => { setExamForm({...examForm, collegeId: e.target.value}); fetchDepartments(e.target.value); fetchBatches(e.target.value); }} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
+                          <select value={examForm.collegeId} onChange={e => { setExamForm({...examForm, collegeId: e.target.value, batchId: ''}); fetchDepartments(e.target.value); fetchBatches(e.target.value); }} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
                             <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select College</option>
                             {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-muted-foreground">Batch (Optional)</label>
+                          <select 
+                            value={examForm.batchId || ''} 
+                            onChange={e => setExamForm({...examForm, batchId: e.target.value})} 
+                            className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                            disabled={!examForm.collegeId}
+                          >
+                            <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">No Batch (Use Dept/Year below)</option>
+                            {batches.map(b => <option key={b.id} value={b.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.name}</option>)}
                           </select>
                         </div>
                         <div>
@@ -3653,6 +3717,10 @@ export default function App() {
                           {!examForm.collegeId ? (
                             <div className="text-[10px] text-slate-400 italic p-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50 mt-1">
                               Select a college first
+                            </div>
+                          ) : examForm.batchId ? (
+                            <div className="text-[10px] text-indigo-500 font-semibold italic p-3 border border-indigo-200 dark:border-indigo-850 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 mt-1">
+                              Disabled (Batch Selected)
                             </div>
                           ) : departments.length === 0 ? (
                             <div className="text-[10px] text-slate-400 italic p-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50 mt-1">
@@ -3688,24 +3756,24 @@ export default function App() {
                           )}
                         </div>
                         <div>
-                          <label className="text-xs font-semibold text-muted-foreground">Batch (Optional)</label>
-                          <select 
-                            value={examForm.batchId || ''} 
-                            onChange={e => setExamForm({...examForm, batchId: e.target.value})} 
-                            className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
-                            disabled={!examForm.collegeId}
-                          >
-                            <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Batches</option>
-                            {batches.map(b => <option key={b.id} value={b.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.name}</option>)}
-                          </select>
-                        </div>
-                        <div>
                           <label className="text-xs font-semibold text-muted-foreground">Year Eligibility</label>
-                          <select value={examForm.year} onChange={e => setExamForm({...examForm, year: e.target.value})} className="w-full p-3 border border-slate-200 dark:border-slate-850 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
-                            <option value="1st Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">1st Year</option>
-                            <option value="2nd Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">2nd Year</option>
-                            <option value="3rd Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">3rd Year</option>
-                            <option value="4th Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">4th Year</option>
+                          <select 
+                            value={examForm.batchId ? '' : examForm.year} 
+                            onChange={e => setExamForm({...examForm, year: e.target.value})} 
+                            className="w-full p-3 border border-slate-200 dark:border-slate-850 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" 
+                            required={!examForm.batchId}
+                            disabled={!!examForm.batchId}
+                          >
+                            {examForm.batchId ? (
+                              <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Disabled (Batch Selected)</option>
+                            ) : (
+                              <>
+                                <option value="1st Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">1st Year</option>
+                                <option value="2nd Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">2nd Year</option>
+                                <option value="3rd Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">3rd Year</option>
+                                <option value="4th Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">4th Year</option>
+                              </>
+                            )}
                           </select>
                         </div>
                       </div>
