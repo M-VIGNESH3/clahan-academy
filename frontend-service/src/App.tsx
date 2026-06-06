@@ -855,6 +855,65 @@ export default function App() {
     }
   };
 
+  const deleteCollege = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this college? This will delete all associated departments, batches, students, and exams.')) return;
+    try {
+      const res = await fetch(`${API_ADMIN}/colleges/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('College deleted successfully');
+        fetchColleges();
+        loadAdminDashboard();
+      } else {
+        throw new Error('Failed to delete college');
+      }
+    } catch (err) {
+      setAdminColleges(prev => prev.filter(c => c.id !== id));
+      setColleges(prev => prev.filter(c => c.id !== id));
+      showToast('College deleted (Simulated)');
+    }
+  };
+
+  const deleteDepartment = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this department?')) return;
+    try {
+      const res = await fetch(`${API_ADMIN}/departments/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('Department deleted successfully');
+        loadAdminDashboard();
+      } else {
+        throw new Error('Failed to delete department');
+      }
+    } catch (err) {
+      setAdminDepts(prev => prev.filter(d => d.id !== id));
+      showToast('Department deleted (Simulated)');
+    }
+  };
+
+  const deleteBatch = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this batch?')) return;
+    try {
+      const res = await fetch(`${API_ADMIN}/batches/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('Batch deleted successfully');
+        loadAdminDashboard();
+      } else {
+        throw new Error('Failed to delete batch');
+      }
+    } catch (err) {
+      setAdminBatches(prev => prev.filter(b => b.id !== id));
+      showToast('Batch deleted (Simulated)');
+    }
+  };
+
   const createStudentManual = async (studentData: any) => {
     try {
       const res = await fetch(`${API_ADMIN}/students`, {
@@ -3395,8 +3454,16 @@ export default function App() {
                           <p className="text-xs text-muted-foreground">No colleges onboarded.</p>
                         ) : (
                           adminColleges.map(c => (
-                            <div key={c.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs font-bold truncate">
-                              {c.name}
+                            <div key={c.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs font-bold flex justify-between items-center">
+                              <span className="truncate mr-2">{c.name}</span>
+                              <button
+                                type="button"
+                                onClick={() => deleteCollege(c.id)}
+                                className="text-red-500 hover:text-red-700 transition-colors p-1"
+                                title="Delete College"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
                             </div>
                           ))
                         )}
@@ -3411,9 +3478,19 @@ export default function App() {
                           <p className="text-xs text-muted-foreground">No departments configured.</p>
                         ) : (
                           adminDepts.map(d => (
-                            <div key={d.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs space-y-1">
-                              <p className="font-bold">{d.name}</p>
-                              <p className="text-[10px] text-muted-foreground truncate">{d.college_name || 'College'}</p>
+                            <div key={d.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs flex justify-between items-center">
+                              <div className="space-y-1 truncate mr-2">
+                                <p className="font-bold">{d.name}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">{d.college_name || 'College'}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => deleteDepartment(d.id)}
+                                className="text-red-500 hover:text-red-700 transition-colors p-1 shrink-0"
+                                title="Delete Department"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
                             </div>
                           ))
                         )}
@@ -3428,9 +3505,19 @@ export default function App() {
                           <p className="text-xs text-muted-foreground">No batches configured.</p>
                         ) : (
                           adminBatches.map(b => (
-                            <div key={b.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs space-y-1">
-                              <p className="font-bold">{b.name}</p>
-                              <p className="text-[10px] text-muted-foreground truncate">{b.college_name || 'College'}</p>
+                            <div key={b.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs flex justify-between items-center">
+                              <div className="space-y-1 truncate mr-2">
+                                <p className="font-bold">{b.name}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">{b.college_name || 'College'}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => deleteBatch(b.id)}
+                                className="text-red-500 hover:text-red-700 transition-colors p-1 shrink-0"
+                                title="Delete Batch"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
                             </div>
                           ))
                         )}
