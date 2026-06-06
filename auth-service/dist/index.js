@@ -51,6 +51,7 @@ const jwt = __importStar(require("jsonwebtoken"));
 const redis_1 = require("redis");
 const db_1 = require("./db");
 const middleware_1 = require("./middleware");
+const bullmq_1 = require("bullmq");
 const app = (0, express_1.default)();
 app.set('trust proxy', true);
 const PORT = process.env.PORT || 4001;
@@ -112,18 +113,41 @@ app.use(limiter);
 app.get('/health', (req, res) => {
     res.json({ status: 'healthy', service: 'auth-service' });
 });
-// Helper for publishing events to notification-service (using Redis pub/sub or queue)
+// BullMQ Queue setup
+const redisUrl = process.env.REDIS_URL || 'redis://redis:6379';
+let redisHost = 'redis';
+let redisPort = 6379;
+try {
+    const parsed = new URL(redisUrl);
+    redisHost = parsed.hostname;
+    redisPort = parseInt(parsed.port) || 6379;
+}
+catch (e) {
+    // fallback
+}
+const notificationQueue = new bullmq_1.Queue('notification_queue', {
+    connection: {
+        host: redisHost,
+        port: redisPort,
+    }
+});
+// Helper for publishing events to notification-service (using BullMQ Queue)
 async function sendNotification(event, payload) {
     try {
-        if (redisClient.isOpen) {
-            await redisClient.rPush('email_notification_queue', JSON.stringify({ event, payload }));
-        }
-        else {
-            console.log(`[Notification Fallback] Event: ${event}, Payload:`, payload);
-        }
+        await notificationQueue.add(event, payload, {
+            attempts: 5,
+            backoff: {
+                type: 'exponential',
+                delay: 2000,
+            },
+            removeOnComplete: true,
+            removeOnFail: false,
+        });
+        console.log(`[Queue] Successfully added ${event} job for ${payload.email} to BullMQ`);
     }
     catch (err) {
-        console.error('Failed to queue email notification:', err);
+        console.error('Failed to queue email notification in BullMQ:', err.message);
+        console.log(`[Notification Fallback] Event: ${event}, Payload:`, payload);
     }
 }
 // Get Colleges & Departments (for Registration)
@@ -146,10 +170,20 @@ app.get('/api/auth/colleges/:collegeId/departments', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+app.get('/api/auth/colleges/:collegeId/batches', async (req, res) => {
+    try {
+        const { collegeId } = req.params;
+        const result = await (0, db_1.query)('SELECT * FROM batches WHERE college_id = $1 ORDER BY name ASC', [collegeId]);
+        res.json(result.rows);
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 // Student Registration
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { email, password, fullName, phone, rollNumber, collegeId, departmentId, year, githubProfile, linkedinProfile, profilePhotoUrl } = req.body;
+        const { email, password, fullName, phone, rollNumber, collegeId, departmentId, batchId, year, githubProfile, linkedinProfile, profilePhotoUrl } = req.body;
         if (!email || !password || !fullName || !rollNumber || !collegeId || !departmentId || !year) {
             return res.status(400).json({ error: 'Required fields are missing' });
         }
@@ -178,9 +212,9 @@ app.post('/api/auth/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const result = await (0, db_1.query)(`INSERT INTO users (
         email, password_hash, role, full_name, phone, roll_number,
-        college_id, department_id, year, github_profile, linkedin_profile,
+        college_id, department_id, batch_id, year, github_profile, linkedin_profile,
         profile_photo_url, status, email_verified
-      ) VALUES ($1, $2, 'student', $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', FALSE) RETURNING id, email, full_name`, [
+      ) VALUES ($1, $2, 'student', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending', FALSE) RETURNING id, email, full_name, batch_id`, [
             email,
             hashedPassword,
             fullName,
@@ -188,6 +222,7 @@ app.post('/api/auth/register', async (req, res) => {
             rollNumber,
             collegeId,
             departmentId,
+            batchId || null,
             year,
             githubProfile || null,
             linkedinProfile || null,
@@ -316,6 +351,7 @@ app.post('/api/auth/login', async (req, res) => {
             roll_number: user.roll_number,
             college_id: user.college_id,
             department_id: user.department_id,
+            batch_id: user.batch_id,
             year: user.year
         }, JWT_SECRET, { expiresIn: '24h' });
         const refreshToken = jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
@@ -334,6 +370,7 @@ app.post('/api/auth/login', async (req, res) => {
                 rollNumber: user.roll_number,
                 collegeId: user.college_id,
                 departmentId: user.department_id,
+                batchId: user.batch_id,
                 year: user.year,
                 status: user.status
             }

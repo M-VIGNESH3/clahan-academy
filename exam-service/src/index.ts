@@ -6,6 +6,7 @@ import { Pool, types } from 'pg';
 types.setTypeParser(1114, (str) => new Date(str.replace(' ', 'T') + 'Z'));
 import * as jwt from 'jsonwebtoken';
 import { createClient } from 'redis';
+import { Queue } from 'bullmq';
 import axios from 'axios';
 
 const app = express();
@@ -48,30 +49,66 @@ redisClient.on('error', (err) => console.error('Redis Client Error', err));
   }
 })();
 
+// BullMQ Queue setup
+const redisUrl = process.env.REDIS_URL || 'redis://redis:6379';
+let redisHost = 'redis';
+let redisPort = 6379;
+try {
+  const parsed = new URL(redisUrl);
+  redisHost = parsed.hostname;
+  redisPort = parseInt(parsed.port) || 6379;
+} catch (e) {
+  // fallback
+}
+
+const notificationQueue = new Queue('notification_queue', {
+  connection: {
+    host: redisHost,
+    port: redisPort,
+  }
+});
+
 async function queueNotification(event: string, payload: any) {
   try {
-    if (redisClient.isOpen) {
-      await redisClient.rPush('email_notification_queue', JSON.stringify({ event, payload }));
-    } else {
-      console.log(`[Notification Fallback] Event: ${event}, Payload:`, payload);
-    }
-  } catch (err) {
-    console.error('Queue notification error:', err);
+    await notificationQueue.add(event, payload, {
+      attempts: 5,
+      backoff: {
+        type: 'exponential',
+        delay: 2000,
+      },
+      removeOnComplete: true,
+      removeOnFail: false,
+    });
+    console.log(`[Queue] Successfully added ${event} job for ${payload.email} to BullMQ`);
+  } catch (err: any) {
+    console.error('Queue notification error in BullMQ:', err.message);
+    console.log(`[Notification Fallback] Event: ${event}, Payload:`, payload);
   }
 }
 
 async function queueNotificationsBulk(event: string, payloads: any[]) {
   try {
-    if (redisClient.isOpen) {
-      const messages = payloads.map(payload => JSON.stringify({ event, payload }));
-      if (messages.length > 0) {
-        await redisClient.rPush('email_notification_queue', messages);
-      }
-    } else {
-      console.log(`[Notification Fallback] Bulk Event: ${event}, Count: ${payloads.length}`);
+    if (payloads.length > 0) {
+      await notificationQueue.addBulk(
+        payloads.map(payload => ({
+          name: event,
+          data: payload,
+          opts: {
+            attempts: 5,
+            backoff: {
+              type: 'exponential',
+              delay: 2000,
+            },
+            removeOnComplete: true,
+            removeOnFail: false,
+          }
+        }))
+      );
+      console.log(`[Queue] Successfully added bulk ${event} jobs (Count: ${payloads.length}) to BullMQ`);
     }
-  } catch (err) {
-    console.error('Queue bulk notification error:', err);
+  } catch (err: any) {
+    console.error('Queue bulk notification error in BullMQ:', err.message);
+    console.log(`[Notification Fallback] Bulk Event: ${event}, Count: ${payloads.length}`);
   }
 }
 
@@ -146,11 +183,13 @@ app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res)
                 WHERE dept.id = ANY(e.department_ids)), 
                d.name
              ) as department_name,
+             b.name as batch_name,
              (SELECT COUNT(*) FROM mcq_questions mq WHERE mq.exam_id = e.id) as mcq_count,
              (SELECT COUNT(*) FROM coding_questions cq WHERE cq.exam_id = e.id) as coding_count
       FROM exams e
       LEFT JOIN colleges c ON e.college_id = c.id
       LEFT JOIN departments d ON e.department_id = d.id
+      LEFT JOIN batches b ON e.batch_id = b.id
       ORDER BY e.created_at DESC
     `);
     res.json(result.rows);
@@ -162,7 +201,7 @@ app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res)
 // Create Exam
 app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
   try {
-    const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, year, windowOpenMinutes } = req.body;
+    const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes } = req.body;
     if (!name || !examType || !durationMinutes || !scheduleDate || !collegeId || (!departmentId && (!departmentIds || departmentIds.length === 0)) || !year) {
       return res.status(400).json({ error: 'Missing required parameters' });
     }
@@ -173,9 +212,9 @@ app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
     const result = await query(
       `INSERT INTO exams (
         name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts,
-        schedule_date, college_id, department_id, department_ids, year, window_open_minutes, is_published
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, FALSE) RETURNING *`,
-      [name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, finalDeptId, finalDeptIds, year, windowOpenMinutes !== undefined ? windowOpenMinutes : 10]
+        schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE) RETURNING *`,
+      [name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, year, windowOpenMinutes !== undefined ? windowOpenMinutes : 10]
     );
 
     res.status(201).json(result.rows[0]);
@@ -194,10 +233,12 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
                  FROM departments dept 
                  WHERE dept.id = ANY(e.department_ids)), 
                 d.name
-              ) as department_name
+              ) as department_name,
+              b.name as batch_name
        FROM exams e
        LEFT JOIN colleges c ON e.college_id = c.id
        LEFT JOIN departments d ON e.department_id = d.id
+       LEFT JOIN batches b ON e.batch_id = b.id
        WHERE e.id = $1`,
       [req.params.id]
     );
@@ -227,7 +268,7 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
 // Update Exam
 app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) => {
   try {
-    const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, year, windowOpenMinutes } = req.body;
+    const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes } = req.body;
     
     const finalDeptId = departmentId || (departmentIds && departmentIds[0]) || null;
     const finalDeptIds = departmentIds || (departmentId ? [departmentId] : []);
@@ -236,9 +277,9 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
       `UPDATE exams 
        SET name = $1, description = $2, exam_type = $3, duration_minutes = $4,
            cutoff_percentage = $5, allowed_attempts = $6, schedule_date = $7,
-           college_id = $8, department_id = $9, department_ids = $10, year = $11, window_open_minutes = $12
-       WHERE id = $13 RETURNING *`,
-      [name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, finalDeptId, finalDeptIds, year, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, req.params.id]
+           college_id = $8, department_id = $9, department_ids = $10, batch_id = $11, year = $12, window_open_minutes = $13
+       WHERE id = $14 RETURNING *`,
+      [name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, year, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, req.params.id]
     );
 
     if (result.rows.length === 0) return res.status(404).json({ error: 'Exam not found' });
@@ -259,8 +300,8 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
     const ex = examCheck.rows[0];
 
     const newExam = await query(
-      `INSERT INTO exams (name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts, schedule_date, college_id, department_id, department_ids, year, window_open_minutes, is_published)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, FALSE) RETURNING *`,
+      `INSERT INTO exams (name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts, schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE) RETURNING *`,
       [
         `Copy of ${ex.name}`,
         ex.description,
@@ -272,6 +313,7 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
         ex.college_id,
         ex.department_id,
         ex.department_ids || (ex.department_id ? [ex.department_id] : []),
+        ex.batch_id || null,
         ex.year,
         ex.window_open_minutes
       ]

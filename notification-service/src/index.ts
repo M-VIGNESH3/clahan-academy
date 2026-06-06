@@ -2,7 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import nodemailer from 'nodemailer';
-import { createClient } from 'redis';
+import { Worker } from 'bullmq';
+import sgMail from '@sendgrid/mail';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -81,13 +82,16 @@ transporter.verify((err, success) => {
   }
 });
 
-// Redis Queue Setup
-const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://redis:6379',
-});
-redisClient.on('error', (err) => {
-  console.error('Redis Client Error in notification-service:', err);
-});
+// SendGrid & SMTP Configuration
+const sendGridKey = (process.env.SENDGRID_API_KEY || '').replace(/^"|"$/g, '');
+const sendGridFrom = (process.env.SENDGRID_FROM || 'noreply@clahanacademy.com').replace(/^"|"$/g, '');
+
+if (sendGridKey) {
+  sgMail.setApiKey(sendGridKey);
+  console.log('SendGrid API key configured. Email deliveries will run via SendGrid API.');
+} else {
+  console.log('SendGrid API key not configured. Falling back to SMTP/Console log.');
+}
 
 // Logs for auditing
 const deliveryLogs: Array<{ email: string; event: string; timestamp: Date; success: boolean; details?: string }> = [];
@@ -239,19 +243,41 @@ function compileEmail(event: string, payload: any): { subject: string; html: str
   return { subject, html };
 }
 
-const CONCURRENCY_LIMIT = 10;
-let activeJobsCount = 0;
+// BullMQ Worker setup
+const redisUrl = process.env.REDIS_URL || 'redis://redis:6379';
+let redisHost = 'redis';
+let redisPort = 6379;
+try {
+  const parsed = new URL(redisUrl);
+  redisHost = parsed.hostname;
+  redisPort = parseInt(parsed.port) || 6379;
+} catch (e) {
+  // fallback
+}
 
-async function processJob(event: string, payload: any) {
-  try {
-    console.log(`[Active Jobs: ${activeJobsCount}] Processing job: [${event}] for ${payload.email}`);
+const worker = new Worker(
+  'notification_queue',
+  async (job) => {
+    const { name: event, data: payload } = job;
+    console.log(`[Queue] Processing job [${job.id}]: [${event}] for ${payload.email}`);
+    
+    if (!payload || !payload.email) {
+      throw new Error('Skipping notification job: missing payload email');
+    }
+
     const { subject, html } = compileEmail(event, payload);
 
-    let attempts = 0;
-    let sent = false;
-    let lastErr = '';
-
-    while (attempts < 3 && !sent) {
+    if (sendGridKey) {
+      await sgMail.send({
+        to: payload.email,
+        from: sendGridFrom,
+        subject: subject,
+        html: html,
+      });
+      console.log(`[SendGrid] Email dispatched successfully to ${payload.email}`);
+    } else {
+      let sentSmtp = false;
+      let smtpErr = '';
       try {
         await transporter.sendMail({
           from: smtpFrom,
@@ -259,90 +285,72 @@ async function processJob(event: string, payload: any) {
           subject: subject,
           html: html,
         });
-        sent = true;
-        console.log(`Email dispatched successfully on attempt ${attempts + 1} to ${payload.email}`);
-        deliveryLogs.push({ email: payload.email, event, timestamp: new Date(), success: true });
+        sentSmtp = true;
+        console.log(`[SMTP] Email dispatched successfully to ${payload.email}`);
       } catch (err: any) {
-        attempts++;
-        lastErr = err.message;
-        console.warn(`Attempt ${attempts} failed to send email to ${payload.email}: ${err.message}. Retrying...`);
-        if (attempts < 3) {
-          await new Promise((resolve) => setTimeout(resolve, 2000 * attempts)); // backoff delay
+        smtpErr = err.message;
+      }
+
+      if (!sentSmtp) {
+        // Fail-safe fallback to console logging
+        console.log('\n--- [NOTIFICATION FALLBACK CONSOLE LOG] ---');
+        console.log(`Event: ${event}`);
+        console.log(`Recipient: ${payload.email}`);
+        console.log(`Subject: ${subject}`);
+        if (payload.otp) {
+          console.log(`OTP Code: ${payload.otp}`);
         }
+        if (payload.password) {
+          console.log(`Temporary Password: ${payload.password}`);
+        }
+        console.log('-------------------------------------------\n');
+        // Still throw error so BullMQ knows it failed and registers the hook/retry, but we have printed it to console
+        throw new Error(`SMTP failed (${smtpErr}). OTP printed to console.`);
       }
     }
+  },
+  {
+    connection: {
+      host: redisHost,
+      port: redisPort,
+    },
+    concurrency: 20, // Process up to 20 emails in parallel
+  }
+);
 
-    if (!sent) {
-      console.error(`Email delivery failed permanently to ${payload.email} after 3 attempts: ${lastErr}`);
-      let debugDetails = lastErr;
-      if (payload.otp) {
-        debugDetails += ` [DEBUG OTP: ${payload.otp}]`;
-        console.log(`[FALLBACK LOG] OTP for ${payload.email} is: ${payload.otp}`);
-      } else if (payload.password) {
-        debugDetails += ` [DEBUG Password: ${payload.password}]`;
-        console.log(`[FALLBACK LOG] Temporary password for ${payload.email} is: ${payload.password}`);
-      }
-      deliveryLogs.push({ email: payload.email, event, timestamp: new Date(), success: false, details: debugDetails });
+worker.on('completed', (job) => {
+  deliveryLogs.push({
+    email: job.data.email,
+    event: job.name,
+    timestamp: new Date(),
+    success: true,
+    details: sendGridKey ? 'Delivered via SendGrid API' : 'Delivered via SMTP'
+  });
+  console.log(`[Queue] Job [${job.id}] completed successfully.`);
+});
+
+worker.on('failed', (job, err) => {
+  console.error(`[Queue] Job [${job?.id}] failed: ${err.message}`);
+  
+  if (job) {
+    let debugDetails = err.message;
+    if (job.data.otp) {
+      debugDetails += ` [DEBUG OTP: ${job.data.otp}]`;
     }
-  } catch (err: any) {
-    console.error(`Error processing job for ${payload?.email}:`, err.message);
-  } finally {
-    activeJobsCount = Math.max(0, activeJobsCount - 1);
-  }
-}
-
-// Queue Worker
-async function startWorker() {
-  console.log('Notification Worker starting up...');
-  try {
-    await redisClient.connect();
-    console.log('Worker linked with Redis Queue successfully.');
-  } catch (err: any) {
-    console.error('Queue connection error, worker will retry in 5s:', err.message);
-    setTimeout(startWorker, 5000);
-    return;
-  }
-
-  const queueKey = 'email_notification_queue';
-
-  while (true) {
-    try {
-      if (activeJobsCount >= CONCURRENCY_LIMIT) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        continue;
-      }
-
-      if (!redisClient.isOpen) {
-        console.log('Redis client is not open. Waiting for reconnect...');
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        continue;
-      }
-
-      // Pop from the right side of the list with a 5s timeout
-      const result = await redisClient.brPop(queueKey, 5);
-      if (!result) continue;
-
-      const jobData = JSON.parse(result.element);
-      const { event, payload } = jobData;
-
-      if (!payload || !payload.email) {
-        console.warn('Skipping notification job due to missing payload email:', jobData);
-        continue;
-      }
-
-      activeJobsCount++;
-      processJob(event, payload).catch((err) => {
-        console.error('Unhandled error in processJob:', err);
-      });
-
-    } catch (err: any) {
-      console.error('Worker loop encountered error:', err.message);
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+    if (job.data.password) {
+      debugDetails += ` [DEBUG Password: ${job.data.password}]`;
     }
+    
+    deliveryLogs.push({
+      email: job.data.email,
+      event: job.name,
+      timestamp: new Date(),
+      success: false,
+      details: debugDetails
+    });
   }
-}
+});
 
 app.listen(PORT, () => {
   console.log(`Notification Service running REST API on port ${PORT}`);
-  startWorker();
 });

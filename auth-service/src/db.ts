@@ -41,6 +41,17 @@ export async function initDb() {
       );
     `);
 
+    // Create Batches Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS batches (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        college_id UUID REFERENCES colleges(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(college_id, name)
+      );
+    `);
+
     // Create Users
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -53,6 +64,7 @@ export async function initDb() {
         roll_number VARCHAR(100),
         college_id UUID REFERENCES colleges(id) ON DELETE SET NULL,
         department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
+        batch_id UUID REFERENCES batches(id) ON DELETE SET NULL,
         year VARCHAR(50),
         status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'pending', 'suspended')),
         github_profile VARCHAR(255),
@@ -78,6 +90,7 @@ export async function initDb() {
         college_id UUID REFERENCES colleges(id) ON DELETE CASCADE,
         department_id UUID REFERENCES departments(id) ON DELETE CASCADE,
         department_ids UUID[],
+        batch_id UUID REFERENCES batches(id) ON DELETE SET NULL,
         year VARCHAR(50) NOT NULL,
         window_open_minutes INTEGER DEFAULT 10,
         is_published BOOLEAN DEFAULT FALSE,
@@ -86,6 +99,14 @@ export async function initDb() {
     `);
 
     // Migrate existing DB if needed
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS batch_id UUID REFERENCES batches(id) ON DELETE SET NULL;
+    `);
+
+    await client.query(`
+      ALTER TABLE exams ADD COLUMN IF NOT EXISTS batch_id UUID REFERENCES batches(id) ON DELETE SET NULL;
+    `);
+
     await client.query(`
       ALTER TABLE exams ADD COLUMN IF NOT EXISTS window_open_minutes INTEGER DEFAULT 10;
     `);

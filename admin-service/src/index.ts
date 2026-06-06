@@ -7,6 +7,7 @@ types.setTypeParser(1114, (str) => new Date(str.replace(' ', 'T') + 'Z'));
 import * as jwt from 'jsonwebtoken';
 import * as bcrypt from 'bcryptjs';
 import { createClient } from 'redis';
+import { Queue } from 'bullmq';
 
 const app = express();
 app.set('trust proxy', true);
@@ -46,30 +47,66 @@ redisClient.on('error', (err) => console.error('Redis Client Error', err));
   }
 })();
 
+// BullMQ Queue setup
+const redisUrl = process.env.REDIS_URL || 'redis://redis:6379';
+let redisHost = 'redis';
+let redisPort = 6379;
+try {
+  const parsed = new URL(redisUrl);
+  redisHost = parsed.hostname;
+  redisPort = parseInt(parsed.port) || 6379;
+} catch (e) {
+  // fallback
+}
+
+const notificationQueue = new Queue('notification_queue', {
+  connection: {
+    host: redisHost,
+    port: redisPort,
+  }
+});
+
 async function queueNotification(event: string, payload: any) {
   try {
-    if (redisClient.isOpen) {
-      await redisClient.rPush('email_notification_queue', JSON.stringify({ event, payload }));
-    } else {
-      console.log(`[Notification Fallback] Event: ${event}, Payload:`, payload);
-    }
-  } catch (err) {
-    console.error('Queue notification error:', err);
+    await notificationQueue.add(event, payload, {
+      attempts: 5,
+      backoff: {
+        type: 'exponential',
+        delay: 2000,
+      },
+      removeOnComplete: true,
+      removeOnFail: false,
+    });
+    console.log(`[Queue] Successfully added ${event} job for ${payload.email} to BullMQ`);
+  } catch (err: any) {
+    console.error('Queue notification error in BullMQ:', err.message);
+    console.log(`[Notification Fallback] Event: ${event}, Payload:`, payload);
   }
 }
 
 async function queueNotificationsBulk(event: string, payloads: any[]) {
   try {
-    if (redisClient.isOpen) {
-      const messages = payloads.map(payload => JSON.stringify({ event, payload }));
-      if (messages.length > 0) {
-        await redisClient.rPush('email_notification_queue', messages);
-      }
-    } else {
-      console.log(`[Notification Fallback] Bulk Event: ${event}, Count: ${payloads.length}`);
+    if (payloads.length > 0) {
+      await notificationQueue.addBulk(
+        payloads.map(payload => ({
+          name: event,
+          data: payload,
+          opts: {
+            attempts: 5,
+            backoff: {
+              type: 'exponential',
+              delay: 2000,
+            },
+            removeOnComplete: true,
+            removeOnFail: false,
+          }
+        }))
+      );
+      console.log(`[Queue] Successfully added bulk ${event} jobs (Count: ${payloads.length}) to BullMQ`);
     }
-  } catch (err) {
-    console.error('Queue bulk notification error:', err);
+  } catch (err: any) {
+    console.error('Queue bulk notification error in BullMQ:', err.message);
+    console.log(`[Notification Fallback] Bulk Event: ${event}, Count: ${payloads.length}`);
   }
 }
 
@@ -176,15 +213,67 @@ app.post('/api/admin/departments', authenticateAdmin, async (req, res) => {
   }
 });
 
+// --- Batches ---
+app.get('/api/admin/batches', authenticateAdmin, async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT b.*, c.name as college_name 
+      FROM batches b 
+      LEFT JOIN colleges c ON b.college_id = c.id 
+      ORDER BY c.name ASC, b.name ASC
+    `);
+    res.json(result.rows);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/colleges/:collegeId/batches', authenticateAdmin, async (req, res) => {
+  try {
+    const { collegeId } = req.params;
+    const result = await query('SELECT * FROM batches WHERE college_id = $1 ORDER BY name ASC', [collegeId]);
+    res.json(result.rows);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/colleges/:collegeId/batches', authenticateAdmin, async (req, res) => {
+  try {
+    const { collegeId } = req.params;
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: 'Batch name is required' });
+
+    const result = await query(
+      'INSERT INTO batches (college_id, name) VALUES ($1, $2) ON CONFLICT (college_id, name) DO UPDATE SET name = EXCLUDED.name RETURNING *',
+      [collegeId, name]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/batches/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await query('DELETE FROM batches WHERE id = $1', [id]);
+    res.json({ message: 'Batch deleted successfully' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Students ---
 app.get('/api/admin/students', authenticateAdmin, async (req, res) => {
   try {
     const result = await query(`
       SELECT u.id, u.email, u.full_name, u.phone, u.roll_number, u.year, u.status, u.email_verified, u.created_at,
-             c.name as college_name, d.name as department_name, u.college_id, u.department_id
+             c.name as college_name, d.name as department_name, b.name as batch_name, u.college_id, u.department_id, u.batch_id
       FROM users u
       LEFT JOIN colleges c ON u.college_id = c.id
       LEFT JOIN departments d ON u.department_id = d.id
+      LEFT JOIN batches b ON u.batch_id = b.id
       WHERE u.role = 'student'
       ORDER BY u.created_at DESC
     `);

@@ -22,7 +22,7 @@ interface UserProfile {
 interface Exam {
   id: string; name: string; description: string; exam_type: 'mcq' | 'coding' | 'both';
   duration_minutes: number; cutoff_percentage: number; allowed_attempts: number;
-  schedule_date: string; college_id: string; department_id: string; department_ids?: string[]; year: string;
+  schedule_date: string; college_id: string; department_id: string; department_ids?: string[]; batch_id?: string; year: string;
   is_published: boolean; window_open_minutes?: number; mcq_count?: number; coding_count?: number;
 }
 interface MCQQuestion {
@@ -91,12 +91,13 @@ export default function App() {
   // Student registration state
   const [regForm, setRegForm] = useState({
     email: '', password: '', confirmPassword: '', fullName: '', phone: '', rollNumber: '',
-    collegeId: '', departmentId: '', year: '1st Year', githubProfile: '', linkedinProfile: '', profilePhotoUrl: ''
+    collegeId: '', departmentId: '', batchId: '', year: '1st Year', githubProfile: '', linkedinProfile: '', profilePhotoUrl: ''
   });
 
   // Data Cache Lists
   const [colleges, setColleges] = useState<College[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [batches, setBatches] = useState<any[]>([]);
   const [upcomingExams, setUpcomingExams] = useState<Exam[]>([]);
   const [activeExams, setActiveExams] = useState<Exam[]>([]);
   const [completedAttempts, setCompletedAttempts] = useState<Attempt[]>([]);
@@ -111,8 +112,11 @@ export default function App() {
   const [newCollegeName, setNewCollegeName] = useState('');
   const [newDeptName, setNewDeptName] = useState('');
   const [newDeptCollegeId, setNewDeptCollegeId] = useState('');
+  const [newBatchName, setNewBatchName] = useState('');
+  const [newBatchCollegeId, setNewBatchCollegeId] = useState('');
   const [adminColleges, setAdminColleges] = useState<College[]>([]);
   const [adminDepts, setAdminDepts] = useState<any[]>([]);
+  const [adminBatches, setAdminBatches] = useState<any[]>([]);
   const [adminStudents, setAdminStudents] = useState<UserProfile[]>([]);
   const [adminExams, setAdminExams] = useState<any[]>([]);
   const [adminMetrics, setAdminMetrics] = useState<any>({
@@ -151,7 +155,7 @@ export default function App() {
     name: '', description: '', examType: 'mcq' as 'mcq' | 'coding' | 'both',
     durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
     windowOpenMinutes: 10,
-    collegeId: '', departmentId: '', departmentIds: [] as string[], year: '1st Year'
+    collegeId: '', departmentId: '', departmentIds: [] as string[], batchId: '', year: '1st Year'
   });
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [selectedExamIdForQuestions, setSelectedExamIdForQuestions] = useState<string | null>(null);
@@ -528,6 +532,28 @@ export default function App() {
     }
   };
 
+  const fetchBatches = async (collegeId: string) => {
+    if (!collegeId) return;
+    try {
+      const res = await fetch(`${API_AUTH}/colleges/${collegeId}/batches`);
+      if (res.ok) {
+        const data = await res.json();
+        setBatches(data);
+      } else {
+        throw new Error(`Batches API returned status ${res.status}`);
+      }
+    } catch (err) {
+      // Fallback batches mapping
+      const mockBatches = [
+        { id: 'batch-1', college_id: collegeId, name: 'Batch 2021-25' },
+        { id: 'batch-2', college_id: collegeId, name: 'Batch 2022-26' },
+        { id: 'batch-3', college_id: collegeId, name: 'Batch 2023-27' },
+        { id: 'batch-4', college_id: collegeId, name: 'Batch 2024-28' }
+      ];
+      setBatches(mockBatches);
+    }
+  };
+
   const fetchCurrentUser = async () => {
     const tryLocalDecode = () => {
       if (token) {
@@ -822,6 +848,14 @@ export default function App() {
         setAdminDepts(await deptRes.json());
       }
 
+      // Load batches for settings
+      const batchRes = await fetch(`${API_ADMIN}/batches`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (batchRes.ok) {
+        setAdminBatches(await batchRes.json());
+      }
+
     } catch (err) {
       console.warn("Admin endpoints offline, rendering admin fallback dashboard.");
       // Fallback Mock Metrics
@@ -845,6 +879,12 @@ export default function App() {
         { id: 'exam-1', name: 'Technical Aptitude & Java Coding Test', exam_type: 'both', duration_minutes: 60, cutoff_percentage: 60, schedule_date: new Date().toISOString(), is_published: true, mcq_count: 10, coding_count: 1, college_name: 'ABC Engineering College', department_name: 'CSE', year: '3rd Year' },
         { id: 'exam-2', name: 'Python Algorithms MCQ Assessment', exam_type: 'mcq', duration_minutes: 30, cutoff_percentage: 50, schedule_date: new Date().toISOString(), is_published: true, mcq_count: 15, coding_count: 0, college_name: 'ABC Engineering College', department_name: 'CSE', year: '3rd Year' },
         { id: 'exam-3', name: 'MLOps & Deployment Assessment', exam_type: 'coding', duration_minutes: 90, cutoff_percentage: 65, schedule_date: new Date(Date.now() + 86400000 * 5).toISOString(), is_published: false, mcq_count: 0, coding_count: 2, college_name: 'XYZ Institute of Technology', department_name: 'AIML', year: '4th Year' }
+      ]);
+
+      setAdminBatches([
+        { id: 'batch-1', college_id: 'col-1', name: 'Batch 2021-25', college_name: 'ABC Engineering College' },
+        { id: 'batch-2', college_id: 'col-1', name: 'Batch 2022-26', college_name: 'ABC Engineering College' },
+        { id: 'batch-3', college_id: 'col-2', name: 'Batch 2023-27', college_name: 'XYZ Institute of Technology' }
       ]);
     }
   };
@@ -914,6 +954,31 @@ export default function App() {
       setAdminDepts(prev => [...prev, mockD]);
       setNewDeptName('');
       showToast('Department added successfully (Simulated)');
+    }
+  };
+
+  const createBatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBatchName || !newBatchCollegeId) return;
+    try {
+      const res = await fetch(`${API_ADMIN}/colleges/${newBatchCollegeId}/batches`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: newBatchName })
+      });
+      if (res.ok) {
+        showToast('Batch added successfully!');
+        setNewBatchName('');
+        fetchBatches(newBatchCollegeId);
+        loadAdminDashboard();
+      } else {
+        throw new Error(`Batches API returned status ${res.status}`);
+      }
+    } catch (err) {
+      const mockB = { id: `batch-${Date.now()}`, college_id: newBatchCollegeId, name: newBatchName, college_name: adminColleges.find(c => c.id === newBatchCollegeId)?.name || 'Default' };
+      setAdminBatches(prev => [...prev, mockB]);
+      setNewBatchName('');
+      showToast('Batch added successfully (Simulated)');
     }
   };
 
@@ -1150,7 +1215,7 @@ export default function App() {
           name: '', description: '', examType: 'mcq' as 'mcq' | 'coding' | 'both',
           durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
           windowOpenMinutes: 10,
-          collegeId: '', departmentId: '', departmentIds: [], year: '1st Year'
+          collegeId: '', departmentId: '', departmentIds: [], batchId: '', year: '1st Year'
         });
         loadAdminDashboard();
       }
@@ -1167,14 +1232,15 @@ export default function App() {
         year: examForm.year,
         college_id: examForm.collegeId,
         department_id: examForm.departmentId,
-        department_ids: examForm.departmentIds
+        department_ids: examForm.departmentIds,
+        batch_id: examForm.batchId
       } : e));
       setEditingExamId(null);
       setExamForm({
         name: '', description: '', examType: 'mcq' as 'mcq' | 'coding' | 'both',
         durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
         windowOpenMinutes: 10,
-        collegeId: '', departmentId: '', departmentIds: [], year: '1st Year'
+        collegeId: '', departmentId: '', departmentIds: [], batchId: '', year: '1st Year'
       });
       showToast('Exam configuration updated successfully (Simulated)');
     }
@@ -1205,10 +1271,12 @@ export default function App() {
       collegeId: ex.college_id || '',
       departmentId: ex.department_id || '',
       departmentIds: ex.department_ids || (ex.department_id ? [ex.department_id] : []),
+      batchId: ex.batch_id || '',
       year: ex.year || '1st Year'
     });
     if (ex.college_id) {
       fetchDepartments(ex.college_id);
+      fetchBatches(ex.college_id);
     }
     setEditingExamId(ex.id);
     
@@ -2742,7 +2810,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground">College *</label>
                     <select 
@@ -2750,6 +2818,7 @@ export default function App() {
                       onChange={e => {
                         setRegForm({...regForm, collegeId: e.target.value});
                         fetchDepartments(e.target.value);
+                        fetchBatches(e.target.value);
                       }} 
                       className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                       required
@@ -2772,8 +2841,21 @@ export default function App() {
                     </select>
                   </div>
                   <div>
+                    <label className="text-xs font-semibold text-muted-foreground">Batch *</label>
+                    <select 
+                      value={regForm.batchId} 
+                      onChange={e => setRegForm({...regForm, batchId: e.target.value})} 
+                      className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                      required
+                      disabled={!regForm.collegeId}
+                    >
+                      <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Batch</option>
+                      {batches.map(b => <option key={b.id} value={b.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
                     <label className="text-xs font-semibold text-muted-foreground">Year *</label>
-                    <select value={regForm.year} onChange={e => setRegForm({...regForm, year: e.target.value})} className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
+                    <select value={regForm.year} onChange={e => setRegForm({...regForm, year: e.target.value})} className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-850 rounded-xl text-sm focus:outline-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
                       <option value="1st Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">1st Year</option>
                       <option value="2nd Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">2nd Year</option>
                       <option value="3rd Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">3rd Year</option>
@@ -3367,6 +3449,86 @@ export default function App() {
                       </button>
                     </form>
                   </div>
+
+                  {/* Configure Batch */}
+                  <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
+                    <h3 className="font-extrabold text-base mb-4">Configure Batch</h3>
+                    <form onSubmit={createBatch} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <select 
+                        value={newBatchCollegeId} 
+                        onChange={e => setNewBatchCollegeId(e.target.value)} 
+                        className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent text-slate-900 dark:text-white focus:outline-indigo-500" 
+                        required
+                      >
+                        <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Target College</option>
+                        {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
+                      </select>
+                      <input 
+                        type="text" 
+                        value={newBatchName}
+                        onChange={e => setNewBatchName(e.target.value)}
+                        placeholder="e.g. Batch 2022-26, Batch 2023-27" 
+                        className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent focus:outline-indigo-500" 
+                        required
+                      />
+                      <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition-colors text-sm">
+                        Add Batch
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* Lists of Colleges, Departments, and Batches */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Colleges */}
+                    <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-4">
+                      <h4 className="font-extrabold text-sm border-b pb-2">Registered Colleges</h4>
+                      <div className="max-h-60 overflow-y-auto space-y-2">
+                        {adminColleges.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">No colleges onboarded.</p>
+                        ) : (
+                          adminColleges.map(c => (
+                            <div key={c.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs font-bold truncate">
+                              {c.name}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Departments */}
+                    <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-4">
+                      <h4 className="font-extrabold text-sm border-b pb-2">Configured Departments</h4>
+                      <div className="max-h-60 overflow-y-auto space-y-2">
+                        {adminDepts.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">No departments configured.</p>
+                        ) : (
+                          adminDepts.map(d => (
+                            <div key={d.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs space-y-1">
+                              <p className="font-bold">{d.name}</p>
+                              <p className="text-[10px] text-muted-foreground truncate">{d.college_name || 'College'}</p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Batches */}
+                    <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-4">
+                      <h4 className="font-extrabold text-sm border-b pb-2">Configured Batches</h4>
+                      <div className="max-h-60 overflow-y-auto space-y-2">
+                        {adminBatches.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">No batches configured.</p>
+                        ) : (
+                          adminBatches.map(b => (
+                            <div key={b.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs space-y-1">
+                              <p className="font-bold">{b.name}</p>
+                              <p className="text-[10px] text-muted-foreground truncate">{b.college_name || 'College'}</p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -3391,6 +3553,7 @@ export default function App() {
                           rollNumber: fd.get('rollNumber'),
                           collegeId: fd.get('collegeId'),
                           departmentId: fd.get('departmentId'),
+                          batchId: fd.get('batchId'),
                           year: fd.get('year')
                         });
                         e.currentTarget.reset();
@@ -3403,14 +3566,18 @@ export default function App() {
                           <input type="text" name="phone" placeholder="Phone Number" className="p-3 border rounded-xl text-xs bg-transparent" />
                           <input type="text" name="rollNumber" placeholder="Roll Number" className="p-3 border rounded-xl text-xs bg-transparent" required />
                         </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          <select name="collegeId" onChange={e => fetchDepartments(e.target.value)} className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
+                        <div className="grid grid-cols-4 gap-2">
+                          <select name="collegeId" onChange={e => { fetchDepartments(e.target.value); fetchBatches(e.target.value); }} className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
                             <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">College</option>
                             {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
                           </select>
                           <select name="departmentId" className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
                             <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Dept</option>
                             {departments.map(d => <option key={d.id} value={d.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{d.name}</option>)}
+                          </select>
+                          <select name="batchId" className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
+                            <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Batch</option>
+                            {batches.map(b => <option key={b.id} value={b.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.name}</option>)}
                           </select>
                           <select name="year" className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
                             <option value="1st Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">1st Year</option>
@@ -3560,7 +3727,7 @@ export default function App() {
                             name: '', description: '', examType: 'mcq',
                             durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
                             windowOpenMinutes: 10,
-                            collegeId: '', departmentId: '', departmentIds: [], year: '1st Year'
+                            collegeId: '', departmentId: '', departmentIds: [], batchId: '', year: '1st Year'
                           });
                         }} className="text-xs font-bold text-amber-600 hover:underline">Cancel Edit</button>
                       )}
@@ -3601,10 +3768,10 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-4 gap-3">
                         <div>
                           <label className="text-xs font-semibold text-muted-foreground">College Eligibility</label>
-                          <select value={examForm.collegeId} onChange={e => { setExamForm({...examForm, collegeId: e.target.value}); fetchDepartments(e.target.value); }} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
+                          <select value={examForm.collegeId} onChange={e => { setExamForm({...examForm, collegeId: e.target.value}); fetchDepartments(e.target.value); fetchBatches(e.target.value); }} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
                             <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select College</option>
                             {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
                           </select>
@@ -3649,8 +3816,20 @@ export default function App() {
                           )}
                         </div>
                         <div>
+                          <label className="text-xs font-semibold text-muted-foreground">Batch (Optional)</label>
+                          <select 
+                            value={examForm.batchId || ''} 
+                            onChange={e => setExamForm({...examForm, batchId: e.target.value})} 
+                            className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                            disabled={!examForm.collegeId}
+                          >
+                            <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">All Batches</option>
+                            {batches.map(b => <option key={b.id} value={b.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.name}</option>)}
+                          </select>
+                        </div>
+                        <div>
                           <label className="text-xs font-semibold text-muted-foreground">Year Eligibility</label>
-                          <select value={examForm.year} onChange={e => setExamForm({...examForm, year: e.target.value})} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
+                          <select value={examForm.year} onChange={e => setExamForm({...examForm, year: e.target.value})} className="w-full p-3 border border-slate-200 dark:border-slate-850 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
                             <option value="1st Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">1st Year</option>
                             <option value="2nd Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">2nd Year</option>
                             <option value="3rd Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">3rd Year</option>

@@ -88,10 +88,11 @@ app.get('/api/student/profile', authenticateStudent, async (req: AuthenticatedRe
     const result = await query(
       `SELECT u.id, u.email, u.full_name, u.phone, u.roll_number, u.year, u.status,
               u.github_profile, u.linkedin_profile, u.profile_photo_url, u.email_verified, u.created_at,
-              c.name as college_name, d.name as department_name
+              c.name as college_name, d.name as department_name, u.batch_id, b.name as batch_name
        FROM users u
        LEFT JOIN colleges c ON u.college_id = c.id
        LEFT JOIN departments d ON u.department_id = d.id
+       LEFT JOIN batches b ON u.batch_id = b.id
        WHERE u.id = $1`,
       [req.user!.id]
     );
@@ -129,34 +130,42 @@ app.put('/api/student/profile', authenticateStudent, async (req: AuthenticatedRe
 app.get('/api/student/dashboard/summary', authenticateStudent, async (req: AuthenticatedRequest, res) => {
   try {
     const studentId = req.user!.id;
-    const collegeId = req.user!.college_id;
-    const departmentId = req.user!.department_id;
-    const year = req.user!.year;
+    
+    // Fetch latest user details from DB to avoid stale token issues
+    const userRes = await query('SELECT college_id, department_id, year, batch_id FROM users WHERE id = $1', [studentId]);
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Student profile not found' });
+    }
+    const { college_id: collegeId, department_id: departmentId, year, batch_id: batchId } = userRes.rows[0];
 
     // Upcoming Exams (exams matched to college, dept, year and schedule date is future)
     const upcoming = await query(
-      `SELECT e.*, c.name as college_name, d.name as department_name 
+      `SELECT e.*, c.name as college_name, d.name as department_name,
+              (SELECT name FROM batches b WHERE b.id = e.batch_id) as batch_name
        FROM exams e
        LEFT JOIN colleges c ON e.college_id = c.id
        LEFT JOIN departments d ON e.department_id = d.id
        WHERE e.college_id = $1 AND (e.department_id = $2 OR $2 = ANY(e.department_ids)) AND e.year = $3
+         AND (e.batch_id IS NULL OR e.batch_id = $4)
          AND e.is_published = TRUE AND e.schedule_date > CURRENT_TIMESTAMP
        ORDER BY e.schedule_date ASC`,
-      [collegeId, departmentId, year]
+      [collegeId, departmentId, year, batchId]
     );
 
     // Active Exams (scheduled in the past/present, still open, or simply published with allowed attempts left)
     // We fetch all eligible published exams, and check the attempts the student has made.
     const active = await query(
       `SELECT e.*, 
-              (SELECT COUNT(*) FROM exam_attempts ea WHERE ea.exam_id = e.id AND ea.student_id = $4) as attempts_made
+              (SELECT COUNT(*) FROM exam_attempts ea WHERE ea.exam_id = e.id AND ea.student_id = $5) as attempts_made,
+              (SELECT name FROM batches b WHERE b.id = e.batch_id) as batch_name
        FROM exams e
        WHERE e.college_id = $1 AND (e.department_id = $2 OR $2 = ANY(e.department_ids)) AND e.year = $3
+         AND (e.batch_id IS NULL OR e.batch_id = $4)
          AND e.is_published = TRUE 
          AND e.schedule_date <= CURRENT_TIMESTAMP
          AND CURRENT_TIMESTAMP <= e.schedule_date + (GREATEST(COALESCE(e.window_open_minutes, 10), COALESCE(e.duration_minutes, 60)) * INTERVAL '1 minute')
        ORDER BY e.schedule_date DESC`,
-      [collegeId, departmentId, year, studentId]
+      [collegeId, departmentId, year, batchId, studentId]
     );
 
     // Filter active exams where attempts_made < allowed_attempts
