@@ -476,11 +476,13 @@ app.get('/api/auth/me', authenticateToken, async (req: AuthenticatedRequest, res
     const result = await query(
       `SELECT u.id, u.email, u.role, u.full_name, u.phone, u.roll_number,
               u.college_id, u.department_id, u.year, u.status, u.github_profile, u.linkedin_profile, u.profile_photo_url,
-              c.name as college_name, d.name as department_name, u.batch_id, b.name as batch_name
+              c.name as college_name, d.name as department_name, u.batch_id, b.name as batch_name,
+              u.trainer_id, t.name as trainer_name
        FROM users u
        LEFT JOIN colleges c ON u.college_id = c.id
        LEFT JOIN departments d ON u.department_id = d.id
        LEFT JOIN batches b ON u.batch_id = b.id
+       LEFT JOIN trainers t ON u.trainer_id = t.id
        WHERE u.id = $1`,
       [req.user.id]
     );

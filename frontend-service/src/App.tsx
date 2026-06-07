@@ -169,6 +169,7 @@ export default function App() {
   const [studentFilterDeptId, setStudentFilterDeptId] = useState('');
   const [studentFilterBatchId, setStudentFilterBatchId] = useState('');
   const [studentFilterYear, setStudentFilterYear] = useState('');
+  const [studentFilterTrainerId, setStudentFilterTrainerId] = useState('');
 
   // Bulk student import state
   const [studentCsvInput, setStudentCsvInput] = useState('');
@@ -591,6 +592,8 @@ export default function App() {
               collegeId: payload.college_id || payload.collegeId || '',
               departmentId: payload.department_id || payload.departmentId || '',
               batchId: payload.batch_id || payload.batchId || '',
+              trainerId: payload.trainer_id || payload.trainerId || '',
+              trainerName: payload.trainer_name || payload.trainerName || 'None',
               year: payload.year || 'N/A',
               status: 'active',
               college_name: payload.college_name || 'Loading College...',
@@ -642,6 +645,7 @@ export default function App() {
           batchId: user.batch_id || user.batchId,
           batchName: user.batch_name || user.batchName,
           trainerId: user.trainer_id || user.trainerId,
+          trainerName: user.trainer_name || user.trainerName || 'None',
         };
         setCurrentUser(mappedUser);
         setBatchUpdate(mappedUser.batchId || mappedUser.batch_id || '');
@@ -1568,6 +1572,7 @@ export default function App() {
       if (studentFilterCollegeId && student.collegeId !== studentFilterCollegeId) return false;
       if (studentFilterDeptId && student.departmentId !== studentFilterDeptId) return false;
       if (studentFilterBatchId && student.batchId !== studentFilterBatchId) return false;
+      if (studentFilterTrainerId && (student.trainerId || student.trainer_id) !== studentFilterTrainerId) return false;
       if (studentFilterYear && student.year !== studentFilterYear) return false;
       return true;
     });
@@ -3196,6 +3201,7 @@ export default function App() {
                   <div className="flex justify-between"><span className="font-semibold text-slate-500">Dept:</span><span className="font-bold">{currentUser.department_name || 'N/A'}</span></div>
                   <div className="flex justify-between"><span className="font-semibold text-slate-500">Year:</span><span className="font-bold">{currentUser.year || 'N/A'}</span></div>
                   <div className="flex justify-between"><span className="font-semibold text-slate-500">Batch:</span><span className="font-bold text-indigo-600 dark:text-indigo-400">{currentUser.batchName || currentUser.batch_name || 'N/A'}</span></div>
+                  <div className="flex justify-between"><span className="font-semibold text-slate-500">Trainer:</span><span className="font-bold text-violet-600 dark:text-violet-400">{currentUser.trainerName || currentUser.trainer_name || 'None'}</span></div>
                 </div>
               </div>
 
@@ -4070,6 +4076,7 @@ export default function App() {
                             if (studentFilterCollegeId && student.collegeId !== studentFilterCollegeId) return false;
                             if (studentFilterDeptId && student.departmentId !== studentFilterDeptId) return false;
                             if (studentFilterBatchId && student.batchId !== studentFilterBatchId) return false;
+                            if (studentFilterTrainerId && (student.trainerId || student.trainer_id) !== studentFilterTrainerId) return false;
                             if (studentFilterYear && student.year !== studentFilterYear) return false;
                             return true;
                           }).length} / {adminStudents.length}
@@ -4084,7 +4091,7 @@ export default function App() {
                     </div>
 
                     {/* Filter controls */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200/50 dark:border-slate-800/50">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200/50 dark:border-slate-800/50">
                       <div>
                         <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter College</label>
                         <select
@@ -4093,6 +4100,7 @@ export default function App() {
                             setStudentFilterCollegeId(e.target.value);
                             setStudentFilterDeptId('');
                             setStudentFilterBatchId('');
+                            setStudentFilterTrainerId('');
                           }}
                           className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
                         >
@@ -4129,6 +4137,20 @@ export default function App() {
                         </select>
                       </div>
                       <div>
+                        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter Trainer</label>
+                        <select
+                          value={studentFilterTrainerId}
+                          onChange={(e) => setStudentFilterTrainerId(e.target.value)}
+                          className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                          disabled={!studentFilterCollegeId}
+                        >
+                          <option value="">All Trainers</option>
+                          {adminTrainers
+                            .filter(t => t.college_id === studentFilterCollegeId || t.collegeId === studentFilterCollegeId)
+                            .map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
                         <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter Year</label>
                         <select
                           value={studentFilterYear}
@@ -4162,6 +4184,7 @@ export default function App() {
                               if (studentFilterCollegeId && student.collegeId !== studentFilterCollegeId) return false;
                               if (studentFilterDeptId && student.departmentId !== studentFilterDeptId) return false;
                               if (studentFilterBatchId && student.batchId !== studentFilterBatchId) return false;
+                              if (studentFilterTrainerId && (student.trainerId || student.trainer_id) !== studentFilterTrainerId) return false;
                               if (studentFilterYear && student.year !== studentFilterYear) return false;
                               return true;
                             })
