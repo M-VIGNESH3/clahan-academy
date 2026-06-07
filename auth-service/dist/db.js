@@ -82,6 +82,19 @@ async function initDb() {
         UNIQUE(college_id, name)
       );
     `);
+        // Create Trainers Table
+        await client.query(`
+      CREATE TABLE IF NOT EXISTS trainers (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        college_id UUID REFERENCES colleges(id) ON DELETE CASCADE,
+        batch_id UUID REFERENCES batches(id) ON DELETE SET NULL,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        phone VARCHAR(50),
+        specialization VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
         // Create Users
         await client.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -144,6 +157,12 @@ async function initDb() {
     `);
         await client.query(`
       ALTER TABLE exams ALTER COLUMN year DROP NOT NULL;
+    `);
+        await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS trainer_id UUID REFERENCES trainers(id) ON DELETE SET NULL;
+    `);
+        await client.query(`
+      ALTER TABLE exams ADD COLUMN IF NOT EXISTS trainer_id UUID REFERENCES trainers(id) ON DELETE SET NULL;
     `);
         // MCQ Questions
         await client.query(`

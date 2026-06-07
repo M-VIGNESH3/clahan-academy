@@ -196,12 +196,14 @@ app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res)
                d.name
              ) as department_name,
              b.name as batch_name,
+             t.name as trainer_name,
              (SELECT COUNT(*) FROM mcq_questions mq WHERE mq.exam_id = e.id) as mcq_count,
              (SELECT COUNT(*) FROM coding_questions cq WHERE cq.exam_id = e.id) as coding_count
       FROM exams e
       LEFT JOIN colleges c ON e.college_id = c.id
       LEFT JOIN departments d ON e.department_id = d.id
       LEFT JOIN batches b ON e.batch_id = b.id
+      LEFT JOIN trainers t ON e.trainer_id = t.id
       ORDER BY e.created_at DESC
     `);
         res.json(result.rows);
@@ -213,7 +215,7 @@ app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res)
 // Create Exam
 app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
     try {
-        const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes } = req.body;
+        const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId } = req.body;
         if (!name || !examType || !durationMinutes || !scheduleDate || !collegeId) {
             return res.status(400).json({ error: 'Missing required parameters' });
         }
@@ -227,8 +229,8 @@ app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
         const finalYear = batchId ? null : year;
         const result = await query(`INSERT INTO exams (
         name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts,
-        schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::uuid[], $11, $12, $13, FALSE) RETURNING *`, [name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10]);
+        schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published, trainer_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::uuid[], $11, $12, $13, FALSE, $14) RETURNING *`, [name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, trainerId || null]);
         res.status(201).json(result.rows[0]);
     }
     catch (err) {
@@ -246,11 +248,13 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
                  WHERE dept.id = ANY(COALESCE(e.department_ids, '{}'))), 
                 d.name
               ) as department_name,
-              b.name as batch_name
+              b.name as batch_name,
+              t.name as trainer_name
        FROM exams e
        LEFT JOIN colleges c ON e.college_id = c.id
        LEFT JOIN departments d ON e.department_id = d.id
        LEFT JOIN batches b ON e.batch_id = b.id
+       LEFT JOIN trainers t ON e.trainer_id = t.id
        WHERE e.id = $1`, [req.params.id]);
         if (examResult.rows.length === 0)
             return res.status(404).json({ error: 'Exam not found' });
@@ -276,7 +280,7 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
 // Update Exam
 app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) => {
     try {
-        const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes } = req.body;
+        const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId } = req.body;
         if (!name || !examType || !durationMinutes || !scheduleDate || !collegeId) {
             return res.status(400).json({ error: 'Missing required parameters' });
         }
@@ -291,8 +295,8 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
         const result = await query(`UPDATE exams 
        SET name = $1, description = $2, exam_type = $3, duration_minutes = $4,
            cutoff_percentage = $5, allowed_attempts = $6, schedule_date = $7,
-           college_id = $8, department_id = $9, department_ids = $10::uuid[], batch_id = $11, year = $12, window_open_minutes = $13
-       WHERE id = $14 RETURNING *`, [name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, req.params.id]);
+           college_id = $8, department_id = $9, department_ids = $10::uuid[], batch_id = $11, year = $12, window_open_minutes = $13, trainer_id = $14
+       WHERE id = $15 RETURNING *`, [name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, trainerId || null, req.params.id]);
         if (result.rows.length === 0)
             return res.status(404).json({ error: 'Exam not found' });
         res.json(result.rows[0]);
@@ -311,8 +315,8 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
         if (examCheck.rows.length === 0)
             return res.status(404).json({ error: 'Exam not found' });
         const ex = examCheck.rows[0];
-        const newExam = await query(`INSERT INTO exams (name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts, schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE) RETURNING *`, [
+        const newExam = await query(`INSERT INTO exams (name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts, schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published, trainer_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE, $14) RETURNING *`, [
             `Copy of ${ex.name}`,
             ex.description,
             ex.exam_type,
@@ -325,7 +329,8 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
             ex.department_ids || (ex.department_id ? [ex.department_id] : []),
             ex.batch_id || null,
             ex.year,
-            ex.window_open_minutes
+            ex.window_open_minutes,
+            ex.trainer_id || null
         ]);
         const newExamId = newExam.rows[0].id;
         // Copy MCQs
@@ -535,15 +540,20 @@ app.get('/api/exams/:id/results', authenticate, requireRole('admin'), async (req
 // Active/Eligible exams
 app.get('/api/exams/student/active', authenticate, requireRole('student'), async (req, res) => {
     try {
-        const { college_id, department_id, year, id: studentId } = req.user;
+        const { college_id, department_id, year, batch_id, trainer_id, id: studentId } = req.user;
         const result = await query(`SELECT e.*, 
-              (SELECT COUNT(*) FROM exam_attempts ea WHERE ea.exam_id = e.id AND ea.student_id = $4) as attempts_made
+              (SELECT COUNT(*) FROM exam_attempts ea WHERE ea.exam_id = e.id AND ea.student_id = $6) as attempts_made
        FROM exams e
-       WHERE e.college_id = $1 AND (e.department_id = $2 OR $2 = ANY(COALESCE(e.department_ids, '{}'))) AND e.year = $3
+       WHERE e.college_id = $1
+         AND (
+           (e.batch_id IS NULL AND (e.department_id = $2 OR $2 = ANY(COALESCE(e.department_ids, '{}'))) AND e.year = $3)
+           OR (e.batch_id IS NOT NULL AND e.batch_id = $4)
+         )
+         AND (e.trainer_id IS NULL OR e.trainer_id = $5)
          AND e.is_published = TRUE 
          AND e.schedule_date <= CURRENT_TIMESTAMP
          AND CURRENT_TIMESTAMP <= e.schedule_date + (GREATEST(COALESCE(e.window_open_minutes, 10), COALESCE(e.duration_minutes, 60)) * INTERVAL '1 minute')
-       ORDER BY e.schedule_date DESC`, [college_id, department_id, year, studentId]);
+       ORDER BY e.schedule_date DESC`, [college_id, department_id, year, batch_id || null, trainer_id || null, studentId]);
         // Filters down active exams where they still have attempts left
         const eligible = result.rows.filter(row => parseInt(row.attempts_made) < parseInt(row.allowed_attempts));
         res.json(eligible);

@@ -364,6 +364,7 @@ app.post('/api/auth/login', async (req, res) => {
         college_id: user.college_id,
         department_id: user.department_id,
         batch_id: user.batch_id,
+        trainer_id: user.trainer_id,
         year: user.year
       },
       JWT_SECRET,
@@ -440,6 +441,8 @@ app.post('/api/auth/refresh', async (req, res) => {
           roll_number: user.roll_number,
           college_id: user.college_id,
           department_id: user.department_id,
+          batch_id: user.batch_id,
+          trainer_id: user.trainer_id,
           year: user.year
         },
         JWT_SECRET,

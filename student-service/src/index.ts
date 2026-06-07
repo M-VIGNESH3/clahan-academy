@@ -267,22 +267,22 @@ app.get('/api/student/notifications', authenticateStudent, async (req: Authentic
 app.get('/api/student/trainers', authenticateStudent, async (req: AuthenticatedRequest, res) => {
   try {
     const studentId = req.user?.id;
-    // Get student's batch_id
-    const userResult = await query('SELECT batch_id FROM users WHERE id = $1', [studentId]);
+    // Get student's batch_id and trainer_id
+    const userResult = await query('SELECT batch_id, trainer_id FROM users WHERE id = $1', [studentId]);
     if (userResult.rows.length === 0) {
       return res.status(404).json({ error: 'Student profile not found' });
     }
-    const batchId = userResult.rows[0].batch_id;
-    if (!batchId) {
-      return res.json([]); // Return empty list if student is not assigned to any batch
+    const { batch_id, trainer_id } = userResult.rows[0];
+    if (!batch_id && !trainer_id) {
+      return res.json([]); // Return empty list if student is not assigned to any batch or trainer
     }
     const result = await query(
       `SELECT t.id, t.name, t.email, t.phone, t.specialization, b.name as batch_name
        FROM trainers t
        LEFT JOIN batches b ON t.batch_id = b.id
-       WHERE t.batch_id = $1
+       WHERE t.batch_id = $1 OR t.id = $2
        ORDER BY t.name ASC`,
-      [batchId]
+      [batch_id || null, trainer_id || null]
     );
     res.json(result.rows);
   } catch (err: any) {

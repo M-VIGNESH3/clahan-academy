@@ -137,6 +137,14 @@ export async function initDb() {
       ALTER TABLE exams ALTER COLUMN year DROP NOT NULL;
     `);
 
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS trainer_id UUID REFERENCES trainers(id) ON DELETE SET NULL;
+    `);
+
+    await client.query(`
+      ALTER TABLE exams ADD COLUMN IF NOT EXISTS trainer_id UUID REFERENCES trainers(id) ON DELETE SET NULL;
+    `);
+
     // MCQ Questions
     await client.query(`
       CREATE TABLE IF NOT EXISTS mcq_questions (

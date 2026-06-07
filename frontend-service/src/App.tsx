@@ -19,12 +19,14 @@ interface UserProfile {
   college_name?: string; department_name?: string; status?: string;
   email_verified?: boolean;
   batchId?: string | null; batch_id?: string | null; batchName?: string | null; batch_name?: string | null; college_id?: string | null;
+  trainer_id?: string | null; trainerId?: string | null; trainer_name?: string | null; trainerName?: string | null;
 }
 interface Exam {
   id: string; name: string; description: string; exam_type: 'mcq' | 'coding' | 'both';
   duration_minutes: number; cutoff_percentage: number; allowed_attempts: number;
   schedule_date: string; college_id: string; department_id: string; department_ids?: string[]; batch_id?: string; year: string;
   is_published: boolean; window_open_minutes?: number; mcq_count?: number; coding_count?: number;
+  trainer_id?: string | null; trainerId?: string | null; trainer_name?: string | null; trainerName?: string | null;
 }
 interface MCQQuestion {
   id: string; question: string; option_a: string; option_b: string; option_c: string; option_d: string;
@@ -175,7 +177,7 @@ export default function App() {
     name: '', description: '', examType: 'mcq' as 'mcq' | 'coding' | 'both',
     durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
     windowOpenMinutes: 10,
-    collegeId: '', departmentId: '', departmentIds: [] as string[], batchId: '', year: '1st Year'
+    collegeId: '', departmentId: '', departmentIds: [] as string[], batchId: '', trainerId: '', year: '1st Year'
   });
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [selectedExamIdForQuestions, setSelectedExamIdForQuestions] = useState<string | null>(null);
@@ -777,6 +779,8 @@ export default function App() {
           departmentId: s.department_id || s.departmentId,
           batchId: s.batch_id || s.batchId,
           batchName: s.batch_name || s.batchName,
+          trainerId: s.trainer_id || s.trainerId,
+          trainerName: s.trainer_name || s.trainerName,
         }));
         setAdminStudents(mappedStudents);
       }
@@ -1072,7 +1076,7 @@ export default function App() {
       }
     } catch (err) {
       // Simulate
-      const mockS: UserProfile = {
+      const mockS: any = {
         id: `std-${Date.now()}`,
         email: studentData.email,
         role: 'student',
@@ -1082,7 +1086,9 @@ export default function App() {
         college_name: colleges.find(c => c.id === studentData.collegeId)?.name || 'College',
         department_name: 'CSE',
         year: studentData.year,
-        email_verified: true
+        email_verified: true,
+        trainer_id: studentData.trainerId || null,
+        trainer_name: adminTrainers.find(t => t.id === studentData.trainerId)?.name || null
       };
       setAdminStudents(prev => [mockS, ...prev]);
       showToast(`Student created! Temporary password: Clahan@${Math.floor(1000 + Math.random() * 9000)} (Simulated)`);
@@ -1257,6 +1263,41 @@ export default function App() {
     }
   };
 
+  const updateStudentTrainer = async (studentId: string, trainerId: string) => {
+    try {
+      const res = await fetch(`${API_ADMIN}/students/${studentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          trainerId: trainerId || null
+        })
+      });
+      if (res.ok) {
+        showToast('Student trainer updated successfully!');
+        loadAdminDashboard();
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Failed to update student trainer', 'error');
+      }
+    } catch (err: any) {
+      setAdminStudents(prev => prev.map(s => {
+        if (s.id === studentId) {
+          const selectedTrainerObj = adminTrainers.find(t => t.id === trainerId);
+          return {
+            ...s,
+            trainer_id: trainerId || null,
+            trainer_name: selectedTrainerObj ? selectedTrainerObj.name : null
+          };
+        }
+        return s;
+      }));
+      showToast('Student trainer updated successfully (Simulated)');
+    }
+  };
+
   const createExam = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -1324,7 +1365,7 @@ export default function App() {
           name: '', description: '', examType: 'mcq' as 'mcq' | 'coding' | 'both',
           durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
           windowOpenMinutes: 10,
-          collegeId: '', departmentId: '', departmentIds: [], batchId: '', year: '1st Year'
+          collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year'
         });
         loadAdminDashboard();
       }
@@ -1342,14 +1383,15 @@ export default function App() {
         college_id: examForm.collegeId,
         department_id: examForm.departmentId,
         department_ids: examForm.departmentIds,
-        batch_id: examForm.batchId
+        batch_id: examForm.batchId,
+        trainer_id: examForm.trainerId
       } : e));
       setEditingExamId(null);
       setExamForm({
         name: '', description: '', examType: 'mcq' as 'mcq' | 'coding' | 'both',
         durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
         windowOpenMinutes: 10,
-        collegeId: '', departmentId: '', departmentIds: [], batchId: '', year: '1st Year'
+        collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year'
       });
       showToast('Exam configuration updated successfully (Simulated)');
     }
@@ -1381,6 +1423,7 @@ export default function App() {
       departmentId: ex.department_id || '',
       departmentIds: ex.department_ids || (ex.department_id ? [ex.department_id] : []),
       batchId: ex.batch_id || '',
+      trainerId: ex.trainer_id || '',
       year: ex.year || '1st Year'
     });
     if (ex.college_id) {
@@ -3638,6 +3681,60 @@ export default function App() {
                     </form>
                   </div>
 
+                  {/* Configure Trainer */}
+                  <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
+                    <h3 className="font-extrabold text-base mb-4">Configure Trainer</h3>
+                    <form onSubmit={createOrUpdateTrainer} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                      <select 
+                        value={trainerForm.collegeId} 
+                        onChange={e => setTrainerForm({ ...trainerForm, collegeId: e.target.value, batchId: '' })} 
+                        className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent text-slate-900 dark:text-white focus:outline-indigo-500" 
+                        required
+                      >
+                        <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select College</option>
+                        {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
+                      </select>
+                      <select 
+                        value={trainerForm.batchId} 
+                        onChange={e => setTrainerForm({ ...trainerForm, batchId: e.target.value })} 
+                        className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent text-slate-900 dark:text-white focus:outline-indigo-500"
+                        disabled={!trainerForm.collegeId}
+                        required
+                      >
+                        <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Batch</option>
+                        {adminBatches
+                          .filter(b => b.college_id === trainerForm.collegeId || b.collegeId === trainerForm.collegeId)
+                          .map(b => <option key={b.id} value={b.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.name}</option>)}
+                      </select>
+                      <input 
+                        type="text" 
+                        value={trainerForm.name}
+                        onChange={e => setTrainerForm({ ...trainerForm, name: e.target.value })}
+                        placeholder="Trainer Name" 
+                        className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent focus:outline-indigo-500" 
+                        required
+                      />
+                      <input 
+                        type="email" 
+                        value={trainerForm.email}
+                        onChange={e => setTrainerForm({ ...trainerForm, email: e.target.value })}
+                        placeholder="Email Address" 
+                        className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent focus:outline-indigo-500" 
+                        required
+                      />
+                      <input 
+                        type="text" 
+                        value={trainerForm.specialization}
+                        onChange={e => setTrainerForm({ ...trainerForm, specialization: e.target.value })}
+                        placeholder="Specialization" 
+                        className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent focus:outline-indigo-500" 
+                      />
+                      <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition-colors text-xs py-3.5">
+                        Add Trainer
+                      </button>
+                    </form>
+                  </div>
+
                   {/* Lists of Colleges, Departments, and Batches */}
                   <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-250/50 dark:border-slate-800/50 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div>
@@ -3654,7 +3751,7 @@ export default function App() {
                     </select>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Colleges */}
                     <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-4">
                       <h4 className="font-extrabold text-sm border-b pb-2">Registered Colleges</h4>
@@ -3736,6 +3833,36 @@ export default function App() {
                         )}
                       </div>
                     </div>
+
+                    {/* Trainers */}
+                    <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-4">
+                      <h4 className="font-extrabold text-sm border-b pb-2">Configured Trainers</h4>
+                      <div className="max-h-60 overflow-y-auto space-y-2">
+                        {adminTrainers.filter(t => !selectedConfigCollegeId || t.college_id === selectedConfigCollegeId || t.collegeId === selectedConfigCollegeId).length === 0 ? (
+                          <p className="text-xs text-muted-foreground">No trainers configured for this selection.</p>
+                        ) : (
+                          adminTrainers
+                            .filter(t => !selectedConfigCollegeId || t.college_id === selectedConfigCollegeId || t.collegeId === selectedConfigCollegeId)
+                            .map(t => (
+                              <div key={t.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 text-xs flex justify-between items-center">
+                                <div className="space-y-1 truncate mr-2">
+                                  <p className="font-bold">{t.name}</p>
+                                  <p className="text-[10px] text-muted-foreground truncate">{t.specialization || 'General'}</p>
+                                  <p className="text-[9px] text-indigo-500 font-bold truncate">Batch: {t.batch_name || 'No Batch'}</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteTrainer(t.id)}
+                                  className="text-red-500 hover:text-red-700 transition-colors p-1 shrink-0"
+                                  title="Delete Trainer"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ))
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -3774,7 +3901,7 @@ export default function App() {
                           <input type="text" name="phone" placeholder="Phone Number" className="p-3 border rounded-xl text-xs bg-transparent" />
                           <input type="text" name="rollNumber" placeholder="Roll Number" className="p-3 border rounded-xl text-xs bg-transparent" required />
                         </div>
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                           <select name="collegeId" onChange={e => { fetchDepartments(e.target.value); fetchBatches(e.target.value); }} className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
                             <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">College</option>
                             {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
@@ -3787,11 +3914,21 @@ export default function App() {
                             <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{batches.length > 0 ? 'Batch' : 'Batch (N/A)'}</option>
                             {batches.map(b => <option key={b.id} value={b.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.name}</option>)}
                           </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
                           <select name="year" className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
                             <option value="1st Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">1st Year</option>
                             <option value="2nd Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">2nd Year</option>
                             <option value="3rd Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">3rd Year</option>
                             <option value="4th Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">4th Year</option>
+                          </select>
+                          <select name="trainerId" className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                            <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Trainer (Optional)</option>
+                            {adminTrainers.map(t => (
+                              <option key={t.id} value={t.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                                {t.name} ({t.batch_name || 'General'})
+                              </option>
+                            ))}
                           </select>
                         </div>
                         <button type="submit" className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-colors">
@@ -3995,6 +4132,22 @@ export default function App() {
                                       .filter(b => b.college_id === student.college_id || b.collegeId === student.collegeId)
                                       .map(b => (
                                         <option key={b.id} value={b.id}>{b.name}</option>
+                                      ))
+                                    }
+                                  </select>
+                                </div>
+                                <div className="mt-1 flex items-center gap-1">
+                                  <span className="text-[10px] text-muted-foreground">Trainer:</span>
+                                  <select
+                                    value={student.trainer_id || student.trainerId || ''}
+                                    onChange={(e) => updateStudentTrainer(student.id, e.target.value)}
+                                    className="text-[10px] p-0.5 border rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:ring-1 focus:ring-indigo-500"
+                                  >
+                                    <option value="">No Trainer</option>
+                                    {adminTrainers
+                                      .filter(t => t.college_id === student.college_id || t.collegeId === student.collegeId)
+                                      .map(t => (
+                                        <option key={t.id} value={t.id}>{t.name} ({t.batch_name || 'General'})</option>
                                       ))
                                     }
                                   </select>
@@ -4206,7 +4359,7 @@ export default function App() {
                             name: '', description: '', examType: 'mcq',
                             durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
                             windowOpenMinutes: 10,
-                            collegeId: '', departmentId: '', departmentIds: [], batchId: '', year: '1st Year'
+                            collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year'
                           });
                         }} className="text-xs font-bold text-amber-600 hover:underline">Cancel Edit</button>
                       )}
@@ -4247,10 +4400,10 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-4 gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                         <div>
                           <label className="text-xs font-semibold text-muted-foreground">College Eligibility</label>
-                          <select value={examForm.collegeId} onChange={e => { setExamForm({...examForm, collegeId: e.target.value, batchId: ''}); fetchDepartments(e.target.value); fetchBatches(e.target.value); }} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
+                          <select value={examForm.collegeId} onChange={e => { setExamForm({...examForm, collegeId: e.target.value, batchId: '', trainerId: ''}); fetchDepartments(e.target.value); fetchBatches(e.target.value); }} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
                             <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select College</option>
                             {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
                           </select>
@@ -4265,6 +4418,20 @@ export default function App() {
                           >
                             <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">No Batch (Use Dept/Year below)</option>
                             {batches.map(b => <option key={b.id} value={b.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.name}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-muted-foreground">Trainer (Optional)</label>
+                          <select 
+                            value={examForm.trainerId || ''} 
+                            onChange={e => setExamForm({...examForm, trainerId: e.target.value})} 
+                            className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                            disabled={!examForm.collegeId}
+                          >
+                            <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Trainer</option>
+                            {adminTrainers
+                              .filter(t => t.college_id === examForm.collegeId || t.collegeId === examForm.collegeId)
+                              .map(t => <option key={t.id} value={t.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{t.name} ({t.batch_name || 'General'})</option>)}
                           </select>
                         </div>
                         <div>
@@ -4478,6 +4645,9 @@ export default function App() {
                               <td>
                                 <div className="truncate max-w-[120px]" title={ex.college_name}>{ex.college_name}</div>
                                 <div className="text-[10px] text-muted-foreground mt-0.5">{ex.batch_name ? `Batch: ${ex.batch_name}` : `${ex.department_name} - ${ex.year}`}</div>
+                                {(ex.trainer_name || ex.trainerName) && (
+                                  <div className="text-[9px] text-indigo-500 font-bold mt-0.5">Trainer: {ex.trainer_name || ex.trainerName}</div>
+                                )}
                               </td>
                               <td>
                                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${ex.is_published ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800'}`}>
