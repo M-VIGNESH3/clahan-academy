@@ -3028,7 +3028,7 @@ export default function App() {
                       {registerTrainers
                         .filter(t => {
                           if (regForm.batchId) {
-                            return (t.batch_id === regForm.batchId || t.batchId === regForm.batchId);
+                            return (t.batch_id === regForm.batchId || t.batchId === regForm.batchId || !t.batch_id);
                           }
                           return true;
                         })
@@ -3452,7 +3452,7 @@ export default function App() {
                           {studentTrainers
                             .filter(t => {
                               if (batchUpdate) {
-                                return (t.batch_id === batchUpdate || t.batchId === batchUpdate);
+                                return (t.batch_id === batchUpdate || t.batchId === batchUpdate || !t.batch_id);
                               }
                               return true;
                             })
@@ -4526,7 +4526,7 @@ export default function App() {
                                 const matchCollege = (t.college_id === examForm.collegeId || t.collegeId === examForm.collegeId);
                                 if (!matchCollege) return false;
                                 if (examForm.batchId) {
-                                  return (t.batch_id === examForm.batchId || t.batchId === examForm.batchId);
+                                  return (t.batch_id === examForm.batchId || t.batchId === examForm.batchId || !t.batch_id);
                                 }
                                 return true;
                               })
