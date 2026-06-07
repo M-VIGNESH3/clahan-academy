@@ -107,6 +107,7 @@ const limiter = (0, express_rate_limit_1.default)({
     max: 100, // limit each IP to 100 requests per windowMs
     standardHeaders: true,
     legacyHeaders: false,
+    validate: { trustProxy: false },
 });
 app.use(limiter);
 // Health Check

@@ -120,7 +120,7 @@ async function initDb() {
         department_id UUID REFERENCES departments(id) ON DELETE CASCADE,
         department_ids UUID[],
         batch_id UUID REFERENCES batches(id) ON DELETE SET NULL,
-        year VARCHAR(50) NOT NULL,
+        year VARCHAR(50),
         window_open_minutes INTEGER DEFAULT 10,
         is_published BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -141,6 +141,9 @@ async function initDb() {
     `);
         await client.query(`
       UPDATE exams SET department_ids = ARRAY[department_id] WHERE department_ids IS NULL AND department_id IS NOT NULL;
+    `);
+        await client.query(`
+      ALTER TABLE exams ALTER COLUMN year DROP NOT NULL;
     `);
         // MCQ Questions
         await client.query(`
