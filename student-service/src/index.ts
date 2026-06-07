@@ -109,7 +109,7 @@ app.get('/api/student/profile', authenticateStudent, async (req: AuthenticatedRe
 
 app.put('/api/student/profile', authenticateStudent, async (req: AuthenticatedRequest, res) => {
   try {
-    const { phone, githubProfile, linkedinProfile, profilePhotoUrl, batchId } = req.body;
+    const { phone, githubProfile, linkedinProfile, profilePhotoUrl, batchId, trainerId } = req.body;
     
     const result = await query(
       `UPDATE users
@@ -117,8 +117,9 @@ app.put('/api/student/profile', authenticateStudent, async (req: AuthenticatedRe
            github_profile = COALESCE($2, github_profile),
            linkedin_profile = COALESCE($3, linkedin_profile),
            profile_photo_url = COALESCE($4, profile_photo_url),
-           batch_id = CASE WHEN $5 = TRUE THEN $6 ELSE batch_id END
-       WHERE id = $7 RETURNING *`,
+           batch_id = CASE WHEN $5 = TRUE THEN $6 ELSE batch_id END,
+           trainer_id = CASE WHEN $7 = TRUE THEN $8 ELSE trainer_id END
+       WHERE id = $9 RETURNING *`,
       [
         phone !== undefined ? phone : null,
         githubProfile !== undefined ? githubProfile : null,
@@ -126,6 +127,8 @@ app.put('/api/student/profile', authenticateStudent, async (req: AuthenticatedRe
         profilePhotoUrl !== undefined ? profilePhotoUrl : null,
         batchId !== undefined,
         batchId === '' ? null : (batchId || null),
+        trainerId !== undefined,
+        trainerId === '' ? null : (trainerId || null),
         req.user!.id
       ]
     );
@@ -160,11 +163,11 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req: Authe
     const studentId = req.user!.id;
     
     // Fetch latest user details from DB to avoid stale token issues
-    const userRes = await query('SELECT college_id, department_id, year, batch_id FROM users WHERE id = $1', [studentId]);
+    const userRes = await query('SELECT college_id, department_id, year, batch_id, trainer_id FROM users WHERE id = $1', [studentId]);
     if (userRes.rows.length === 0) {
       return res.status(404).json({ error: 'Student profile not found' });
     }
-    const { college_id: collegeId, department_id: departmentId, year, batch_id: batchId } = userRes.rows[0];
+    const { college_id: collegeId, department_id: departmentId, year, batch_id: batchId, trainer_id: trainerId } = userRes.rows[0];
 
     // Upcoming Exams (exams matched to college, dept, year and schedule date is future)
     const upcoming = await query(
@@ -179,8 +182,9 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req: Authe
            OR
            (e.batch_id IS NULL AND (e.department_id = $2 OR $2 = ANY(COALESCE(e.department_ids, '{}'))) AND e.year = $3)
          )
+         AND (e.trainer_id IS NULL OR e.trainer_id = $5)
        ORDER BY e.schedule_date ASC`,
-      [collegeId, departmentId, year, batchId]
+      [collegeId, departmentId, year, batchId, trainerId || null]
     );
 
     // Active Exams (scheduled in the past/present, still open, or simply published with allowed attempts left)
@@ -198,8 +202,9 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req: Authe
            OR
            (e.batch_id IS NULL AND (e.department_id = $2 OR $2 = ANY(COALESCE(e.department_ids, '{}'))) AND e.year = $3)
          )
+         AND (e.trainer_id IS NULL OR e.trainer_id = $6)
        ORDER BY e.schedule_date DESC`,
-      [collegeId, departmentId, year, batchId, studentId]
+      [collegeId, departmentId, year, batchId, studentId, trainerId || null]
     );
 
     // Filter active exams where attempts_made < allowed_attempts
@@ -267,22 +272,19 @@ app.get('/api/student/notifications', authenticateStudent, async (req: Authentic
 app.get('/api/student/trainers', authenticateStudent, async (req: AuthenticatedRequest, res) => {
   try {
     const studentId = req.user?.id;
-    // Get student's batch_id and trainer_id
-    const userResult = await query('SELECT batch_id, trainer_id FROM users WHERE id = $1', [studentId]);
+    // Get student's college_id
+    const userResult = await query('SELECT college_id FROM users WHERE id = $1', [studentId]);
     if (userResult.rows.length === 0) {
       return res.status(404).json({ error: 'Student profile not found' });
     }
-    const { batch_id, trainer_id } = userResult.rows[0];
-    if (!batch_id && !trainer_id) {
-      return res.json([]); // Return empty list if student is not assigned to any batch or trainer
-    }
+    const { college_id } = userResult.rows[0];
     const result = await query(
       `SELECT t.id, t.name, t.email, t.phone, t.specialization, b.name as batch_name
        FROM trainers t
        LEFT JOIN batches b ON t.batch_id = b.id
-       WHERE t.batch_id = $1 OR t.id = $2
+       WHERE t.college_id = $1
        ORDER BY t.name ASC`,
-      [batch_id || null, trainer_id || null]
+      [college_id]
     );
     res.json(result.rows);
   } catch (err: any) {

@@ -154,6 +154,16 @@ app.get('/api/auth/colleges/:collegeId/batches', async (req, res) => {
   }
 });
 
+app.get('/api/auth/colleges/:collegeId/trainers', async (req, res) => {
+  try {
+    const { collegeId } = req.params;
+    const result = await query('SELECT * FROM trainers WHERE college_id = $1 ORDER BY name ASC', [collegeId]);
+    res.json(result.rows);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Student Registration
 app.post('/api/auth/register', async (req, res) => {
   try {
@@ -166,6 +176,7 @@ app.post('/api/auth/register', async (req, res) => {
       collegeId,
       departmentId,
       batchId,
+      trainerId,
       year,
       githubProfile,
       linkedinProfile,
@@ -202,9 +213,9 @@ app.post('/api/auth/register', async (req, res) => {
     const result = await query(
       `INSERT INTO users (
         email, password_hash, role, full_name, phone, roll_number,
-        college_id, department_id, batch_id, year, github_profile, linkedin_profile,
+        college_id, department_id, batch_id, trainer_id, year, github_profile, linkedin_profile,
         profile_photo_url, status, email_verified
-      ) VALUES ($1, $2, 'student', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending', FALSE) RETURNING id, email, full_name, batch_id`,
+      ) VALUES ($1, $2, 'student', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'pending', FALSE) RETURNING id, email, full_name, batch_id`,
       [
         email,
         hashedPassword,
@@ -214,6 +225,7 @@ app.post('/api/auth/register', async (req, res) => {
         collegeId,
         departmentId,
         batchId || null,
+        trainerId || null,
         year,
         githubProfile || null,
         linkedinProfile || null,

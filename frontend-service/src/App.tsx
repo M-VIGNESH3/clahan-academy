@@ -94,13 +94,14 @@ export default function App() {
   // Student registration state
   const [regForm, setRegForm] = useState({
     email: '', password: '', confirmPassword: '', fullName: '', phone: '', rollNumber: '',
-    collegeId: '', departmentId: '', batchId: '', year: '1st Year', githubProfile: '', linkedinProfile: '', profilePhotoUrl: ''
+    collegeId: '', departmentId: '', batchId: '', trainerId: '', year: '1st Year', githubProfile: '', linkedinProfile: '', profilePhotoUrl: ''
   });
 
   // Data Cache Lists
   const [colleges, setColleges] = useState<College[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [batches, setBatches] = useState<any[]>([]);
+  const [registerTrainers, setRegisterTrainers] = useState<any[]>([]);
   const [upcomingExams, setUpcomingExams] = useState<Exam[]>([]);
   const [activeExams, setActiveExams] = useState<Exam[]>([]);
   const [completedAttempts, setCompletedAttempts] = useState<Attempt[]>([]);
@@ -156,6 +157,7 @@ export default function App() {
   const [linkedinUpdate, setLinkedinUpdate] = useState('');
   const [photoUpdate, setPhotoUpdate] = useState('');
   const [batchUpdate, setBatchUpdate] = useState('');
+  const [trainerUpdate, setTrainerUpdate] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newProfilePassword, setNewProfilePassword] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -557,6 +559,22 @@ export default function App() {
     }
   };
 
+  const fetchRegisterTrainers = async (collegeId: string) => {
+    if (!collegeId) return;
+    try {
+      const res = await fetch(`${API_AUTH}/colleges/${collegeId}/trainers`);
+      if (res.ok) {
+        const data = await res.json();
+        setRegisterTrainers(data);
+      } else {
+        throw new Error(`Trainers API returned status ${res.status}`);
+      }
+    } catch (err: any) {
+      console.error("fetchRegisterTrainers error:", err);
+      showToast(`Error fetching trainers: ${err.message}`, 'error');
+    }
+  };
+
   const fetchCurrentUser = async () => {
     const tryLocalDecode = () => {
       if (token) {
@@ -581,6 +599,7 @@ export default function App() {
             };
             setCurrentUser(decodedUser);
             setBatchUpdate(decodedUser.batchId || decodedUser.batch_id || '');
+            setTrainerUpdate(decodedUser.trainerId || decodedUser.trainer_id || '');
             if (decodedUser.role === 'admin') {
               setCurrentPage('admin-dash');
               loadAdminDashboard();
@@ -622,9 +641,11 @@ export default function App() {
           departmentId: user.department_id || user.departmentId,
           batchId: user.batch_id || user.batchId,
           batchName: user.batch_name || user.batchName,
+          trainerId: user.trainer_id || user.trainerId,
         };
         setCurrentUser(mappedUser);
         setBatchUpdate(mappedUser.batchId || mappedUser.batch_id || '');
+        setTrainerUpdate(mappedUser.trainerId || mappedUser.trainer_id || '');
         if (mappedUser.role === 'admin') {
           setCurrentPage('admin-dash');
           loadAdminDashboard();
@@ -704,7 +725,8 @@ export default function App() {
           githubProfile: githubUpdate,
           linkedinProfile: linkedinUpdate,
           profilePhotoUrl: photoUpdate,
-          batchId: batchUpdate || ''
+          batchId: batchUpdate || '',
+          trainerId: trainerUpdate || ''
         })
       });
       if (res.ok) {
@@ -2942,15 +2964,16 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground">College *</label>
                     <select 
                       value={regForm.collegeId} 
                       onChange={e => {
-                        setRegForm({...regForm, collegeId: e.target.value});
+                        setRegForm({...regForm, collegeId: e.target.value, departmentId: '', batchId: '', trainerId: ''});
                         fetchDepartments(e.target.value);
                         fetchBatches(e.target.value);
+                        fetchRegisterTrainers(e.target.value);
                       }} 
                       className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                       required
@@ -2972,6 +2995,9 @@ export default function App() {
                       {departments.map(d => <option key={d.id} value={d.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{d.name}</option>)}
                     </select>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground">Batch {batches.length > 0 ? '*' : '(Optional)'}</label>
                     <select 
@@ -2983,6 +3009,18 @@ export default function App() {
                     >
                       <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Batch</option>
                       {batches.map(b => <option key={b.id} value={b.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground">Trainer (Optional)</label>
+                    <select 
+                      value={regForm.trainerId} 
+                      onChange={e => setRegForm({...regForm, trainerId: e.target.value})} 
+                      className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                      disabled={!regForm.collegeId}
+                    >
+                      <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Trainer</option>
+                      {registerTrainers.map(t => <option key={t.id} value={t.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{t.name}</option>)}
                     </select>
                   </div>
                   <div>
@@ -3372,7 +3410,7 @@ export default function App() {
                         <input type="text" value={linkedinUpdate} onChange={e => setLinkedinUpdate(e.target.value)} placeholder={currentUser.linkedinProfile || "https://linkedin.com/..."} className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent focus:outline-indigo-500" />
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground">Academic Batch (Change Batch)</label>
                         <select
@@ -3387,6 +3425,23 @@ export default function App() {
                         </select>
                         <p className="text-[10px] text-muted-foreground mt-1.5">
                           Currently enrolled in: <span className="font-bold text-indigo-600 dark:text-indigo-400">{currentUser.batch_name || currentUser.batchName || 'None'}</span>
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Academic Trainer (Change Trainer)</label>
+                        <select
+                          value={trainerUpdate}
+                          onChange={e => setTrainerUpdate(e.target.value)}
+                          className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:outline-indigo-500"
+                        >
+                          <option value="">No Trainer Assigned</option>
+                          {studentTrainers.map(t => (
+                            <option key={t.id} value={t.id}>{t.name} {t.specialization ? `(${t.specialization})` : ''}</option>
+                          ))}
+                        </select>
+                        <p className="text-[10px] text-muted-foreground mt-1.5">
+                          Currently assigned: <span className="font-bold text-indigo-600 dark:text-indigo-400">{currentUser.trainer_name || currentUser.trainerName || 'None'}</span>
                         </p>
                       </div>
                     </div>
