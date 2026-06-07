@@ -551,32 +551,34 @@ export default function App() {
           const parts = token.split('.');
           if (parts.length === 3) {
             const payload = JSON.parse(atob(parts[1]));
-            const mockUser: UserProfile = {
-              id: payload.id || 'usr-mock',
-              email: payload.email || 'student@clahan.com',
+            const decodedUser: UserProfile = {
+              id: payload.id,
+              email: payload.email,
               role: payload.role || 'student',
-              fullName: payload.fullName || payload.full_name || 'Demo Student',
-              rollNumber: payload.roll_number || payload.rollNumber || '2026CSE104',
-              collegeId: payload.college_id || payload.collegeId || 'col-1',
-              departmentId: payload.department_id || payload.departmentId || 'dept-1',
-              year: payload.year || '3rd Year',
+              fullName: payload.full_name || payload.fullName || 'Student',
+              rollNumber: payload.roll_number || payload.rollNumber || 'N/A',
+              collegeId: payload.college_id || payload.collegeId || '',
+              departmentId: payload.department_id || payload.departmentId || '',
+              batchId: payload.batch_id || payload.batchId || '',
+              year: payload.year || 'N/A',
               status: 'active',
-              college_name: 'ABC Engineering College',
-              department_name: 'CSE'
+              college_name: payload.college_name || 'Loading College...',
+              department_name: payload.department_name || 'Loading Department...',
+              batch_name: payload.batch_name || 'Loading Batch...'
             };
-            setCurrentUser(mockUser);
-            setBatchUpdate(mockUser.batch_id || mockUser.batchId || '');
-            if (mockUser.role === 'admin') {
+            setCurrentUser(decodedUser);
+            setBatchUpdate(decodedUser.batchId || decodedUser.batch_id || '');
+            if (decodedUser.role === 'admin') {
               setCurrentPage('admin-dash');
               loadAdminDashboard();
             } else {
               setCurrentPage('student-dash');
               loadStudentDashboard();
-              if (mockUser.collegeId) {
-                fetchBatches(mockUser.collegeId);
+              if (decodedUser.collegeId) {
+                fetchBatches(decodedUser.collegeId);
               }
             }
-            showToast('Using local session fallback due to server connection issues.', 'warning');
+            showToast('Using local session cache due to network latency.', 'warning');
           }
         } catch (e) {
           handleLogout();
@@ -1598,14 +1600,8 @@ export default function App() {
         const data = await res.json();
         showToast(data.error || 'Access denied', 'error');
       }
-    } catch (err) {
-      // Fallback mock start
-      const ex = activeExams.find(e => e.id === examId) || upcomingExams.find(e => e.id === examId);
-      if (ex) {
-        setCurrentExam(ex);
-        setValidationStep('instructions');
-        setCurrentPage('exam-env');
-      }
+    } catch (err: any) {
+      showToast('Network error: Unable to verify exam authorization. Please check your connection.', 'error');
     }
   };
 
@@ -1683,26 +1679,12 @@ export default function App() {
         const attempt = await res.json();
         setCurrentAttempt(attempt);
         loadAttemptQuestions(attempt.id);
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Failed to start exam attempt', 'error');
       }
     } catch (err) {
-      // Mock Start Attempt
-      const mockAttempt: Attempt = {
-        id: `att-${Date.now()}`,
-        exam_id: currentExam.id,
-        student_id: currentUser?.id || 'usr-mock',
-        attempt_number: 1,
-        score: 0,
-        percentage: 0,
-        passed: false,
-        mcq_score: 0,
-        coding_score: 0,
-        time_taken_seconds: 0,
-        feedback: '',
-        status: 'ongoing',
-        created_at: new Date().toISOString()
-      };
-      setCurrentAttempt(mockAttempt);
-      loadAttemptQuestions(mockAttempt.id);
+      showToast('Network error: Failed to connect to exam server. Please retry.', 'error');
     }
   };
 
@@ -1731,55 +1713,28 @@ export default function App() {
           codSol[r.question_id] = { code: r.code, language: r.language };
         });
         setCodingSolutions(codSol);
+
+        if (currentExam?.exam_type === 'coding') {
+          setSelectedSection('coding');
+        } else {
+          setSelectedSection('mcq');
+        }
+
+        setValidationStep('active');
+        setTimeLeft((currentExam?.duration_minutes || 60) * 60);
+        setTabWarnings(0);
+        setProctorLogs([]);
+
+        // Start timers and socket connection
+        startExamTimer();
+        initProctoringSocket(attemptId);
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Failed to load exam questions', 'error');
       }
     } catch (err) {
-      // Mock Exam Questions
-      const mockMcqs: MCQQuestion[] = [
-        { id: 'q-mcq-1', question: 'Which data structure follows the Last In First Out (LIFO) principal?', option_a: 'Queue', option_b: 'Stack', option_c: 'Graph', option_d: 'Binary Tree', marks: 2, difficulty: 'Easy' },
-        { id: 'q-mcq-2', question: 'What is the time complexity of searching in a perfectly balanced binary search tree?', option_a: 'O(1)', option_b: 'O(N)', option_c: 'O(log N)', option_d: 'O(N log N)', marks: 3, difficulty: 'Medium' }
-      ];
-
-      const mockCodings: CodingQuestion[] = [
-        {
-          id: 'q-code-1',
-          title: 'Two Sum Algorithm',
-          description: 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\n\nExample:\nInput: nums = [2,7,11,15], target = 9\nOutput: [0,1]',
-          difficulty: 'Medium',
-          marks: 10,
-          language: 'Python',
-          starter_code: 'def twoSum(nums, target):\n    # Write your solution code here\n    return []',
-          time_limit: 2000,
-          memory_limit: 512000,
-          testCases: [
-            { id: 'tc-1', input: '[2,7,11,15]\n9', expected_output: '[0,1]', is_hidden: false }
-          ]
-        }
-      ];
-
-      setExamMCQs(mockMcqs);
-      setExamCodings(mockCodings);
-      
-      const defaultSols: Record<string, { code: string; language: string }> = {};
-      mockCodings.forEach(c => {
-        defaultSols[c.id] = { code: c.starter_code, language: c.language };
-      });
-      setCodingSolutions(defaultSols);
+      showToast('Connection error: Failed to fetch exam questions. Please check your connection.', 'error');
     }
-
-    if (currentExam?.exam_type === 'coding') {
-      setSelectedSection('coding');
-    } else {
-      setSelectedSection('mcq');
-    }
-
-    setValidationStep('active');
-    setTimeLeft((currentExam?.duration_minutes || 60) * 60);
-    setTabWarnings(0);
-    setProctorLogs([]);
-    
-    // Start timers and socket connection
-    startExamTimer();
-    initProctoringSocket(attemptId);
   };
 
   const startExamTimer = () => {
@@ -1826,13 +1781,13 @@ export default function App() {
       if (currentPageRef.current === 'exam-env' && videoRef.current && socketRef.current) {
         try {
           const video = videoRef.current;
-          const canvas = document.createElement('canvas');
-          canvas.width = 160;
-          canvas.height = 120;
+           const canvas = document.createElement('canvas');
+          canvas.width = 640;
+          canvas.height = 480;
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.45);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.70);
             socketRef.current.emit('proctor-frame', { image: dataUrl });
           }
         } catch (err) {
@@ -4960,7 +4915,7 @@ export default function App() {
             <div className="max-w-xl mx-auto my-auto p-8 rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl text-center space-y-6">
               <h3 className="font-extrabold text-lg">Hardware Handshake Verification</h3>
               <div className="h-44 w-60 mx-auto rounded-2xl overflow-hidden bg-slate-900 border border-white/10 relative flex items-center justify-center">
-                <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-cover" />
+                <video ref={(el) => { videoRef.current = el; if (el && cameraStream) { el.srcObject = cameraStream; } }} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-cover" />
                 {!cameraPermission && <Video className="h-8 w-8 text-white/40 animate-pulse" />}
               </div>
 
@@ -5006,7 +4961,7 @@ export default function App() {
                 <div className="flex items-center gap-4">
                   {/* Webcam small PIP */}
                   <div className="h-12 w-16 rounded-lg bg-slate-950 border border-white/15 overflow-hidden hidden sm:block relative">
-                    <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+                    <video ref={(el) => { videoRef.current = el; if (el && cameraStream) { el.srcObject = cameraStream; } }} autoPlay playsInline muted className="h-full w-full object-cover" />
                   </div>
 
                   <div className="text-right">
