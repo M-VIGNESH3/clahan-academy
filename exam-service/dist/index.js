@@ -228,10 +228,11 @@ app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
         const result = await query(`INSERT INTO exams (
         name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts,
         schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE) RETURNING *`, [name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10]);
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::uuid[], $11, $12, $13, FALSE) RETURNING *`, [name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10]);
         res.status(201).json(result.rows[0]);
     }
     catch (err) {
+        console.error("Error in POST /api/exams:", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -290,7 +291,7 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
         const result = await query(`UPDATE exams 
        SET name = $1, description = $2, exam_type = $3, duration_minutes = $4,
            cutoff_percentage = $5, allowed_attempts = $6, schedule_date = $7,
-           college_id = $8, department_id = $9, department_ids = $10, batch_id = $11, year = $12, window_open_minutes = $13
+           college_id = $8, department_id = $9, department_ids = $10::uuid[], batch_id = $11, year = $12, window_open_minutes = $13
        WHERE id = $14 RETURNING *`, [name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, req.params.id]);
         if (result.rows.length === 0)
             return res.status(404).json({ error: 'Exam not found' });
@@ -468,6 +469,7 @@ app.post('/api/exams/:id/mcq/import', authenticate, requireRole('admin'), async 
         res.json({ message: 'MCQ questions imported successfully', count: inserted });
     }
     catch (err) {
+        console.error("Error in POST /api/exams/:id/mcq/import:", err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -484,6 +486,7 @@ app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, r
         res.status(201).json(result.rows[0]);
     }
     catch (err) {
+        console.error("Error in POST /api/exams/:id/mcq:", err);
         res.status(500).json({ error: err.message });
     }
 });
