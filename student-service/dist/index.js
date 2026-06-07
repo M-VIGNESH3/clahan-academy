@@ -244,6 +244,29 @@ app.get('/api/student/notifications', authenticateStudent, async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+app.get('/api/student/trainers', authenticateStudent, async (req, res) => {
+    try {
+        const studentId = req.user?.id;
+        // Get student's batch_id
+        const userResult = await query('SELECT batch_id FROM users WHERE id = $1', [studentId]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Student profile not found' });
+        }
+        const batchId = userResult.rows[0].batch_id;
+        if (!batchId) {
+            return res.json([]); // Return empty list if student is not assigned to any batch
+        }
+        const result = await query(`SELECT t.id, t.name, t.email, t.phone, t.specialization, b.name as batch_name
+       FROM trainers t
+       LEFT JOIN batches b ON t.batch_id = b.id
+       WHERE t.batch_id = $1
+       ORDER BY t.name ASC`, [batchId]);
+        res.json(result.rows);
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 app.listen(PORT, () => {
     console.log(`Student Service listening on port ${PORT}`);
 });

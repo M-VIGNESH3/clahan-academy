@@ -52,6 +52,20 @@ export async function initDb() {
       );
     `);
 
+    // Create Trainers Table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS trainers (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        college_id UUID REFERENCES colleges(id) ON DELETE CASCADE,
+        batch_id UUID REFERENCES batches(id) ON DELETE SET NULL,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        phone VARCHAR(50),
+        specialization VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Create Users
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (

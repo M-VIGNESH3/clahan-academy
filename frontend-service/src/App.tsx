@@ -103,11 +103,22 @@ export default function App() {
   const [activeExams, setActiveExams] = useState<Exam[]>([]);
   const [completedAttempts, setCompletedAttempts] = useState<Attempt[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'colleges' | 'students' | 'exams' | 'live' | 'settings'>('metrics');
+  const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'colleges' | 'students' | 'trainers' | 'exams' | 'live' | 'settings'>('metrics');
+  const [adminTrainers, setAdminTrainers] = useState<any[]>([]);
+  const [studentTrainers, setStudentTrainers] = useState<any[]>([]);
+  const [trainerForm, setTrainerForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    specialization: '',
+    collegeId: '',
+    batchId: ''
+  });
+  const [editingTrainerId, setEditingTrainerId] = useState<string | null>(null);
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   const [liveAlerts, setLiveAlerts] = useState<any[]>([]);
   const adminSocketRef = useRef<any>(null);
-  const [activeStudentTab, setActiveStudentTab] = useState<'active-exams' | 'results' | 'profile' | 'notifications'>('active-exams');
+  const [activeStudentTab, setActiveStudentTab] = useState<'active-exams' | 'results' | 'profile' | 'trainers' | 'notifications'>('active-exams');
 
   // Admin College/Dept Creation state
   const [newCollegeName, setNewCollegeName] = useState('');
@@ -664,6 +675,13 @@ export default function App() {
         const notifData = await notifRes.json();
         setNotifications(notifData);
       }
+
+      const trainerRes = await fetch(`${API_STUDENT}/trainers`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (trainerRes.ok) {
+        setStudentTrainers(await trainerRes.json());
+      }
     } catch (err: any) {
       console.error("Student dashboard APIs error:", err);
       showToast(`Error loading dashboard: ${err.message}`, 'error');
@@ -785,6 +803,14 @@ export default function App() {
       });
       if (batchRes.ok) {
         setAdminBatches(await batchRes.json());
+      }
+
+      // Load trainers for settings
+      const trainerRes = await fetch(`${API_ADMIN}/trainers`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (trainerRes.ok) {
+        setAdminTrainers(await trainerRes.json());
       }
 
     } catch (err: any) {
@@ -943,6 +969,91 @@ export default function App() {
       setAdminBatches(prev => prev.filter(b => b.id !== id));
       showToast('Batch deleted (Simulated)');
     }
+  };
+
+  const createOrUpdateTrainer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!trainerForm.name || !trainerForm.email) {
+      showToast('Name and Email are required', 'error');
+      return;
+    }
+    try {
+      const url = editingTrainerId 
+        ? `${API_ADMIN}/trainers/${editingTrainerId}`
+        : `${API_ADMIN}/trainers`;
+      const method = editingTrainerId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(trainerForm)
+      });
+      if (res.ok) {
+        showToast(editingTrainerId ? 'Trainer updated successfully!' : 'Trainer added successfully!');
+        setTrainerForm({ name: '', email: '', phone: '', specialization: '', collegeId: '', batchId: '' });
+        setEditingTrainerId(null);
+        loadAdminDashboard();
+      } else {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `Trainer API returned status ${res.status}`);
+      }
+    } catch (err: any) {
+      console.error("Trainer error:", err);
+      const mockT = {
+        id: editingTrainerId || `trainer-${Date.now()}`,
+        name: trainerForm.name,
+        email: trainerForm.email,
+        phone: trainerForm.phone,
+        specialization: trainerForm.specialization,
+        college_id: trainerForm.collegeId,
+        batch_id: trainerForm.batchId,
+        college_name: adminColleges.find(c => c.id === trainerForm.collegeId)?.name || 'Default College',
+        batch_name: adminBatches.find(b => b.id === trainerForm.batchId)?.name || 'Default Batch'
+      };
+      if (editingTrainerId) {
+        setAdminTrainers(prev => prev.map(t => t.id === editingTrainerId ? mockT : t));
+      } else {
+        setAdminTrainers(prev => [...prev, mockT]);
+      }
+      setTrainerForm({ name: '', email: '', phone: '', specialization: '', collegeId: '', batchId: '' });
+      setEditingTrainerId(null);
+      showToast(editingTrainerId ? 'Trainer updated successfully (Simulated)' : 'Trainer added successfully (Simulated)');
+    }
+  };
+
+  const deleteTrainer = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this trainer?')) return;
+    try {
+      const res = await fetch(`${API_ADMIN}/trainers/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('Trainer deleted successfully');
+        loadAdminDashboard();
+      } else {
+        throw new Error('Failed to delete trainer');
+      }
+    } catch (err) {
+      setAdminTrainers(prev => prev.filter(t => t.id !== id));
+      showToast('Trainer deleted (Simulated)');
+    }
+  };
+
+  const startEditTrainer = (trainer: any) => {
+    setEditingTrainerId(trainer.id);
+    setTrainerForm({
+      name: trainer.name || '',
+      email: trainer.email || '',
+      phone: trainer.phone || '',
+      specialization: trainer.specialization || '',
+      collegeId: trainer.college_id || trainer.collegeId || '',
+      batchId: trainer.batch_id || trainer.batchId || ''
+    });
+  };
+
+  const cancelEditTrainer = () => {
+    setEditingTrainerId(null);
+    setTrainerForm({ name: '', email: '', phone: '', specialization: '', collegeId: '', batchId: '' });
   };
 
   const createStudentManual = async (studentData: any) => {
@@ -3012,6 +3123,7 @@ export default function App() {
                 {[
                   { id: 'active-exams', label: 'Assessments', icon: BookOpen },
                   { id: 'results', label: 'Results & Performance', icon: Award },
+                  { id: 'trainers', label: 'My Trainers', icon: User },
                   { id: 'notifications', label: 'Notifications', icon: Bell },
                   { id: 'profile', label: 'Edit Profile', icon: User }
                 ].map(item => {
@@ -3294,6 +3406,57 @@ export default function App() {
                   </form>
                 </div>
               )}
+
+              {activeStudentTab === 'trainers' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                  <div>
+                    <h2 className="text-2xl font-extrabold tracking-tight">My Trainers</h2>
+                    <p className="text-sm text-muted-foreground">Trainers assigned to your batch for academic and lab sessions.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {studentTrainers.length === 0 ? (
+                      <div className="col-span-full p-12 text-center border border-dashed rounded-2xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+                        <p className="text-sm text-muted-foreground">No trainers have been assigned to your batch yet.</p>
+                      </div>
+                    ) : (
+                      studentTrainers.map((trainer) => (
+                        <div
+                          key={trainer.id}
+                          className="p-5 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm flex flex-col gap-3 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-extrabold text-slate-800 dark:text-slate-200 text-sm">
+                                {trainer.name}
+                              </h3>
+                              <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 mt-0.5">
+                                {trainer.specialization || 'General Specialization'}
+                              </p>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black tracking-wider bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 uppercase">
+                              Batch: {trainer.batch_name || 'Your Batch'}
+                            </span>
+                          </div>
+
+                          <div className="border-t border-slate-100 dark:border-slate-900/60 pt-3 flex flex-col gap-1.5 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-3.5 w-3.5" />
+                              <span>{trainer.email}</span>
+                            </div>
+                            {trainer.phone && (
+                              <div className="flex items-center gap-2">
+                                <Phone className="h-3.5 w-3.5" />
+                                <span>{trainer.phone}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </main>
@@ -3312,6 +3475,7 @@ export default function App() {
                 { id: 'metrics', label: 'Metrics & Analytics', icon: Award },
                 { id: 'colleges', label: 'Colleges & Departments', icon: Layers },
                 { id: 'students', label: 'Student Management', icon: Users },
+                { id: 'trainers', label: 'Trainer Management', icon: User },
                 { id: 'exams', label: 'Exam Configuration', icon: BookOpen },
                 { id: 'live', label: 'Live Exam Proctor', icon: Video },
                 { id: 'settings', label: 'System Settings', icon: Settings }
@@ -3850,6 +4014,180 @@ export default function App() {
                           ))}
                         </tbody>
                       </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeAdminTab === 'trainers' && (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                  <div className="flex border-b border-slate-200 dark:border-slate-800 pb-2 mb-4 gap-4">
+                    <h3 className="font-extrabold text-lg">Trainer Management</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Create/Edit Trainer Form */}
+                    <div className="lg:col-span-1 p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-4 h-fit">
+                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 flex justify-between items-center">
+                        <span>{editingTrainerId ? 'Edit Trainer Details' : 'Onboard New Trainer'}</span>
+                        {editingTrainerId && (
+                          <button
+                            type="button"
+                            onClick={cancelEditTrainer}
+                            className="text-[10px] font-bold text-amber-600 hover:underline"
+                          >
+                            Cancel Edit
+                          </button>
+                        )}
+                      </h4>
+                      <form onSubmit={createOrUpdateTrainer} className="space-y-4">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Trainer Name *</label>
+                          <input
+                            type="text"
+                            value={trainerForm.name}
+                            onChange={(e) => setTrainerForm({ ...trainerForm, name: e.target.value })}
+                            placeholder="e.g. Dr. Sarah Connor"
+                            className="w-full p-2.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Email Address *</label>
+                          <input
+                            type="email"
+                            value={trainerForm.email}
+                            onChange={(e) => setTrainerForm({ ...trainerForm, email: e.target.value })}
+                            placeholder="e.g. sarah.connor@clahan.com"
+                            className="w-full p-2.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Phone Number</label>
+                          <input
+                            type="text"
+                            value={trainerForm.phone}
+                            onChange={(e) => setTrainerForm({ ...trainerForm, phone: e.target.value })}
+                            placeholder="e.g. +91 98765 43210"
+                            className="w-full p-2.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Area of Specialization</label>
+                          <input
+                            type="text"
+                            value={trainerForm.specialization}
+                            onChange={(e) => setTrainerForm({ ...trainerForm, specialization: e.target.value })}
+                            placeholder="e.g. Machine Learning, Cloud Systems"
+                            className="w-full p-2.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Assign College</label>
+                          <select
+                            value={trainerForm.collegeId}
+                            onChange={(e) => setTrainerForm({ ...trainerForm, collegeId: e.target.value, batchId: '' })}
+                            className="w-full p-2.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                          >
+                            <option value="">No College Assigned</option>
+                            {adminColleges.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase">Assign Batch</label>
+                          <select
+                            value={trainerForm.batchId}
+                            onChange={(e) => setTrainerForm({ ...trainerForm, batchId: e.target.value })}
+                            className="w-full p-2.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                            disabled={!trainerForm.collegeId}
+                          >
+                            <option value="">No Batch Assigned</option>
+                            {adminBatches
+                              .filter((b) => b.college_id === trainerForm.collegeId || b.collegeId === trainerForm.collegeId)
+                              .map((b) => (
+                                <option key={b.id} value={b.id}>
+                                  {b.name}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+                        <button
+                          type="submit"
+                          className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs shadow-md transition-colors"
+                        >
+                          {editingTrainerId ? 'Update Trainer' : 'Add Trainer'}
+                        </button>
+                      </form>
+                    </div>
+
+                    {/* Trainers List */}
+                    <div className="lg:col-span-2 p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-4">
+                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">Onboarded Trainers</h4>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs text-left">
+                          <thead>
+                            <tr className="border-b text-muted-foreground uppercase tracking-wider font-semibold">
+                              <th className="py-3 px-2">Name & Specialization</th>
+                              <th>Contact</th>
+                              <th>Assignment</th>
+                              <th className="text-right py-3 px-2">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {adminTrainers.length === 0 ? (
+                              <tr>
+                                <td colSpan={4} className="py-4 text-center text-muted-foreground">
+                                  No trainers found in the system.
+                                </td>
+                              </tr>
+                            ) : (
+                              adminTrainers.map((trainer) => (
+                                <tr key={trainer.id} className="border-b hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
+                                  <td className="py-3 px-2">
+                                    <div className="font-bold text-slate-800 dark:text-slate-200">{trainer.name}</div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                                      {trainer.specialization || 'General'}
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <div>{trainer.email}</div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5">{trainer.phone || 'N/A'}</div>
+                                  </td>
+                                  <td>
+                                    <div className="font-semibold text-slate-700 dark:text-slate-300">
+                                      {trainer.college_name || 'No College'}
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                                      {trainer.batch_name ? `Batch: ${trainer.batch_name}` : 'No Batch'}
+                                    </div>
+                                  </td>
+                                  <td className="text-right py-3 px-2 space-x-2">
+                                    <button
+                                      onClick={() => startEditTrainer(trainer)}
+                                      className="text-xs font-bold px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-indigo-600 dark:text-indigo-400"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() => deleteTrainer(trainer.id)}
+                                      className="text-rose-500 hover:text-rose-600 p-1"
+                                      title="Delete Trainer"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5 inline" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   </div>
                 </div>

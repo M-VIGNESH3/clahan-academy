@@ -196,6 +196,9 @@ app.delete('/api/admin/colleges/:id', authenticateAdmin, async (req, res) => {
     // Delete batches associated with college
     await client.query('DELETE FROM batches WHERE college_id = $1', [id]);
     
+    // Delete trainers associated with college
+    await client.query('DELETE FROM trainers WHERE college_id = $1', [id]);
+    
     // Delete departments associated with college
     await client.query('DELETE FROM departments WHERE college_id = $1', [id]);
     
@@ -311,6 +314,7 @@ app.delete('/api/admin/batches/:id', authenticateAdmin, async (req, res) => {
     const { id } = req.params;
     await client.query('UPDATE exams SET batch_id = NULL WHERE batch_id = $1', [id]);
     await client.query('UPDATE users SET batch_id = NULL WHERE batch_id = $1', [id]);
+    await client.query('UPDATE trainers SET batch_id = NULL WHERE batch_id = $1', [id]);
     await client.query('DELETE FROM batches WHERE id = $1', [id]);
     await client.query('COMMIT');
     res.json({ message: 'Batch and references deleted successfully' });
@@ -735,6 +739,72 @@ app.post('/api/admin/settings', authenticateAdmin, async (req, res) => {
       );
     }
     res.json({ message: 'Settings saved successfully' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Trainers CRUD ---
+app.get('/api/admin/trainers', authenticateAdmin, async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT t.*, c.name as college_name, b.name as batch_name 
+      FROM trainers t 
+      LEFT JOIN colleges c ON t.college_id = c.id 
+      LEFT JOIN batches b ON t.batch_id = b.id 
+      ORDER BY t.created_at DESC
+    `);
+    res.json(result.rows);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/trainers', authenticateAdmin, async (req, res) => {
+  try {
+    const { name, email, phone, specialization, collegeId, batchId } = req.body;
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Name and email are required' });
+    }
+    const result = await query(
+      `INSERT INTO trainers (name, email, phone, specialization, college_id, batch_id) 
+       VALUES ($1, $2, $3, $4, $5, $6) 
+       RETURNING *`,
+      [name, email, phone || null, specialization || null, collegeId || null, batchId || null]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/admin/trainers/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, phone, specialization, collegeId, batchId } = req.body;
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Name and email are required' });
+    }
+    const result = await query(
+      `UPDATE trainers 
+       SET name = $1, email = $2, phone = $3, specialization = $4, college_id = $5, batch_id = $6 
+       WHERE id = $7 
+       RETURNING *`,
+      [name, email, phone || null, specialization || null, collegeId || null, batchId || null, id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Trainer not found' });
+    res.json(result.rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/trainers/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await query('DELETE FROM trainers WHERE id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Trainer not found' });
+    res.json({ message: 'Trainer deleted successfully' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
