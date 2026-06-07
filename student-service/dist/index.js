@@ -78,6 +78,7 @@ app.use((req, res, next) => {
 const limiter = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000,
     max: 200,
+    validate: { trustProxy: false },
 });
 app.use(limiter);
 function authenticateStudent(req, res, next) {
@@ -175,7 +176,7 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req, res) 
          AND (
            (e.batch_id IS NOT NULL AND e.batch_id = $4)
            OR
-           (e.batch_id IS NULL AND (e.department_id = $2 OR $2 = ANY(e.department_ids)) AND e.year = $3)
+           (e.batch_id IS NULL AND (e.department_id = $2 OR $2 = ANY(COALESCE(e.department_ids, '{}'))) AND e.year = $3)
          )
        ORDER BY e.schedule_date ASC`, [collegeId, departmentId, year, batchId]);
         // Active Exams (scheduled in the past/present, still open, or simply published with allowed attempts left)
@@ -190,7 +191,7 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req, res) 
          AND (
            (e.batch_id IS NOT NULL AND e.batch_id = $4)
            OR
-           (e.batch_id IS NULL AND (e.department_id = $2 OR $2 = ANY(e.department_ids)) AND e.year = $3)
+           (e.batch_id IS NULL AND (e.department_id = $2 OR $2 = ANY(COALESCE(e.department_ids, '{}'))) AND e.year = $3)
          )
        ORDER BY e.schedule_date DESC`, [collegeId, departmentId, year, batchId, studentId]);
         // Filter active exams where attempts_made < allowed_attempts
@@ -227,7 +228,7 @@ app.get('/api/student/notifications', authenticateStudent, async (req, res) => {
          AND (
            (batch_id IS NOT NULL AND batch_id = $4)
            OR
-           (batch_id IS NULL AND (department_id = $2 OR $2 = ANY(department_ids)) AND year = $3)
+           (batch_id IS NULL AND (department_id = $2 OR $2 = ANY(COALESCE(department_ids, '{}'))) AND year = $3)
          )
        ORDER BY schedule_date DESC LIMIT 10`, [collegeId, departmentId, year, batchId]);
         const notifications = publishedExams.rows.map(exam => ({

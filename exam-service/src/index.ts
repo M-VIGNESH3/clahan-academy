@@ -181,7 +181,7 @@ app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res)
              COALESCE(
                (SELECT string_agg(dept.name, ', ') 
                 FROM departments dept 
-                WHERE e.department_ids IS NOT NULL AND dept.id = ANY(e.department_ids)), 
+                WHERE dept.id = ANY(COALESCE(e.department_ids, '{}'))), 
                d.name
              ) as department_name,
              b.name as batch_name,
@@ -239,7 +239,7 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
               COALESCE(
                 (SELECT string_agg(dept.name, ', ') 
                  FROM departments dept 
-                 WHERE e.department_ids IS NOT NULL AND dept.id = ANY(e.department_ids)), 
+                 WHERE dept.id = ANY(COALESCE(e.department_ids, '{}'))), 
                 d.name
               ) as department_name,
               b.name as batch_name
@@ -269,6 +269,7 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
       codingQuestions
     });
   } catch (err: any) {
+    console.error("Error in GET /api/exams/:id:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -303,6 +304,7 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
     if (result.rows.length === 0) return res.status(404).json({ error: 'Exam not found' });
     res.json(result.rows[0]);
   } catch (err: any) {
+    console.error("Error in PUT /api/exams/:id:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -590,7 +592,7 @@ app.get('/api/exams/student/active', authenticate, requireRole('student'), async
       `SELECT e.*, 
               (SELECT COUNT(*) FROM exam_attempts ea WHERE ea.exam_id = e.id AND ea.student_id = $4) as attempts_made
        FROM exams e
-       WHERE e.college_id = $1 AND (e.department_id = $2 OR (e.department_ids IS NOT NULL AND $2 = ANY(e.department_ids))) AND e.year = $3
+       WHERE e.college_id = $1 AND (e.department_id = $2 OR $2 = ANY(COALESCE(e.department_ids, '{}'))) AND e.year = $3
          AND e.is_published = TRUE 
          AND e.schedule_date <= CURRENT_TIMESTAMP
          AND CURRENT_TIMESTAMP <= e.schedule_date + (GREATEST(COALESCE(e.window_open_minutes, 10), COALESCE(e.duration_minutes, 60)) * INTERVAL '1 minute')
