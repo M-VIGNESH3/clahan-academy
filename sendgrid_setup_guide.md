@@ -78,3 +78,20 @@ If you deploy using `docker-compose.yml`:
 2. Check the logs of `notification-service`:
    * Successful delivery will log: `[SendGrid] Email dispatched successfully to student@domain.com`
    * Visit **`http://localhost:4006/api/notifications/logs`** to verify delivery receipts.
+
+---
+
+## Removing Authenticated Domains (Client Handover)
+
+If you authenticate a domain during development or staging and need to remove it later (e.g., when returning the domain to your client):
+
+1. **Delete from SendGrid**:
+   * Log in to the SendGrid Dashboard.
+   * Go to **Settings > Sender Authentication**.
+   * Under **Domain Authentication**, select the domain and click **Delete**.
+
+2. **Remove DNS Records**:
+   * Log in to the domain registrar or DNS host (e.g., GoDaddy, Cloudflare, Namecheap).
+   * Delete the CNAME / TXT / MX records that you added during the verification process.
+
+Once both steps are done, SendGrid will no longer be authorized to send emails on behalf of that domain, and the domain will be fully reverted to its original state.
