@@ -1388,12 +1388,20 @@ export default function App() {
   };
 
   const downloadStudentsExcel = () => {
-    if (adminStudents.length === 0) {
-      showToast('No students available to download.', 'error');
+    const filtered = adminStudents.filter(student => {
+      if (studentFilterCollegeId && student.collegeId !== studentFilterCollegeId) return false;
+      if (studentFilterDeptId && student.departmentId !== studentFilterDeptId) return false;
+      if (studentFilterBatchId && student.batchId !== studentFilterBatchId) return false;
+      if (studentFilterYear && student.year !== studentFilterYear) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      showToast('No students matching the selected filters to download.', 'error');
       return;
     }
     const headers = 'Full Name,Email,Phone,Roll Number,College,Department,Year,Status\n';
-    const rows = adminStudents.map(s => {
+    const rows = filtered.map(s => {
       const fullName = s.fullName || s.full_name || 'N/A';
       const email = s.email || 'N/A';
       const phone = s.phone || 'N/A';
@@ -3359,8 +3367,8 @@ export default function App() {
                         ].map((bar, idx) => (
                           <div key={idx} className="flex-1 flex flex-col items-center gap-2">
                             <span className="text-xs font-bold">{bar.pct}%</span>
-                            <div className="w-12 rounded-t-lg transition-all" style={{ height: `${bar.pct * 1.2}px`, backgroundColor: bar.color }} />
-                            <span className="text-[10px] font-semibold text-muted-foreground">{bar.name}</span>
+                            <div className={`w-12 rounded-t-lg transition-all ${bar.color}`} style={{ height: `${bar.pct * 1.2}px` }} />
+                            <span className="text-[10px] font-semibold text-muted-foreground text-center">{bar.name}</span>
                           </div>
                         ))}
                       </div>

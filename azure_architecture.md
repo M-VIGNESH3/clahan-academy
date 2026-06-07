@@ -27,6 +27,8 @@ graph TD
         ACA_YOLO[yolo-service]
         ACA_Face[face-service]
         ACA_OCR[ocr-service]
+        
+        ACA_Judge0[judge0-service]
     end
     
     subgraph snet_database_prod_10_0_4_0_24
@@ -44,6 +46,7 @@ graph TD
     
     ACA_Exam -->|Query| PG
     ACA_Exam -->|HTTP| ACA_AI
+    ACA_Exam -->|HTTP| ACA_Judge0
     
     ACA_Proc -->|Query| PG
     ACA_Proc -->|CacheAndSession| Redis
@@ -102,6 +105,7 @@ graph TD
 | **Microservices** | `auth-service`, `admin-service`, `student-service`, `exam-service`, `proctoring-service`, `notification-service` | **Azure Container Apps (ACA)** | **Consumption Plan** | Serverless containers, handles Kubernetes overhead automatically, autoscales to 0, very cheap for low traffic. |
 | **Database** | `postgres` | **Azure Database for PostgreSQL** | **General Purpose** (Prod) / **Burstable** (Dev) | Managed database, automatic patching, high availability, point-in-time backups. |
 | **Caching / PubSub** | `redis` | **Azure Cache for Redis** | **Standard** (Prod - HA replication) / **Basic** (Dev) | Highly secure, private endpoint integration, handles pub/sub routing for notification queues. |
+| **Code Execution** | `judge0-service` | **Azure Container Apps** | **Consumption Plan** | Runs student code submissions in a safe, isolated Docker sandbox. Autoscales down to 0 when no exams are active to minimize compute spend. |
 | **AI Gateway** | `ai-service` | **Azure Container Apps** | **Consumption Plan** | Lightweight Python API forwarding requests to specialist microservices. |
 | **Vision Services** | `yolo-service`, `face-service`, `ocr-service` | **Azure Container Apps** | **Consumption Plan** (high-CPU/Memory) | Isolated hosting of Python/FastAPI endpoints with local OpenCV/Tesseract processing. |
 | **LLM Inference** | `ollama-service` | **Azure AI Studio (Phi-3 / GPT-4o)** OR **Azure GPU VM (NC-series)** | **Serverless Pay-As-You-Go** (Azure OpenAI) | **Option A (Highly Recommended)**: Use Azure OpenAI serverless model API (Phi-3/GPT) to pay only per token, eliminating GPU VM costs. <br/><br/>**Option B**: Deploy Ollama on a GPU VM (NC-series) if hosting custom open-source model weights. |
@@ -203,7 +207,7 @@ To ensure isolation and enterprise-grade security, the network architecture is s
 | Subnet Name | CIDR Range | Delegated To / Dedicated Service | Resources Placed | Network Security Group (NSG) Policy |
 | :--- | :--- | :--- | :--- | :--- |
 | **snet-ingress** | `10.0.1.0/24` (256 IPs) | None (Standard Subnet) | Regional Azure Application Gateway (WAF v2) | **Inbound**: Allow HTTPS (443) from Azure Front Door edge servers (using Service Tags). <br>**Outbound**: Allow traffic to `snet-app-env` on microservice ports. |
-| **snet-app-env** | `10.0.2.0/23` (512 IPs) | `Microsoft.App/environments` | Azure Container Apps Environment (all microservices, AI API, and vision tools) | **Inbound**: Allow HTTP/HTTPS traffic from `snet-ingress` only. <br>**Outbound**: Allow outbound to `snet-database` on database ports, and HTTPS (443) to external APIs (Azure AI, Key Vault). |
+| **snet-app-env** | `10.0.2.0/23` (512 IPs) | `Microsoft.App/environments` | Azure Container Apps Environment (all microservices, Judge0 execution sandbox, AI API, and vision tools) | **Inbound**: Allow HTTP/HTTPS traffic from `snet-ingress` only. <br>**Outbound**: Allow outbound to `snet-database` on database ports, and HTTPS (443) to external APIs (Azure AI, Key Vault). |
 | **snet-database** | `10.0.4.0/24` (256 IPs) | None (Standard Subnet) | PostgreSQL Private Endpoint (`10.0.4.10`), Redis Private Endpoint (`10.0.4.20`) | **Inbound**: Allow TCP `5432` (PostgreSQL) and TCP `6379` (Redis) only from `snet-app-env` and `snet-bastion`. <br>**Outbound**: Block all internet egress (fully private/isolated). |
 | **snet-bastion** | `10.0.5.0/24` (256 IPs) | `Microsoft.Network/bastionHosts` | Azure Bastion service instances | **Inbound**: Allow HTTPS (443) from target administrator public IPs. <br>**Outbound**: Allow SSH/RDP to private VM subnets. |
 | **snet-management** | `10.0.6.0/24` (256 IPs) | None (Standard Subnet) | Linux Jumpbox VM (used for running Flyway/Prisma DB migrations securely) | **Inbound**: Allow SSH (22) from `snet-bastion`. <br>**Outbound**: Allow access to PostgreSQL Private Endpoint on port 5432. |
@@ -222,7 +226,7 @@ graph TD
     
     subgraph snet_app_env_prod_10_0_2_0_23
         ACA_Env_Host[ACA_Environment_Container_Host]
-        ACA_Services_List[Microservices_auth_admin_student_exam_proctoring_notification_AI]
+        ACA_Services_List[Microservices_auth_admin_student_exam_proctoring_notification_AI_judge0]
     end
     
     subgraph snet_database_prod_10_0_4_0_24
@@ -266,7 +270,7 @@ If deploying on Azure Kubernetes Service (AKS) instead of Azure Container Apps (
 | Subnet Name | CIDR Range | Delegated To / Dedicated Service | Resources Placed | Network Security Group (NSG) Policy |
 | :--- | :--- | :--- | :--- | :--- |
 | **snet-ingress-prod** | `10.240.1.0/24` (256 IPs) | None (Standard Subnet) | Azure Application Gateway (AGIC v2) or Ingress Controllers | **Inbound**: Allow HTTPS (443) from Azure Front Door. <br>**Outbound**: Allow traffic to `snet-aks-prod` node ports. |
-| **snet-aks-prod** | `10.240.2.0/22` (1024 IPs) | None (AKS Node Subnet) | AKS System Node Pool, User Node Pools (CPU/GPU), and Pods (Azure CNI) | **Inbound**: Allow traffic from `snet-ingress-prod`. Allow SSH/management from `snet-bastion-prod`. <br>**Outbound**: Allow traffic to `snet-database-prod` on DB/Redis ports, and internet egress for container registries. |
+| **snet-aks-prod** | `10.240.2.0/22` (1024 IPs) | None (AKS Node Subnet) | AKS System Node Pool, User Node Pools (CPU/GPU), and Pods (including Judge0 execution pods) (Azure CNI) | **Inbound**: Allow traffic from `snet-ingress-prod`. Allow SSH/management from `snet-bastion-prod`. <br>**Outbound**: Allow traffic to `snet-database-prod` on DB/Redis ports, and internet egress for container registries. |
 | **snet-database-prod** | `10.240.6.0/24` (256 IPs) | None (Standard Subnet) | PostgreSQL Private Endpoint (`10.240.6.10`), Redis Private Endpoint (`10.240.6.20`) | **Inbound**: Allow TCP `5432` and TCP `6379` only from `snet-aks-prod` and `snet-management-prod`. <br>**Outbound**: Block all internet egress. |
 | **snet-bastion-prod** | `10.240.7.0/24` (256 IPs) | `Microsoft.Network/bastionHosts` | Azure Bastion service instances | **Inbound**: Allow HTTPS (443) from administrator IPs. <br>**Outbound**: Allow SSH/RDP to nodes and VM subnets. |
 | **snet-management-prod** | `10.240.8.0/24` (256 IPs) | None (Standard Subnet) | Linux Jumpbox VM (used for running DB migrations and running `kubectl` securely) | **Inbound**: Allow SSH (22) from `snet-bastion-prod`. <br>**Outbound**: Allow access to PostgreSQL Private Endpoint and AKS cluster API. |
@@ -287,7 +291,7 @@ graph TD
         AKS_Cluster[AKS_Cluster_Control_Plane]
         AKS_System_Nodes[System_Node_Pool_DS2_v2]
         AKS_User_Nodes[User_Node_Pool_CPU_GPU]
-        AKS_Pods[Microservices_Pods_auth_admin_student_exam_proctoring_notification_AI]
+        AKS_Pods[Microservices_Pods_auth_admin_student_exam_proctoring_notification_AI_judge0]
     end
     
     subgraph snet_database_prod_10_240_6_0_24
@@ -318,3 +322,52 @@ graph TD
     Bastion -->|AdminAccess| VM
     VM -->|RunMigrations| PG_PE
 ```
+
+---
+
+## 10. Disaster Recovery (DR) & Business Continuity Plan
+
+To ensure Clahan Academy remains operational during regional Azure outages, the infrastructure implements an **Active-Passive Multi-Region Disaster Recovery** strategy. 
+
+* **Primary Region**: East US (All active user traffic).
+* **Secondary Region**: West US (Paired hot-standby replica).
+
+### Disaster Recovery Objectives
+* **Recovery Time Objective (RTO)**: $< 15$ minutes (time to detect outage and fail over compute/traffic).
+* **Recovery Point Objective (RPO)**: $< 5$ seconds (maximum potential loss of active exam submissions).
+
+### Component Failover Strategy
+
+| Infrastructure Component | DR Mechanism | Failover Process |
+| :--- | :--- | :--- |
+| **Global Routing** | **Azure Front Door** | Front Door continuously monitors both regions using HTTP health probes. If probes to the Primary region fail 3 times consecutively, it automatically reroutes 100% of public traffic to the Secondary region. |
+| **Compute (ACA / AKS)** | **Multi-Region Revision Deployments** | CI/CD pipelines (GitHub Actions) deploy code revisions to both the Primary and Secondary ACA/AKS clusters. The Secondary region runs with minimal container replicas to save costs, automatically scaling up when failed over. |
+| **Database (PostgreSQL)** | **Cross-Region Read Replica** | A cross-region read replica is continuously synchronized in the Secondary region. In the event of a primary region database failure, the replica is promoted to primary write database. |
+| **Session Cache (Redis)** | **Standby Instance** | A separate Redis instance is deployed in the standby region. If failover occurs, the cache is rebuilt dynamically; active exam candidates are prompted to log back in (using JWT tokens), with their progress recovered from the PostgreSQL database. |
+| **Secrets (Key Vault)** | **Azure Geo-Replication** | Azure Key Vault natively replicates keys and secrets to the paired secondary region. If the primary region goes offline, the secondary Key Vault becomes active. |
+
+### Disaster Recovery Routing Flow
+
+The diagram below illustrates the automatic traffic failover from East US to West US if a regional outage occurs:
+
+```mermaid
+graph TD
+    User[Users_and_Admins] -->|Request| AFD[Azure_Front_Door_and_WAF]
+    
+    subgraph East_US_Primary_Active
+        ACA_Primary[ACA_Environment_East_US]
+        PG_Primary[PostgreSQL_Primary_Write]
+    end
+    
+    subgraph West_US_Secondary_Standby
+        ACA_Standby[ACA_Environment_West_US]
+        PG_Replica[PostgreSQL_Read_Replica]
+    end
+    
+    AFD -.->|ProbeFailed| ACA_Primary
+    AFD ===>|ActiveTraffic_Rerouted| ACA_Standby
+    
+    PG_Primary -->|GeoReplication_RPO_5s| PG_Replica
+    ACA_Standby -->|ReadWrite_Promoted| PG_Replica
+```
+
