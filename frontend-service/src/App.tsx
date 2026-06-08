@@ -42,6 +42,7 @@ interface Attempt {
   percentage: number; passed: boolean; mcq_score: number; coding_score: number;
   time_taken_seconds: number; feedback: string; status: 'ongoing' | 'completed' | 'terminated';
   created_at: string; exam_name?: string; exam_type?: string; cutoff_percentage?: number;
+  results_released?: boolean;
 }
 
 const getLocalDatetimeString = () => {
@@ -2172,6 +2173,9 @@ export default function App() {
         const result = await res.json();
         setSelectedResultAttemptId(currentAttempt!.id);
         fetchResultDetails(currentAttempt!.id);
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Failed to submit exam', 'error');
       }
     } catch (err) {
       // Mock result evaluation
@@ -2212,6 +2216,11 @@ export default function App() {
         const data = await res.json();
         setDetailedResult(data);
         setCurrentPage('result-view');
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Results are not available yet.', 'info');
+        setCurrentPage('student-dash');
+        loadStudentDashboard();
       }
     } catch (err) {
       const mockResult = {
@@ -3311,11 +3320,13 @@ export default function App() {
                               <span className={`px-2.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${
                                 att.status === 'terminated' 
                                   ? 'bg-rose-500/25 text-rose-600 dark:text-rose-400 border border-rose-500/30' 
-                                  : att.passed 
-                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
-                                    : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                                  : att.results_released === false
+                                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                    : att.passed 
+                                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' 
+                                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
                               }`}>
-                                {att.status === 'terminated' ? 'TERMINATED' : att.passed ? 'PASSED' : 'FAILED'}
+                                {att.status === 'terminated' ? 'TERMINATED' : att.results_released === false ? 'AWAITING COMPLETION' : att.passed ? 'PASSED' : 'FAILED'}
                               </span>
                               <span className="text-xs text-muted-foreground">Cutoff: {att.cutoff_percentage || 50}%</span>
                             </div>
@@ -3326,22 +3337,36 @@ export default function App() {
                               <div className={`mt-3 border-l-2 p-2.5 rounded-r-lg max-w-xl text-xs font-semibold ${
                                 att.status === 'terminated'
                                   ? 'bg-rose-500/5 border-rose-500 text-rose-705 dark:text-rose-350'
-                                  : 'bg-indigo-500/5 border-indigo-500 text-indigo-700 dark:text-indigo-300 italic'
+                                  : att.results_released === false
+                                    ? 'bg-amber-500/5 border-amber-500 text-amber-700 dark:text-amber-300 italic'
+                                    : 'bg-indigo-500/5 border-indigo-500 text-indigo-700 dark:text-indigo-300 italic'
                               }`}>
                                 {att.status === 'terminated' ? att.feedback : `"${att.feedback}"`}
                               </div>
                             )}
                           </div>
                           <div className="flex items-center gap-4 shrink-0">
-                            <div className="text-right">
-                              <p className="font-black text-2xl tracking-tight text-indigo-600 dark:text-indigo-400">{att.percentage}%</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">Score: {att.score} pts</p>
-                            </div>
+                            {att.results_released !== false ? (
+                              <div className="text-right">
+                                <p className="font-black text-2xl tracking-tight text-indigo-600 dark:text-indigo-400">{att.percentage}%</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">Score: {att.score} pts</p>
+                              </div>
+                            ) : (
+                              <div className="text-right">
+                                <p className="font-bold text-sm text-amber-500">Awaiting Results</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">Pending all completion</p>
+                              </div>
+                            )}
                             <button
                               onClick={() => fetchResultDetails(att.id)}
-                              className="px-4 py-2.5 text-xs font-bold bg-slate-100 dark:bg-slate-900 border border-slate-200/40 dark:border-slate-800/40 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                              disabled={att.results_released === false}
+                              className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-colors ${
+                                att.results_released === false
+                                  ? 'bg-slate-100 dark:bg-slate-900 border border-slate-200/20 dark:border-slate-800/20 text-slate-500 dark:text-slate-400 cursor-not-allowed'
+                                  : 'bg-slate-100 dark:bg-slate-900 border border-slate-200/40 dark:border-slate-800/40 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800'
+                              }`}
                             >
-                              View Report
+                              {att.results_released === false ? 'Locked' : 'View Report'}
                             </button>
                           </div>
                         </div>
@@ -5588,10 +5613,22 @@ export default function App() {
                   </div>
 
                   <button
-                    onClick={() => submitEntireExam()}
-                    className="px-6 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs uppercase"
+                    onClick={() => {
+                      if (timeLeft > 0) {
+                        showToast("You cannot submit early. Please wait for the exam time to complete.", "warning");
+                        return;
+                      }
+                      submitEntireExam();
+                    }}
+                    disabled={timeLeft > 0}
+                    className={`px-6 py-2.5 text-white font-bold rounded-xl text-xs uppercase transition-all ${
+                      timeLeft > 0 
+                        ? 'bg-slate-700/50 cursor-not-allowed text-slate-400 border border-slate-600/30' 
+                        : 'bg-rose-600 hover:bg-rose-500'
+                    }`}
+                    title={timeLeft > 0 ? "Submission is disabled until exam time is completed" : "Submit Exam"}
                   >
-                    Submit Exam
+                    {timeLeft > 0 ? "Submit Locked" : "Submit Exam"}
                   </button>
                 </div>
               </div>

@@ -212,7 +212,8 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req: Authe
 
     // Completed & Terminated Exams & Results
     const completed = await query(
-      `SELECT ea.*, e.name as exam_name, e.exam_type, e.cutoff_percentage, e.duration_minutes
+      `SELECT ea.*, e.name as exam_name, e.exam_type, e.cutoff_percentage, e.duration_minutes,
+              e.schedule_date, e.window_open_minutes
        FROM exam_attempts ea
        JOIN exams e ON ea.exam_id = e.id
        WHERE ea.student_id = $1 AND ea.status IN ('completed', 'terminated')
@@ -220,10 +221,44 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req: Authe
       [studentId]
     );
 
+    const completedExams = completed.rows.map(row => {
+      const scheduleDate = new Date(row.schedule_date);
+      const windowOpenMins = row.window_open_minutes !== null && row.window_open_minutes !== undefined ? row.window_open_minutes : 10;
+      const durationMins = row.duration_minutes !== null && row.duration_minutes !== undefined ? row.duration_minutes : 60;
+      const examEndTime = new Date(scheduleDate.getTime() + (windowOpenMins + durationMins) * 60 * 1000);
+      const now = new Date();
+      const resultsReleased = now >= examEndTime;
+
+      if (!resultsReleased) {
+        return {
+          id: row.id,
+          exam_id: row.exam_id,
+          student_id: row.student_id,
+          status: row.status,
+          created_at: row.created_at,
+          exam_name: row.exam_name,
+          exam_type: row.exam_type,
+          cutoff_percentage: row.cutoff_percentage,
+          duration_minutes: row.duration_minutes,
+          schedule_date: row.schedule_date,
+          window_open_minutes: row.window_open_minutes,
+          results_released: false,
+          score: null,
+          percentage: null,
+          passed: null,
+          feedback: 'Results will be shown after all students complete the exam.'
+        };
+      }
+      return {
+        ...row,
+        results_released: true
+      };
+    });
+
     res.json({
       upcomingExams: upcoming.rows,
       activeExams: activeExams,
-      completedExams: completed.rows,
+      completedExams: completedExams,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

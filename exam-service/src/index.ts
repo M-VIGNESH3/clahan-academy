@@ -1018,6 +1018,13 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
     const examResult = await query('SELECT * FROM exams WHERE id = $1', [examId]);
     const exam = examResult.rows[0];
 
+    const durationMins = exam.duration_minutes !== null && exam.duration_minutes !== undefined ? exam.duration_minutes : 60;
+    const timePassedSeconds = (Date.now() - new Date(attempt.created_at).getTime()) / 1000;
+    // Allow a 30-second grace period for network delays/clock drift
+    if (timePassedSeconds < (durationMins * 60) - 30) {
+      return res.status(400).json({ error: 'You cannot submit the exam early. Please wait for the exam time to complete.' });
+    }
+
     // Compute MCQ scores
     const mcqsScoreRes = await query('SELECT COALESCE(SUM(marks_obtained), 0) as sum FROM mcq_responses WHERE attempt_id = $1', [attemptId]);
     const mcqScore = parseInt(mcqsScoreRes.rows[0].sum);
@@ -1152,6 +1159,7 @@ app.get('/api/exams/student/attempts/:attemptId/result', authenticate, async (re
     const { attemptId } = req.params;
     const attemptResult = await query(
       `SELECT ea.*, e.name as exam_name, e.exam_type, e.cutoff_percentage,
+              e.schedule_date, e.window_open_minutes, e.duration_minutes,
               (SELECT COALESCE(SUM(marks), 0) FROM mcq_questions mq WHERE mq.exam_id = e.id) as max_mcq,
               (SELECT COALESCE(SUM(marks), 0) FROM coding_questions cq WHERE cq.exam_id = e.id) as max_coding
        FROM exam_attempts ea
@@ -1162,6 +1170,17 @@ app.get('/api/exams/student/attempts/:attemptId/result', authenticate, async (re
 
     if (attemptResult.rows.length === 0) return res.status(404).json({ error: 'Result not found' });
     const attempt = attemptResult.rows[0];
+
+    // Check if results are released yet (schedule_date + window_open_minutes + duration_minutes)
+    const now = new Date();
+    const scheduleDate = new Date(attempt.schedule_date);
+    const windowOpenMins = attempt.window_open_minutes !== null && attempt.window_open_minutes !== undefined ? attempt.window_open_minutes : 10;
+    const durationMins = attempt.duration_minutes !== null && attempt.duration_minutes !== undefined ? attempt.duration_minutes : 60;
+    const examEndTime = new Date(scheduleDate.getTime() + (windowOpenMins + durationMins) * 60 * 1000);
+
+    if (now < examEndTime) {
+      return res.status(403).json({ error: 'Results are not available yet. Please wait until all students have completed the exam.' });
+    }
 
     const maxScore = parseInt(attempt.max_mcq) + parseInt(attempt.max_coding);
 
