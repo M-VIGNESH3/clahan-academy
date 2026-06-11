@@ -5831,6 +5831,30 @@ export default function App() {
                           <p className="text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap">
                             {examCodings[activeQuestionIndex].description}
                           </p>
+                          
+                          {/* Render Sample Test Cases */}
+                          {examCodings[activeQuestionIndex].testCases && examCodings[activeQuestionIndex].testCases.length > 0 && (
+                            <div className="mt-6 pt-4 border-t border-white/10 space-y-3">
+                              <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest block font-black">Sample Test Cases (Verify your logic against these)</span>
+                              <div className="space-y-3">
+                                {examCodings[activeQuestionIndex].testCases.map((tc: any, tcIdx: number) => (
+                                  <div key={tc.id || tcIdx} className="p-3 bg-slate-950 rounded-lg border border-white/5 space-y-2 text-[10px] font-mono">
+                                    <div className="font-bold text-slate-400">Sample Case #{tcIdx + 1}</div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div>
+                                        <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Input:</div>
+                                        <pre className="bg-slate-900/50 p-2 rounded text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-[80px]">{tc.input}</pre>
+                                      </div>
+                                      <div>
+                                        <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Expected Output:</div>
+                                        <pre className="bg-slate-900/50 p-2 rounded text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-[80px]">{tc.expected_output}</pre>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* IDE Editor */}

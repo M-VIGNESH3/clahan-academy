@@ -221,7 +221,7 @@ async def analyze_frame(
                     confidence = classes_scores[class_id]
                     if confidence > 0.4:
                         class_name = CLASSES[class_id]
-                        if class_name in ["cell phone", "book"]:
+                        if class_name in ["cell phone", "book", "person"]:
                             objects_detected.append(class_name)
                             
                 objects_detected = list(set(objects_detected))
@@ -237,6 +237,12 @@ async def analyze_frame(
             except Exception as e:
                 logger.error(f"Face detection error: {str(e)}")
                 face_count = 1
+
+        # Fallback: If YOLOv8 detects a person but Haar Cascade missed the face,
+        # set face_count to 1 since the student is present in front of the camera.
+        if face_count == 0 and "person" in objects_detected:
+            logger.info("Face Cascade detected 0 faces, but YOLOv8 detected a 'person'. Overriding face_count to 1.")
+            face_count = 1
 
         # Evaluate violations
         if face_count == 0:
