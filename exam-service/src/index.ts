@@ -1221,6 +1221,11 @@ app.get('/api/exams/student/attempts/:attemptId/result', authenticate, async (re
       mcqResponses: mcqResponses.rows,
       codingResponses: codingResponses.rows
     });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // AI Coding Question Generation
 app.post('/api/exams/admin/generate-coding-question', authenticate, requireRole('admin'), async (req, res) => {
   try {
