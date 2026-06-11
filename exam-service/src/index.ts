@@ -842,6 +842,11 @@ app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requir
       return res.status(400).json({ error: 'Code, language, and question ID are required' });
     }
 
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(questionId)) {
+      return res.status(400).json({ error: 'Invalid question ID format. Must be a valid UUID.' });
+    }
+
     const testCases = await query('SELECT * FROM coding_test_cases WHERE question_id = $1 AND is_hidden = FALSE LIMIT 2', [questionId]);
     if (testCases.rows.length === 0) {
       return res.status(400).json({ error: 'No sample test cases defined for this question' });
@@ -898,6 +903,7 @@ app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requir
 
     res.json({ results });
   } catch (err: any) {
+    console.error('ERROR in run-code endpoint:', err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -909,6 +915,11 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
     const { code, language, questionId } = req.body;
     if (!code || !language || !questionId) {
       return res.status(400).json({ error: 'Code, language, and question ID are required' });
+    }
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(attemptId) || !uuidRegex.test(questionId)) {
+      return res.status(400).json({ error: 'Invalid attempt ID or question ID format. Must be a valid UUID.' });
     }
 
     const testCases = await query('SELECT * FROM coding_test_cases WHERE question_id = $1', [questionId]);
@@ -993,6 +1004,7 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
       error: errMessage
     });
   } catch (err: any) {
+    console.error('ERROR in submit-code endpoint:', err);
     res.status(500).json({ error: err.message });
   }
 });
