@@ -217,12 +217,12 @@ io.on('connection', (socket: Socket) => {
           terminationReason = 'Mobile phone or device detected in camera view for prolonged duration.';
         }
       }
-      // Rule 4: Book detected -> Terminate after 15 consecutive detections
+      // Rule 4: Book detected -> Terminate after 10 consecutive detections
       else if (eventType === 'BOOK_DETECTED') {
         const consec = consecutiveViolations[attemptId] || {};
-        consec['BOOK_DETECTED'] = (consec['BOOK_DETECTED'] || 0) + 1;
+        consec['BOOK_DETECTED'] = (consec['BOOK_BOTTOM_DETECTED'] || consec['BOOK_DETECTED'] || 0) + 1;
         consecutiveViolations[attemptId] = consec;
-        if (consec['BOOK_DETECTED'] >= 15) {
+        if (consec['BOOK_DETECTED'] >= 10) {
           shouldTerminate = true;
           terminationReason = 'Book or study notes detected in camera view for prolonged duration.';
         }
@@ -237,12 +237,12 @@ io.on('connection', (socket: Socket) => {
           terminationReason = 'Multiple faces detected in the webcam view.';
         }
       }
-      // Rule 6: No face for long duration -> Warning then Terminate (25 consecutive violations, approx. 37.5 seconds)
+      // Rule 6: No face for long duration -> Warning then Terminate (10 consecutive violations)
       else if (eventType === 'NO_FACE_DETECTED') {
         const consec = consecutiveViolations[attemptId] || {};
         consec['NO_FACE_DETECTED'] = (consec['NO_FACE_DETECTED'] || 0) + 1;
         consecutiveViolations[attemptId] = consec;
-        if (consec['NO_FACE_DETECTED'] >= 25) {
+        if (consec['NO_FACE_DETECTED'] >= 10) {
           shouldTerminate = true;
           terminationReason = 'No face detected for prolonged duration.';
         }
@@ -277,15 +277,19 @@ io.on('connection', (socket: Socket) => {
         console.log(`Attempt ${attemptId} auto-terminated due to: ${terminationReason}`);
       } else {
         // Send alert back to student if warning
-        // Only warn for webcam events if consecutive count >= 3 to prevent transient false-positive notifications
         const isWebcamEvent = ['MOBILE_PHONE_DETECTED', 'BOOK_DETECTED', 'MULTIPLE_FACES_DETECTED', 'NO_FACE_DETECTED'].includes(eventType);
         const consec = consecutiveViolations[attemptId] || {};
         const consecCount = consec[eventType] || 0;
 
-        if (!isWebcamEvent || consecCount >= 3) {
+        if (!isWebcamEvent || (consecCount > 0 && consecCount % 3 === 0)) {
+          const warningNum = isWebcamEvent ? Math.floor(consecCount / 3) : (counts[eventType] || 1);
+          const displayMsg = isWebcamEvent
+            ? `Warning ${warningNum}/3: ${eventType.replace(/_/g, ' ')} detected. Please return to camera view immediately.`
+            : `Warning: ${eventType.replace(/_/g, ' ')} detected (Violation count: ${warningNum}/3). Repeated actions will terminate your exam.`;
+
           socket.emit('proctor-warning', {
-            message: `Warning: ${eventType.replace(/_/g, ' ')} detected. Repeated actions will terminate your exam.`,
-            count: isWebcamEvent ? consecCount : (counts[eventType] || 1),
+            message: displayMsg,
+            count: warningNum,
           });
         }
       }

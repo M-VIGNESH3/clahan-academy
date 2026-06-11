@@ -67,6 +67,13 @@ const query = (text, params) => pool.query(text, params);
 app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
+// Disable caching for all API responses
+app.use((req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    next();
+});
 // Health Check
 app.get('/health', (req, res) => {
     res.json({ status: 'healthy', service: 'proctoring-service' });
@@ -102,9 +109,9 @@ const io = new socket_io_1.Server(server, {
         methods: ['GET', 'POST'],
     },
 });
-// Maintain active sockets mapping
-// key: socket.id, value: details
 const activeSessions = {};
+// Track consecutive violations in memory (key: attemptId, value: Record<eventType, count>)
+const consecutiveViolations = {};
 io.on('connection', (socket) => {
     console.log(`Socket connected: ${socket.id}`);
     // Authentication & Room Joining
@@ -165,13 +172,8 @@ io.on('connection', (socket) => {
             socket.disconnect();
         }
     });
-    // Client emits a proctor violation event
-    socket.on('proctor-event', async (data) => {
-        const session = activeSessions[socket.id];
-        if (!session || session.role !== 'student')
-            return;
-        const { attemptId, studentId, examId } = session;
-        const { eventType, details, severity } = data;
+    // Helper function to handle a proctor violation
+    async function processViolation(attemptId, studentId, examId, eventType, details, severity, socket) {
         try {
             // Save violation log to database
             await query(`INSERT INTO proctoring_logs (attempt_id, event_type, details, severity)
@@ -197,37 +199,57 @@ io.on('connection', (socket) => {
             // Rules evaluation for auto-termination
             let shouldTerminate = false;
             let terminationReason = '';
-            // Rule 1: 2 Tab switches -> Terminate
-            if ((counts['TAB_SWITCH'] || 0) >= 2) {
+            // Rule 1: 3 Tab switches -> Terminate
+            if ((counts['TAB_SWITCH'] || 0) >= 3) {
                 shouldTerminate = true;
-                terminationReason = 'Multiple tab switches detected (limit 2).';
+                terminationReason = 'Multiple tab switches detected (limit 3).';
             }
             // Rule 2: Camera disabled -> Terminate
             else if (eventType === 'CAMERA_DISABLED') {
                 shouldTerminate = true;
                 terminationReason = 'Webcam was disabled or blocked.';
             }
-            // Rule 3: Mobile Phone detected -> Terminate
+            // Rule 3: Mobile Phone detected -> Terminate after 10 consecutive detections
             else if (eventType === 'MOBILE_PHONE_DETECTED') {
-                shouldTerminate = true;
-                terminationReason = 'Mobile phone or device detected by AI.';
+                const consec = consecutiveViolations[attemptId] || {};
+                consec['MOBILE_PHONE_DETECTED'] = (consec['MOBILE_PHONE_DETECTED'] || 0) + 1;
+                consecutiveViolations[attemptId] = consec;
+                if (consec['MOBILE_PHONE_DETECTED'] >= 10) {
+                    shouldTerminate = true;
+                    terminationReason = 'Mobile phone or device detected in camera view for prolonged duration.';
+                }
             }
-            // Rule 4: Book detected -> Terminate
+            // Rule 4: Book detected -> Terminate after 10 consecutive detections
             else if (eventType === 'BOOK_DETECTED') {
-                shouldTerminate = true;
-                terminationReason = 'Book or study notes detected by AI.';
+                const consec = consecutiveViolations[attemptId] || {};
+                consec['BOOK_DETECTED'] = (consec['BOOK_BOTTOM_DETECTED'] || consec['BOOK_DETECTED'] || 0) + 1;
+                consecutiveViolations[attemptId] = consec;
+                if (consec['BOOK_DETECTED'] >= 10) {
+                    shouldTerminate = true;
+                    terminationReason = 'Book or study notes detected in camera view for prolonged duration.';
+                }
             }
-            // Rule 5: Multiple faces -> Terminate
+            // Rule 5: Multiple faces -> Terminate after 10 consecutive detections
             else if (eventType === 'MULTIPLE_FACES_DETECTED') {
-                shouldTerminate = true;
-                terminationReason = 'Multiple faces detected in the webcam view.';
+                const consec = consecutiveViolations[attemptId] || {};
+                consec['MULTIPLE_FACES_DETECTED'] = (consec['MULTIPLE_FACES_DETECTED'] || 0) + 1;
+                consecutiveViolations[attemptId] = consec;
+                if (consec['MULTIPLE_FACES_DETECTED'] >= 10) {
+                    shouldTerminate = true;
+                    terminationReason = 'Multiple faces detected in the webcam view.';
+                }
             }
-            // Rule 6: No face for long duration -> Warning then Terminate (e.g. 3 violations of NO_FACE)
-            else if ((counts['NO_FACE_DETECTED'] || 0) >= 3) {
-                shouldTerminate = true;
-                terminationReason = 'No face detected for prolonged duration.';
+            // Rule 6: No face for long duration -> Warning then Terminate (10 consecutive violations)
+            else if (eventType === 'NO_FACE_DETECTED') {
+                const consec = consecutiveViolations[attemptId] || {};
+                consec['NO_FACE_DETECTED'] = (consec['NO_FACE_DETECTED'] || 0) + 1;
+                consecutiveViolations[attemptId] = consec;
+                if (consec['NO_FACE_DETECTED'] >= 10) {
+                    shouldTerminate = true;
+                    terminationReason = 'No face detected for prolonged duration.';
+                }
             }
-            // Rule 7: Fullscreen exit -> Warning then Terminate (e.g. 3 exits)
+            // Rule 7: Fullscreen exit -> Warning then Terminate (limit 3)
             else if ((counts['FULLSCREEN_EXIT'] || 0) >= 3) {
                 shouldTerminate = true;
                 terminationReason = 'Exited fullscreen mode multiple times.';
@@ -251,26 +273,93 @@ io.on('connection', (socket) => {
             }
             else {
                 // Send alert back to student if warning
-                socket.emit('proctor-warning', {
-                    message: `Warning: ${eventType.replace(/_/g, ' ')} detected. Repeated actions will terminate your exam.`,
-                    count: counts[eventType] || 1,
-                });
+                const isWebcamEvent = ['MOBILE_PHONE_DETECTED', 'BOOK_DETECTED', 'MULTIPLE_FACES_DETECTED', 'NO_FACE_DETECTED'].includes(eventType);
+                const consec = consecutiveViolations[attemptId] || {};
+                const consecCount = consec[eventType] || 0;
+                if (!isWebcamEvent || (consecCount > 0 && consecCount % 3 === 0)) {
+                    const warningNum = isWebcamEvent ? Math.floor(consecCount / 3) : (counts[eventType] || 1);
+                    const displayMsg = isWebcamEvent
+                        ? `Warning ${warningNum}/3: ${eventType.replace(/_/g, ' ')} detected. Please return to camera view immediately.`
+                        : `Warning: ${eventType.replace(/_/g, ' ')} detected (Violation count: ${warningNum}/3). Repeated actions will terminate your exam.`;
+                    socket.emit('proctor-warning', {
+                        message: displayMsg,
+                        count: warningNum,
+                    });
+                }
             }
         }
         catch (err) {
             console.error('Proctor event handler error:', err);
         }
-    });
-    // Client streams camera frame (low resolution base64 JPEG)
-    socket.on('proctor-frame', (data) => {
+    }
+    // Client emits a proctor violation event
+    socket.on('proctor-event', async (data) => {
         const session = activeSessions[socket.id];
         if (!session || session.role !== 'student')
             return;
+        const { attemptId, studentId, examId } = session;
+        const { eventType, details, severity } = data;
+        await processViolation(attemptId, studentId, examId, eventType, details, severity, socket);
+    });
+    // Client streams camera frame (low resolution base64 JPEG)
+    socket.on('proctor-frame', async (data) => {
+        const session = activeSessions[socket.id];
+        if (!session || session.role !== 'student')
+            return;
+        const { attemptId, studentId, examId } = session;
         // Broadcast student webcam frame to admin monitor room
         io.to('admin-monitor').emit('student-frame', {
-            attemptId: session.attemptId,
+            attemptId: attemptId,
             image: data.image
         });
+        // Send the frame to the AI service for analysis
+        try {
+            const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://ai-service:8000';
+            const params = new URLSearchParams();
+            params.append('frame', data.image);
+            params.append('attemptId', attemptId);
+            const response = await fetch(`${AI_SERVICE_URL}/api/ai/proctor/frame`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params
+            });
+            if (response.ok) {
+                const result = await response.json();
+                // Initialize consecutive violation storage for this attempt
+                consecutiveViolations[attemptId] = consecutiveViolations[attemptId] || {};
+                const consec = consecutiveViolations[attemptId];
+                // Reset tracking counters for violations that are NOT active in this frame
+                const currentViolations = result.violations || [];
+                if (!currentViolations.includes('NO_FACE_DETECTED')) {
+                    consec['NO_FACE_DETECTED'] = 0;
+                }
+                if (!currentViolations.includes('MULTIPLE_FACES_DETECTED')) {
+                    consec['MULTIPLE_FACES_DETECTED'] = 0;
+                }
+                if (!currentViolations.includes('MOBILE_PHONE_DETECTED')) {
+                    consec['MOBILE_PHONE_DETECTED'] = 0;
+                }
+                if (!currentViolations.includes('BOOK_DETECTED')) {
+                    consec['BOOK_DETECTED'] = 0;
+                }
+                if (!currentViolations.includes('CAMERA_DISABLED')) {
+                    consec['CAMERA_DISABLED'] = 0;
+                }
+                if (result.violations && Array.isArray(result.violations)) {
+                    for (const violation of result.violations) {
+                        const severity = (violation === 'MOBILE_PHONE_DETECTED' ||
+                            violation === 'BOOK_DETECTED' ||
+                            violation === 'MULTIPLE_FACES_DETECTED') ? 'critical' : 'warning';
+                        await processViolation(attemptId, studentId, examId, violation, `AI detected infraction: ${violation}`, severity, socket);
+                    }
+                }
+            }
+        }
+        catch (err) {
+            console.error('Failed to call AI service for frame analysis:', err.message);
+        }
     });
     socket.on('disconnect', () => {
         const session = activeSessions[socket.id];

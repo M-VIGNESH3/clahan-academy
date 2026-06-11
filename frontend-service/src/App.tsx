@@ -57,6 +57,31 @@ const STARTER_TEMPLATES: Record<string, string> = {
   'JavaScript': 'const fs = require("fs");\n\nfunction solve() {\n    // Read input from standard input (stdin)\n    const inputVal = fs.readFileSync(0, "utf-8").trim();\n    // Write your logic here and print to standard output (stdout)\n    console.log(inputVal);\n}\n\nsolve();'
 };
 
+const getCustomTemplate = (question: any, newLang: string) => {
+  if (!question) return '';
+  const origLang = question.language || 'Python';
+  const origCode = question.starter_code || '';
+  
+  if (newLang.toLowerCase() === origLang.toLowerCase() && origCode.trim()) {
+    return origCode;
+  }
+  
+  const title = question.title || 'solve';
+  const words = title.toLowerCase().replace(/[^a-zA-Z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+  const fnName = words.length === 0 ? 'solve' : (words[0] + words.slice(1).map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(''));
+  
+  if (newLang === 'Python') {
+    return `import sys\n\ndef ${fnName}(input_data):\n    # Write your logic here\n    # Return the result or value\n    return input_data\n\nif __name__ == "__main__":\n    # Read input from standard input (stdin)\n    input_data = sys.stdin.read().strip()\n    if input_data:\n        result = ${fnName}(input_data)\n        if result is not None:\n            print(result)`;
+  } else if (newLang === 'Java') {
+    return `import java.util.*;\n\npublic class Solution {\n    public static String ${fnName}(String inputVal) {\n        // Write your logic here\n        return inputVal;\n    }\n\n    public static void main(String[] args) {\n        // Read input from standard input (stdin)\n        Scanner sc = new Scanner(System.in);\n        StringBuilder sb = new StringBuilder();\n        while (sc.hasNextLine()) {\n            sb.append(sc.nextLine()).append("\\n");\n        }\n        String inputVal = sb.toString().trim();\n        if (!inputVal.isEmpty()) {\n            System.out.println(${fnName}(inputVal));\n        }\n    }\n}`;
+  } else if (newLang === 'C++') {
+    return `#include <iostream>\n#include <string>\nusing namespace std;\n\nstring ${fnName}(string input_val) {\n    // Write your logic here\n    return input_val;\n}\n\nint main() {\n    // Read input from standard input (stdin)\n    string input_val;\n    string line;\n    while (getline(cin, line)) {\n        input_val += line + "\\n";\n    }\n    if (!input_val.empty()) {\n        cout << ${fnName}(input_val) << endl;\n    }\n    return 0;\n}`;
+  } else if (newLang === 'JavaScript') {
+    return `const fs = require("fs");\n\nfunction ${fnName}(inputVal) {\n    // Write your logic here\n    return inputVal;\n}\n\nfunction main() {\n    // Read input from standard input (stdin)\n    const inputVal = fs.readFileSync(0, "utf-8").trim();\n    if (inputVal) {\n        console.log(${fnName}(inputVal));\n    }\n}\n\nmain();`;
+  }
+  return STARTER_TEMPLATES[newLang] || '';
+};
+
 export default function App() {
   // Theme State
   const [darkMode, setDarkMode] = useState(() => {
@@ -5882,21 +5907,19 @@ export default function App() {
                                 const qId = examCodings[activeQuestionIndex].id;
                                 const currentVal = codingSolutions[qId];
                                 const currentCode = currentVal?.code || '';
-                                const currentLang = currentVal?.language || examCodings[activeQuestionIndex].language;
 
                                 // Auto-template override only if editor is currently empty or has default template/starter code
                                 const isTemplateOrEmpty = !currentCode.trim() || 
-                                  currentCode === 'def solve(input_val):\n    # Write your code here\n    pass' ||
-                                  currentCode.includes('Write your code here') || 
+                                  currentCode.includes('Write your logic here') || 
                                   currentCode.includes('import java.util.*;') ||
                                   currentCode.includes('#include <iostream>') ||
-                                  currentCode.includes('function solve(') ||
+                                  currentCode.includes('const fs = require') ||
                                   currentCode === examCodings[activeQuestionIndex].starter_code;
 
                                 setCodingSolutions(prev => ({
                                   ...prev,
                                   [qId]: { 
-                                    code: isTemplateOrEmpty ? (STARTER_TEMPLATES[newLang] || '') : currentCode, 
+                                    code: isTemplateOrEmpty ? getCustomTemplate(examCodings[activeQuestionIndex], newLang) : currentCode, 
                                     language: newLang 
                                   }
                                 }));
@@ -5917,7 +5940,7 @@ export default function App() {
                                 const lang = codingSolutions[qId]?.language || examCodings[activeQuestionIndex].language;
                                 setCodingSolutions(prev => ({
                                   ...prev,
-                                  [qId]: { code: STARTER_TEMPLATES[lang] || '', language: lang }
+                                  [qId]: { code: getCustomTemplate(examCodings[activeQuestionIndex], lang), language: lang }
                                 }));
                                 showToast('Reset editor to starter template.', 'info');
                               }}
@@ -5946,17 +5969,48 @@ export default function App() {
 
                       {/* Code Execution Panel */}
                       {codeExecutionResults.length > 0 && (
-                        <div className="p-4 rounded-xl bg-slate-900 border border-white/10 text-xs space-y-2">
+                        <div className="p-4 rounded-xl bg-slate-900 border border-white/10 text-xs space-y-3">
                           <p className="font-bold text-indigo-400">Execution Results:</p>
-                          {codeExecutionResults.map((res, i) => (
-                            <div key={i} className="font-mono text-[10px]">
-                              <p className={res.passed ? 'text-emerald-400' : 'text-rose-500'}>
-                                Test case #{i+1}: {res.passed ? 'Passed' : 'Failed'} ({res.status})
-                              </p>
-                              {res.stderr && <p className="text-rose-400 whitespace-pre-wrap mt-1">{res.stderr}</p>}
-                              {res.stdout && <p className="text-slate-400 mt-1">Stdout: {res.stdout}</p>}
-                            </div>
-                          ))}
+                          <div className="space-y-3">
+                            {codeExecutionResults.map((res, i) => (
+                              <div key={i} className="font-mono text-[10px] bg-slate-950 p-3 rounded-lg border border-white/5 space-y-2">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-bold text-slate-350">Test Case #{i+1}</span>
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${res.passed ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                                    {res.passed ? 'Passed' : 'Failed'} ({res.status})
+                                  </span>
+                                </div>
+                                
+                                {res.input && (
+                                  <div>
+                                    <div className="text-[9px] text-slate-500 mb-0.5">Input:</div>
+                                    <pre className="bg-slate-900 p-1.5 rounded text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-[80px]">{res.input}</pre>
+                                  </div>
+                                )}
+                                
+                                {res.expectedOutput && (
+                                  <div>
+                                    <div className="text-[9px] text-slate-500 mb-0.5">Expected Output:</div>
+                                    <pre className="bg-slate-900 p-1.5 rounded text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-[80px]">{res.expectedOutput}</pre>
+                                  </div>
+                                )}
+
+                                <div>
+                                  <div className="text-[9px] text-slate-500 mb-0.5">Your Output (Actual):</div>
+                                  <pre className={`p-1.5 rounded overflow-x-auto whitespace-pre-wrap max-h-[80px] ${res.passed ? 'bg-slate-900 text-emerald-400' : 'bg-slate-900 text-rose-400'}`}>
+                                    {res.stdout || (res.stderr ? 'None' : 'No Output')}
+                                  </pre>
+                                </div>
+
+                                {res.stderr && (
+                                  <div>
+                                    <div className="text-[9px] text-rose-400 font-bold mb-0.5">Error Output (Stderr / Compiler):</div>
+                                    <pre className="bg-rose-950/20 border border-rose-500/10 p-1.5 rounded text-rose-400 overflow-x-auto whitespace-pre-wrap max-h-[120px]">{res.stderr}</pre>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
 
