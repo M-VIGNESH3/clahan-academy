@@ -207,7 +207,8 @@ async def analyze_frame(
         if yolo_net is not None:
             try:
                 # YOLOv8 input is 640x640, scale factor is 1/255.0
-                blob = cv2.dnn.blobFromImage(open_cv_image, 1.0/255.0, (640, 640), swapRB=False, crop=False)
+                # Set swapRB=True since open_cv_image is BGR, converting it to RGB for YOLOv8
+                blob = cv2.dnn.blobFromImage(open_cv_image, 1.0/255.0, (640, 640), swapRB=True, crop=False)
                 yolo_net.setInput(blob)
                 outputs = yolo_net.forward() # shape: (1, 84, 8400)
                 
@@ -232,7 +233,8 @@ async def analyze_frame(
         if face_cascade is not None:
             try:
                 gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
-                faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4)
+                # scaleFactor=1.05 and minNeighbors=2 increases detection sensitivity for tilted/glared faces
+                faces = face_cascade.detectMultiScale(gray, scaleFactor=1.05, minNeighbors=2)
                 face_count = len(faces)
             except Exception as e:
                 logger.error(f"Face detection error: {str(e)}")

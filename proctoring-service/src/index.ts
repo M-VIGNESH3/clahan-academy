@@ -81,9 +81,10 @@ const io = new Server(server, {
   },
 });
 
-// Maintain active sockets mapping
-// key: socket.id, value: details
 const activeSessions: Record<string, { attemptId: string; studentId: string; examId: string; role: string }> = {};
+
+// Track consecutive violations in memory (key: attemptId, value: Record<eventType, count>)
+const consecutiveViolations: Record<string, Record<string, number>> = {};
 
 io.on('connection', (socket: Socket) => {
   console.log(`Socket connected: ${socket.id}`);
@@ -206,25 +207,45 @@ io.on('connection', (socket: Socket) => {
         shouldTerminate = true;
         terminationReason = 'Webcam was disabled or blocked.';
       }
-      // Rule 3: Mobile Phone detected -> Terminate after 10 cumulative detections
-      else if ((counts['MOBILE_PHONE_DETECTED'] || 0) >= 10) {
-        shouldTerminate = true;
-        terminationReason = 'Mobile phone or device detected in camera view.';
+      // Rule 3: Mobile Phone detected -> Terminate after 10 consecutive detections
+      else if (eventType === 'MOBILE_PHONE_DETECTED') {
+        const consec = consecutiveViolations[attemptId] || {};
+        consec['MOBILE_PHONE_DETECTED'] = (consec['MOBILE_PHONE_DETECTED'] || 0) + 1;
+        consecutiveViolations[attemptId] = consec;
+        if (consec['MOBILE_PHONE_DETECTED'] >= 10) {
+          shouldTerminate = true;
+          terminationReason = 'Mobile phone or device detected in camera view for prolonged duration.';
+        }
       }
-      // Rule 4: Book detected -> Terminate after 15 cumulative detections
-      else if ((counts['BOOK_DETECTED'] || 0) >= 15) {
-        shouldTerminate = true;
-        terminationReason = 'Book or study notes detected in camera view.';
+      // Rule 4: Book detected -> Terminate after 15 consecutive detections
+      else if (eventType === 'BOOK_DETECTED') {
+        const consec = consecutiveViolations[attemptId] || {};
+        consec['BOOK_DETECTED'] = (consec['BOOK_DETECTED'] || 0) + 1;
+        consecutiveViolations[attemptId] = consec;
+        if (consec['BOOK_DETECTED'] >= 15) {
+          shouldTerminate = true;
+          terminationReason = 'Book or study notes detected in camera view for prolonged duration.';
+        }
       }
-      // Rule 5: Multiple faces -> Terminate after 10 cumulative detections
-      else if ((counts['MULTIPLE_FACES_DETECTED'] || 0) >= 10) {
-        shouldTerminate = true;
-        terminationReason = 'Multiple faces detected in the webcam view.';
+      // Rule 5: Multiple faces -> Terminate after 10 consecutive detections
+      else if (eventType === 'MULTIPLE_FACES_DETECTED') {
+        const consec = consecutiveViolations[attemptId] || {};
+        consec['MULTIPLE_FACES_DETECTED'] = (consec['MULTIPLE_FACES_DETECTED'] || 0) + 1;
+        consecutiveViolations[attemptId] = consec;
+        if (consec['MULTIPLE_FACES_DETECTED'] >= 10) {
+          shouldTerminate = true;
+          terminationReason = 'Multiple faces detected in the webcam view.';
+        }
       }
-      // Rule 6: No face for long duration -> Warning then Terminate (25 violations, approx. 37.5 seconds)
-      else if ((counts['NO_FACE_DETECTED'] || 0) >= 25) {
-        shouldTerminate = true;
-        terminationReason = 'No face detected for prolonged duration.';
+      // Rule 6: No face for long duration -> Warning then Terminate (25 consecutive violations, approx. 37.5 seconds)
+      else if (eventType === 'NO_FACE_DETECTED') {
+        const consec = consecutiveViolations[attemptId] || {};
+        consec['NO_FACE_DETECTED'] = (consec['NO_FACE_DETECTED'] || 0) + 1;
+        consecutiveViolations[attemptId] = consec;
+        if (consec['NO_FACE_DETECTED'] >= 25) {
+          shouldTerminate = true;
+          terminationReason = 'No face detected for prolonged duration.';
+        }
       }
       // Rule 7: Fullscreen exit -> Warning then Terminate (limit 3)
       else if ((counts['FULLSCREEN_EXIT'] || 0) >= 3) {
@@ -308,6 +329,29 @@ io.on('connection', (socket: Socket) => {
 
       if (response.ok) {
         const result: any = await response.json();
+        
+        // Initialize consecutive violation storage for this attempt
+        consecutiveViolations[attemptId] = consecutiveViolations[attemptId] || {};
+        const consec = consecutiveViolations[attemptId];
+
+        // Reset tracking counters for violations that are NOT active in this frame
+        const currentViolations = result.violations || [];
+        if (!currentViolations.includes('NO_FACE_DETECTED')) {
+          consec['NO_FACE_DETECTED'] = 0;
+        }
+        if (!currentViolations.includes('MULTIPLE_FACES_DETECTED')) {
+          consec['MULTIPLE_FACES_DETECTED'] = 0;
+        }
+        if (!currentViolations.includes('MOBILE_PHONE_DETECTED')) {
+          consec['MOBILE_PHONE_DETECTED'] = 0;
+        }
+        if (!currentViolations.includes('BOOK_DETECTED')) {
+          consec['BOOK_DETECTED'] = 0;
+        }
+        if (!currentViolations.includes('CAMERA_DISABLED')) {
+          consec['CAMERA_DISABLED'] = 0;
+        }
+
         if (result.violations && Array.isArray(result.violations)) {
           for (const violation of result.violations) {
             const severity = (violation === 'MOBILE_PHONE_DETECTED' || 
