@@ -196,37 +196,37 @@ io.on('connection', (socket: Socket) => {
       let shouldTerminate = false;
       let terminationReason = '';
 
-      // Rule 1: 2 Tab switches -> Terminate
-      if ((counts['TAB_SWITCH'] || 0) >= 2) {
+      // Rule 1: 3 Tab switches -> Terminate
+      if ((counts['TAB_SWITCH'] || 0) >= 3) {
         shouldTerminate = true;
-        terminationReason = 'Multiple tab switches detected (limit 2).';
+        terminationReason = 'Multiple tab switches detected (limit 3).';
       }
       // Rule 2: Camera disabled -> Terminate
       else if (eventType === 'CAMERA_DISABLED') {
         shouldTerminate = true;
         terminationReason = 'Webcam was disabled or blocked.';
       }
-      // Rule 3: Mobile Phone detected -> Terminate
-      else if (eventType === 'MOBILE_PHONE_DETECTED') {
+      // Rule 3: Mobile Phone detected -> Terminate after 10 cumulative detections
+      else if ((counts['MOBILE_PHONE_DETECTED'] || 0) >= 10) {
         shouldTerminate = true;
-        terminationReason = 'Mobile phone or device detected by AI.';
+        terminationReason = 'Mobile phone or device detected in camera view.';
       }
-      // Rule 4: Book detected -> Terminate
-      else if (eventType === 'BOOK_DETECTED') {
+      // Rule 4: Book detected -> Terminate after 15 cumulative detections
+      else if ((counts['BOOK_DETECTED'] || 0) >= 15) {
         shouldTerminate = true;
-        terminationReason = 'Book or study notes detected by AI.';
+        terminationReason = 'Book or study notes detected in camera view.';
       }
-      // Rule 5: Multiple faces -> Terminate
-      else if (eventType === 'MULTIPLE_FACES_DETECTED') {
+      // Rule 5: Multiple faces -> Terminate after 10 cumulative detections
+      else if ((counts['MULTIPLE_FACES_DETECTED'] || 0) >= 10) {
         shouldTerminate = true;
         terminationReason = 'Multiple faces detected in the webcam view.';
       }
-      // Rule 6: No face for long duration -> Warning then Terminate (e.g. 3 violations of NO_FACE)
-      else if ((counts['NO_FACE_DETECTED'] || 0) >= 3) {
+      // Rule 6: No face for long duration -> Warning then Terminate (25 violations, approx. 37.5 seconds)
+      else if ((counts['NO_FACE_DETECTED'] || 0) >= 25) {
         shouldTerminate = true;
         terminationReason = 'No face detected for prolonged duration.';
       }
-      // Rule 7: Fullscreen exit -> Warning then Terminate (e.g. 3 exits)
+      // Rule 7: Fullscreen exit -> Warning then Terminate (limit 3)
       else if ((counts['FULLSCREEN_EXIT'] || 0) >= 3) {
         shouldTerminate = true;
         terminationReason = 'Exited fullscreen mode multiple times.';
