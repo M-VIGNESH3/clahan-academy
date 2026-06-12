@@ -69,6 +69,10 @@ class FeedbackRequest(BaseModel):
     percentage: int
     examType: str
     examName: str
+    mcqCorrect: Optional[int] = 0
+    mcqTotal: Optional[int] = 0
+    codingPassedCases: Optional[int] = 0
+    codingTotalCases: Optional[int] = 0
 
 class GenerateQuestionRequest(BaseModel):
     topic: str
@@ -87,8 +91,12 @@ def generate_feedback(req: FeedbackRequest):
     prompt = (
         f"You are Clahan Academy's AI mentor. Write a concise, 1-sentence, motivational, professional exam review feedback. "
         f"The student scored {req.percentage}% in the exam '{req.examName}' ({req.examType} test). "
-        f"Provide specific guidance based on their percentage. Keep it under 25 words. Do not prefix with 'Here is your feedback' or quotes."
     )
+    if req.examType in ["mcq", "both"] and req.mcqTotal > 0:
+        prompt += f"They scored {req.mcqCorrect} correct out of {req.mcqTotal} MCQs. "
+    if req.examType in ["coding", "both"] and req.codingTotalCases > 0:
+        prompt += f"They passed {req.codingPassedCases} out of {req.codingTotalCases} coding test cases. "
+    prompt += "Provide brief constructive encouragement and custom advice based on these numbers. Keep it under 25 words. Do not prefix with quotes or introductory phrases."
     
     try:
         response = requests.post(
@@ -164,14 +172,38 @@ def generate_question(req: GenerateQuestionRequest):
         logger.error(f"Failed to generate question via Ollama: {str(e)}")
         
     # Local fallback if Ollama call fails or JSON fails to parse
-    lang = req.language
+    lang = req.language or "Python"
     starter = "def solve():\n    # Write your code here\n    pass"
     if lang.lower() in ["java", "javascript", "cpp"]:
         starter = "// Starter code here"
         
     return {
         "title": f"Algorithm Problem: {req.topic}",
-        "description": f"Write an efficient solution to solve problems related to {req.topic}. Input: Standard stdin format. Output: Standard stdout format.",
+        "description": (
+            f"Write an efficient solution to solve problems related to **{req.topic}**.\n\n"
+            f"### Input Format\n"
+            f"Read from standard input (stdin).\n\n"
+            f"### Output Format\n"
+            f"Print to standard output (stdout).\n\n"
+            f"### Sample Case 1\n"
+            f"**Input:**\n"
+            f"```\n"
+            f"5\n"
+            f"```\n"
+            f"**Expected Output:**\n"
+            f"```\n"
+            f"10\n"
+            f"```\n\n"
+            f"### Sample Case 2\n"
+            f"**Input:**\n"
+            f"```\n"
+            f"3\n"
+            f"```\n"
+            f"**Expected Output:**\n"
+            f"```\n"
+            f"6\n"
+            f"```"
+        ),
         "starter_code": starter,
         "test_cases": [
             {"input": "5\n", "expected_output": "10\n", "is_hidden": False},
@@ -180,6 +212,7 @@ def generate_question(req: GenerateQuestionRequest):
             {"input": "2\n", "expected_output": "4\n", "is_hidden": True}
         ]
     }
+
 
 @app.post("/api/ai/proctor/frame")
 async def analyze_frame(

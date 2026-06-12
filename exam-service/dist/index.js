@@ -740,6 +740,10 @@ app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requir
         if (!code || !language || !questionId) {
             return res.status(400).json({ error: 'Code, language, and question ID are required' });
         }
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(questionId)) {
+            return res.status(400).json({ error: 'Invalid question ID format. Must be a valid UUID.' });
+        }
         const testCases = await query('SELECT * FROM coding_test_cases WHERE question_id = $1 AND is_hidden = FALSE LIMIT 2', [questionId]);
         if (testCases.rows.length === 0) {
             return res.status(400).json({ error: 'No sample test cases defined for this question' });
@@ -793,6 +797,7 @@ app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requir
         res.json({ results });
     }
     catch (err) {
+        console.error('ERROR in run-code endpoint:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -803,6 +808,10 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
         const { code, language, questionId } = req.body;
         if (!code || !language || !questionId) {
             return res.status(400).json({ error: 'Code, language, and question ID are required' });
+        }
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(attemptId) || !uuidRegex.test(questionId)) {
+            return res.status(400).json({ error: 'Invalid attempt ID or question ID format. Must be a valid UUID.' });
         }
         const testCases = await query('SELECT * FROM coding_test_cases WHERE question_id = $1', [questionId]);
         const q = await query('SELECT marks FROM coding_questions WHERE id = $1', [questionId]);
@@ -878,6 +887,7 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
         });
     }
     catch (err) {
+        console.error('ERROR in submit-code endpoint:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -898,6 +908,12 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
         // Get exam details
         const examResult = await query('SELECT * FROM exams WHERE id = $1', [examId]);
         const exam = examResult.rows[0];
+        const durationMins = exam.duration_minutes !== null && exam.duration_minutes !== undefined ? exam.duration_minutes : 60;
+        const timePassedSeconds = (Date.now() - new Date(attempt.created_at).getTime()) / 1000;
+        // Allow a 30-second grace period for network delays/clock drift
+        if (timePassedSeconds < (durationMins * 60) - 30) {
+            return res.status(400).json({ error: 'You cannot submit the exam early. Please wait for the exam time to complete.' });
+        }
         // Compute MCQ scores
         const mcqsScoreRes = await query('SELECT COALESCE(SUM(marks_obtained), 0) as sum FROM mcq_responses WHERE attempt_id = $1', [attemptId]);
         const mcqScore = parseInt(mcqsScoreRes.rows[0].sum);
@@ -911,6 +927,39 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
         const maxScorePossible = parseInt(mcqMaxRes.rows[0].sum) + parseInt(codingMaxRes.rows[0].sum);
         const percentage = maxScorePossible > 0 ? (totalScore / maxScorePossible) * 100 : 0.0;
         const passed = percentage >= exam.cutoff_percentage;
+        // Fetch detailed statistics for the prompt
+        let mcqTotal = 0;
+        let mcqCorrect = 0;
+        try {
+            const mcqStatsRes = await query(`
+        SELECT 
+          COUNT(*)::integer as total_answered,
+          SUM(CASE WHEN is_correct = TRUE THEN 1 ELSE 0 END)::integer as correct_count
+        FROM mcq_responses 
+        WHERE attempt_id = $1
+      `, [attemptId]);
+            mcqTotal = mcqStatsRes.rows[0].total_answered || 0;
+            mcqCorrect = mcqStatsRes.rows[0].correct_count || 0;
+        }
+        catch (dbErr) {
+            console.error('Failed to query MCQ statistics for feedback:', dbErr);
+        }
+        let codingPassedCases = 0;
+        let codingTotalCases = 0;
+        try {
+            const codingStatsRes = await query(`
+        SELECT 
+          SUM(test_cases_passed)::integer as passed_test_cases,
+          SUM(total_test_cases)::integer as total_test_cases
+        FROM coding_responses 
+        WHERE attempt_id = $1
+      `, [attemptId]);
+            codingPassedCases = codingStatsRes.rows[0].passed_test_cases || 0;
+            codingTotalCases = codingStatsRes.rows[0].total_test_cases || 0;
+        }
+        catch (dbErr) {
+            console.error('Failed to query Coding statistics for feedback:', dbErr);
+        }
         // Generate Motivational feedback (Query AI service FastAPI, or local fallback)
         let aiFeedback = '';
         try {
@@ -918,20 +967,24 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
                 score: totalScore,
                 percentage: Math.round(percentage),
                 examType: exam.exam_type,
-                examName: exam.name
+                examName: exam.name,
+                mcqCorrect,
+                mcqTotal,
+                codingPassedCases,
+                codingTotalCases
             }, { timeout: 3000 });
             aiFeedback = aiResponse.data.feedback;
         }
         catch (err) {
             console.warn('AI feedback service unavailable, using local fallback:', err.message);
             if (percentage >= 80) {
-                aiFeedback = `Excellent work! You scored ${Math.round(percentage)}%. Strong coding performance. Focus more on aptitude accuracy.`;
+                aiFeedback = `Excellent work! You scored ${Math.round(percentage)}% (${mcqCorrect}/${mcqTotal} MCQs correct, ${codingPassedCases}/${codingTotalCases} testcases passed). Strong performance!`;
             }
             else if (percentage >= 50) {
-                aiFeedback = `Good effort! You scored ${Math.round(percentage)}%. Practice more problem solving and coding constructs to boost score.`;
+                aiFeedback = `Good effort! You scored ${Math.round(percentage)}% (${mcqCorrect}/${mcqTotal} MCQs correct, ${codingPassedCases}/${codingTotalCases} testcases passed). Practice more to boost your score.`;
             }
             else {
-                aiFeedback = `Keep practicing! You scored ${Math.round(percentage)}%. Focus on problem solving, basics of programming languages, and fundamental concepts.`;
+                aiFeedback = `Keep practicing! You scored ${Math.round(percentage)}% (${mcqCorrect}/${mcqTotal} MCQs correct, ${codingPassedCases}/${codingTotalCases} testcases passed). Focus on logic and programming fundamentals.`;
             }
         }
         // Update Attempt record
@@ -1015,6 +1068,7 @@ app.get('/api/exams/student/attempts/:attemptId/result', authenticate, async (re
     try {
         const { attemptId } = req.params;
         const attemptResult = await query(`SELECT ea.*, e.name as exam_name, e.exam_type, e.cutoff_percentage,
+              e.schedule_date, e.window_open_minutes, e.duration_minutes,
               (SELECT COALESCE(SUM(marks), 0) FROM mcq_questions mq WHERE mq.exam_id = e.id) as max_mcq,
               (SELECT COALESCE(SUM(marks), 0) FROM coding_questions cq WHERE cq.exam_id = e.id) as max_coding
        FROM exam_attempts ea
@@ -1023,6 +1077,15 @@ app.get('/api/exams/student/attempts/:attemptId/result', authenticate, async (re
         if (attemptResult.rows.length === 0)
             return res.status(404).json({ error: 'Result not found' });
         const attempt = attemptResult.rows[0];
+        // Check if results are released yet (schedule_date + window_open_minutes + duration_minutes)
+        const now = new Date();
+        const scheduleDate = new Date(attempt.schedule_date);
+        const windowOpenMins = attempt.window_open_minutes !== null && attempt.window_open_minutes !== undefined ? attempt.window_open_minutes : 10;
+        const durationMins = attempt.duration_minutes !== null && attempt.duration_minutes !== undefined ? attempt.duration_minutes : 60;
+        const examEndTime = new Date(scheduleDate.getTime() + (windowOpenMins + durationMins) * 60 * 1000);
+        if (now < examEndTime) {
+            return res.status(403).json({ error: 'Results are not available yet. Please wait until all students have completed the exam.' });
+        }
         const maxScore = parseInt(attempt.max_mcq) + parseInt(attempt.max_coding);
         // Query detailed responses
         const mcqResponses = await query(`SELECT mr.*, mq.question, mq.option_a, mq.option_b, mq.option_c, mq.option_d, mq.correct_answer, mq.marks
@@ -1044,6 +1107,26 @@ app.get('/api/exams/student/attempts/:attemptId/result', authenticate, async (re
     }
     catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+// AI Coding Question Generation
+app.post('/api/exams/admin/generate-coding-question', authenticate, requireRole('admin'), async (req, res) => {
+    try {
+        const { topic, difficulty, language } = req.body;
+        if (!topic) {
+            return res.status(400).json({ error: 'Topic is required' });
+        }
+        const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://ai-service:8000';
+        const response = await axios_1.default.post(`${AI_SERVICE_URL}/api/ai/generate-question`, {
+            topic,
+            difficulty: difficulty || 'medium',
+            language: language || 'Python'
+        }, { timeout: 15000 });
+        res.json(response.data);
+    }
+    catch (err) {
+        console.error('Failed to generate coding question:', err.message);
+        res.status(500).json({ error: 'AI Question Generation failed. Please try again or fill the details manually.' });
     }
 });
 app.listen(PORT, () => {

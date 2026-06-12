@@ -5981,30 +5981,32 @@ export default function App() {
                                   </span>
                                 </div>
                                 
-                                {res.input && (
-                                  <div>
-                                    <div className="text-[9px] text-slate-500 mb-0.5">Input:</div>
-                                    <pre className="bg-slate-900 p-1.5 rounded text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-[80px]">{res.input}</pre>
-                                  </div>
-                                )}
-                                
-                                {res.expectedOutput && (
-                                  <div>
-                                    <div className="text-[9px] text-slate-500 mb-0.5">Expected Output:</div>
-                                    <pre className="bg-slate-900 p-1.5 rounded text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-[80px]">{res.expectedOutput}</pre>
-                                  </div>
-                                )}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                  {res.input && (
+                                    <div className="bg-slate-900 p-2 rounded border border-white/5">
+                                      <div className="text-[9px] text-slate-500 mb-1 font-bold uppercase">Input:</div>
+                                      <pre className="text-slate-350 overflow-x-auto whitespace-pre-wrap max-h-[80px] text-[10px]">{res.input.trim()}</pre>
+                                    </div>
+                                  )}
+                                  
+                                  {res.expectedOutput && (
+                                    <div className="bg-slate-900 p-2 rounded border border-white/5">
+                                      <div className="text-[9px] text-slate-500 mb-1 font-bold uppercase">Expected Output:</div>
+                                      <pre className="text-slate-350 overflow-x-auto whitespace-pre-wrap max-h-[80px] text-[10px]">{res.expectedOutput.trim()}</pre>
+                                    </div>
+                                  )}
 
-                                <div>
-                                  <div className="text-[9px] text-slate-500 mb-0.5">Your Output (Actual):</div>
-                                  <pre className={`p-1.5 rounded overflow-x-auto whitespace-pre-wrap max-h-[80px] ${res.passed ? 'bg-slate-900 text-emerald-400' : 'bg-slate-900 text-rose-400'}`}>
-                                    {res.stdout || (res.stderr ? 'None' : 'No Output')}
-                                  </pre>
+                                  <div className="bg-slate-900 p-2 rounded border border-white/5">
+                                    <div className="text-[9px] text-slate-500 mb-1 font-bold uppercase">Your Output (Actual):</div>
+                                    <pre className={`overflow-x-auto whitespace-pre-wrap max-h-[80px] text-[10px] ${res.passed ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                      {res.stdout ? res.stdout.trim() : (res.stderr ? 'None' : 'No Output')}
+                                    </pre>
+                                  </div>
                                 </div>
 
                                 {res.stderr && (
-                                  <div>
-                                    <div className="text-[9px] text-rose-400 font-bold mb-0.5">Error Output (Stderr / Compiler):</div>
+                                  <div className="mt-2">
+                                    <div className="text-[9px] text-rose-450 font-bold mb-0.5 uppercase">Error Output (Stderr / Compiler):</div>
                                     <pre className="bg-rose-950/20 border border-rose-500/10 p-1.5 rounded text-rose-400 overflow-x-auto whitespace-pre-wrap max-h-[120px]">{res.stderr}</pre>
                                   </div>
                                 )}

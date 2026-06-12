@@ -1055,6 +1055,39 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
     const percentage = maxScorePossible > 0 ? (totalScore / maxScorePossible) * 100 : 0.0;
     const passed = percentage >= exam.cutoff_percentage;
 
+    // Fetch detailed statistics for the prompt
+    let mcqTotal = 0;
+    let mcqCorrect = 0;
+    try {
+      const mcqStatsRes = await query(`
+        SELECT 
+          COUNT(*)::integer as total_answered,
+          SUM(CASE WHEN is_correct = TRUE THEN 1 ELSE 0 END)::integer as correct_count
+        FROM mcq_responses 
+        WHERE attempt_id = $1
+      `, [attemptId]);
+      mcqTotal = mcqStatsRes.rows[0].total_answered || 0;
+      mcqCorrect = mcqStatsRes.rows[0].correct_count || 0;
+    } catch (dbErr) {
+      console.error('Failed to query MCQ statistics for feedback:', dbErr);
+    }
+
+    let codingPassedCases = 0;
+    let codingTotalCases = 0;
+    try {
+      const codingStatsRes = await query(`
+        SELECT 
+          SUM(test_cases_passed)::integer as passed_test_cases,
+          SUM(total_test_cases)::integer as total_test_cases
+        FROM coding_responses 
+        WHERE attempt_id = $1
+      `, [attemptId]);
+      codingPassedCases = codingStatsRes.rows[0].passed_test_cases || 0;
+      codingTotalCases = codingStatsRes.rows[0].total_test_cases || 0;
+    } catch (dbErr) {
+      console.error('Failed to query Coding statistics for feedback:', dbErr);
+    }
+
     // Generate Motivational feedback (Query AI service FastAPI, or local fallback)
     let aiFeedback = '';
     try {
@@ -1062,17 +1095,21 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
         score: totalScore,
         percentage: Math.round(percentage),
         examType: exam.exam_type,
-        examName: exam.name
+        examName: exam.name,
+        mcqCorrect,
+        mcqTotal,
+        codingPassedCases,
+        codingTotalCases
       }, { timeout: 3000 });
       aiFeedback = aiResponse.data.feedback;
     } catch (err: any) {
       console.warn('AI feedback service unavailable, using local fallback:', err.message);
       if (percentage >= 80) {
-        aiFeedback = `Excellent work! You scored ${Math.round(percentage)}%. Strong coding performance. Focus more on aptitude accuracy.`;
+        aiFeedback = `Excellent work! You scored ${Math.round(percentage)}% (${mcqCorrect}/${mcqTotal} MCQs correct, ${codingPassedCases}/${codingTotalCases} testcases passed). Strong performance!`;
       } else if (percentage >= 50) {
-        aiFeedback = `Good effort! You scored ${Math.round(percentage)}%. Practice more problem solving and coding constructs to boost score.`;
+        aiFeedback = `Good effort! You scored ${Math.round(percentage)}% (${mcqCorrect}/${mcqTotal} MCQs correct, ${codingPassedCases}/${codingTotalCases} testcases passed). Practice more to boost your score.`;
       } else {
-        aiFeedback = `Keep practicing! You scored ${Math.round(percentage)}%. Focus on problem solving, basics of programming languages, and fundamental concepts.`;
+        aiFeedback = `Keep practicing! You scored ${Math.round(percentage)}% (${mcqCorrect}/${mcqTotal} MCQs correct, ${codingPassedCases}/${codingTotalCases} testcases passed). Focus on logic and programming fundamentals.`;
       }
     }
 
