@@ -35,6 +35,12 @@ yolo_net = None
 try:
     if os.path.exists("yolov8n.onnx"):
         yolo_net = cv2.dnn.readNet("yolov8n.onnx")
+        try:
+            yolo_net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
+            yolo_net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
+            logger.info("Successfully set YOLOv8 backend to CUDA.")
+        except Exception as cuda_err:
+            logger.info(f"CUDA backend not available, defaulting to CPU: {cuda_err}")
         logger.info("YOLOv8 ONNX model loaded successfully via OpenCV DNN.")
     else:
         logger.error("yolov8n.onnx not found!")
@@ -335,6 +341,11 @@ async def analyze_frame(
         open_cv_image = np.array(image.convert("RGB"))
         open_cv_image = open_cv_image[:, :, ::-1].copy() # Convert RGB to BGR
         
+        # Optimize frame size before inference to reduce CPU/GPU load
+        height, width = open_cv_image.shape[:2]
+        if width > 640 or height > 480:
+            open_cv_image = cv2.resize(open_cv_image, (640, 480))
+        
         # Initialize default response
         face_count = 1
         yolo_persons = 0
@@ -398,8 +409,10 @@ async def analyze_frame(
         if face_cascade is not None:
             try:
                 gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
+                # Downscale grayscale for faster Haar Cascade detection
+                small_gray = cv2.resize(gray, (320, 240))
                 # scaleFactor=1.1 and minNeighbors=4 increases face detection quality and filters noise
-                faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4)
+                faces = face_cascade.detectMultiScale(small_gray, scaleFactor=1.1, minNeighbors=4)
                 face_count = len(faces)
             except Exception as e:
                 logger.error(f"Face detection error: {str(e)}")

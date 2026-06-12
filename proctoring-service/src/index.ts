@@ -73,6 +73,39 @@ app.get('/api/proctor/live', async (req, res) => {
   }
 });
 
+// Pre-exam face verification endpoint
+app.post('/api/proctor/verify-face', async (req, res) => {
+  try {
+    const { image } = req.body;
+    if (!image) {
+      return res.status(400).json({ error: 'Image data is required' });
+    }
+    const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://ai-service:8000';
+    
+    const params = new URLSearchParams();
+    params.append('frame', image);
+    params.append('attemptId', 'pre-exam-verification');
+
+    const response = await fetch(`${AI_SERVICE_URL}/api/ai/proctor/frame`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: params
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return res.json(data);
+    } else {
+      return res.status(500).json({ error: 'Failed to verify face with AI service' });
+    }
+  } catch (err: any) {
+    console.error('Error verifying face:', err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -202,49 +235,41 @@ io.on('connection', (socket: Socket) => {
         shouldTerminate = true;
         terminationReason = 'Multiple tab switches detected (limit 3).';
       }
-      // Rule 2: Camera disabled -> Terminate
+      // Rule 2: Camera disabled -> Terminate / Auto Submit
       else if (eventType === 'CAMERA_DISABLED') {
         shouldTerminate = true;
         terminationReason = 'Webcam was disabled or blocked.';
       }
-      // Rule 3: Mobile Phone detected -> Terminate after 15 consecutive detections
+      // Rule 3: Mobile Phone detected -> Terminate after 2 consecutive detections
       else if (eventType === 'MOBILE_PHONE_DETECTED') {
         const consec = consecutiveViolations[attemptId] || {};
-        consec['MOBILE_PHONE_DETECTED'] = (consec['MOBILE_PHONE_DETECTED'] || 0) + 1;
-        consecutiveViolations[attemptId] = consec;
-        if (consec['MOBILE_PHONE_DETECTED'] >= 15) {
+        if ((consec['MOBILE_PHONE_DETECTED'] || 0) >= 2) {
           shouldTerminate = true;
-          terminationReason = 'Mobile phone or device detected in camera view for prolonged duration.';
+          terminationReason = 'Mobile phone or device detected in camera view.';
         }
       }
-      // Rule 4: Book detected -> Terminate after 20 consecutive detections
+      // Rule 4: Book detected -> Terminate after 8 consecutive detections
       else if (eventType === 'BOOK_DETECTED') {
         const consec = consecutiveViolations[attemptId] || {};
-        consec['BOOK_DETECTED'] = (consec['BOOK_DETECTED'] || 0) + 1;
-        consecutiveViolations[attemptId] = consec;
-        if (consec['BOOK_DETECTED'] >= 20) {
+        if ((consec['BOOK_DETECTED'] || 0) >= 8) {
           shouldTerminate = true;
-          terminationReason = 'Book or study notes detected in camera view for prolonged duration.';
+          terminationReason = 'Book or study notes detected in camera view.';
         }
       }
-      // Rule 5: Multiple faces -> Terminate after 25 consecutive detections
+      // Rule 5: Multiple faces -> Terminate after 5 consecutive detections
       else if (eventType === 'MULTIPLE_FACES_DETECTED') {
         const consec = consecutiveViolations[attemptId] || {};
-        consec['MULTIPLE_FACES_DETECTED'] = (consec['MULTIPLE_FACES_DETECTED'] || 0) + 1;
-        consecutiveViolations[attemptId] = consec;
-        if (consec['MULTIPLE_FACES_DETECTED'] >= 25) {
+        if ((consec['MULTIPLE_FACES_DETECTED'] || 0) >= 5) {
           shouldTerminate = true;
           terminationReason = 'Multiple faces detected in the webcam view.';
         }
       }
-      // Rule 6: No face for long duration -> Warning then Terminate (30 consecutive violations)
+      // Rule 6: No face for long duration -> Terminate after 20 consecutive detections (30 seconds)
       else if (eventType === 'NO_FACE_DETECTED') {
         const consec = consecutiveViolations[attemptId] || {};
-        consec['NO_FACE_DETECTED'] = (consec['NO_FACE_DETECTED'] || 0) + 1;
-        consecutiveViolations[attemptId] = consec;
-        if (consec['NO_FACE_DETECTED'] >= 30) {
+        if ((consec['NO_FACE_DETECTED'] || 0) >= 20) {
           shouldTerminate = true;
-          terminationReason = 'No face detected for prolonged duration.';
+          terminationReason = 'No face detected for more than 30 seconds.';
         }
       }
       // Rule 7: Fullscreen exit -> Warning then Terminate (limit 3)
@@ -254,17 +279,45 @@ io.on('connection', (socket: Socket) => {
       }
 
       if (shouldTerminate) {
-        // Update exam_attempts database to 'terminated', score=0, passed=false
-        await query(
-          `UPDATE exam_attempts 
-           SET status = 'terminated', score = 0, percentage = 0.00, passed = FALSE, feedback = $1
-           WHERE id = $2`,
-          [`Exam automatically terminated: ${terminationReason}`, attemptId]
-        );
+        if (eventType === 'CAMERA_DISABLED') {
+          // Auto-submit: calculate score up to now and mark completed
+          const mcqScoreRes = await query('SELECT COALESCE(SUM(marks_obtained), 0) as sum FROM mcq_responses WHERE attempt_id = $1', [attemptId]);
+          const mcqScore = parseInt(mcqScoreRes.rows[0].sum);
+          const codingScoreRes = await query('SELECT COALESCE(SUM(marks_obtained), 0) as sum FROM coding_responses WHERE attempt_id = $1', [attemptId]);
+          const codingScore = parseInt(codingScoreRes.rows[0].sum);
+          const totalScore = mcqScore + codingScore;
+
+          const mcqMaxRes = await query('SELECT COALESCE(SUM(marks), 0) as sum FROM mcq_questions WHERE exam_id = $1', [examId]);
+          const codingMaxRes = await query('SELECT COALESCE(SUM(marks), 0) as sum FROM coding_questions WHERE exam_id = $1', [examId]);
+          const maxScorePossible = parseInt(mcqMaxRes.rows[0].sum) + parseInt(codingMaxRes.rows[0].sum);
+
+          const examResult = await query('SELECT cutoff_percentage FROM exams WHERE id = $1', [examId]);
+          const cutoff = examResult.rows[0]?.cutoff_percentage || 50;
+          const percentage = maxScorePossible > 0 ? (totalScore / maxScorePossible) * 100 : 0.0;
+          const passed = percentage >= cutoff;
+
+          const feedbackStr = `Exam auto-submitted due to: ${terminationReason}`;
+
+          await query(
+            `UPDATE exam_attempts 
+             SET status = 'completed', score = $1, percentage = $2, passed = $3, mcq_score = $4, coding_score = $5, feedback = $6
+             WHERE id = $7`,
+            [totalScore, percentage, passed, mcqScore, codingScore, feedbackStr, attemptId]
+          );
+        } else {
+          // Standard termination
+          await query(
+            `UPDATE exam_attempts 
+             SET status = 'terminated', score = 0, percentage = 0.00, passed = FALSE, feedback = $1
+             WHERE id = $2`,
+            [`Exam automatically terminated: ${terminationReason}`, attemptId]
+          );
+        }
 
         // Notify student socket to force quit
         io.to(`attempt:${attemptId}`).emit('exam-terminated', {
           reason: terminationReason,
+          autoSubmitted: eventType === 'CAMERA_DISABLED'
         });
 
         // Notify Admin of termination
@@ -282,24 +335,22 @@ io.on('connection', (socket: Socket) => {
         const consecCount = consec[eventType] || 0;
 
         const maxLimits: Record<string, number> = {
-          'MOBILE_PHONE_DETECTED': 15,
-          'BOOK_DETECTED': 20,
-          'MULTIPLE_FACES_DETECTED': 25,
-          'NO_FACE_DETECTED': 30
+          'MOBILE_PHONE_DETECTED': 2,
+          'BOOK_DETECTED': 8,
+          'MULTIPLE_FACES_DETECTED': 5,
+          'NO_FACE_DETECTED': 20
         };
 
-        if (!isWebcamEvent || (consecCount > 0 && consecCount % 3 === 0)) {
-          const limit = maxLimits[eventType] || 3;
-          const warningNum = isWebcamEvent ? consecCount : (counts[eventType] || 1);
-          const displayMsg = isWebcamEvent
-            ? `Warning: ${eventType.replace(/_/g, ' ')} detected (Violation count: ${warningNum}/${limit}). Repeated violations will terminate your exam.`
-            : `Warning: ${eventType.replace(/_/g, ' ')} detected (Violation count: ${warningNum}/3). Repeated actions will terminate your exam.`;
+        const limit = maxLimits[eventType] || 3;
+        const warningNum = isWebcamEvent ? consecCount : (counts[eventType] || 1);
+        const displayMsg = isWebcamEvent
+          ? `Warning: ${eventType.replace(/_/g, ' ')} detected (Violation count: ${warningNum}/${limit}). Repeated violations will terminate your exam.`
+          : `Warning: ${eventType.replace(/_/g, ' ')} detected (Violation count: ${warningNum}/3). Repeated actions will terminate your exam.`;
 
-          socket.emit('proctor-warning', {
-            message: displayMsg,
-            count: warningNum,
-          });
-        }
+        socket.emit('proctor-warning', {
+          message: displayMsg,
+          count: warningNum,
+        });
       }
 
     } catch (err: any) {
@@ -371,21 +422,100 @@ io.on('connection', (socket: Socket) => {
           consec['CAMERA_DISABLED'] = 0;
         }
 
-        if (result.violations && Array.isArray(result.violations)) {
-          for (const violation of result.violations) {
-            const severity = (violation === 'MOBILE_PHONE_DETECTED' || 
-                              violation === 'BOOK_DETECTED' || 
-                              violation === 'MULTIPLE_FACES_DETECTED') ? 'critical' : 'warning';
-            
-            await processViolation(
-              attemptId,
-              studentId,
-              examId,
-              violation,
-              `AI detected infraction: ${violation}`,
-              severity,
-              socket
-            );
+        if (Array.isArray(currentViolations)) {
+          for (const violation of currentViolations) {
+            consec[violation] = (consec[violation] || 0) + 1;
+            const consecCount = consec[violation];
+
+            if (violation === 'NO_FACE_DETECTED') {
+              if (consecCount === 3) {
+                // 5 seconds warning
+                socket.emit('proctor-warning', {
+                  message: 'Warning: No face detected. Please face the camera (Violation count: 5s / 30s).',
+                  count: consecCount
+                });
+              } else if (consecCount === 10) {
+                // 15 seconds: Fraud event logged in DB
+                await processViolation(
+                  attemptId,
+                  studentId,
+                  examId,
+                  violation,
+                  'No face detected for more than 15 seconds (Fraud Event).',
+                  'critical',
+                  socket
+                );
+              } else if (consecCount >= 20) {
+                // 30 seconds: Terminate
+                await processViolation(
+                  attemptId,
+                  studentId,
+                  examId,
+                  violation,
+                  'No face detected for more than 30 seconds.',
+                  'critical',
+                  socket
+                );
+              }
+            }
+            else if (violation === 'MULTIPLE_FACES_DETECTED') {
+              if (consecCount === 1) {
+                // Immediate Fraud Alert on first detection
+                await processViolation(
+                  attemptId,
+                  studentId,
+                  examId,
+                  violation,
+                  'Multiple faces detected (Fraud Alert).',
+                  'warning',
+                  socket
+                );
+              } else if (consecCount >= 5) {
+                // Repeated detection: Terminate
+                await processViolation(
+                  attemptId,
+                  studentId,
+                  examId,
+                  violation,
+                  'Multiple faces detected repeatedly.',
+                  'critical',
+                  socket
+                );
+              }
+            }
+            else if (violation === 'MOBILE_PHONE_DETECTED') {
+              if (consecCount >= 2) {
+                // Terminate exam
+                await processViolation(
+                  attemptId,
+                  studentId,
+                  examId,
+                  violation,
+                  'Mobile phone detected in camera view.',
+                  'critical',
+                  socket
+                );
+              }
+            }
+            else if (violation === 'BOOK_DETECTED') {
+              if (consecCount === 2) {
+                socket.emit('proctor-warning', {
+                  message: 'Warning: Book or notes detected in camera view.',
+                  count: consecCount
+                });
+              } else if (consecCount >= 8) {
+                // Terminate exam
+                await processViolation(
+                  attemptId,
+                  studentId,
+                  examId,
+                  violation,
+                  'Book or notes detected repeatedly.',
+                  'critical',
+                  socket
+                );
+              }
+            }
           }
         }
       }

@@ -921,6 +921,39 @@ app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requir
   }
 });
 
+// Lightweight auto-save endpoint for coding solutions (does not execute Judge0)
+app.post('/api/exams/student/attempts/:attemptId/save-code', authenticate, requireRole('student'), async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    const { code, language, questionId } = req.body;
+    if (!questionId) {
+      return res.status(400).json({ error: 'Question ID is required' });
+    }
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(attemptId) || !uuidRegex.test(questionId)) {
+      return res.status(400).json({ error: 'Invalid attempt ID or question ID format. Must be a valid UUID.' });
+    }
+
+    // Save as 'Draft' with 0 marks/passed cases so we don't disrupt current evaluation
+    await query(
+      `INSERT INTO coding_responses (
+        attempt_id, question_id, code, language, status,
+        test_cases_passed, total_test_cases, execution_time_ms, memory_used_kb, marks_obtained
+      ) VALUES ($1, $2, $3, $4, 'Draft', 0, 0, 0, 0, 0)
+       ON CONFLICT (attempt_id, question_id) 
+       DO UPDATE SET code = EXCLUDED.code,
+                     language = EXCLUDED.language`,
+      [attemptId, questionId, code || '', language || 'Python']
+    );
+
+    res.json({ success: true, message: 'Code saved successfully as Draft' });
+  } catch (err: any) {
+    console.error('ERROR in save-code endpoint:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Submit Code (Runs all test cases including hidden ones, scores response)
 app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, requireRole('student'), async (req, res) => {
   try {
@@ -1045,10 +1078,6 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
 
     const durationMins = exam.duration_minutes !== null && exam.duration_minutes !== undefined ? exam.duration_minutes : 60;
     const timePassedSeconds = (Date.now() - new Date(attempt.created_at).getTime()) / 1000;
-    // Allow a 30-second grace period for network delays/clock drift
-    if (timePassedSeconds < (durationMins * 60) - 30) {
-      return res.status(400).json({ error: 'You cannot submit the exam early. Please wait for the exam time to complete.' });
-    }
 
     // Compute MCQ scores
     const mcqsScoreRes = await query('SELECT COALESCE(SUM(marks_obtained), 0) as sum FROM mcq_responses WHERE attempt_id = $1', [attemptId]);

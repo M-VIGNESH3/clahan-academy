@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import * as XLSX from 'xlsx';
+import Editor from '@monaco-editor/react';
 
 // Core Types
 interface College { id: string; name: string; }
@@ -264,6 +265,83 @@ export default function App() {
   const [isOutputCollapsed, setIsOutputCollapsed] = useState(false);
   const [editorFontSize, setEditorFontSize] = useState(13);
   const [editorHeight, setEditorHeight] = useState(400);
+
+  // Auto-Save Status
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
+
+  // Internet & Fullscreen Status
+  const [isOnline, setIsOnline] = useState(window.navigator.onLine);
+  const [isFullscreen, setIsFullscreen] = useState(!!document.fullscreenElement);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Unsaved changes warning on page unload
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (currentPage === 'exam-env' && currentAttempt?.id) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes in your exam. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [currentPage, currentAttempt?.id]);
+
+  // Periodic Auto-Save for coding solutions (runs every 10 seconds during exam)
+  useEffect(() => {
+    if (currentPage !== 'exam-env' || !currentAttempt?.id) return;
+
+    const interval = setInterval(async () => {
+      if (Object.keys(codingSolutions).length === 0) return;
+      setAutoSaveStatus('saving');
+      try {
+        let success = true;
+        // Save backup to localStorage
+        localStorage.setItem(`clahan_coding_sol_${currentAttempt.id}`, JSON.stringify(codingSolutions));
+
+        for (const questionId of Object.keys(codingSolutions)) {
+          const sol = codingSolutions[questionId];
+          const response = await fetch(`${API_EXAMS}/student/attempts/${currentAttempt.id}/save-code`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ code: sol.code, language: sol.language, questionId })
+          });
+          if (!response.ok) {
+            success = false;
+          }
+        }
+        if (success) {
+          setAutoSaveStatus('saved');
+          setTimeout(() => setAutoSaveStatus(null), 2000);
+        } else {
+          setAutoSaveStatus('error');
+        }
+      } catch (err) {
+        console.error('Auto-save error:', err);
+        setAutoSaveStatus('error');
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [currentPage, currentAttempt?.id, codingSolutions, token]);
 
   // Proctor warnings
   const [tabWarnings, setTabWarnings] = useState(0);
@@ -1925,6 +2003,22 @@ export default function App() {
         data.responses.codings.forEach((r: any) => {
           codSol[r.question_id] = { code: r.code, language: r.language };
         });
+
+        // Restore code from local storage if available (local backup)
+        try {
+          const cached = localStorage.getItem(`clahan_coding_sol_${attemptId}`);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            Object.keys(parsed).forEach(qId => {
+              if (parsed[qId]?.code) {
+                codSol[qId] = parsed[qId];
+              }
+            });
+          }
+        } catch (e) {
+          console.warn('Failed to restore code from localStorage:', e);
+        }
+
         setCodingSolutions(codSol);
 
         const examObj = data.exam || currentExam;
@@ -5717,21 +5811,62 @@ export default function App() {
           {validationStep === 'active' && currentAttempt && (
             <div className="h-full flex flex-col justify-between">
               {/* Header inside Exam environment */}
-              <div className="flex justify-between items-center border-b border-white/10 pb-4 mb-4">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/10 pb-5 mb-6 bg-slate-900/40 p-4 rounded-2xl border border-white/5 backdrop-blur-md">
                 <div>
-                  <h3 className="font-extrabold text-base">{currentExam?.name || 'Loading Exam...'}</h3>
-                  <p className="text-[10px] text-indigo-400 mt-0.5">Warnings: {tabWarnings} / 2 (Tab-Locks active)</p>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <h3 className="font-extrabold text-base tracking-tight text-white">{currentExam?.name || 'Loading Exam...'}</h3>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 mt-1.5 text-[10px] font-semibold text-slate-400">
+                    <span className="bg-slate-950 px-2 py-0.5 rounded border border-white/5 flex items-center gap-1">
+                      <Shield className="h-3 w-3 text-indigo-400" />
+                      Proctored Session
+                    </span>
+                    <span className={`px-2 py-0.5 rounded border flex items-center gap-1 ${tabWarnings > 0 ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-slate-950 border-white/5 text-emerald-400'}`}>
+                      <AlertTriangle className="h-3 w-3" />
+                      Tab Locks: {tabWarnings}/2 Warnings
+                    </span>
+                    
+                    {/* Fullscreen Badge */}
+                    <button 
+                      onClick={enterFullscreen}
+                      className={`px-2 py-0.5 rounded border flex items-center gap-1 transition-all ${isFullscreen ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/25 text-rose-450 hover:bg-rose-500/20 animate-pulse'}`}
+                    >
+                      <Maximize2 className="h-3 w-3" />
+                      {isFullscreen ? 'Fullscreen Active' : 'Request Fullscreen'}
+                    </button>
+
+                    {/* Online status Badge */}
+                    <span className={`px-2 py-0.5 rounded border flex items-center gap-1 ${isOnline ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400 animate-bounce'}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                      {isOnline ? 'Connected' : 'Offline'}
+                    </span>
+
+                    {/* Auto-Save status indicator */}
+                    {autoSaveStatus && (
+                      <span className={`px-2 py-0.5 rounded border flex items-center gap-1 transition-all ${
+                        autoSaveStatus === 'saving' 
+                          ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' 
+                          : autoSaveStatus === 'saved' 
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                            : 'bg-rose-500/10 border-rose-500/20 text-rose-450'
+                      }`}>
+                        {autoSaveStatus === 'saving' ? 'Saving draft...' : autoSaveStatus === 'saved' ? 'Draft saved' : 'Save Error'}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 ml-auto md:ml-0">
                   {/* Webcam small PIP */}
-                  <div className="h-12 w-16 rounded-lg bg-slate-950 border border-white/15 overflow-hidden hidden sm:block relative">
+                  <div className="h-12 w-16 rounded-xl bg-slate-950 border border-white/15 overflow-hidden relative shadow-lg">
                     <video ref={(el) => { videoRef.current = el; if (el && cameraStream) { el.srcObject = cameraStream; } }} autoPlay playsInline muted className="h-full w-full object-cover" />
+                    <div className="absolute top-1 right-1 h-2 w-2 rounded-full bg-emerald-500 animate-pulse border border-slate-950"></div>
                   </div>
 
                   <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Time Remaining</p>
-                    <p className="font-mono font-bold text-lg text-indigo-400">
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Time Remaining</p>
+                    <p className={`font-mono font-black text-xl tracking-wide ${timeLeft < 300 ? 'text-rose-500 animate-pulse' : 'text-indigo-400'}`}>
                       {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
                     </p>
                   </div>
@@ -5745,10 +5880,10 @@ export default function App() {
                       submitEntireExam();
                     }}
                     disabled={timeLeft > 0}
-                    className={`px-6 py-2.5 text-white font-bold rounded-xl text-xs uppercase transition-all ${
+                    className={`px-6 py-3 text-white font-extrabold rounded-xl text-xs uppercase tracking-wider transition-all border ${
                       timeLeft > 0 
-                        ? 'bg-slate-700/50 cursor-not-allowed text-slate-400 border border-slate-600/30' 
-                        : 'bg-rose-600 hover:bg-rose-500'
+                        ? 'bg-slate-800/40 cursor-not-allowed text-slate-500 border-white/5' 
+                        : 'bg-rose-600 hover:bg-rose-500 border-rose-500/30 shadow-lg shadow-rose-600/25'
                     }`}
                     title={timeLeft > 0 ? "Submission is disabled until exam time is completed" : "Submit Exam"}
                   >
@@ -5762,22 +5897,38 @@ export default function App() {
                 {/* Left Side: Question Navigation */}
                 <div className="lg:col-span-1 rounded-2xl bg-slate-950 border border-white/10 p-4 space-y-4 flex flex-col">
                   <div>
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Exam Sections</h4>
-                    <div className="flex bg-slate-900 p-1 rounded-xl">
+                    <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2.5">Exam Sections</h4>
+                    <div className="flex flex-col gap-2">
                       {(currentExam?.exam_type !== 'coding' || examMCQs.length > 0) && (
                         <button
                           onClick={() => { setSelectedSection('mcq'); setActiveQuestionIndex(0); }}
-                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${selectedSection === 'mcq' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                          className={`w-full py-2.5 px-3 text-left rounded-xl transition-all border flex items-center justify-between ${
+                            selectedSection === 'mcq' 
+                              ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/15' 
+                              : 'bg-slate-900 text-slate-400 border-white/5 hover:bg-slate-800'
+                          }`}
                         >
-                          MCQ Section
+                          <span className="text-xs font-bold flex items-center gap-2">
+                            <BookOpen className="h-4 w-4" />
+                            Section A: MCQs
+                          </span>
+                          <span className="text-[9px] font-mono px-2 py-0.5 bg-slate-950/60 rounded text-slate-300 font-bold">{examMCQs.length} Qs</span>
                         </button>
                       )}
                       {(currentExam?.exam_type !== 'mcq' || examCodings.length > 0) && (
                         <button
                           onClick={() => { setSelectedSection('coding'); setActiveQuestionIndex(0); }}
-                          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${selectedSection === 'coding' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+                          className={`w-full py-2.5 px-3 text-left rounded-xl transition-all border flex items-center justify-between ${
+                            selectedSection === 'coding' 
+                              ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/15' 
+                              : 'bg-slate-900 text-slate-400 border-white/5 hover:bg-slate-800'
+                          }`}
                         >
-                          Coding Section
+                          <span className="text-xs font-bold flex items-center gap-2">
+                            <Code className="h-4 w-4" />
+                            Section B: Coding
+                          </span>
+                          <span className="text-[9px] font-mono px-2 py-0.5 bg-slate-950/60 rounded text-slate-300 font-bold">{examCodings.length} Qs</span>
                         </button>
                       )}
                     </div>
@@ -6042,21 +6193,38 @@ export default function App() {
                               Reset Starter Code
                             </button>
                           </div>
-                          <textarea
+                          <Editor
+                            height={`${editorHeight}px`}
+                            language={(() => {
+                              const rawLang = codingSolutions[examCodings[activeQuestionIndex].id]?.language || examCodings[activeQuestionIndex].language || 'python';
+                              const l = rawLang.toLowerCase();
+                              if (l === 'c++' || l === 'cpp') return 'cpp';
+                              return l;
+                            })()}
                             value={codingSolutions[examCodings[activeQuestionIndex].id]?.code || ''}
-                            style={{ height: `${editorHeight}px`, fontSize: `${editorFontSize}px` }}
-                            onChange={e => {
+                            theme="vs-dark"
+                            onChange={(value) => {
                               const qId = examCodings[activeQuestionIndex].id;
                               setCodingSolutions(prev => ({
                                 ...prev,
                                 [qId]: { 
-                                  code: e.target.value, 
+                                  code: value || '', 
                                   language: prev[qId]?.language || examCodings[activeQuestionIndex].language 
                                 }
                               }));
                             }}
-                            className="w-full p-5 bg-slate-950 text-emerald-400 font-mono border-none outline-none resize-none leading-relaxed focus:ring-0 focus:border-none"
-                            placeholder="Write your solution here..."
+                            options={{
+                              fontSize: editorFontSize,
+                              minimap: { enabled: false },
+                              lineNumbers: 'on',
+                              roundedSelection: false,
+                              scrollBeyondLastLine: false,
+                              readOnly: false,
+                              automaticLayout: true,
+                              cursorBlinking: 'smooth',
+                              formatOnType: true,
+                              formatOnPaste: true,
+                            }}
                           />
                         </div>
                       </div>

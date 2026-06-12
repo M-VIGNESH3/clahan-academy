@@ -733,6 +733,19 @@ app.post('/api/exams/student/attempts/:attemptId/mcq-response', authenticate, re
         res.status(500).json({ error: err.message });
     }
 });
+const encodeBase64 = (str) => {
+    return Buffer.from(str || '').toString('base64');
+};
+const decodeBase64 = (str) => {
+    if (!str)
+        return '';
+    try {
+        return Buffer.from(str, 'base64').toString('utf-8');
+    }
+    catch {
+        return str;
+    }
+};
 // Run Code against visible sample cases (Judge0)
 app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requireRole('student'), async (req, res) => {
     try {
@@ -760,19 +773,19 @@ app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requir
         const judgeLanguageId = langIdMap[language.toLowerCase()] || 71;
         for (const tc of testCases.rows) {
             try {
-                const response = await axios_1.default.post(`${JUDGE0_URL}/submissions?base64_encoded=false&wait=true`, {
-                    source_code: code,
+                const response = await axios_1.default.post(`${JUDGE0_URL}/submissions?base64_encoded=true&wait=true`, {
+                    source_code: encodeBase64(code),
                     language_id: judgeLanguageId,
-                    stdin: tc.input,
-                    expected_output: tc.expected_output
+                    stdin: encodeBase64(tc.input),
+                    expected_output: encodeBase64(tc.expected_output)
                 }, { timeout: 8000 });
                 const sub = response.data;
                 const passed = sub.status?.id === 3; // 3 is 'Accepted'
                 results.push({
                     input: tc.input,
                     expectedOutput: tc.expected_output,
-                    stdout: sub.stdout || '',
-                    stderr: sub.stderr || sub.compile_output || '',
+                    stdout: decodeBase64(sub.stdout || ''),
+                    stderr: decodeBase64(sub.stderr || sub.compile_output || ''),
                     passed,
                     status: sub.status?.description || 'Unknown',
                     timeMs: sub.time ? parseFloat(sub.time) * 1000 : 0,
@@ -798,6 +811,33 @@ app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requir
     }
     catch (err) {
         console.error('ERROR in run-code endpoint:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+// Lightweight auto-save endpoint for coding solutions (does not execute Judge0)
+app.post('/api/exams/student/attempts/:attemptId/save-code', authenticate, requireRole('student'), async (req, res) => {
+    try {
+        const { attemptId } = req.params;
+        const { code, language, questionId } = req.body;
+        if (!questionId) {
+            return res.status(400).json({ error: 'Question ID is required' });
+        }
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(attemptId) || !uuidRegex.test(questionId)) {
+            return res.status(400).json({ error: 'Invalid attempt ID or question ID format. Must be a valid UUID.' });
+        }
+        // Save as 'Draft' with 0 marks/passed cases so we don't disrupt current evaluation
+        await query(`INSERT INTO coding_responses (
+        attempt_id, question_id, code, language, status,
+        test_cases_passed, total_test_cases, execution_time_ms, memory_used_kb, marks_obtained
+      ) VALUES ($1, $2, $3, $4, 'Draft', 0, 0, 0, 0, 0)
+       ON CONFLICT (attempt_id, question_id) 
+       DO UPDATE SET code = EXCLUDED.code,
+                     language = EXCLUDED.language`, [attemptId, questionId, code || '', language || 'Python']);
+        res.json({ success: true, message: 'Code saved successfully as Draft' });
+    }
+    catch (err) {
+        console.error('ERROR in save-code endpoint:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -835,11 +875,11 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
         let errMessage = '';
         for (const tc of testCases.rows) {
             try {
-                const response = await axios_1.default.post(`${JUDGE0_URL}/submissions?base64_encoded=false&wait=true`, {
-                    source_code: code,
+                const response = await axios_1.default.post(`${JUDGE0_URL}/submissions?base64_encoded=true&wait=true`, {
+                    source_code: encodeBase64(code),
                     language_id: judgeLanguageId,
-                    stdin: tc.input,
-                    expected_output: tc.expected_output
+                    stdin: encodeBase64(tc.input),
+                    expected_output: encodeBase64(tc.expected_output)
                 }, { timeout: 8000 });
                 const sub = response.data;
                 if (sub.status?.id === 3) {
@@ -847,7 +887,7 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
                 }
                 else if (sub.status?.id === 6) {
                     isCompileError = true;
-                    errMessage = sub.compile_output || 'Compilation error';
+                    errMessage = decodeBase64(sub.compile_output || '') || 'Compilation error';
                 }
                 const tMs = sub.time ? parseFloat(sub.time) * 1000 : 0;
                 if (tMs > maxTimeMs)
@@ -910,10 +950,6 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
         const exam = examResult.rows[0];
         const durationMins = exam.duration_minutes !== null && exam.duration_minutes !== undefined ? exam.duration_minutes : 60;
         const timePassedSeconds = (Date.now() - new Date(attempt.created_at).getTime()) / 1000;
-        // Allow a 30-second grace period for network delays/clock drift
-        if (timePassedSeconds < (durationMins * 60) - 30) {
-            return res.status(400).json({ error: 'You cannot submit the exam early. Please wait for the exam time to complete.' });
-        }
         // Compute MCQ scores
         const mcqsScoreRes = await query('SELECT COALESCE(SUM(marks_obtained), 0) as sum FROM mcq_responses WHERE attempt_id = $1', [attemptId]);
         const mcqScore = parseInt(mcqsScoreRes.rows[0].sum);
@@ -1126,7 +1162,7 @@ app.post('/api/exams/admin/generate-coding-question', authenticate, requireRole(
             topic,
             difficulty: difficulty || 'medium',
             language: language || 'Python'
-        }, { timeout: 15000 });
+        }, { timeout: 65000 });
         res.json(response.data);
     }
     catch (err) {
