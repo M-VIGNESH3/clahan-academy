@@ -233,6 +233,7 @@ async def analyze_frame(
         
         # Initialize default response
         face_count = 1
+        yolo_persons = 0
         objects_detected = []
         violations = []
         
@@ -249,16 +250,41 @@ async def analyze_frame(
                 output = np.transpose(output) # (8400, 84)
                 
                 # Check confidence for specific classes
+                boxes = []
+                confidences = []
+                class_ids = []
                 for row in output:
                     classes_scores = row[4:]
                     class_id = np.argmax(classes_scores)
                     confidence = classes_scores[class_id]
                     if confidence > 0.15:
                         class_name = CLASSES[class_id]
-                        if class_name in ["cell phone", "book"]:
-                            objects_detected.append(class_name)
-                        elif class_name == "person" and confidence > 0.18:
-                            objects_detected.append(class_name)
+                        if class_name in ["person", "cell phone", "book"]:
+                            cx, cy, w, h = row[0], row[1], row[2], row[3]
+                            left = int(cx - w/2)
+                            top = int(cy - h/2)
+                            boxes.append([left, top, int(w), int(h)])
+                            confidences.append(float(confidence))
+                            class_ids.append(int(class_id))
+                
+                if len(boxes) > 0:
+                    indices = cv2.dnn.NMSBoxes(boxes, confidences, 0.15, 0.4)
+                    # Convert to flat list to handle empty list or nested list structures across opencv versions safely
+                    flat_indices = []
+                    if len(indices) > 0:
+                        for idx in indices:
+                            if isinstance(idx, (list, np.ndarray)):
+                                flat_indices.append(idx[0])
+                            else:
+                                flat_indices.append(idx)
+                    
+                    for i in flat_indices:
+                        c_name = CLASSES[class_ids[i]]
+                        if c_name == "person":
+                            yolo_persons += 1
+                            objects_detected.append("person")
+                        elif c_name in ["cell phone", "book"]:
+                            objects_detected.append(c_name)
                             
                 objects_detected = list(set(objects_detected))
             except Exception as e:
@@ -275,10 +301,16 @@ async def analyze_frame(
                 logger.error(f"Face detection error: {str(e)}")
                 face_count = 1
 
-        # Fallback: If YOLOv8 detects a person but Haar Cascade missed the face,
+        # Fallback 1: If YOLOv8 detects a person but Haar Cascade missed the face,
         # set face_count to 1 since the student is present in front of the camera.
-        if face_count == 0 and "person" in objects_detected:
+        if face_count == 0 and yolo_persons > 0:
             logger.info("Face Cascade detected 0 faces, but YOLOv8 detected a 'person'. Overriding face_count to 1.")
+            face_count = 1
+
+        # Fallback 2: If Haar Cascade detects multiple faces but YOLOv8 detects only 1 person,
+        # override face_count to 1 to filter out false positive background/shadow faces.
+        if face_count > 1 and yolo_persons <= 1:
+            logger.info(f"Face Cascade detected {face_count} faces, but YOLOv8 detected {yolo_persons} person(s). Overriding face_count to 1.")
             face_count = 1
 
         # Evaluate violations

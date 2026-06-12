@@ -1901,6 +1901,9 @@ export default function App() {
         const data = await res.json();
         setExamMCQs(data.mcqQuestions);
         setExamCodings(data.codingQuestions);
+        if (data.exam) {
+          setCurrentExam(data.exam);
+        }
         
         // Initialize default answers
         const mcqAns: Record<string, string> = {};
@@ -5703,7 +5706,7 @@ export default function App() {
               {/* Header inside Exam environment */}
               <div className="flex justify-between items-center border-b border-white/10 pb-4 mb-4">
                 <div>
-                  <h3 className="font-extrabold text-base">{currentExam.name}</h3>
+                  <h3 className="font-extrabold text-base">{currentExam?.name || 'Loading Exam...'}</h3>
                   <p className="text-[10px] text-indigo-400 mt-0.5">Warnings: {tabWarnings} / 2 (Tab-Locks active)</p>
                 </div>
 
@@ -5748,7 +5751,7 @@ export default function App() {
                   <div>
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Exam Sections</h4>
                     <div className="flex bg-slate-900 p-1 rounded-xl">
-                      {currentExam.exam_type !== 'coding' && (
+                      {currentExam?.exam_type !== 'coding' && (
                         <button
                           onClick={() => { setSelectedSection('mcq'); setActiveQuestionIndex(0); }}
                           className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${selectedSection === 'mcq' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
@@ -5756,7 +5759,7 @@ export default function App() {
                           MCQ Section
                         </button>
                       )}
-                      {currentExam.exam_type !== 'mcq' && (
+                      {currentExam?.exam_type !== 'mcq' && (
                         <button
                           onClick={() => { setSelectedSection('coding'); setActiveQuestionIndex(0); }}
                           className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${selectedSection === 'coding' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
