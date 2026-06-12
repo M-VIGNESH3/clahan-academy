@@ -207,42 +207,42 @@ io.on('connection', (socket: Socket) => {
         shouldTerminate = true;
         terminationReason = 'Webcam was disabled or blocked.';
       }
-      // Rule 3: Mobile Phone detected -> Terminate after 10 consecutive detections
+      // Rule 3: Mobile Phone detected -> Terminate after 15 consecutive detections
       else if (eventType === 'MOBILE_PHONE_DETECTED') {
         const consec = consecutiveViolations[attemptId] || {};
         consec['MOBILE_PHONE_DETECTED'] = (consec['MOBILE_PHONE_DETECTED'] || 0) + 1;
         consecutiveViolations[attemptId] = consec;
-        if (consec['MOBILE_PHONE_DETECTED'] >= 10) {
+        if (consec['MOBILE_PHONE_DETECTED'] >= 15) {
           shouldTerminate = true;
           terminationReason = 'Mobile phone or device detected in camera view for prolonged duration.';
         }
       }
-      // Rule 4: Book detected -> Terminate after 10 consecutive detections
+      // Rule 4: Book detected -> Terminate after 20 consecutive detections
       else if (eventType === 'BOOK_DETECTED') {
         const consec = consecutiveViolations[attemptId] || {};
         consec['BOOK_DETECTED'] = (consec['BOOK_DETECTED'] || 0) + 1;
         consecutiveViolations[attemptId] = consec;
-        if (consec['BOOK_DETECTED'] >= 10) {
+        if (consec['BOOK_DETECTED'] >= 20) {
           shouldTerminate = true;
           terminationReason = 'Book or study notes detected in camera view for prolonged duration.';
         }
       }
-      // Rule 5: Multiple faces -> Terminate after 10 consecutive detections
+      // Rule 5: Multiple faces -> Terminate after 25 consecutive detections
       else if (eventType === 'MULTIPLE_FACES_DETECTED') {
         const consec = consecutiveViolations[attemptId] || {};
         consec['MULTIPLE_FACES_DETECTED'] = (consec['MULTIPLE_FACES_DETECTED'] || 0) + 1;
         consecutiveViolations[attemptId] = consec;
-        if (consec['MULTIPLE_FACES_DETECTED'] >= 10) {
+        if (consec['MULTIPLE_FACES_DETECTED'] >= 25) {
           shouldTerminate = true;
           terminationReason = 'Multiple faces detected in the webcam view.';
         }
       }
-      // Rule 6: No face for long duration -> Warning then Terminate (10 consecutive violations)
+      // Rule 6: No face for long duration -> Warning then Terminate (30 consecutive violations)
       else if (eventType === 'NO_FACE_DETECTED') {
         const consec = consecutiveViolations[attemptId] || {};
         consec['NO_FACE_DETECTED'] = (consec['NO_FACE_DETECTED'] || 0) + 1;
         consecutiveViolations[attemptId] = consec;
-        if (consec['NO_FACE_DETECTED'] >= 10) {
+        if (consec['NO_FACE_DETECTED'] >= 30) {
           shouldTerminate = true;
           terminationReason = 'No face detected for prolonged duration.';
         }
@@ -281,10 +281,18 @@ io.on('connection', (socket: Socket) => {
         const consec = consecutiveViolations[attemptId] || {};
         const consecCount = consec[eventType] || 0;
 
+        const maxLimits: Record<string, number> = {
+          'MOBILE_PHONE_DETECTED': 15,
+          'BOOK_DETECTED': 20,
+          'MULTIPLE_FACES_DETECTED': 25,
+          'NO_FACE_DETECTED': 30
+        };
+
         if (!isWebcamEvent || (consecCount > 0 && consecCount % 3 === 0)) {
-          const warningNum = isWebcamEvent ? Math.floor(consecCount / 3) : (counts[eventType] || 1);
+          const limit = maxLimits[eventType] || 3;
+          const warningNum = isWebcamEvent ? consecCount : (counts[eventType] || 1);
           const displayMsg = isWebcamEvent
-            ? `Warning ${warningNum}/3: ${eventType.replace(/_/g, ' ')} detected. Please return to camera view immediately.`
+            ? `Warning: ${eventType.replace(/_/g, ' ')} detected (Violation count: ${warningNum}/${limit}). Repeated violations will terminate your exam.`
             : `Warning: ${eventType.replace(/_/g, ' ')} detected (Violation count: ${warningNum}/3). Repeated actions will terminate your exam.`;
 
           socket.emit('proctor-warning', {

@@ -259,6 +259,12 @@ export default function App() {
   const [mcqAnswers, setMcqAnswers] = useState<Record<string, string>>({}); // { questionId: selectedOption }
   const [codingSolutions, setCodingSolutions] = useState<Record<string, { code: string; language: string }>>({}); // { questionId: { code, lang } }
   
+  // Resizable Panel & Editor controls
+  const [isDescriptionCollapsed, setIsDescriptionCollapsed] = useState(false);
+  const [isOutputCollapsed, setIsOutputCollapsed] = useState(false);
+  const [editorFontSize, setEditorFontSize] = useState(13);
+  const [editorHeight, setEditorHeight] = useState(400);
+
   // Proctor warnings
   const [tabWarnings, setTabWarnings] = useState(0);
   const [proctorLogs, setProctorLogs] = useState<string[]>([]);
@@ -2149,6 +2155,7 @@ export default function App() {
       const data = await res.json();
       if (res.ok && data.results) {
         setCodeExecutionResults(data.results);
+        setIsOutputCollapsed(false);
       } else {
         showToast(data.error || 'Failed to run code sample', 'error');
         setCodeExecutionResults([]);
@@ -2159,6 +2166,7 @@ export default function App() {
         setCodeExecutionResults([
           { input: '[2,7,11,15]\n9', expectedOutput: '[0,1]', stdout: '[0,1]', stderr: '', passed: true, status: 'Accepted (Simulated)', timeMs: 14, memoryKb: 140 }
         ]);
+        setIsOutputCollapsed(false);
         setIsRunningCode(false);
       }, 1000);
       return;
@@ -5871,43 +5879,75 @@ export default function App() {
 
                   {selectedSection === 'coding' && examCodings[activeQuestionIndex] && (
                     <div className="h-full flex flex-col justify-between gap-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 items-stretch min-h-[350px]">
-                        {/* Description */}
-                        <div className="p-4 rounded-xl bg-slate-900 border border-white/5 overflow-y-auto space-y-3">
-                          <h4 className="font-bold text-sm text-indigo-400">{examCodings[activeQuestionIndex].title}</h4>
-                          <p className="text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap">
-                            {examCodings[activeQuestionIndex].description}
-                          </p>
+                      {/* Premium IDE Workspace Toolbar */}
+                      <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-900/80 p-3 rounded-2xl border border-white/10 backdrop-blur-md">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setIsDescriptionCollapsed(!isDescriptionCollapsed)}
+                            className={`px-3 py-1.5 rounded-xl font-bold border transition-all text-xs flex items-center gap-2 ${
+                              isDescriptionCollapsed 
+                                ? 'bg-indigo-500/10 border-indigo-500/35 text-indigo-400 hover:bg-indigo-500/25' 
+                                : 'bg-slate-950/65 border-white/10 text-slate-300 hover:bg-slate-800'
+                            }`}
+                            title={isDescriptionCollapsed ? "Show Question panel" : "Hide Question panel"}
+                          >
+                            <BookOpen className="h-4 w-4" />
+                            {isDescriptionCollapsed ? "Show Question Description" : "Hide Question"}
+                          </button>
                           
-                          {/* Render Sample Test Cases */}
-                          {examCodings[activeQuestionIndex].testCases && examCodings[activeQuestionIndex].testCases.length > 0 && (
-                            <div className="mt-6 pt-4 border-t border-white/10 space-y-3">
-                              <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest block font-black">Sample Test Cases (Verify your logic against these)</span>
-                              <div className="space-y-3">
-                                {examCodings[activeQuestionIndex].testCases.map((tc: any, tcIdx: number) => (
-                                  <div key={tc.id || tcIdx} className="p-3 bg-slate-950 rounded-lg border border-white/5 space-y-2 text-[10px] font-mono">
-                                    <div className="font-bold text-slate-400">Sample Case #{tcIdx + 1}</div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                      <div>
-                                        <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Input:</div>
-                                        <pre className="bg-slate-900/50 p-2 rounded text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-[80px]">{tc.input}</pre>
-                                      </div>
-                                      <div>
-                                        <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Expected Output:</div>
-                                        <pre className="bg-slate-900/50 p-2 rounded text-slate-300 overflow-x-auto whitespace-pre-wrap max-h-[80px]">{tc.expected_output}</pre>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
+                          {codeExecutionResults.length > 0 && (
+                            <button
+                              onClick={() => setIsOutputCollapsed(!isOutputCollapsed)}
+                              className={`px-3 py-1.5 rounded-xl font-bold border transition-all text-xs flex items-center gap-2 ${
+                                isOutputCollapsed 
+                                  ? 'bg-amber-500/10 border-amber-500/35 text-amber-400 hover:bg-amber-500/25' 
+                                  : 'bg-slate-950/65 border-white/10 text-slate-300 hover:bg-slate-800'
+                              }`}
+                              title={isOutputCollapsed ? "Open Execution Output panel" : "Close Execution Output panel"}
+                            >
+                              <Terminal className="h-4 w-4" />
+                              {isOutputCollapsed ? "Open Output Tab" : "Close Output Tab"}
+                            </button>
                           )}
                         </div>
 
-                        {/* IDE Editor */}
-                        <div className="flex flex-col rounded-xl border border-white/5 overflow-hidden">
-                          <div className="bg-slate-900 px-4 py-2 border-b border-white/5 flex justify-between items-center">
-                            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">Compiler Language</span>
+                        <div className="flex items-center gap-4 flex-wrap">
+                          {/* Font Size controls */}
+                          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-white/5">
+                            <button 
+                              onClick={() => setEditorFontSize(f => Math.max(10, f - 1))}
+                              className="w-7 h-7 flex items-center justify-center hover:bg-slate-800 text-xs font-bold rounded-lg text-slate-400 transition-all"
+                              title="Decrease font size"
+                            >
+                              A-
+                            </button>
+                            <span className="px-2 text-xs font-bold font-mono text-slate-300 min-w-[32px] text-center">{editorFontSize}px</span>
+                            <button 
+                              onClick={() => setEditorFontSize(f => Math.min(20, f + 1))}
+                              className="w-7 h-7 flex items-center justify-center hover:bg-slate-800 text-xs font-bold rounded-lg text-slate-400 transition-all"
+                              title="Increase font size"
+                            >
+                              A+
+                            </button>
+                          </div>
+
+                          {/* Editor Height Adjustment */}
+                          <div className="flex items-center gap-3 bg-slate-950 p-1.5 rounded-xl border border-white/5 text-[11px] font-semibold text-slate-400">
+                            <span className="pl-1">Height:</span>
+                            <input 
+                              type="range" 
+                              min="250" 
+                              max="850" 
+                              value={editorHeight} 
+                              onChange={(e) => setEditorHeight(parseInt(e.target.value))}
+                              className="w-24 accent-indigo-500 bg-slate-900 h-1.5 rounded-lg cursor-pointer"
+                            />
+                            <span className="pr-1 font-bold text-slate-300 font-mono w-10 text-right">{editorHeight}px</span>
+                          </div>
+
+                          {/* Compiler Language Selection */}
+                          <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-xl border border-white/5">
+                            <span className="text-[10px] uppercase font-mono text-slate-500 pl-2">Lang:</span>
                             <select
                               value={codingSolutions[examCodings[activeQuestionIndex].id]?.language || examCodings[activeQuestionIndex].language}
                               onChange={e => {
@@ -5916,7 +5956,6 @@ export default function App() {
                                 const currentVal = codingSolutions[qId];
                                 const currentCode = currentVal?.code || '';
 
-                                // Auto-template override only if editor is currently empty or has default template/starter code
                                 const isTemplateOrEmpty = !currentCode.trim() || 
                                   currentCode.includes('Write your logic here') || 
                                   currentCode.includes('import java.util.*;') ||
@@ -5932,7 +5971,7 @@ export default function App() {
                                   }
                                 }));
                               }}
-                              className="bg-slate-950 border border-slate-800 text-xs font-semibold px-2 py-1 rounded text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500"
+                              className="bg-slate-900 border border-slate-800 text-xs font-bold px-3 py-1 rounded-lg text-slate-200 outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
                             >
                               <option value="Python">Python</option>
                               <option value="Java">Java</option>
@@ -5940,8 +5979,54 @@ export default function App() {
                               <option value="JavaScript">JavaScript</option>
                             </select>
                           </div>
-                          <div className="bg-slate-950 px-4 py-1.5 border-b border-white/5 text-[9px] text-indigo-400 font-mono flex items-center justify-between">
-                            <span>💡 Read input from <strong>stdin</strong> & write output to <strong>stdout</strong></span>
+                        </div>
+                      </div>
+
+                      {/* Main Split Layout Pane */}
+                      <div className="flex flex-col lg:flex-row gap-6 flex-1 items-stretch min-h-[350px]">
+                        {/* Description Panel */}
+                        {!isDescriptionCollapsed && (
+                          <div className="w-full lg:w-[40%] p-5 rounded-2xl bg-slate-900 border border-white/5 overflow-y-auto space-y-4 shadow-inner flex-shrink-0">
+                            <div className="border-b border-white/5 pb-2">
+                              <h4 className="font-bold text-sm text-indigo-400">{examCodings[activeQuestionIndex].title}</h4>
+                            </div>
+                            <p className="text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap">
+                              {examCodings[activeQuestionIndex].description}
+                            </p>
+                            
+                            {/* Render Sample Test Cases */}
+                            {examCodings[activeQuestionIndex].testCases && examCodings[activeQuestionIndex].testCases.length > 0 && (
+                              <div className="mt-6 pt-4 border-t border-white/10 space-y-3">
+                                <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest block font-black">Sample Test Cases</span>
+                                <div className="space-y-3">
+                                  {examCodings[activeQuestionIndex].testCases.map((tc: any, tcIdx: number) => (
+                                    <div key={tc.id || tcIdx} className="p-3 bg-slate-950 rounded-xl border border-white/5 space-y-2 text-[10px] font-mono">
+                                      <div className="font-bold text-slate-400">Sample Case #{tcIdx + 1}</div>
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div>
+                                          <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Input:</div>
+                                          <pre className="bg-slate-900/50 p-2 rounded text-slate-350 overflow-x-auto whitespace-pre-wrap max-h-[80px]">{tc.input}</pre>
+                                        </div>
+                                        <div>
+                                          <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-1">Expected Output:</div>
+                                          <pre className="bg-slate-900/50 p-2 rounded text-slate-350 overflow-x-auto whitespace-pre-wrap max-h-[80px]">{tc.expected_output}</pre>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* IDE Editor Panel */}
+                        <div className="flex-1 flex flex-col rounded-2xl border border-white/10 overflow-hidden bg-slate-950 shadow-2xl relative">
+                          <div className="bg-slate-900 px-4 py-2 border-b border-white/5 text-[9px] text-indigo-400 font-mono flex items-center justify-between">
+                            <span className="flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              💡 Read from <strong>stdin</strong> & write to <strong>stdout</strong>
+                            </span>
                             <button
                               onClick={() => {
                                 const qId = examCodings[activeQuestionIndex].id;
@@ -5952,13 +6037,14 @@ export default function App() {
                                 }));
                                 showToast('Reset editor to starter template.', 'info');
                               }}
-                              className="text-[9px] text-slate-500 hover:text-indigo-400 font-semibold transition-all px-1.5 py-0.5 rounded border border-white/5 hover:border-indigo-500/30"
+                              className="text-[9px] text-slate-500 hover:text-indigo-400 font-semibold transition-all px-2 py-0.5 rounded border border-white/5 hover:border-indigo-500/30 bg-slate-950"
                             >
                               Reset Starter Code
                             </button>
                           </div>
                           <textarea
                             value={codingSolutions[examCodings[activeQuestionIndex].id]?.code || ''}
+                            style={{ height: `${editorHeight}px`, fontSize: `${editorFontSize}px` }}
                             onChange={e => {
                               const qId = examCodings[activeQuestionIndex].id;
                               setCodingSolutions(prev => ({
@@ -5969,43 +6055,53 @@ export default function App() {
                                 }
                               }));
                             }}
-                            className="flex-1 w-full p-4 bg-slate-950 text-xs font-mono text-emerald-400 border-none outline-none resize-none min-h-[200px]"
+                            className="w-full p-5 bg-slate-950 text-emerald-400 font-mono border-none outline-none resize-none leading-relaxed focus:ring-0 focus:border-none"
                             placeholder="Write your solution here..."
                           />
                         </div>
                       </div>
 
                       {/* Code Execution Panel */}
-                      {codeExecutionResults.length > 0 && (
-                        <div className="p-4 rounded-xl bg-slate-900 border border-white/10 text-xs space-y-3">
-                          <p className="font-bold text-indigo-400">Execution Results:</p>
-                          <div className="space-y-3">
+                      {codeExecutionResults.length > 0 && !isOutputCollapsed && (
+                        <div className="p-5 rounded-2xl bg-slate-900 border border-white/10 text-xs space-y-4 shadow-xl">
+                          <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                            <p className="font-bold text-indigo-400 flex items-center gap-1.5">
+                              <Terminal className="h-4 w-4" /> Execution Results
+                            </p>
+                            <button 
+                              onClick={() => setIsOutputCollapsed(true)} 
+                              className="text-slate-500 hover:text-slate-350 text-[10px] font-bold"
+                            >
+                              Hide [x]
+                            </button>
+                          </div>
+                          <div className="space-y-4">
                             {codeExecutionResults.map((res, i) => (
-                              <div key={i} className="font-mono text-[10px] bg-slate-950 p-3 rounded-lg border border-white/5 space-y-2">
+                              <div key={i} className="font-mono text-[10px] bg-slate-950 p-4 rounded-xl border border-white/5 space-y-3">
                                 <div className="flex justify-between items-center">
-                                  <span className="font-bold text-slate-350">Test Case #{i+1}</span>
+                                  <span className="font-bold text-slate-350 text-xs">Test Case #{i+1}</span>
                                   <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${res.passed ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
                                     {res.passed ? 'Passed' : 'Failed'} ({res.status})
                                   </span>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                   {res.input && (
-                                    <div className="bg-slate-900 p-2 rounded border border-white/5">
-                                      <div className="text-[9px] text-slate-500 mb-1 font-bold uppercase">Input:</div>
+                                    <div className="bg-slate-900 p-2.5 rounded-lg border border-white/5">
+                                      <div className="text-[9px] text-slate-500 mb-1.5 font-bold uppercase">Input:</div>
                                       <pre className="text-slate-350 overflow-x-auto whitespace-pre-wrap max-h-[80px] text-[10px]">{res.input.trim()}</pre>
                                     </div>
                                   )}
                                   
                                   {res.expectedOutput && (
-                                    <div className="bg-slate-900 p-2 rounded border border-white/5">
-                                      <div className="text-[9px] text-slate-500 mb-1 font-bold uppercase">Expected Output:</div>
+                                    <div className="bg-slate-900 p-2.5 rounded-lg border border-white/5">
+                                      <div className="text-[9px] text-slate-500 mb-1.5 font-bold uppercase">Expected Output:</div>
                                       <pre className="text-slate-350 overflow-x-auto whitespace-pre-wrap max-h-[80px] text-[10px]">{res.expectedOutput.trim()}</pre>
                                     </div>
                                   )}
 
-                                  <div className="bg-slate-900 p-2 rounded border border-white/5">
-                                    <div className="text-[9px] text-slate-500 mb-1 font-bold uppercase">Your Output (Actual):</div>
+                                  <div className="bg-slate-900 p-2.5 rounded-lg border border-white/5">
+                                    <div className="text-[9px] text-slate-500 mb-1.5 font-bold uppercase">Your Output (Actual):</div>
                                     <pre className={`overflow-x-auto whitespace-pre-wrap max-h-[80px] text-[10px] ${res.passed ? 'text-emerald-400' : 'text-rose-400'}`}>
                                       {res.stdout ? res.stdout.trim() : (res.stderr ? 'None' : 'No Output')}
                                     </pre>
@@ -6014,8 +6110,8 @@ export default function App() {
 
                                 {res.stderr && (
                                   <div className="mt-2">
-                                    <div className="text-[9px] text-rose-450 font-bold mb-0.5 uppercase">Error Output (Stderr / Compiler):</div>
-                                    <pre className="bg-rose-950/20 border border-rose-500/10 p-1.5 rounded text-rose-400 overflow-x-auto whitespace-pre-wrap max-h-[120px]">{res.stderr}</pre>
+                                    <div className="text-[9px] text-rose-450 font-bold mb-1 uppercase">Error Output (Stderr / Compiler):</div>
+                                    <pre className="bg-rose-950/20 border border-rose-500/10 p-3 rounded-lg text-rose-400 overflow-x-auto whitespace-pre-wrap max-h-[120px]">{res.stderr}</pre>
                                   </div>
                                 )}
                               </div>

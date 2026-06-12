@@ -834,6 +834,19 @@ app.post('/api/exams/student/attempts/:attemptId/mcq-response', authenticate, re
   }
 });
 
+const encodeBase64 = (str: string) => {
+  return Buffer.from(str || '').toString('base64');
+};
+
+const decodeBase64 = (str: string) => {
+  if (!str) return '';
+  try {
+    return Buffer.from(str, 'base64').toString('utf-8');
+  } catch {
+    return str;
+  }
+};
+
 // Run Code against visible sample cases (Judge0)
 app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requireRole('student'), async (req, res) => {
   try {
@@ -865,11 +878,11 @@ app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requir
 
     for (const tc of testCases.rows) {
       try {
-        const response = await axios.post(`${JUDGE0_URL}/submissions?base64_encoded=false&wait=true`, {
-          source_code: code,
+        const response = await axios.post(`${JUDGE0_URL}/submissions?base64_encoded=true&wait=true`, {
+          source_code: encodeBase64(code),
           language_id: judgeLanguageId,
-          stdin: tc.input,
-          expected_output: tc.expected_output
+          stdin: encodeBase64(tc.input),
+          expected_output: encodeBase64(tc.expected_output)
         }, { timeout: 8000 });
 
         const sub = response.data;
@@ -878,8 +891,8 @@ app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requir
         results.push({
           input: tc.input,
           expectedOutput: tc.expected_output,
-          stdout: sub.stdout || '',
-          stderr: sub.stderr || sub.compile_output || '',
+          stdout: decodeBase64(sub.stdout || ''),
+          stderr: decodeBase64(sub.stderr || sub.compile_output || ''),
           passed,
           status: sub.status?.description || 'Unknown',
           timeMs: sub.time ? parseFloat(sub.time) * 1000 : 0,
@@ -948,11 +961,11 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
 
     for (const tc of testCases.rows) {
       try {
-        const response = await axios.post(`${JUDGE0_URL}/submissions?base64_encoded=false&wait=true`, {
-          source_code: code,
+        const response = await axios.post(`${JUDGE0_URL}/submissions?base64_encoded=true&wait=true`, {
+          source_code: encodeBase64(code),
           language_id: judgeLanguageId,
-          stdin: tc.input,
-          expected_output: tc.expected_output
+          stdin: encodeBase64(tc.input),
+          expected_output: encodeBase64(tc.expected_output)
         }, { timeout: 8000 });
 
         const sub = response.data;
@@ -960,7 +973,7 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
           passedCount++;
         } else if (sub.status?.id === 6) {
           isCompileError = true;
-          errMessage = sub.compile_output || 'Compilation error';
+          errMessage = decodeBase64(sub.compile_output || '') || 'Compilation error';
         }
         
         const tMs = sub.time ? parseFloat(sub.time) * 1000 : 0;
