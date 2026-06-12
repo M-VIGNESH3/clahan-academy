@@ -1921,14 +1921,19 @@ export default function App() {
         });
         setCodingSolutions(codSol);
 
-        if (currentExam?.exam_type === 'coding') {
+        const examObj = data.exam || currentExam;
+        if (data.mcqQuestions && data.mcqQuestions.length > 0) {
+          setSelectedSection('mcq');
+        } else if (data.codingQuestions && data.codingQuestions.length > 0) {
+          setSelectedSection('coding');
+        } else if (examObj?.exam_type === 'coding') {
           setSelectedSection('coding');
         } else {
           setSelectedSection('mcq');
         }
 
         setValidationStep('active');
-        setTimeLeft((currentExam?.duration_minutes || 60) * 60);
+        setTimeLeft((examObj?.duration_minutes || 60) * 60);
         setTabWarnings(0);
         setProctorLogs([]);
 
@@ -5751,7 +5756,7 @@ export default function App() {
                   <div>
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Exam Sections</h4>
                     <div className="flex bg-slate-900 p-1 rounded-xl">
-                      {currentExam?.exam_type !== 'coding' && (
+                      {(currentExam?.exam_type !== 'coding' || examMCQs.length > 0) && (
                         <button
                           onClick={() => { setSelectedSection('mcq'); setActiveQuestionIndex(0); }}
                           className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${selectedSection === 'mcq' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
@@ -5759,7 +5764,7 @@ export default function App() {
                           MCQ Section
                         </button>
                       )}
-                      {currentExam?.exam_type !== 'mcq' && (
+                      {(currentExam?.exam_type !== 'mcq' || examCodings.length > 0) && (
                         <button
                           onClick={() => { setSelectedSection('coding'); setActiveQuestionIndex(0); }}
                           className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${selectedSection === 'coding' ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
@@ -5775,7 +5780,7 @@ export default function App() {
                     <span className="text-xs text-slate-400 font-bold block mb-2">Question Grid</span>
                     <div className="grid grid-cols-5 gap-2">
                       {(selectedSection === 'mcq' ? examMCQs : examCodings).map((q, idx) => {
-                        const isAnswered = selectedSection === 'mcq' ? mcqAnswers[q.id] : codingSolutions[q.id]?.code.length > 50;
+                        const isAnswered = selectedSection === 'mcq' ? !!mcqAnswers[q.id] : (codingSolutions[q.id]?.code?.length || 0) > 5;
                         return (
                           <button
                             key={q.id}

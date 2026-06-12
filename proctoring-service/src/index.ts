@@ -220,7 +220,7 @@ io.on('connection', (socket: Socket) => {
       // Rule 4: Book detected -> Terminate after 10 consecutive detections
       else if (eventType === 'BOOK_DETECTED') {
         const consec = consecutiveViolations[attemptId] || {};
-        consec['BOOK_DETECTED'] = (consec['BOOK_BOTTOM_DETECTED'] || consec['BOOK_DETECTED'] || 0) + 1;
+        consec['BOOK_DETECTED'] = (consec['BOOK_DETECTED'] || 0) + 1;
         consecutiveViolations[attemptId] = consec;
         if (consec['BOOK_DETECTED'] >= 10) {
           shouldTerminate = true;

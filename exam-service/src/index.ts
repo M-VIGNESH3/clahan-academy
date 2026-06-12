@@ -1281,7 +1281,7 @@ app.post('/api/exams/admin/generate-coding-question', authenticate, requireRole(
       topic,
       difficulty: difficulty || 'medium',
       language: language || 'Python'
-    }, { timeout: 15000 });
+    }, { timeout: 65000 });
 
     res.json(response.data);
   } catch (err: any) {

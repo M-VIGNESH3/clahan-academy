@@ -154,7 +154,7 @@ def generate_question(req: GenerateQuestionRequest):
                 "stream": False,
                 "options": {"temperature": 0.3}
             },
-            timeout=12.0
+            timeout=50.0
         )
         if response.status_code == 200:
             result = response.json()
@@ -173,45 +173,149 @@ def generate_question(req: GenerateQuestionRequest):
         
     # Local fallback if Ollama call fails or JSON fails to parse
     lang = req.language or "Python"
-    starter = "def solve():\n    # Write your code here\n    pass"
-    if lang.lower() in ["java", "javascript", "cpp"]:
-        starter = "// Starter code here"
+    topic_clean = req.topic.strip()
+    
+    # Generate dynamic starter code template based on language
+    starter = ""
+    clean_fn_name = "".join([c if c.isalnum() else "_" for c in topic_clean.lower()]).strip("_")
+    if not clean_fn_name:
+        clean_fn_name = "solve"
         
-    return {
-        "title": f"Algorithm Problem: {req.topic}",
-        "description": (
-            f"Write an efficient solution to solve problems related to **{req.topic}**.\n\n"
-            f"### Input Format\n"
-            f"Read from standard input (stdin).\n\n"
-            f"### Output Format\n"
-            f"Print to standard output (stdout).\n\n"
-            f"### Sample Case 1\n"
-            f"**Input:**\n"
-            f"```\n"
-            f"5\n"
-            f"```\n"
-            f"**Expected Output:**\n"
-            f"```\n"
-            f"10\n"
-            f"```\n\n"
-            f"### Sample Case 2\n"
-            f"**Input:**\n"
-            f"```\n"
-            f"3\n"
-            f"```\n"
-            f"**Expected Output:**\n"
-            f"```\n"
-            f"6\n"
-            f"```"
-        ),
-        "starter_code": starter,
-        "test_cases": [
-            {"input": "5\n", "expected_output": "10\n", "is_hidden": False},
-            {"input": "3\n", "expected_output": "6\n", "is_hidden": False},
-            {"input": "10\n", "expected_output": "20\n", "is_hidden": True},
-            {"input": "2\n", "expected_output": "4\n", "is_hidden": True}
-        ]
+    if lang.lower() == "python":
+        starter = f"def {clean_fn_name}(input_val):\n    # Write your solution here\n    # read input or process input_val\n    pass\n"
+    elif lang.lower() == "java":
+        starter = (
+            f"import java.util.*;\n\n"
+            f"public class Solution {{\n"
+            f"    public static void main(String[] args) {{\n"
+            f"        Scanner sc = new Scanner(System.in);\n"
+            f"        // Write your logic here\n"
+            f"    }}\n"
+            f"}}\n"
+        )
+    elif lang.lower() in ["cpp", "c++"]:
+        starter = (
+            f"#include <iostream>\n"
+            f"using namespace std;\n\n"
+            f"int main() {{\n"
+            f"    // Write your logic here\n"
+            f"    return 0;\n"
+            f"}}\n"
+        )
+    else:  # javascript
+        starter = (
+            f"const fs = require('fs');\n\n"
+            f"function solve() {{\n"
+            f"    const input = fs.readFileSync('/dev/stdin', 'utf-8');\n"
+            f"    // Write your logic here\n"
+            f"}}\n"
+            f"solve();\n"
+        )
+
+    # Dynamic templates matching common topics
+    templates = {
+        "prime": {
+            "title": "Prime Number Checker",
+            "description": "Write a program that takes an integer `N` and prints `PRIME` if the number is prime, otherwise prints `NOT PRIME`.\n\n### Input Format\nA single line containing the integer `N`.\n\n### Output Format\nPrint `PRIME` or `NOT PRIME`.",
+            "test_cases": [
+                {"input": "5\n", "expected_output": "PRIME\n", "is_hidden": False},
+                {"input": "4\n", "expected_output": "NOT PRIME\n", "is_hidden": False},
+                {"input": "13\n", "expected_output": "PRIME\n", "is_hidden": True},
+                {"input": "1\n", "expected_output": "NOT PRIME\n", "is_hidden": True}
+            ]
+        },
+        "fibonacci": {
+            "title": "N-th Fibonacci Number",
+            "description": "Write a program to compute the `N`-th Fibonacci number. The Fibonacci sequence is defined as `F(0) = 0`, `F(1) = 1`, and `F(i) = F(i-1) + F(i-2)`.\n\n### Input Format\nA single line containing the integer `N`.\n\n### Output Format\nPrint the N-th Fibonacci number.",
+            "test_cases": [
+                {"input": "5\n", "expected_output": "5\n", "is_hidden": False},
+                {"input": "8\n", "expected_output": "21\n", "is_hidden": False},
+                {"input": "10\n", "expected_output": "55\n", "is_hidden": True},
+                {"input": "0\n", "expected_output": "0\n", "is_hidden": True}
+            ]
+        },
+        "palindrome": {
+            "title": "String Palindrome Checker",
+            "description": "Write a program that checks if a given string is a palindrome (reads the same forwards and backwards). Print `YES` if it is, otherwise print `NO`.\n\n### Input Format\nA single line containing string `S`.\n\n### Output Format\nPrint `YES` or `NO`.",
+            "test_cases": [
+                {"input": "racecar\n", "expected_output": "YES\n", "is_hidden": False},
+                {"input": "hello\n", "expected_output": "NO\n", "is_hidden": False},
+                {"input": "madam\n", "expected_output": "YES\n", "is_hidden": True},
+                {"input": "step on no pets\n", "expected_output": "YES\n", "is_hidden": True}
+            ]
+        },
+        "reverse": {
+            "title": "Reverse a String Challenge",
+            "description": "Write a program that takes a string and prints its reversed representation.\n\n### Input Format\nA single line containing string `S`.\n\n### Output Format\nPrint the reversed string.",
+            "test_cases": [
+                {"input": "abc\n", "expected_output": "cba\n", "is_hidden": False},
+                {"input": "Clahan\n", "expected_output": "nahalC\n", "is_hidden": False},
+                {"input": "a\n", "expected_output": "a\n", "is_hidden": True},
+                {"input": "12345\n", "expected_output": "54321\n", "is_hidden": True}
+            ]
+        },
+        "even": {
+            "title": "Even or Odd Classifier",
+            "description": "Write a program that checks if an integer is even or odd. Print `EVEN` if it is even, otherwise print `ODD`.\n\n### Input Format\nA single integer `N`.\n\n### Output Format\nPrint `EVEN` or `ODD`.",
+            "test_cases": [
+                {"input": "4\n", "expected_output": "EVEN\n", "is_hidden": False},
+                {"input": "7\n", "expected_output": "ODD\n", "is_hidden": False},
+                {"input": "0\n", "expected_output": "EVEN\n", "is_hidden": True},
+                {"input": "-5\n", "expected_output": "ODD\n", "is_hidden": True}
+            ]
+        }
     }
+
+    matched = None
+    for kw, templ in templates.items():
+        if kw in topic_clean.lower():
+            matched = templ
+            break
+
+    if matched:
+        return {
+            "title": matched["title"],
+            "description": matched["description"],
+            "starter_code": starter,
+            "test_cases": matched["test_cases"]
+        }
+    else:
+        return {
+            "title": f"Algorithm Challenge: {topic_clean.title()}",
+            "description": (
+                f"Write an efficient program to solve problem scenarios for **{topic_clean}**.\n\n"
+                f"### Input Format\n"
+                f"Read input parameters from standard input (stdin).\n\n"
+                f"### Output Format\n"
+                f"Print output solution results to standard output (stdout).\n\n"
+                f"### Sample Case 1\n"
+                f"**Input:**\n"
+                f"```\n"
+                f"5\n"
+                f"```\n"
+                f"**Expected Output:**\n"
+                f"```\n"
+                f"10\n"
+                f"```\n\n"
+                f"### Sample Case 2\n"
+                f"**Input:**\n"
+                f"```\n"
+                f"3\n"
+                f"```\n"
+                f"**Expected Output:**\n"
+                f"```\n"
+                f"6\n"
+                f"```"
+            ),
+            "starter_code": starter,
+            "test_cases": [
+                {"input": "5\n", "expected_output": "10\n", "is_hidden": False},
+                {"input": "3\n", "expected_output": "6\n", "is_hidden": False},
+                {"input": "10\n", "expected_output": "20\n", "is_hidden": True},
+                {"input": "2\n", "expected_output": "4\n", "is_hidden": True}
+            ]
+        }
+
 
 
 @app.post("/api/ai/proctor/frame")
@@ -257,7 +361,7 @@ async def analyze_frame(
                     classes_scores = row[4:]
                     class_id = np.argmax(classes_scores)
                     confidence = classes_scores[class_id]
-                    if confidence > 0.15:
+                    if confidence > 0.10:
                         class_name = CLASSES[class_id]
                         if class_name in ["person", "cell phone", "book"]:
                             cx, cy, w, h = row[0], row[1], row[2], row[3]
@@ -268,7 +372,7 @@ async def analyze_frame(
                             class_ids.append(int(class_id))
                 
                 if len(boxes) > 0:
-                    indices = cv2.dnn.NMSBoxes(boxes, confidences, 0.15, 0.4)
+                    indices = cv2.dnn.NMSBoxes(boxes, confidences, 0.10, 0.4)
                     # Convert to flat list to handle empty list or nested list structures across opencv versions safely
                     flat_indices = []
                     if len(indices) > 0:
@@ -294,8 +398,8 @@ async def analyze_frame(
         if face_cascade is not None:
             try:
                 gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
-                # scaleFactor=1.1 and minNeighbors=2 increases face detection sensitivity in poor light/angles
-                faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=2)
+                # scaleFactor=1.1 and minNeighbors=4 increases face detection quality and filters noise
+                faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4)
                 face_count = len(faces)
             except Exception as e:
                 logger.error(f"Face detection error: {str(e)}")
