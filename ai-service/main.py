@@ -253,11 +253,11 @@ async def analyze_frame(
                     classes_scores = row[4:]
                     class_id = np.argmax(classes_scores)
                     confidence = classes_scores[class_id]
-                    if confidence > 0.25:
+                    if confidence > 0.15:
                         class_name = CLASSES[class_id]
                         if class_name in ["cell phone", "book"]:
                             objects_detected.append(class_name)
-                        elif class_name == "person" and confidence > 0.35:
+                        elif class_name == "person" and confidence > 0.18:
                             objects_detected.append(class_name)
                             
                 objects_detected = list(set(objects_detected))
@@ -268,8 +268,8 @@ async def analyze_frame(
         if face_cascade is not None:
             try:
                 gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
-                # scaleFactor=1.1 and minNeighbors=4 reduces false positive face detections in background
-                faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4)
+                # scaleFactor=1.1 and minNeighbors=2 increases face detection sensitivity in poor light/angles
+                faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=2)
                 face_count = len(faces)
             except Exception as e:
                 logger.error(f"Face detection error: {str(e)}")

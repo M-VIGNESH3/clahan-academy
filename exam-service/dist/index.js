@@ -1087,15 +1087,20 @@ app.get('/api/exams/student/attempts/:attemptId/result', authenticate, async (re
             return res.status(403).json({ error: 'Results are not available yet. Please wait until all students have completed the exam.' });
         }
         const maxScore = parseInt(attempt.max_mcq) + parseInt(attempt.max_coding);
-        // Query detailed responses
-        const mcqResponses = await query(`SELECT mr.*, mq.question, mq.option_a, mq.option_b, mq.option_c, mq.option_d, mq.correct_answer, mq.marks
-       FROM mcq_responses mr
-       JOIN mcq_questions mq ON mr.question_id = mq.id
-       WHERE mr.attempt_id = $1`, [attemptId]);
-        const codingResponses = await query(`SELECT cr.*, cq.title, cq.description, cq.marks
-       FROM coding_responses cr
-       JOIN coding_questions cq ON cr.question_id = cq.id
-       WHERE cr.attempt_id = $1`, [attemptId]);
+        // Query detailed responses (using LEFT JOIN to include unanswered questions)
+        const mcqResponses = await query(`SELECT mq.id as question_id, mq.question, mq.option_a, mq.option_b, mq.option_c, mq.option_d, mq.correct_answer, mq.marks,
+              mr.selected_option, mr.is_correct, COALESCE(mr.marks_obtained, 0) as marks_obtained
+       FROM mcq_questions mq
+       LEFT JOIN mcq_responses mr ON mr.question_id = mq.id AND mr.attempt_id = $1
+       WHERE mq.exam_id = (SELECT exam_id FROM exam_attempts WHERE id = $1)`, [attemptId]);
+        const codingResponses = await query(`SELECT cq.id as question_id, cq.title, cq.description, cq.marks,
+              cr.code, cr.language, COALESCE(cr.status, 'No Submission') as status, 
+              COALESCE(cr.test_cases_passed, 0) as test_cases_passed, 
+              COALESCE(cr.total_test_cases, 0) as total_test_cases, 
+              COALESCE(cr.marks_obtained, 0) as marks_obtained
+       FROM coding_questions cq
+       LEFT JOIN coding_responses cr ON cr.question_id = cq.id AND cr.attempt_id = $1
+       WHERE cq.exam_id = (SELECT exam_id FROM exam_attempts WHERE id = $1)`, [attemptId]);
         res.json({
             attempt: {
                 ...attempt,

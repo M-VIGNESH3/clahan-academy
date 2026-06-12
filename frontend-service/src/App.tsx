@@ -6161,8 +6161,10 @@ export default function App() {
                         <span className="text-[10px] font-mono bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded font-bold uppercase">{res.status}</span>
                       </div>
                       
-                      <div className="p-3 bg-slate-950 rounded-lg text-emerald-400 font-mono text-[10px] overflow-x-auto max-h-36">
-                        <pre>{res.code}</pre>
+                      <div className="p-3 bg-slate-950 rounded-lg font-mono text-[10px] overflow-x-auto max-h-36">
+                        <pre className={res.code ? 'text-emerald-400' : 'text-slate-500 italic'}>
+                          {res.code || '// No solution submitted'}
+                        </pre>
                       </div>
 
                       <div className="flex justify-between items-center text-[10px] font-bold">
