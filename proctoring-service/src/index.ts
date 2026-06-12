@@ -196,14 +196,15 @@ io.on('connection', (socket: Socket) => {
     eventType: string,
     details: string,
     severity: 'warning' | 'critical',
-    socket: Socket
+    socket: Socket,
+    screenshot?: string
   ) {
     try {
       // Save violation log to database
       await query(
-        `INSERT INTO proctoring_logs (attempt_id, event_type, details, severity)
-         VALUES ($1, $2, $3, $4)`,
-        [attemptId, eventType, details, severity]
+        `INSERT INTO proctoring_logs (attempt_id, event_type, details, severity, screenshot)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [attemptId, eventType, details, severity, screenshot || null]
       );
 
       // Fetch all violation counts for this attempt to assess against termination rules
@@ -272,17 +273,17 @@ io.on('connection', (socket: Socket) => {
           terminationReason = 'Multiple faces detected in the webcam view.';
         }
       }
-      // Rule 6: No face for long duration -> Terminate after 30 seconds
+      // Rule 6: No face for long duration -> Terminate after 7 seconds
       else if (eventType === 'NO_FACE_DETECTED') {
         const start = violationStartTimes[attemptId]?.['NO_FACE_DETECTED'];
-        if (start && (Date.now() - start) >= 30000) {
+        if (start && (Date.now() - start) >= 7000) {
           shouldTerminate = true;
-          terminationReason = 'No face detected for more than 30 seconds.';
+          terminationReason = 'Prolonged Face Absence (terminated after 7 seconds).';
         } else {
           const consec = consecutiveViolations[attemptId] || {};
-          if ((consec['NO_FACE_DETECTED'] || 0) >= 20) {
+          if ((consec['NO_FACE_DETECTED'] || 0) >= 5) {
             shouldTerminate = true;
-            terminationReason = 'No face detected for more than 30 seconds.';
+            terminationReason = 'Prolonged Face Absence (terminated after 7 seconds).';
           }
         }
       }
@@ -421,8 +422,8 @@ io.on('connection', (socket: Socket) => {
         const currentViolations = result.violations || [];
         if (!currentViolations.includes('NO_FACE_DETECTED')) {
           consec['NO_FACE_DETECTED'] = 0;
-          consec['WARNED_10S'] = 0;
-          consec['LOGGED_20S'] = 0;
+          consec['WARNED_2S'] = 0;
+          consec['LOGGED_5S'] = 0;
           if (violationStartTimes[attemptId]) {
             violationStartTimes[attemptId]['NO_FACE_DETECTED'] = 0;
           }
@@ -453,32 +454,34 @@ io.on('connection', (socket: Socket) => {
               }
               const elapsedSec = (Date.now() - violationStartTimes[attemptId]['NO_FACE_DETECTED']) / 1000;
               
-              if (elapsedSec >= 10 && elapsedSec < 20 && !consec['WARNED_10S']) {
-                consec['WARNED_10S'] = 1;
+              if (elapsedSec >= 2 && elapsedSec < 5 && !consec['WARNED_2S']) {
+                consec['WARNED_2S'] = 1;
                 socket.emit('proctor-warning', {
-                  message: 'Warning: No face detected. Please face the camera (duration: > 10 seconds).',
+                  message: 'Face not detected. Please return to camera view immediately.',
                   count: consecCount
                 });
-              } else if (elapsedSec >= 20 && elapsedSec < 30 && !consec['LOGGED_20S']) {
-                consec['LOGGED_20S'] = 1;
+              } else if (elapsedSec >= 5 && elapsedSec < 7 && !consec['LOGGED_5S']) {
+                consec['LOGGED_5S'] = 1;
                 await processViolation(
                   attemptId,
                   studentId,
                   examId,
                   violation,
-                  'No face detected for more than 20 seconds (Fraud Event).',
+                  'No face detected for more than 5 seconds (Fraud Event).',
                   'warning',
-                  socket
+                  socket,
+                  data.image
                 );
-              } else if (elapsedSec >= 30) {
+              } else if (elapsedSec >= 7) {
                 await processViolation(
                   attemptId,
                   studentId,
                   examId,
                   violation,
-                  'No face detected for more than 30 seconds.',
+                  'Prolonged Face Absence (terminated after 7 seconds).',
                   'critical',
-                  socket
+                  socket,
+                  data.image
                 );
               }
             }
@@ -492,8 +495,15 @@ io.on('connection', (socket: Socket) => {
                   violation,
                   'Multiple faces detected (Fraud Alert).',
                   'warning',
-                  socket
+                  socket,
+                  data.image
                 );
+              } else if (consecCount === 3) {
+                // Escalate Warning
+                socket.emit('proctor-warning', {
+                  message: 'Warning: Multiple faces detected. Please ensure you are alone.',
+                  count: consecCount
+                });
               } else if (consecCount >= 5) {
                 // Repeated detection: Terminate
                 await processViolation(
@@ -503,7 +513,8 @@ io.on('connection', (socket: Socket) => {
                   violation,
                   'Multiple faces detected repeatedly.',
                   'critical',
-                  socket
+                  socket,
+                  data.image
                 );
               }
             }
@@ -519,7 +530,8 @@ io.on('connection', (socket: Socket) => {
                   violation,
                   `Mobile phone detected in camera view for 5 consecutive frames (Confidence: ${confStr}%).`,
                   'critical',
-                  socket
+                  socket,
+                  data.image
                 );
               } else {
                 await processViolation(
@@ -529,7 +541,8 @@ io.on('connection', (socket: Socket) => {
                   violation,
                   `Mobile phone detected with confidence: ${confStr}%.`,
                   'warning',
-                  socket
+                  socket,
+                  data.image
                 );
               }
             }
@@ -551,7 +564,8 @@ io.on('connection', (socket: Socket) => {
                   violation,
                   `Book or notes detected repeatedly (Confidence: ${confStr}%).`,
                   'critical',
-                  socket
+                  socket,
+                  data.image
                 );
               }
             }

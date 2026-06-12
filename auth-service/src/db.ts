@@ -255,9 +255,13 @@ export async function initDb() {
         attempt_id UUID REFERENCES exam_attempts(id) ON DELETE CASCADE,
         event_type VARCHAR(100) NOT NULL,
         details TEXT,
+        screenshot TEXT,
         severity VARCHAR(50) DEFAULT 'warning' CHECK (severity IN ('warning', 'critical')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+    await client.query(`
+      ALTER TABLE proctoring_logs ADD COLUMN IF NOT EXISTS screenshot TEXT;
     `);
 
     // Settings
