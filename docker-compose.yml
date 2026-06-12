@@ -219,7 +219,6 @@ services:
     container_name: clahan-judge0-worker
     command: ["./scripts/workers"]
     privileged: true # Required for compiler sandbox runtime isolation
-    cgroupns_mode: host
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
     environment:
