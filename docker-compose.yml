@@ -217,6 +217,7 @@ services:
   judge0-worker:
     image: mrkushalsm/judge0:cgv2
     container_name: clahan-judge0-worker
+    command: ["./scripts/workers"]
     privileged: true # Required for compiler sandbox runtime isolation
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
