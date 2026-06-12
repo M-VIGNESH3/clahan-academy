@@ -119,3 +119,32 @@ On logging in, the administrator can:
    Arjun Kumar,arjun@college.edu,9876543210,CSE2026-08,ABC Engineering College,CSE,3rd Year
    ```
 3. **Configure Exams & Questions**: Add MCQ options and Coding algorithm test suites.
+
+---
+
+## 6. AI Proctoring & Violation Rules Engine
+
+The proctoring system enforces strict, automated verification policies combining in-process Haar Cascade face classifiers, YOLOv8 object detection, and wall-clock duration-based tracking.
+
+### A. Pre-Exam Verification Handshake
+To prevent exams starting without proper verification, the frontend captures live webcam frames and sends them to the `/api/proctor/verify-face` endpoint:
+1. **Verification Requirement**: A student must have exactly **1 face** present in the camera view with **no active objects** (phones/books) to pass.
+2. **Auto-Retry Loop**: Detections are retried automatically every 2 seconds for up to 30 seconds.
+3. **Manual Override**: If verification times out (e.g. poor lighting), a **"Retry Face Verification"** button allows the student to re-trigger the check manually. The student cannot proceed to fullscreen or start the exam until verification completes.
+
+### B. Frame Preprocessing (Letterboxing)
+To prevent YOLOv8 input aspect ratio distortion (which drops cell phone detection confidence), frames are preprocessed using a **Letterboxing** technique:
+- The input image is scaled to fit inside a `640x640` square canvas.
+- A neutral grey padding (`114` intensity) is applied on the sides or top/bottom.
+- This preserves the native shape of target objects (like phones and books) for accurate detection.
+
+### C. Live Exam Violations & Termination Policies
+
+| Violation Type | Detection Mechanism | Severity / Action | Auto-Termination Trigger |
+| :--- | :--- | :--- | :--- |
+| **`NO_FACE_DETECTED`** | Frontal + Profile Cascade with YOLO Fallback | **Warning (>10s)**: Socket warning alerts.<br>**Log (>20s)**: Inserts Warning log to DB.<br>**Critical (>30s)**: Terminates exam attempt. | 30 continuous seconds of face absence (wall-clock duration). |
+| **`MULTIPLE_FACES_DETECTED`** | Haar Cascades / YOLOv8 | **Warning (Frame 1)**: Immediate DB Log / Socket Warning.<br>**Critical (Frame 5)**: Terminates exam. | 5 consecutive frames showing $\ge 2$ people. |
+| **`MOBILE_PHONE_DETECTED`** | YOLOv8 (Class index 67) | **Warning (Frames 1-4)**: Log details with confidence % to DB / Socket Warning.<br>**Critical (Frame 5)**: Terminates exam. | 5 consecutive frames with cell phone confidence $> 0.80$. |
+| **`BOOK_DETECTED`** | YOLOv8 (Class index 73) | **Warning (Frames 1-7)**: Log details with confidence % to DB / Socket Warning.<br>**Critical (Frame 8)**: Terminates exam. | 8 consecutive frames with book confidence $> 0.40$. |
+| **`TAB_SWITCH`** | Client Window Blur / Visibility API | **Warning (Switches 1-2)**: Warning popup.<br>**Critical (Switch 3)**: Terminates exam. | 3 cumulative tab switches during the session. |
+| **`FULLSCREEN_EXIT`** | HTML5 Fullscreen API | **Warning (Exits 1-2)**: Overlay lock / Warning.<br>**Critical (Exit 3)**: Terminates exam. | 3 cumulative exits from fullscreen mode. |

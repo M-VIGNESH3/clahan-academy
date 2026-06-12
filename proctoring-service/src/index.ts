@@ -33,7 +33,8 @@ const query = (text: string, params?: any[]) => pool.query(text, params);
 
 app.use(helmet());
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Disable caching for all API responses
 app.use((req, res, next) => {
@@ -118,6 +119,9 @@ const activeSessions: Record<string, { attemptId: string; studentId: string; exa
 
 // Track consecutive violations in memory (key: attemptId, value: Record<eventType, count>)
 const consecutiveViolations: Record<string, Record<string, number>> = {};
+
+// Track first seen timestamps for duration-based violations (key: attemptId, value: Record<eventType, timestamp>)
+const violationStartTimes: Record<string, Record<string, number>> = {};
 
 io.on('connection', (socket: Socket) => {
   console.log(`Socket connected: ${socket.id}`);
@@ -230,8 +234,12 @@ io.on('connection', (socket: Socket) => {
       let shouldTerminate = false;
       let terminationReason = '';
 
+      if (severity === 'critical') {
+        shouldTerminate = true;
+        terminationReason = details || 'Proctoring violation limit reached.';
+      }
       // Rule 1: 3 Tab switches -> Terminate
-      if ((counts['TAB_SWITCH'] || 0) >= 3) {
+      else if ((counts['TAB_SWITCH'] || 0) >= 3) {
         shouldTerminate = true;
         terminationReason = 'Multiple tab switches detected (limit 3).';
       }
@@ -240,10 +248,10 @@ io.on('connection', (socket: Socket) => {
         shouldTerminate = true;
         terminationReason = 'Webcam was disabled or blocked.';
       }
-      // Rule 3: Mobile Phone detected -> Terminate after 2 consecutive detections
+      // Rule 3: Mobile Phone detected -> Terminate after 5 consecutive detections
       else if (eventType === 'MOBILE_PHONE_DETECTED') {
         const consec = consecutiveViolations[attemptId] || {};
-        if ((consec['MOBILE_PHONE_DETECTED'] || 0) >= 2) {
+        if ((consec['MOBILE_PHONE_DETECTED'] || 0) >= 5) {
           shouldTerminate = true;
           terminationReason = 'Mobile phone or device detected in camera view.';
         }
@@ -264,12 +272,18 @@ io.on('connection', (socket: Socket) => {
           terminationReason = 'Multiple faces detected in the webcam view.';
         }
       }
-      // Rule 6: No face for long duration -> Terminate after 20 consecutive detections (30 seconds)
+      // Rule 6: No face for long duration -> Terminate after 30 seconds
       else if (eventType === 'NO_FACE_DETECTED') {
-        const consec = consecutiveViolations[attemptId] || {};
-        if ((consec['NO_FACE_DETECTED'] || 0) >= 20) {
+        const start = violationStartTimes[attemptId]?.['NO_FACE_DETECTED'];
+        if (start && (Date.now() - start) >= 30000) {
           shouldTerminate = true;
           terminationReason = 'No face detected for more than 30 seconds.';
+        } else {
+          const consec = consecutiveViolations[attemptId] || {};
+          if ((consec['NO_FACE_DETECTED'] || 0) >= 20) {
+            shouldTerminate = true;
+            terminationReason = 'No face detected for more than 30 seconds.';
+          }
         }
       }
       // Rule 7: Fullscreen exit -> Warning then Terminate (limit 3)
@@ -403,11 +417,15 @@ io.on('connection', (socket: Socket) => {
         // Initialize consecutive violation storage for this attempt
         consecutiveViolations[attemptId] = consecutiveViolations[attemptId] || {};
         const consec = consecutiveViolations[attemptId];
-
         // Reset tracking counters for violations that are NOT active in this frame
         const currentViolations = result.violations || [];
         if (!currentViolations.includes('NO_FACE_DETECTED')) {
           consec['NO_FACE_DETECTED'] = 0;
+          consec['WARNED_10S'] = 0;
+          consec['LOGGED_20S'] = 0;
+          if (violationStartTimes[attemptId]) {
+            violationStartTimes[attemptId]['NO_FACE_DETECTED'] = 0;
+          }
         }
         if (!currentViolations.includes('MULTIPLE_FACES_DETECTED')) {
           consec['MULTIPLE_FACES_DETECTED'] = 0;
@@ -428,25 +446,31 @@ io.on('connection', (socket: Socket) => {
             const consecCount = consec[violation];
 
             if (violation === 'NO_FACE_DETECTED') {
-              if (consecCount === 3) {
-                // 5 seconds warning
+              // Track duration
+              violationStartTimes[attemptId] = violationStartTimes[attemptId] || {};
+              if (!violationStartTimes[attemptId]['NO_FACE_DETECTED']) {
+                violationStartTimes[attemptId]['NO_FACE_DETECTED'] = Date.now();
+              }
+              const elapsedSec = (Date.now() - violationStartTimes[attemptId]['NO_FACE_DETECTED']) / 1000;
+              
+              if (elapsedSec >= 10 && elapsedSec < 20 && !consec['WARNED_10S']) {
+                consec['WARNED_10S'] = 1;
                 socket.emit('proctor-warning', {
-                  message: 'Warning: No face detected. Please face the camera (Violation count: 5s / 30s).',
+                  message: 'Warning: No face detected. Please face the camera (duration: > 10 seconds).',
                   count: consecCount
                 });
-              } else if (consecCount === 10) {
-                // 15 seconds: Fraud event logged in DB
+              } else if (elapsedSec >= 20 && elapsedSec < 30 && !consec['LOGGED_20S']) {
+                consec['LOGGED_20S'] = 1;
                 await processViolation(
                   attemptId,
                   studentId,
                   examId,
                   violation,
-                  'No face detected for more than 15 seconds (Fraud Event).',
-                  'critical',
+                  'No face detected for more than 20 seconds (Fraud Event).',
+                  'warning',
                   socket
                 );
-              } else if (consecCount >= 20) {
-                // 30 seconds: Terminate
+              } else if (elapsedSec >= 30) {
                 await processViolation(
                   attemptId,
                   studentId,
@@ -484,23 +508,38 @@ io.on('connection', (socket: Socket) => {
               }
             }
             else if (violation === 'MOBILE_PHONE_DETECTED') {
-              if (consecCount >= 2) {
-                // Terminate exam
+              const phoneConf = result.confidences?.["cell phone"] || 0.0;
+              const confStr = (phoneConf * 100).toFixed(1);
+              
+              if (consecCount >= 5) {
                 await processViolation(
                   attemptId,
                   studentId,
                   examId,
                   violation,
-                  'Mobile phone detected in camera view.',
+                  `Mobile phone detected in camera view for 5 consecutive frames (Confidence: ${confStr}%).`,
                   'critical',
+                  socket
+                );
+              } else {
+                await processViolation(
+                  attemptId,
+                  studentId,
+                  examId,
+                  violation,
+                  `Mobile phone detected with confidence: ${confStr}%.`,
+                  'warning',
                   socket
                 );
               }
             }
             else if (violation === 'BOOK_DETECTED') {
+              const bookConf = result.confidences?.["book"] || 0.0;
+              const confStr = (bookConf * 100).toFixed(1);
+              
               if (consecCount === 2) {
                 socket.emit('proctor-warning', {
-                  message: 'Warning: Book or notes detected in camera view.',
+                  message: `Warning: Book or notes detected in camera view (Confidence: ${confStr}%).`,
                   count: consecCount
                 });
               } else if (consecCount >= 8) {
@@ -510,7 +549,7 @@ io.on('connection', (socket: Socket) => {
                   studentId,
                   examId,
                   violation,
-                  'Book or notes detected repeatedly.',
+                  `Book or notes detected repeatedly (Confidence: ${confStr}%).`,
                   'critical',
                   socket
                 );

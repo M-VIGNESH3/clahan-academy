@@ -1893,6 +1893,59 @@ export default function App() {
     }
   };
 
+  const verifyFacePeriodically = async (retryCount: number = 0) => {
+    if (!videoRef.current) {
+      setHardwareProgress(75);
+      return;
+    }
+    try {
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 480;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        setHardwareProgress(75);
+        return;
+      }
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.80);
+
+      const verifyRes = await fetch('/api/proctor/verify-face', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ image: dataUrl })
+      });
+
+      if (verifyRes.ok) {
+        const verifyData = await verifyRes.json();
+        if (verifyData.verified && verifyData.faceCount === 1) {
+          setFaceCheck(true);
+          setHardwareProgress(100);
+          showToast('Face verification completed successfully!', 'success');
+        } else {
+          // If we failed but camera permission is active, retry up to 15 times (30 seconds)
+          if (retryCount < 15) {
+            showToast('Face not detected or multiple people present. Adjust your camera and look directly at it.', 'warning');
+            setTimeout(() => verifyFacePeriodically(retryCount + 1), 2000);
+          } else {
+            showToast('Face verification timed out. Please look at the camera and click retry.', 'error');
+            setHardwareProgress(75);
+          }
+        }
+      } else {
+        throw new Error("API call returned failure status");
+      }
+    } catch (err) {
+      console.error("Face verification API call failed:", err);
+      showToast('Face verification server error. Please ensure camera is well lit and click retry.', 'error');
+      setHardwareProgress(75);
+    }
+  };
+
   const requestHardwarePermissions = async () => {
     setValidationStep('validation');
     setHardwareProgress(10);
@@ -1922,10 +1975,8 @@ export default function App() {
       setHardwareProgress(75);
 
       setTimeout(() => {
-        setFaceCheck(true);
-        setHardwareProgress(100);
-        showToast('Hardware verification completed successfully!', 'success');
-      }, 1000);
+        verifyFacePeriodically(0);
+      }, 1500);
 
     } catch (err: any) {
       console.error("Hardware permission denied:", err);
@@ -5803,6 +5854,20 @@ export default function App() {
                       Start Proctored Exam
                     </button>
                   )}
+                </div>
+              )}
+
+              {hardwareProgress === 75 && !faceCheck && (
+                <div className="pt-4">
+                  <button
+                    onClick={() => {
+                      setHardwareProgress(80);
+                      verifyFacePeriodically(0);
+                    }}
+                    className="w-full py-4 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl text-sm uppercase"
+                  >
+                    Retry Face Verification
+                  </button>
                 </div>
               )}
             </div>

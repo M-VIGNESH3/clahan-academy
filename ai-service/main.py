@@ -47,16 +47,41 @@ try:
 except Exception as e:
     logger.error(f"Error loading YOLOv8 ONNX: {e}")
 
-# Load OpenCV face detector
+# Load OpenCV face detectors
 face_cascade = None
+profile_cascade = None
 try:
     if os.path.exists("haarcascade_frontalface_default.xml"):
         face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-        logger.info("Face Cascade loaded successfully.")
+        logger.info("Frontal Face Cascade loaded successfully.")
     else:
         logger.error("haarcascade_frontalface_default.xml not found!")
+        
+    if os.path.exists("haarcascade_profileface.xml"):
+        profile_cascade = cv2.CascadeClassifier('haarcascade_profileface.xml')
+        logger.info("Profile Face Cascade loaded successfully.")
+    else:
+        logger.error("haarcascade_profileface.xml not found!")
 except Exception as e:
-    logger.error(f"Error loading Face Cascade: {e}")
+    logger.error(f"Error loading Face Cascades: {e}")
+
+def letterbox_image(img, target_size=(640, 640)):
+    """Resize image to target_size with padding to preserve aspect ratio."""
+    h, w = img.shape[:2]
+    tw, th = target_size
+    scale = min(tw / w, th / h)
+    nw, nh = int(w * scale), int(h * scale)
+    
+    resized = cv2.resize(img, (nw, nh), interpolation=cv2.INTER_LINEAR)
+    
+    # Create gray canvas (standard YOLO background pad color is 114)
+    canvas = np.full((th, tw, 3), 114, dtype=np.uint8)
+    
+    # Paste resized image in the center
+    dx = (tw - nw) // 2
+    dy = (th - nh) // 2
+    canvas[dy:dy+nh, dx:dx+nw] = resized
+    return canvas, scale, dx, dy
 
 app = FastAPI(title="Clahan Academy AI Service", version="2.0.0")
 
@@ -337,11 +362,11 @@ async def analyze_frame(
         img_bytes = base64.b64decode(frame)
         image = Image.open(io.BytesIO(img_bytes))
         
-        # Convert PIL Image to OpenCV format (BGR) for face detection
+        # Convert PIL Image to OpenCV format (BGR)
         open_cv_image = np.array(image.convert("RGB"))
         open_cv_image = open_cv_image[:, :, ::-1].copy() # Convert RGB to BGR
         
-        # Optimize frame size before inference to reduce CPU/GPU load
+        # Optimize frame size before inference to reduce CPU load
         height, width = open_cv_image.shape[:2]
         if width > 640 or height > 480:
             open_cv_image = cv2.resize(open_cv_image, (640, 480))
@@ -351,13 +376,17 @@ async def analyze_frame(
         yolo_persons = 0
         objects_detected = []
         violations = []
+        detected_confidences = {}
         
         # 1. Run YOLOv8 Object Detection (using OpenCV DNN ONNX)
         if yolo_net is not None:
             try:
+                # Preprocess image preserving aspect ratio to avoid distortion of phones/books
+                letterboxed, scale, dx, dy = letterbox_image(open_cv_image, (640, 640))
+                
                 # YOLOv8 input is 640x640, scale factor is 1/255.0
-                # Set swapRB=True since open_cv_image is BGR, converting it to RGB for YOLOv8
-                blob = cv2.dnn.blobFromImage(open_cv_image, 1.0/255.0, (640, 640), swapRB=True, crop=False)
+                # Set swapRB=True since letterboxed is BGR, converting it to RGB for YOLOv8
+                blob = cv2.dnn.blobFromImage(letterboxed, 1.0/255.0, (640, 640), swapRB=True, crop=False)
                 yolo_net.setInput(blob)
                 outputs = yolo_net.forward() # shape: (1, 84, 8400)
                 
@@ -372,7 +401,9 @@ async def analyze_frame(
                     classes_scores = row[4:]
                     class_id = np.argmax(classes_scores)
                     confidence = classes_scores[class_id]
-                    if confidence > 0.10:
+                    
+                    # Keep confidence threshold low for detection to ensure we capture objects
+                    if confidence > 0.15:
                         class_name = CLASSES[class_id]
                         if class_name in ["person", "cell phone", "book"]:
                             cx, cy, w, h = row[0], row[1], row[2], row[3]
@@ -383,8 +414,7 @@ async def analyze_frame(
                             class_ids.append(int(class_id))
                 
                 if len(boxes) > 0:
-                    indices = cv2.dnn.NMSBoxes(boxes, confidences, 0.10, 0.4)
-                    # Convert to flat list to handle empty list or nested list structures across opencv versions safely
+                    indices = cv2.dnn.NMSBoxes(boxes, confidences, 0.15, 0.4)
                     flat_indices = []
                     if len(indices) > 0:
                         for idx in indices:
@@ -395,6 +425,12 @@ async def analyze_frame(
                     
                     for i in flat_indices:
                         c_name = CLASSES[class_ids[i]]
+                        conf = confidences[i]
+                        
+                        # Store maximum confidence per class detected in this frame
+                        if c_name not in detected_confidences or conf > detected_confidences[c_name]:
+                            detected_confidences[c_name] = conf
+                        
                         if c_name == "person":
                             yolo_persons += 1
                             objects_detected.append("person")
@@ -405,50 +441,76 @@ async def analyze_frame(
             except Exception as e:
                 logger.error(f"YOLO ONNX detection error: {str(e)}")
         
-        # 2. Run Face detection (direct in-process using Haar Cascade)
+        # 2. Run Face detection (frontal cascade, with profile fallback)
+        faces_detected = []
         if face_cascade is not None:
             try:
                 gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
-                # Downscale grayscale for faster Haar Cascade detection
                 small_gray = cv2.resize(gray, (320, 240))
-                # scaleFactor=1.1 and minNeighbors=4 increases face detection quality and filters noise
                 faces = face_cascade.detectMultiScale(small_gray, scaleFactor=1.1, minNeighbors=4)
-                face_count = len(faces)
+                for f in faces:
+                    faces_detected.append(f)
             except Exception as e:
-                logger.error(f"Face detection error: {str(e)}")
-                face_count = 1
+                logger.error(f"Frontal Face detection error: {str(e)}")
 
-        # Fallback 1: If YOLOv8 detects a person but Haar Cascade missed the face,
-        # set face_count to 1 since the student is present in front of the camera.
+        # If no frontal faces found, fall back to profile face cascade
+        if len(faces_detected) == 0 and profile_cascade is not None:
+            try:
+                gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
+                small_gray = cv2.resize(gray, (320, 240))
+                profiles = profile_cascade.detectMultiScale(small_gray, scaleFactor=1.1, minNeighbors=4)
+                for p in profiles:
+                    faces_detected.append(p)
+            except Exception as e:
+                logger.error(f"Profile Face detection error: {str(e)}")
+                
+        face_count = len(faces_detected)
+        
+        # Fallback 1: If Haar Cascades missed the face(s) but YOLOv8 detects person(s),
+        # set face_count to match yolo_persons since they are physically present.
         if face_count == 0 and yolo_persons > 0:
-            logger.info("Face Cascade detected 0 faces, but YOLOv8 detected a 'person'. Overriding face_count to 1.")
-            face_count = 1
-
-        # Fallback 2: If Haar Cascade detects multiple faces but YOLOv8 detects only 1 person,
+            logger.info(f"Face Cascades detected 0 faces, but YOLOv8 detected {yolo_persons} person(s). Overriding face_count to {yolo_persons}.")
+            face_count = yolo_persons
+        
+        # Fallback 2: If Haar Cascades detect multiple faces but YOLOv8 detects only 1 person,
         # override face_count to 1 to filter out false positive background/shadow faces.
-        if face_count > 1 and yolo_persons <= 1:
-            logger.info(f"Face Cascade detected {face_count} faces, but YOLOv8 detected {yolo_persons} person(s). Overriding face_count to 1.")
+        if face_count > 1 and yolo_persons == 1:
+            logger.info(f"Face Cascades detected {face_count} faces, but YOLOv8 detected 1 person. Overriding face_count to 1.")
             face_count = 1
-
+        
         # Evaluate violations
         if face_count == 0:
             violations.append("NO_FACE_DETECTED")
         elif face_count > 1:
             violations.append("MULTIPLE_FACES_DETECTED")
-
-        if "cell phone" in objects_detected:
-            violations.append("MOBILE_PHONE_DETECTED")
-        if "book" in objects_detected:
-            violations.append("BOOK_DETECTED")
-
+        
+        # Only trigger MOBILE_PHONE_DETECTED if confidence > 0.80
+        if "cell phone" in detected_confidences:
+            phone_conf = detected_confidences["cell phone"]
+            if phone_conf > 0.80:
+                violations.append("MOBILE_PHONE_DETECTED")
+                logger.info(f"Cell phone violation triggered with confidence: {phone_conf:.4f}")
+            else:
+                logger.info(f"Cell phone detected but ignored (low confidence: {phone_conf:.4f})")
+                
+        # Only trigger BOOK_DETECTED if confidence > 0.40
+        if "book" in detected_confidences:
+            book_conf = detected_confidences["book"]
+            if book_conf > 0.40:
+                violations.append("BOOK_DETECTED")
+                logger.info(f"Book violation triggered with confidence: {book_conf:.4f}")
+            else:
+                logger.info(f"Book detected but ignored (low confidence: {book_conf:.4f})")
+        
         return {
             "faceCount": face_count,
             "objectsDetected": objects_detected,
             "ocrText": None,
             "violations": violations,
-            "verified": (face_count == 1 and len(violations) == 0)
+            "verified": (face_count == 1 and len(violations) == 0),
+            "confidences": detected_confidences
         }
-
+    
     except Exception as e:
         logger.error(f"Error analyzing frame: {str(e)}")
         # Graceful fallback: return safe state to avoid crashing exam flow
@@ -457,7 +519,8 @@ async def analyze_frame(
             "objectsDetected": [],
             "ocrText": None,
             "violations": [],
-            "verified": True
+            "verified": True,
+            "confidences": {}
         }
 
 

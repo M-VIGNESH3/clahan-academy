@@ -10,8 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Prefetch/Download Haar Cascade XML during build
-RUN python -c "import urllib.request; urllib.request.urlretrieve('https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml', 'haarcascade_frontalface_default.xml')"
+# Prefetch/Download Haar Cascade XMLs during build
+RUN python -c "import urllib.request; \
+urllib.request.urlretrieve('https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_frontalface_default.xml', 'haarcascade_frontalface_default.xml'); \
+urllib.request.urlretrieve('https://raw.githubusercontent.com/opencv/opencv/master/data/haarcascades/haarcascade_profileface.xml', 'haarcascade_profileface.xml')"
 
 COPY yolov8n.onnx main.py ./
 ENV PORT=8000
