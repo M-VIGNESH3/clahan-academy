@@ -273,18 +273,12 @@ io.on('connection', (socket: Socket) => {
           terminationReason = 'Multiple faces detected in the webcam view.';
         }
       }
-      // Rule 6: No face for long duration -> Terminate after 7 seconds
+      // Rule 6: No face for long duration -> Terminate after 10 seconds
       else if (eventType === 'NO_FACE_DETECTED') {
         const start = violationStartTimes[attemptId]?.['NO_FACE_DETECTED'];
-        if (start && (Date.now() - start) >= 7000) {
+        if (start && (Date.now() - start) >= 10000) {
           shouldTerminate = true;
-          terminationReason = 'Prolonged Face Absence (terminated after 7 seconds).';
-        } else {
-          const consec = consecutiveViolations[attemptId] || {};
-          if ((consec['NO_FACE_DETECTED'] || 0) >= 5) {
-            shouldTerminate = true;
-            terminationReason = 'Prolonged Face Absence (terminated after 7 seconds).';
-          }
+          terminationReason = 'Prolonged Face Absence (terminated after 10 seconds).';
         }
       }
       // Rule 7: Fullscreen exit -> Warning then Terminate (limit 3)
@@ -294,7 +288,7 @@ io.on('connection', (socket: Socket) => {
       }
 
       if (shouldTerminate) {
-        if (eventType === 'CAMERA_DISABLED') {
+        if (eventType === 'CAMERA_DISABLED' || eventType === 'NO_FACE_DETECTED') {
           // Auto-submit: calculate score up to now and mark completed
           const mcqScoreRes = await query('SELECT COALESCE(SUM(marks_obtained), 0) as sum FROM mcq_responses WHERE attempt_id = $1', [attemptId]);
           const mcqScore = parseInt(mcqScoreRes.rows[0].sum);
@@ -332,7 +326,7 @@ io.on('connection', (socket: Socket) => {
         // Notify student socket to force quit
         io.to(`attempt:${attemptId}`).emit('exam-terminated', {
           reason: terminationReason,
-          autoSubmitted: eventType === 'CAMERA_DISABLED'
+          autoSubmitted: eventType === 'CAMERA_DISABLED' || eventType === 'NO_FACE_DETECTED'
         });
 
         // Notify Admin of termination
@@ -358,9 +352,20 @@ io.on('connection', (socket: Socket) => {
 
         const limit = maxLimits[eventType] || 3;
         const warningNum = isWebcamEvent ? consecCount : (counts[eventType] || 1);
-        const displayMsg = isWebcamEvent
-          ? `Warning: ${eventType.replace(/_/g, ' ')} detected (Violation count: ${warningNum}/${limit}). Repeated violations will terminate your exam.`
-          : `Warning: ${eventType.replace(/_/g, ' ')} detected (Violation count: ${warningNum}/3). Repeated actions will terminate your exam.`;
+        let displayMsg = '';
+        if (eventType === 'NO_FACE_DETECTED') {
+          displayMsg = 'Face not detected. Please return to camera.';
+        } else if (eventType === 'MULTIPLE_FACES_DETECTED') {
+          if (warningNum >= 3) {
+            displayMsg = 'Warning: Multiple faces detected. Please ensure you are alone.';
+          } else {
+            displayMsg = `Warning: Multiple faces detected (Violation count: ${warningNum}/${limit}).`;
+          }
+        } else if (isWebcamEvent) {
+          displayMsg = `Warning: ${eventType.replace(/_/g, ' ')} detected (Violation count: ${warningNum}/${limit}). Repeated violations will terminate your exam.`;
+        } else {
+          displayMsg = `Warning: ${eventType.replace(/_/g, ' ')} detected (Violation count: ${warningNum}/3). Repeated actions will terminate your exam.`;
+        }
 
         socket.emit('proctor-warning', {
           message: displayMsg,
@@ -433,6 +438,9 @@ io.on('connection', (socket: Socket) => {
         }
         if (!currentViolations.includes('MOBILE_PHONE_DETECTED')) {
           consec['MOBILE_PHONE_DETECTED'] = 0;
+          if (violationStartTimes[attemptId]) {
+            violationStartTimes[attemptId]['phone_confidences'] = [];
+          }
         }
         if (!currentViolations.includes('BOOK_DETECTED')) {
           consec['BOOK_DETECTED'] = 0;
@@ -457,10 +465,10 @@ io.on('connection', (socket: Socket) => {
               if (elapsedSec >= 2 && elapsedSec < 5 && !consec['WARNED_2S']) {
                 consec['WARNED_2S'] = 1;
                 socket.emit('proctor-warning', {
-                  message: 'Face not detected. Please return to camera view immediately.',
+                  message: 'Face not detected. Please return to camera.',
                   count: consecCount
                 });
-              } else if (elapsedSec >= 5 && elapsedSec < 7 && !consec['LOGGED_5S']) {
+              } else if (elapsedSec >= 5 && elapsedSec < 10 && !consec['LOGGED_5S']) {
                 consec['LOGGED_5S'] = 1;
                 await processViolation(
                   attemptId,
@@ -472,13 +480,13 @@ io.on('connection', (socket: Socket) => {
                   socket,
                   data.image
                 );
-              } else if (elapsedSec >= 7) {
+              } else if (elapsedSec >= 10) {
                 await processViolation(
                   attemptId,
                   studentId,
                   examId,
                   violation,
-                  'Prolonged Face Absence (terminated after 7 seconds).',
+                  'Prolonged Face Absence (terminated after 10 seconds).',
                   'critical',
                   socket,
                   data.image
@@ -486,64 +494,47 @@ io.on('connection', (socket: Socket) => {
               }
             }
             else if (violation === 'MULTIPLE_FACES_DETECTED') {
-              if (consecCount === 1) {
-                // Immediate Fraud Alert on first detection
-                await processViolation(
-                  attemptId,
-                  studentId,
-                  examId,
-                  violation,
-                  'Multiple faces detected (Fraud Alert).',
-                  'warning',
-                  socket,
-                  data.image
-                );
-              } else if (consecCount === 3) {
-                // Escalate Warning
-                socket.emit('proctor-warning', {
-                  message: 'Warning: Multiple faces detected. Please ensure you are alone.',
-                  count: consecCount
-                });
-              } else if (consecCount >= 5) {
-                // Repeated detection: Terminate
-                await processViolation(
-                  attemptId,
-                  studentId,
-                  examId,
-                  violation,
-                  'Multiple faces detected repeatedly.',
-                  'critical',
-                  socket,
-                  data.image
-                );
-              }
+              // Fraud Counter +1: Log warning in db on every frame
+              await processViolation(
+                attemptId,
+                studentId,
+                examId,
+                violation,
+                'Multiple faces detected in the webcam view.',
+                'warning',
+                socket,
+                data.image
+              );
             }
             else if (violation === 'MOBILE_PHONE_DETECTED') {
               const phoneConf = result.confidences?.["cell phone"] || 0.0;
               const confStr = (phoneConf * 100).toFixed(1);
               
+              // Store confidence scores in memory to log them on the 5th frame
+              violationStartTimes[attemptId] = violationStartTimes[attemptId] || {};
+              violationStartTimes[attemptId]['phone_confidences'] = violationStartTimes[attemptId]['phone_confidences'] || [];
+              violationStartTimes[attemptId]['phone_confidences'].push(confStr);
+
               if (consecCount >= 5) {
+                const confList = violationStartTimes[attemptId]['phone_confidences'] || [];
+                const confListStr = confList.slice(0, 5).map(c => c + '%').join(', ');
                 await processViolation(
                   attemptId,
                   studentId,
                   examId,
                   violation,
-                  `Mobile phone detected in camera view for 5 consecutive frames (Confidence: ${confStr}%).`,
+                  `Fraud Event: Mobile phone detected in camera view for 5 consecutive frames (Confidences: ${confListStr}).`,
                   'critical',
                   socket,
                   data.image
                 );
+                violationStartTimes[attemptId]['phone_confidences'] = [];
               } else {
-                await processViolation(
-                  attemptId,
-                  studentId,
-                  examId,
-                  violation,
-                  `Mobile phone detected with confidence: ${confStr}%.`,
-                  'warning',
-                  socket,
-                  data.image
-                );
+                // Do not log Fraud Event inside database yet; just show a caution warning to student
+                socket.emit('proctor-warning', {
+                  message: `Warning: Mobile phone usage suspected (Frame ${consecCount}/5). Please put it away.`,
+                  count: consecCount
+                });
               }
             }
             else if (violation === 'BOOK_DETECTED') {

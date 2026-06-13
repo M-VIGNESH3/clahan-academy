@@ -297,6 +297,32 @@ export default function App() {
     document.body.style.cursor = 'col-resize';
   };
 
+  const setWidthPercent = (pct: number) => {
+    const newWidth = Math.max(250, Math.min(1000, Math.round(window.innerWidth * pct)));
+    setQuestionWidth(newWidth);
+    localStorage.setItem('clahan_question_width', String(newWidth));
+  };
+
+  const saveCurrentCodeImmediately = async (solutionsSnapshot = codingSolutions) => {
+    if (!currentAttempt?.id || Object.keys(solutionsSnapshot).length === 0) return;
+    try {
+      localStorage.setItem(`clahan_coding_sol_${currentAttempt.id}`, JSON.stringify(solutionsSnapshot));
+      for (const questionId of Object.keys(solutionsSnapshot)) {
+        const sol = solutionsSnapshot[questionId];
+        await fetch(`${API_EXAMS}/student/attempts/${currentAttempt.id}/save-code`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ code: sol.code, language: sol.language, questionId })
+        });
+      }
+    } catch (err) {
+      console.error('Failed to save code immediately:', err);
+    }
+  };
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (dragQuestionRef.current) {
@@ -351,6 +377,15 @@ export default function App() {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
+
+  // Persist current question selection & reviews to local storage for recovery
+  useEffect(() => {
+    if (currentPage === 'exam-env' && currentAttempt?.id) {
+      localStorage.setItem(`clahan_active_section_${currentAttempt.id}`, selectedSection);
+      localStorage.setItem(`clahan_active_index_${currentAttempt.id}`, String(activeQuestionIndex));
+      localStorage.setItem(`clahan_marked_for_review_${currentAttempt.id}`, JSON.stringify(markedForReview));
+    }
+  }, [currentPage, currentAttempt?.id, selectedSection, activeQuestionIndex, markedForReview]);
 
   // Unsaved changes warning on page unload
   useEffect(() => {
@@ -2136,14 +2171,32 @@ export default function App() {
         setCodingSolutions(codSol);
 
         const examObj = data.exam || currentExam;
+        let defaultSection: 'mcq' | 'coding' = 'mcq';
         if (data.mcqQuestions && data.mcqQuestions.length > 0) {
-          setSelectedSection('mcq');
+          defaultSection = 'mcq';
         } else if (data.codingQuestions && data.codingQuestions.length > 0) {
-          setSelectedSection('coding');
+          defaultSection = 'coding';
         } else if (examObj?.exam_type === 'coding') {
-          setSelectedSection('coding');
-        } else {
-          setSelectedSection('mcq');
+          defaultSection = 'coding';
+        }
+        setSelectedSection(defaultSection);
+
+        // Restore active section, active index, and marked questions if available
+        try {
+          const cachedSection = localStorage.getItem(`clahan_active_section_${attemptId}`);
+          if (cachedSection === 'mcq' || cachedSection === 'coding') {
+            setSelectedSection(cachedSection);
+          }
+          const cachedIndex = localStorage.getItem(`clahan_active_index_${attemptId}`);
+          if (cachedIndex) {
+            setActiveQuestionIndex(parseInt(cachedIndex));
+          }
+          const cachedMarked = localStorage.getItem(`clahan_marked_for_review_${attemptId}`);
+          if (cachedMarked) {
+            setMarkedForReview(JSON.parse(cachedMarked));
+          }
+        } catch (e) {
+          console.warn('Failed to restore workspace settings:', e);
         }
 
         setValidationStep('active');
@@ -2195,7 +2248,7 @@ export default function App() {
       socket.on('exam-terminated', (data: any) => {
         clearInterval(timerRef.current);
         alert(`Exam terminated automatically: ${data.reason}`);
-        handleExamTermination(data.reason);
+        handleExamTermination(data.reason, data.autoSubmitted);
       });
 
     } catch (err) {
@@ -2220,7 +2273,7 @@ export default function App() {
           console.warn('Failed to capture proctor frame:', err);
         }
       }
-    }, 1500);
+    }, 1000);
 
     // Track tab switching browser events
     window.addEventListener('blur', stableTabSwitch);
@@ -2269,9 +2322,9 @@ export default function App() {
     });
   };
 
-  const handleExamTermination = async (reason?: string) => {
+  const handleExamTermination = async (reason?: string, isAutoSubmitted?: boolean) => {
     cleanupProctoring();
-    if (currentAttempt?.id) {
+    if (currentAttempt?.id && !isAutoSubmitted) {
       try {
         await fetch(`${API_EXAMS}/student/attempts/${currentAttempt.id}/terminate`, {
           method: 'POST',
@@ -6117,26 +6170,30 @@ export default function App() {
                           <span className="text-[9px] font-bold text-indigo-400">{activeQuestionIndex + 1} / {(selectedSection === 'mcq' ? examMCQs : examCodings).length}</span>
                         </div>
                       )}
-                      
                       <div className={`grid ${isSidebarCollapsed ? 'grid-cols-1 gap-3 justify-items-center' : 'grid-cols-4 gap-2'}`}>
                         {(selectedSection === 'mcq' ? examMCQs : examCodings).map((q, idx) => {
                           const isAnswered = selectedSection === 'mcq' ? !!mcqAnswers[q.id] : (codingSolutions[q.id]?.code?.length || 0) > 5;
                           const isMarked = markedForReview[q.id];
                           const isActive = activeQuestionIndex === idx;
 
-                          let bgClass = 'bg-slate-950 border-white/5 text-slate-400 hover:bg-slate-850';
+                          let bgClass = '';
                           if (isActive) {
-                            bgClass = 'bg-indigo-600 text-white border-indigo-500 font-extrabold scale-105';
+                            bgClass = 'bg-blue-600 text-white border-blue-500 font-extrabold scale-105';
                           } else if (isMarked) {
                             bgClass = 'bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold';
                           } else if (isAnswered) {
                             bgClass = 'bg-emerald-600/20 text-emerald-400 border-emerald-500/25';
+                          } else {
+                            bgClass = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
                           }
 
                           return (
                             <button
                               key={q.id}
-                              onClick={() => setActiveQuestionIndex(idx)}
+                              onClick={() => {
+                                saveCurrentCodeImmediately();
+                                setActiveQuestionIndex(idx);
+                              }}
                               className={`h-9 w-9 flex items-center justify-center rounded-lg text-xs transition-all border shadow-inner ${bgClass}`}
                               title={`Go to Question ${idx + 1} ${isMarked ? '(Marked for Review)' : isAnswered ? '(Answered)' : '(Not Answered)'}`}
                             >
@@ -6150,7 +6207,7 @@ export default function App() {
                       {!isSidebarCollapsed && (
                         <div className="pt-4 border-t border-white/5 space-y-2 text-[10px] font-semibold text-slate-400">
                           <div className="flex items-center gap-2">
-                            <span className="h-3 w-3 rounded bg-indigo-600 border border-indigo-500"></span>
+                            <span className="h-3 w-3 rounded bg-blue-600 border border-blue-500"></span>
                             <span>Current</span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -6162,7 +6219,7 @@ export default function App() {
                             <span>Marked for Review</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="h-3 w-3 rounded bg-slate-950 border border-white/5"></span>
+                            <span className="h-3 w-3 rounded bg-rose-500/10 border border-rose-500/20"></span>
                             <span>Not Answered</span>
                           </div>
                         </div>
@@ -6289,6 +6346,32 @@ export default function App() {
                           </span>
                           
                           <div className="flex items-center gap-2">
+                            {/* Width Presets */}
+                            {!isFullscreenQuestion && (
+                              <div className="flex items-center gap-1 bg-slate-950/60 p-0.5 rounded-lg border border-white/5 mr-2">
+                                <button
+                                  onClick={() => setWidthPercent(0.25)}
+                                  className="px-2 py-0.5 text-[9px] font-bold rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
+                                  title="Set width to 25%"
+                                >
+                                  25%
+                                </button>
+                                <button
+                                  onClick={() => setWidthPercent(0.40)}
+                                  className="px-2 py-0.5 text-[9px] font-bold rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
+                                  title="Set width to 40%"
+                                >
+                                  40%
+                                </button>
+                                <button
+                                  onClick={() => setWidthPercent(0.50)}
+                                  className="px-2 py-0.5 text-[9px] font-bold rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
+                                  title="Set width to 50%"
+                                >
+                                  50%
+                                </button>
+                              </div>
+                            )}
                             {/* Fullscreen Button */}
                             <button
                               onClick={() => setIsFullscreenQuestion(!isFullscreenQuestion)}
@@ -6322,6 +6405,15 @@ export default function App() {
 
                           <div className="text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap">
                             {examCodings[activeQuestionIndex].description}
+                          </div>
+
+                          {/* Constraints Card */}
+                          <div className="p-3 bg-slate-950/60 rounded-xl border border-white/5 space-y-2 text-[10px] font-mono shadow-inner">
+                            <div className="font-bold text-slate-400 uppercase tracking-widest text-[8px]">Constraints & Limits</div>
+                            <div className="grid grid-cols-2 gap-2 text-slate-300 text-[9px]">
+                              <div>Time Limit: <span className="text-indigo-400 font-bold">{examCodings[activeQuestionIndex].time_limit || 2} seconds</span></div>
+                              <div>Memory Limit: <span className="text-indigo-400 font-bold">{examCodings[activeQuestionIndex].memory_limit || 256} MB</span></div>
+                            </div>
                           </div>
 
                           {/* Render Sample Test Cases */}
@@ -6360,12 +6452,25 @@ export default function App() {
                         title="Drag to resize Question Panel"
                       />
                     )}
-
-                    {/* 3. CENTER: RESIZABLE CODE EDITOR PANEL */}
+                    {isDescriptionCollapsed && (
+                      <button
+                        onClick={() => setIsDescriptionCollapsed(false)}
+                        className="w-10 bg-slate-900 border-r border-white/10 hover:bg-slate-800 flex flex-col items-center justify-start gap-2 cursor-pointer select-none py-6 text-slate-400 hover:text-white transition-all group shrink-0"
+                        title="Expand Problem Statement"
+                      >
+                        <BookOpen className="h-4 w-4 text-indigo-400 group-hover:scale-110 transition-transform mb-4" />
+                        <span 
+                          className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap mt-4"
+                          style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
+                        >
+                          Problem Statement
+                        </span>
+                      </button>
+                    )}
                     <div 
                       style={{ width: (isFullscreenEditor || isDescriptionCollapsed) ? 'auto' : `${editorWidth}px` }} 
                       className={`flex-1 lg:flex-initial flex flex-col bg-slate-950 border-r border-white/10 overflow-hidden relative transition-all duration-100 ${
-                        isFullscreenEditor ? 'fixed inset-0 z-50 bg-slate-950 p-6' : ''
+                        isFullscreenEditor ? 'fixed inset-0 z-50 bg-slate-955 p-6' : ''
                       }`}
                     >
                       {/* Editor Toolbar */}
@@ -6391,7 +6496,15 @@ export default function App() {
                             >
                               A-
                             </button>
-                            <span className="px-1.5 text-[10px] font-bold font-mono text-slate-300 min-w-[28px] text-center">{editorFontSize}px</span>
+                            <select
+                              value={editorFontSize}
+                              onChange={e => setEditorFontSize(parseInt(e.target.value))}
+                              className="bg-transparent border-0 text-[10px] font-bold px-1 text-slate-305 outline-none cursor-pointer text-center"
+                            >
+                              {[10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(sz => (
+                                <option key={sz} value={sz} className="bg-slate-900">{sz}px</option>
+                              ))}
+                            </select>
                             <button 
                               onClick={() => setEditorFontSize(f => Math.min(20, f + 1))}
                               className="w-6 h-6 flex items-center justify-center hover:bg-slate-800 text-[10px] font-black rounded text-slate-400 transition-all"
@@ -6405,11 +6518,13 @@ export default function App() {
                           <select
                             value={editorTheme}
                             onChange={e => setEditorTheme(e.target.value)}
-                            className="bg-slate-950 border border-white/5 text-[10px] font-bold px-2 py-1 rounded-lg text-slate-350 outline-none cursor-pointer"
+                            className="bg-slate-955 border border-white/5 text-[10px] font-bold px-2 py-1 rounded-lg text-slate-355 outline-none cursor-pointer"
                           >
-                            <option value="vs-dark">VS Dark</option>
+                            <option value="vs-dark">VS Code Dark</option>
+                            <option value="vs-dark-custom">Slate Dark</option>
                             <option value="light">Light</option>
-                            <option value="hc-black">High Contrast</option>
+                            <option value="monokai">Monokai</option>
+                            <option value="github-light">GitHub Light</option>
                           </select>
                         </div>
 
@@ -6431,13 +6546,15 @@ export default function App() {
                                   currentCode.includes('const fs = require') ||
                                   currentCode === examCodings[activeQuestionIndex].starter_code;
 
-                                setCodingSolutions(prev => ({
-                                  ...prev,
+                                const updatedSolutions = {
+                                  ...codingSolutions,
                                   [qId]: { 
                                     code: isTemplateOrEmpty ? getCustomTemplate(examCodings[activeQuestionIndex], newLang) : currentCode, 
                                     language: newLang 
                                   }
-                                }));
+                                };
+                                setCodingSolutions(updatedSolutions);
+                                saveCurrentCodeImmediately(updatedSolutions);
                               }}
                               className="bg-transparent border-0 text-[10px] font-bold px-2 py-0.5 text-slate-205 outline-none cursor-pointer"
                             >
@@ -6494,15 +6611,69 @@ export default function App() {
                           })()}
                           value={codingSolutions[examCodings[activeQuestionIndex].id]?.code || ''}
                           theme={editorTheme}
+                          beforeMount={(monaco) => {
+                            monaco.editor.defineTheme('vs-dark-custom', {
+                              base: 'vs-dark',
+                              inherit: true,
+                              rules: [],
+                              colors: {
+                                'editor.background': '#0f172a',
+                              }
+                            });
+                            monaco.editor.defineTheme('monokai', {
+                              base: 'vs-dark',
+                              inherit: true,
+                              rules: [
+                                { token: 'comment', foreground: '75715E', fontStyle: 'italic' },
+                                { token: 'keyword', foreground: 'F92672' },
+                                { token: 'string', foreground: 'E6DB74' },
+                                { token: 'number', foreground: 'AE81FF' },
+                                { token: 'regexp', foreground: 'AE81FF' },
+                                { token: 'type', foreground: '66D9EF', fontStyle: 'italic' },
+                                { token: 'class', foreground: 'A6E22E' },
+                                { token: 'function', foreground: 'A6E22E' },
+                                { token: 'variable', foreground: 'F8F8F2' },
+                              ],
+                              colors: {
+                                'editor.background': '#272822',
+                                'editor.foreground': '#F8F8F2',
+                                'editorCursor.foreground': '#F8F8F0',
+                                'editor.lineHighlightBackground': '#3E3D32',
+                                'editorLineNumber.foreground': '#90908A',
+                                'editorLineNumber.activeForeground': '#C2C2BF',
+                              }
+                            });
+                            monaco.editor.defineTheme('github-light', {
+                              base: 'vs',
+                              inherit: true,
+                              rules: [
+                                { token: 'comment', foreground: '6a737d', fontStyle: 'italic' },
+                                { token: 'keyword', foreground: 'd73a49' },
+                                { token: 'string', foreground: '032f62' },
+                                { token: 'variable', foreground: '24292e' },
+                                { token: 'function', foreground: '6f42c1' },
+                              ],
+                              colors: {
+                                'editor.background': '#ffffff',
+                                'editor.foreground': '#24292e',
+                                'editor.lineHighlightBackground': '#f6f8fa',
+                                'editorLineNumber.foreground': '#e1e4e8',
+                              }
+                            });
+                          }}
                           onChange={(value) => {
                             const qId = examCodings[activeQuestionIndex].id;
-                            setCodingSolutions(prev => ({
-                              ...prev,
+                            const updatedSolutions = {
+                              ...codingSolutions,
                               [qId]: { 
                                 code: value || '', 
-                                language: prev[qId]?.language || examCodings[activeQuestionIndex].language 
+                                language: codingSolutions[qId]?.language || examCodings[activeQuestionIndex].language 
                               }
-                            }));
+                            };
+                            setCodingSolutions(updatedSolutions);
+                            if (currentAttempt?.id) {
+                              localStorage.setItem(`clahan_coding_sol_${currentAttempt.id}`, JSON.stringify(updatedSolutions));
+                            }
                           }}
                           options={{
                             fontSize: editorFontSize,
@@ -6774,6 +6945,7 @@ export default function App() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
+                      saveCurrentCodeImmediately();
                       if (selectedSection === 'coding' && activeQuestionIndex === 0) {
                         setSelectedSection('mcq');
                         setActiveQuestionIndex(examMCQs.length - 1);
@@ -6791,6 +6963,7 @@ export default function App() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
+                      saveCurrentCodeImmediately();
                       const totalQs = selectedSection === 'mcq' ? examMCQs.length : examCodings.length;
                       if (activeQuestionIndex === totalQs - 1) {
                         if (selectedSection === 'mcq' && examCodings.length > 0) {

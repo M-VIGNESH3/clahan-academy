@@ -362,14 +362,13 @@ async def analyze_frame(
         img_bytes = base64.b64decode(frame)
         image = Image.open(io.BytesIO(img_bytes))
         
-        # Convert PIL Image to OpenCV format (BGR)
+        # Convert PIL Image to OpenCV format (RGB)
         open_cv_image = np.array(image.convert("RGB"))
-        open_cv_image = open_cv_image[:, :, ::-1].copy() # Convert RGB to BGR
         
         # Optimize frame size before inference to reduce CPU load
         height, width = open_cv_image.shape[:2]
         if width > 640 or height > 480:
-            open_cv_image = cv2.resize(open_cv_image, (640, 480))
+            open_cv_image = cv2.resize(open_cv_image, (640, 480), interpolation=cv2.INTER_AREA)
         
         # Initialize default response
         face_count = 1
@@ -385,8 +384,8 @@ async def analyze_frame(
                 letterboxed, scale, dx, dy = letterbox_image(open_cv_image, (640, 640))
                 
                 # YOLOv8 input is 640x640, scale factor is 1/255.0
-                # Set swapRB=True since letterboxed is BGR, converting it to RGB for YOLOv8
-                blob = cv2.dnn.blobFromImage(letterboxed, 1.0/255.0, (640, 640), swapRB=True, crop=False)
+                # Set swapRB=False since letterboxed is already RGB
+                blob = cv2.dnn.blobFromImage(letterboxed, 1.0/255.0, (640, 640), swapRB=False, crop=False)
                 yolo_net.setInput(blob)
                 outputs = yolo_net.forward() # shape: (1, 84, 8400)
                 
@@ -445,18 +444,18 @@ async def analyze_frame(
         faces_detected = []
         if face_cascade is not None:
             try:
-                gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
+                gray = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
                 small_gray = cv2.resize(gray, (320, 240))
                 faces = face_cascade.detectMultiScale(small_gray, scaleFactor=1.1, minNeighbors=4)
                 for f in faces:
                     faces_detected.append(f)
             except Exception as e:
                 logger.error(f"Frontal Face detection error: {str(e)}")
-
+ 
         # If no frontal faces found, fall back to profile face cascade
         if len(faces_detected) == 0 and profile_cascade is not None:
             try:
-                gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
+                gray = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2GRAY)
                 small_gray = cv2.resize(gray, (320, 240))
                 profiles = profile_cascade.detectMultiScale(small_gray, scaleFactor=1.1, minNeighbors=4)
                 for p in profiles:
@@ -484,10 +483,10 @@ async def analyze_frame(
         elif face_count > 1:
             violations.append("MULTIPLE_FACES_DETECTED")
         
-        # Only trigger MOBILE_PHONE_DETECTED if confidence > 0.80
+        # Only trigger MOBILE_PHONE_DETECTED if confidence >= 0.80
         if "cell phone" in detected_confidences:
             phone_conf = detected_confidences["cell phone"]
-            if phone_conf > 0.80:
+            if phone_conf >= 0.80:
                 violations.append("MOBILE_PHONE_DETECTED")
                 logger.info(f"Cell phone violation triggered with confidence: {phone_conf:.4f}")
             else:
