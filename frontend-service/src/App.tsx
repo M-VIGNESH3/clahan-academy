@@ -334,6 +334,7 @@ export default function App() {
 
     // 2. Isolated question state: clear code execution results on question/section change
     setCodeExecutionResults([]);
+    setCodeSummary(null);
     setIsRunningCode(false);
     setOutputTab('output');
 
@@ -2442,12 +2443,19 @@ export default function App() {
 
   const [isRunningCode, setIsRunningCode] = useState(false);
   const [codeExecutionResults, setCodeExecutionResults] = useState<any[]>([]);
+  const [codeSummary, setCodeSummary] = useState<{
+    passedCount: number;
+    totalCount: number;
+    totalMarks: number;
+    scoreObtained: number;
+  } | null>(null);
 
   const runCodeSample = async (questionId: string) => {
     const sol = codingSolutions[questionId];
     if (!sol) return;
     setIsRunningCode(true);
     setCodeExecutionResults([]);
+    setCodeSummary(null);
     try {
       const res = await fetch(`${API_EXAMS}/student/attempts/${currentAttempt?.id}/run-code`, {
         method: 'POST',
@@ -2460,18 +2468,30 @@ export default function App() {
       const data = await res.json();
       if (res.ok && data.results) {
         setCodeExecutionResults(data.results);
+        setCodeSummary(data.summary || null);
         setIsOutputCollapsed(false);
+        setOutputTab('testcases');
       } else {
         showToast(data.error || 'Failed to run code sample', 'error');
         setCodeExecutionResults([]);
+        setCodeSummary(null);
       }
     } catch (err) {
       // Simulation fallback if runner is offline
       setTimeout(() => {
-        setCodeExecutionResults([
-          { input: '[2,7,11,15]\n9', expectedOutput: '[0,1]', stdout: '[0,1]', stderr: '', passed: true, status: 'Accepted (Simulated)', timeMs: 14, memoryKb: 140 }
-        ]);
+        const mockResults = [
+          { input: '[2,7,11,15]\n9', expectedOutput: '[0,1]', stdout: '[0,1]', stderr: '', passed: true, status: 'Accepted (Simulated)', timeMs: 14, memoryKb: 140, is_hidden: false },
+          { input: undefined, expectedOutput: undefined, stdout: undefined, stderr: '', passed: true, status: 'Accepted (Simulated)', timeMs: 10, memoryKb: 120, is_hidden: true }
+        ];
+        setCodeExecutionResults(mockResults);
+        setCodeSummary({
+          passedCount: 2,
+          totalCount: 2,
+          totalMarks: 20,
+          scoreObtained: 20
+        });
         setIsOutputCollapsed(false);
+        setOutputTab('testcases');
         setIsRunningCode(false);
       }, 1000);
       return;
@@ -2495,6 +2515,17 @@ export default function App() {
       const data = await res.json();
       if (res.ok) {
         showToast(`Coding submission saved. Passed: ${data.passedCount}/${data.totalCount}`, 'success');
+        if (data.results) {
+          setCodeExecutionResults(data.results);
+          setCodeSummary({
+            passedCount: data.passedCount,
+            totalCount: data.totalCount,
+            totalMarks: examCodings[activeQuestionIndex]?.marks || 100,
+            scoreObtained: data.marksObtained
+          });
+          setIsOutputCollapsed(false);
+          setOutputTab('testcases');
+        }
       } else {
         showToast(data.error || 'Failed to submit code solution', 'error');
       }
@@ -6875,48 +6906,115 @@ export default function App() {
                         {/* Tab 2: Detailed Test Cases Check */}
                         {outputTab === 'testcases' && (
                           <div className="space-y-4">
-                            {codeExecutionResults.length === 0 ? (
+                            {isRunningCode ? (
+                              <div className="flex flex-col items-center justify-center h-48 text-center space-y-3">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+                                <p className="text-xs font-semibold text-blue-500 dark:text-blue-400">Running Test Cases...</p>
+                              </div>
+                            ) : codeExecutionResults.length === 0 ? (
                               <div className="flex flex-col items-center justify-center h-48 text-center space-y-2.5">
-                                <CheckCircle className="h-8 w-8 text-slate-605" />
-                                <p className="text-[11px] font-semibold text-slate-500">Run code to see test case checkmarks.</p>
+                                <CheckCircle className="h-8 w-8 text-slate-400 dark:text-slate-650" />
+                                <p className="text-[11px] font-semibold text-slate-505">No execution results. Run code or submit to view test cases.</p>
                               </div>
                             ) : (
-                              <div className="space-y-3">
-                                <div className="p-3 bg-slate-900 border border-white/10 rounded-xl flex items-center justify-between font-mono text-xs shadow-md">
-                                  <span className="text-slate-400 font-semibold">Test Case Summary:</span>
-                                  <div className="flex gap-4">
-                                    <span className="text-emerald-400 font-extrabold">
-                                      {codeExecutionResults.filter(r => r.passed).length} Passed
+                              <div className="space-y-4">
+                                {/* Total Summary Card */}
+                                <div className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl shadow-sm space-y-3">
+                                  <div className="flex items-center justify-between border-b border-slate-105 dark:border-white/5 pb-2">
+                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-350">Total Summary</span>
+                                    <span className="text-[11px] font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded">
+                                      Score: {codeSummary?.scoreObtained ?? codeExecutionResults.filter(r => r.passed).length * 10} / {codeSummary?.totalMarks ?? codeExecutionResults.length * 10}
                                     </span>
-                                    <span className="text-rose-400 font-extrabold">
-                                      {codeExecutionResults.filter(r => !r.passed).length} Failed
-                                    </span>
-                                    <span className="text-indigo-400 font-bold font-mono bg-indigo-500/10 px-2 py-0.5 rounded text-[10px]">
-                                      Total: {codeExecutionResults.length}
-                                    </span>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono">
+                                    <div className="bg-emerald-50 dark:bg-emerald-500/10 p-2 rounded-lg border border-emerald-250 dark:border-emerald-500/20">
+                                      <div className="text-emerald-600 dark:text-emerald-400 font-extrabold text-sm">
+                                        {codeExecutionResults.filter(r => r.passed).length}
+                                      </div>
+                                      <div className="text-[10px] text-emerald-500 dark:text-emerald-500">Passed</div>
+                                    </div>
+                                    <div className="bg-rose-50 dark:bg-rose-500/10 p-2 rounded-lg border border-rose-250 dark:border-rose-500/20">
+                                      <div className="text-rose-600 dark:text-rose-455 font-extrabold text-sm">
+                                        {codeExecutionResults.filter(r => !r.passed).length}
+                                      </div>
+                                      <div className="text-[10px] text-rose-500 dark:text-rose-500">Failed</div>
+                                    </div>
+                                    <div className="bg-slate-100 dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-white/5">
+                                      <div className="text-slate-700 dark:text-slate-300 font-extrabold text-sm">
+                                        {codeExecutionResults.length}
+                                      </div>
+                                      <div className="text-[10px] text-slate-500">Total Cases</div>
+                                    </div>
                                   </div>
                                 </div>
-                                
-                                <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest block font-black pt-1">Visible Test Cases</span>
-                                {codeExecutionResults.map((res, i) => (
-                                  <div key={i} className="p-3 bg-slate-950 rounded-xl border border-white/5 flex items-center justify-between text-[10px] font-mono shadow-sm">
-                                    <div className="flex items-center gap-2.5">
-                                      <span className={`h-4.5 w-4.5 rounded-full flex items-center justify-center text-[9px] font-black ${
-                                        res.passed ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/10 text-rose-455 border border-rose-500/30'
-                                      }`}>
-                                        {res.passed ? '✓' : '✗'}
-                                      </span>
-                                      <span className="font-bold text-slate-300">Sample Case #{i+1}</span>
-                                    </div>
-                                    <span className="text-slate-505">Status: {res.status || 'Executed'}</span>
-                                  </div>
-                                ))}
 
-                                <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
-                                  <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest block font-black">Hidden Cases Summary</span>
-                                  <div className="p-3.5 bg-slate-950/60 rounded-xl border border-white/5 text-[10px] font-mono text-slate-500 flex items-center justify-between">
-                                    <span>Hidden Test Cases (locked)</span>
-                                    <span className="bg-slate-900 px-2 py-0.5 rounded border border-white/5 text-[9px]">Will evaluate on Submit</span>
+                                {/* Visible Cases Section */}
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-mono text-slate-500 dark:text-indigo-400 uppercase tracking-widest font-black">Visible Cases</span>
+                                    <span className="text-[10px] font-mono text-slate-400">
+                                      ({codeExecutionResults.filter(r => !r.is_hidden && r.passed).length} / {codeExecutionResults.filter(r => !r.is_hidden).length} Passed)
+                                    </span>
+                                  </div>
+                                  <div className="space-y-2">
+                                    {codeExecutionResults.filter(r => !r.is_hidden).map((res, i) => (
+                                      <div key={i} className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl flex items-center justify-between text-[11px] font-mono shadow-sm">
+                                        <div className="flex items-center gap-2.5">
+                                          <span className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                                            res.passed
+                                              ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30'
+                                              : 'bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-455 border border-rose-200 dark:border-rose-500/30'
+                                          }`}>
+                                            {res.passed ? '✓' : '✗'}
+                                          </span>
+                                          <span className="font-bold text-slate-700 dark:text-slate-350">Test Case #{i+1}</span>
+                                        </div>
+                                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                                          res.passed ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/5' : 'text-rose-600 bg-rose-50 dark:text-rose-455 dark:bg-rose-500/5'
+                                        }`}>
+                                          {res.status || (res.passed ? 'Passed' : 'Failed')}
+                                        </span>
+                                      </div>
+                                    ))}
+                                    {codeExecutionResults.filter(r => !r.is_hidden).length === 0 && (
+                                      <p className="text-[10px] text-slate-500 italic">No visible test cases.</p>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Hidden Cases Section */}
+                                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-white/5">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-mono text-slate-500 dark:text-indigo-400 uppercase tracking-widest font-black">Hidden Cases</span>
+                                    <span className="text-[10px] font-mono text-slate-400">
+                                      ({codeExecutionResults.filter(r => r.is_hidden && r.passed).length} / {codeExecutionResults.filter(r => r.is_hidden).length} Passed)
+                                    </span>
+                                  </div>
+                                  <div className="space-y-2">
+                                    {codeExecutionResults.filter(r => r.is_hidden).map((res, i) => (
+                                      <div key={i} className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/5 rounded-xl flex items-center justify-between text-[11px] font-mono shadow-sm">
+                                        <div className="flex items-center gap-2.5">
+                                          <span className={`h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-black ${
+                                            res.passed
+                                              ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30'
+                                              : 'bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-455 border border-rose-200 dark:border-rose-500/30'
+                                          }`}>
+                                            {res.passed ? '✓' : '✗'}
+                                          </span>
+                                          <span className="font-bold text-slate-700 dark:text-slate-350">Hidden Case #{i+1}</span>
+                                        </div>
+                                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                                          res.passed ? 'text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/5' : 'text-rose-600 bg-rose-50 dark:text-rose-455 dark:bg-rose-500/5'
+                                        }`}>
+                                          {res.status || (res.passed ? 'Passed' : 'Failed')}
+                                        </span>
+                                      </div>
+                                    ))}
+                                    {codeExecutionResults.filter(r => r.is_hidden).length === 0 && (
+                                      <div className="p-3 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-slate-200 dark:border-white/5 text-[10px] font-mono text-slate-505 text-center">
+                                        No hidden test cases executed yet. Click "Submit Code" to run the full suite.
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -6997,10 +7095,8 @@ export default function App() {
 
                       </div>
                     </div>
-
                   </div>
                 )}
-
               </div>
 
               {/* SECTION NAVIGATION BAR */}
@@ -7082,6 +7178,34 @@ export default function App() {
               </div>
             </div>
 
+            {/* Metric Summary Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Total Marks</span>
+                <span className="text-base font-black text-slate-800 dark:text-white">
+                  {detailedResult.attempt.score} <span className="text-xs font-normal text-slate-400 font-mono">/ {detailedResult.attempt.maxScore} pts</span>
+                </span>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Percentage</span>
+                <span className="text-base font-black text-indigo-600 dark:text-indigo-400">
+                  {Math.round(detailedResult.attempt.percentage)}%
+                </span>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">MCQ Score</span>
+                <span className="text-base font-black text-slate-800 dark:text-white">
+                  {detailedResult.attempt.mcq_score} <span className="text-xs font-normal text-slate-400 font-mono">/ {detailedResult.attempt.max_mcq || 0} pts</span>
+                </span>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5 space-y-1">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Coding Score</span>
+                <span className="text-base font-black text-slate-800 dark:text-white">
+                  {detailedResult.attempt.coding_score} <span className="text-xs font-normal text-slate-400 font-mono">/ {detailedResult.attempt.max_coding || 0} pts</span>
+                </span>
+              </div>
+            </div>
+
             {/* Proctor Termination Reason Alert */}
             {detailedResult.attempt.status === 'terminated' && (
               <div className="p-6 rounded-2xl bg-gradient-to-tr from-rose-500/10 to-orange-500/10 border border-rose-500/20 relative overflow-hidden">
@@ -7146,51 +7270,62 @@ export default function App() {
             {/* Coding Challenge Results */}
             {detailedResult.codingResponses && detailedResult.codingResponses.length > 0 && (
               <div className="space-y-4">
-                <h3 className="font-extrabold text-base">Coding Challenge Submissions</h3>
-                <div className="space-y-3">
-                  {detailedResult.codingResponses.map((res: any, idx: number) => (
-                    <div key={idx} className="p-5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-4">
-                      <div className="flex justify-between items-center">
-                        <h4 className="font-bold text-sm text-indigo-600 dark:text-indigo-400">{res.title}</h4>
-                        <span className="text-[10px] font-mono bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded font-bold uppercase">{res.status}</span>
-                      </div>
-                      
-                      <div className="p-3 bg-slate-950 rounded-lg font-mono text-[10px] overflow-x-auto max-h-36">
-                        <pre className={res.code ? 'text-emerald-400' : 'text-slate-500 italic'}>
-                          {res.code || '// No solution submitted'}
-                        </pre>
-                      </div>
+                <h3 className="font-extrabold text-base border-b border-slate-100 dark:border-white/5 pb-2">Coding Details</h3>
+                <div className="space-y-4">
+                  {detailedResult.codingResponses.map((res: any, idx: number) => {
+                    const failedCount = Math.max(0, res.total_test_cases - res.test_cases_passed);
+                    return (
+                      <div key={idx} className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-4">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="text-[10px] text-indigo-500 uppercase tracking-widest font-black block font-mono">Coding Question #{idx+1}</span>
+                            <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 mt-0.5">{res.title}</h4>
+                          </div>
+                          <span className={`text-[10px] font-mono px-2 py-1 rounded font-black uppercase ${
+                            res.status === 'Accepted'
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 border border-emerald-500/20'
+                              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                          }`}>
+                            {res.status}
+                          </span>
+                        </div>
+                        
+                        <div className="p-3 bg-slate-950 rounded-lg font-mono text-[10px] overflow-x-auto max-h-36">
+                          <pre className={res.code ? 'text-emerald-400' : 'text-slate-500 italic'}>
+                            {res.code || '// No solution submitted'}
+                          </pre>
+                        </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100 dark:border-slate-800 pt-3 text-xs font-semibold">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-emerald-500 flex items-center gap-1">
-                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-                            Passed: {res.test_cases_passed} / {res.total_test_cases}
-                          </span>
-                          <span className="text-rose-500 flex items-center gap-1">
-                            <span className="inline-block w-2 h-2 rounded-full bg-rose-500"></span>
-                            Failed: {res.total_test_cases - res.test_cases_passed} / {res.total_test_cases}
-                          </span>
-                        </div>
-                        <div className="flex flex-col gap-1 text-slate-600 dark:text-slate-400">
-                          <span className="text-indigo-600 dark:text-indigo-400">
-                            Visible Cases: {res.visible_test_cases_passed || 0} / {res.visible_test_cases_total || 0} Passed
-                          </span>
-                          <span className="text-indigo-650 dark:text-purple-400">
-                            Hidden Cases: {res.hidden_test_cases_passed || 0} / {res.hidden_test_cases_total || 0} Passed
-                          </span>
-                        </div>
-                        <div className="flex flex-col gap-1 text-right items-end justify-between">
-                          <span className="text-slate-500 dark:text-slate-400 font-mono text-[10px]">
-                            Execution Time: {res.execution_time_ms || 0}ms
-                          </span>
-                          <span className="text-slate-900 dark:text-white font-bold text-sm bg-indigo-50 dark:bg-indigo-950/30 px-3 py-1 rounded-xl">
-                            Score: {res.marks_obtained} / {res.marks} pts
-                          </span>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-slate-200 dark:border-slate-800/80 pt-4 text-xs font-mono">
+                          <div className="space-y-1">
+                            <span className="text-[9px] uppercase font-bold text-slate-405 block">Passed Cases</span>
+                            <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-sm">
+                              {res.test_cases_passed} <span className="text-[10px] text-slate-400">/ {res.total_test_cases}</span>
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[9px] uppercase font-bold text-slate-405 block">Failed Cases</span>
+                            <span className="text-rose-600 dark:text-rose-455 font-extrabold text-sm">
+                              {failedCount} <span className="text-[10px] text-slate-400">/ {res.total_test_cases}</span>
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-[9px] uppercase font-bold text-slate-405 block">Test Details</span>
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 space-y-0.5">
+                              <div>Visible: {res.visible_test_cases_passed || 0}/{res.visible_test_cases_total || 0}</div>
+                              <div>Hidden: {res.hidden_test_cases_passed || 0}/{res.hidden_test_cases_total || 0}</div>
+                            </div>
+                          </div>
+                          <div className="space-y-1 text-right">
+                            <span className="text-[9px] uppercase font-bold text-slate-405 block">Marks Earned</span>
+                            <span className="text-indigo-600 dark:text-indigo-400 font-black text-sm bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1 rounded-xl inline-block">
+                              {res.marks_obtained} / {res.marks} pts
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

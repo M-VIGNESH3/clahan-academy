@@ -426,9 +426,20 @@ io.on('connection', (socket: Socket) => {
         // Initialize consecutive violation storage for this attempt
         consecutiveViolations[attemptId] = consecutiveViolations[attemptId] || {};
         const consec = consecutiveViolations[attemptId];
-        // Reset tracking counters for violations that are NOT active in this frame
-        const currentViolations = result.violations || [];
-        if (!currentViolations.includes('NO_FACE_DETECTED')) {
+
+        // Emit real-time tracking status to student
+        socket.emit('proctor-status', {
+          faceConfidence: result.faceConfidence || 0.0,
+          trackingStatus: result.trackingStatus || 'Face Present',
+          facePresent: !!result.facePresent,
+          faceLost: !!result.faceLost,
+          faceRecovered: !!result.faceRecovered
+        });
+
+        // Determine if face detection is currently losing/lost tracking
+        const isLosingFace = result.trackingStatus === 'Face Lost' || result.trackingStatus === 'Temporary Detection Loss';
+
+        if (!isLosingFace) {
           consec['NO_FACE_DETECTED'] = 0;
           consec['NO_FACE_FRAMES'] = 0;
           consec['WARNED_2S'] = 0;
@@ -437,78 +448,71 @@ io.on('connection', (socket: Socket) => {
             violationStartTimes[attemptId]['NO_FACE_DETECTED'] = 0;
           }
         }
-        if (!currentViolations.includes('MULTIPLE_FACES_DETECTED')) {
+        if (!result.violations.includes('MULTIPLE_FACES_DETECTED')) {
           consec['MULTIPLE_FACES_DETECTED'] = 0;
         }
-        if (!currentViolations.includes('MOBILE_PHONE_DETECTED')) {
+        if (!result.violations.includes('MOBILE_PHONE_DETECTED')) {
           consec['MOBILE_PHONE_DETECTED'] = 0;
           phoneConfidences[attemptId] = [];
         }
-        if (!currentViolations.includes('BOOK_DETECTED')) {
+        if (!result.violations.includes('BOOK_DETECTED')) {
           consec['BOOK_DETECTED'] = 0;
         }
-        if (!currentViolations.includes('CAMERA_DISABLED')) {
+        if (!result.violations.includes('CAMERA_DISABLED')) {
           consec['CAMERA_DISABLED'] = 0;
         }
 
+        // Handle face loss timing with synchronized tracker state from AI service
+        if (isLosingFace) {
+          const elapsedSec = result.elapsedLost || 0;
+          consec['NO_FACE_FRAMES'] = (consec['NO_FACE_FRAMES'] || 0) + 1;
+
+          console.log(`[PROCTOR LOG] Attempt: ${attemptId} | Status: ${result.trackingStatus} | Face Confidence: ${(result.faceConfidence || 0).toFixed(2)} | Elapsed Loss: ${elapsedSec.toFixed(1)}s`);
+
+          if (elapsedSec >= 2 && elapsedSec < 5 && !consec['WARNED_2S']) {
+            consec['WARNED_2S'] = 1;
+            socket.emit('proctor-warning', {
+              message: 'Face not detected. Please return to camera.',
+              count: consec['NO_FACE_FRAMES']
+            });
+          } else if (elapsedSec >= 5 && elapsedSec < 10 && !consec['LOGGED_5S']) {
+            consec['LOGGED_5S'] = 1;
+            const details = `No face detected for ${elapsedSec.toFixed(1)} seconds (Fraud Event). (Face confidence: ${result.faceConfidence || 0})`;
+            await processViolation(
+              attemptId,
+              studentId,
+              examId,
+              'NO_FACE_DETECTED',
+              details,
+              'warning',
+              socket,
+              data.image
+            );
+          } else if (elapsedSec >= 10) {
+            const details = `Prolonged Face Absence (terminated after ${elapsedSec.toFixed(1)} seconds). (Face confidence: ${result.faceConfidence || 0})`;
+            await processViolation(
+              attemptId,
+              studentId,
+              examId,
+              'NO_FACE_DETECTED',
+              details,
+              'critical',
+              socket,
+              data.image
+            );
+          }
+        }
+
+        const currentViolations = result.violations || [];
         if (Array.isArray(currentViolations)) {
           for (const violation of currentViolations) {
+            if (violation === 'NO_FACE_DETECTED') {
+              continue; // Handled separately above
+            }
             consec[violation] = (consec[violation] || 0) + 1;
             const consecCount = consec[violation];
 
-            if (violation === 'NO_FACE_DETECTED') {
-              // Track consecutive frames of face loss before confirming absence to filter out false positives
-              consec['NO_FACE_FRAMES'] = (consec['NO_FACE_FRAMES'] || 0) + 1;
-              
-              const timerState = violationStartTimes[attemptId]?.['NO_FACE_DETECTED'] 
-                ? ((Date.now() - violationStartTimes[attemptId]['NO_FACE_DETECTED']) / 1000).toFixed(1)
-                : '0';
-
-              console.log(`[PROCTOR LOG] Attempt: ${attemptId} | Face Count: ${result.faceCount} | Person Confidence: ${(result.confidences?.person || 0).toFixed(2)} | NO_FACE_FRAMES: ${consec['NO_FACE_FRAMES']} | Timer State: ${timerState}s`);
-
-              // Only start the timer if face absence is confirmed over at least 3 consecutive frames
-              if (consec['NO_FACE_FRAMES'] >= 3) {
-                violationStartTimes[attemptId] = violationStartTimes[attemptId] || {};
-                if (!violationStartTimes[attemptId]['NO_FACE_DETECTED']) {
-                  violationStartTimes[attemptId]['NO_FACE_DETECTED'] = Date.now();
-                }
-                const elapsedSec = (Date.now() - violationStartTimes[attemptId]['NO_FACE_DETECTED']) / 1000;
-                
-                if (elapsedSec >= 2 && elapsedSec < 5 && !consec['WARNED_2S']) {
-                  consec['WARNED_2S'] = 1;
-                  socket.emit('proctor-warning', {
-                    message: 'Face not detected. Please return to camera.',
-                    count: consecCount
-                  });
-                } else if (elapsedSec >= 5 && elapsedSec < 10 && !consec['LOGGED_5S']) {
-                  consec['LOGGED_5S'] = 1;
-                  const details = `No face detected for more than 5 seconds (Fraud Event). (Face count: ${result.faceCount}, Person confidence: ${result.confidences?.person || 0}, Timer: ${elapsedSec.toFixed(1)}s)`;
-                  await processViolation(
-                    attemptId,
-                    studentId,
-                    examId,
-                    violation,
-                    details,
-                    'warning',
-                    socket,
-                    data.image
-                  );
-                } else if (elapsedSec >= 10) {
-                  const details = `Prolonged Face Absence (terminated after 10 seconds). (Face count: ${result.faceCount}, Person confidence: ${result.confidences?.person || 0}, Timer: ${elapsedSec.toFixed(1)}s)`;
-                  await processViolation(
-                    attemptId,
-                    studentId,
-                    examId,
-                    violation,
-                    details,
-                    'critical',
-                    socket,
-                    data.image
-                  );
-                }
-              }
-            }
-            else if (violation === 'MULTIPLE_FACES_DETECTED') {
+            if (violation === 'MULTIPLE_FACES_DETECTED') {
               // Fraud Counter +1: Log warning in db on every frame
               await processViolation(
                 attemptId,

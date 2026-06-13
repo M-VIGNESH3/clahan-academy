@@ -65,6 +65,73 @@ try:
 except Exception as e:
     logger.error(f"Error loading Face Cascades: {e}")
 
+import time
+from insightface.app import FaceAnalysis
+
+# Initialize InsightFace
+insight_face_app = None
+try:
+    insight_face_app = FaceAnalysis(name='buffalo_s', providers=['CPUExecutionProvider'])
+    insight_face_app.prepare(ctx_id=-1, det_size=(640, 640))
+    logger.info("InsightFace FaceAnalysis initialized successfully.")
+except Exception as e:
+    logger.error(f"Error initializing InsightFace: {e}")
+
+# Persistent Face Tracking state
+attempt_trackers = {}
+
+class AttemptTracker:
+    def __init__(self, attempt_id: str):
+        self.attempt_id = attempt_id
+        self.state = "Face Present"  # "Face Present", "Temporary Detection Loss", "Face Lost", "Face Recovered"
+        self.first_lost_time = None
+        self.last_seen_time = time.time()
+        self.last_transition_log = ""
+        self.consecutive_absent_frames = 0
+        self.consecutive_present_frames = 0
+
+    def update(self, face_present: bool, face_confidence: float):
+        now = time.time()
+        old_state = self.state
+
+        if face_present:
+            self.consecutive_absent_frames = 0
+            self.consecutive_present_frames += 1
+            
+            # Transition to Recovered if we were lost or in temporary loss
+            if self.state in ["Temporary Detection Loss", "Face Lost"]:
+                # Require at least 2 consecutive frames of face presence to confirm recovery
+                if self.consecutive_present_frames >= 2:
+                    self.state = "Face Recovered"
+                    self.first_lost_time = None
+                    self.last_seen_time = now
+            elif self.state == "Face Recovered":
+                if self.consecutive_present_frames >= 4:
+                    self.state = "Face Present"
+            else:
+                self.state = "Face Present"
+                self.last_seen_time = now
+                self.first_lost_time = None
+        else:
+            self.consecutive_present_frames = 0
+            self.consecutive_absent_frames += 1
+            
+            if self.state in ["Face Present", "Face Recovered"]:
+                self.state = "Temporary Detection Loss"
+                self.first_lost_time = now
+            elif self.state == "Temporary Detection Loss":
+                # If loss persists for more than 3 seconds (approx 3 frames/seconds), confirm lost state
+                elapsed_lost = now - self.first_lost_time
+                if elapsed_lost >= 3.0:
+                    self.state = "Face Lost"
+
+        if self.state != old_state:
+            log_msg = f"[STATE TRANSITION] Attempt: {self.attempt_id} | {old_state} -> {self.state} | Confidence: {face_confidence:.2f} | Time: {now:.1f}"
+            logger.info(log_msg)
+            self.last_transition_log = log_msg
+
+        return self.state
+
 def letterbox_image(img, target_size=(640, 640)):
     """Resize image to target_size with padding to preserve aspect ratio."""
     h, w = img.shape[:2]
@@ -440,7 +507,19 @@ async def analyze_frame(
             except Exception as e:
                 logger.error(f"YOLO ONNX detection error: {str(e)}")
         
-        # 2. Run Face detection (frontal cascade, with profile fallback)
+        # 2. Run InsightFace Face Detection
+        insight_faces = []
+        face_confidence = 0.0
+        if insight_face_app is not None:
+            try:
+                insight_faces = insight_face_app.get(open_cv_image)
+                if len(insight_faces) > 0:
+                    face_confidence = float(max(face.det_score for face in insight_faces))
+                    logger.info(f"InsightFace detected {len(insight_faces)} face(s) with max confidence {face_confidence:.4f}")
+            except Exception as e:
+                logger.error(f"InsightFace detection error: {str(e)}")
+
+        # 3. Run Face detection cascades (frontal cascade, with profile fallback) as secondary fallback
         faces_detected = []
         if face_cascade is not None:
             try:
@@ -462,23 +541,48 @@ async def analyze_frame(
                     faces_detected.append(p)
             except Exception as e:
                 logger.error(f"Profile Face detection error: {str(e)}")
-                
-        face_count = len(faces_detected)
+
+        # Resolve primary face count
+        if len(insight_faces) > 0:
+            face_count = len(insight_faces)
+        else:
+            face_count = len(faces_detected)
+            if face_count > 0:
+                face_confidence = 0.85  # Confidence fallback for Haar Cascade detection
         
-        # Fallback 1: If Haar Cascades missed the face(s) but YOLOv8 detects person(s),
+        # Fallback 1: If both detectors missed the face but YOLOv8 detects a person,
         # set face_count to match yolo_persons since they are physically present.
         if face_count == 0 and yolo_persons > 0:
-            logger.info(f"Face Cascades detected 0 faces, but YOLOv8 detected {yolo_persons} person(s). Overriding face_count to {yolo_persons}.")
+            logger.info(f"InsightFace and Cascades detected 0 faces, but YOLOv8 detected {yolo_persons} person(s). Overriding face_count to {yolo_persons}.")
             face_count = yolo_persons
+            face_confidence = max(0.50, detected_confidences.get("person", 0.50))
         
-        # Fallback 2: If Haar Cascades detect multiple faces but YOLOv8 detects only 1 person,
-        # override face_count to 1 to filter out false positive background/shadow faces.
+        # Fallback 2: If detectors find multiple faces but YOLOv8 detects only 1 person,
+        # override face_count to 1 to filter out background/shadow faces.
         if face_count > 1 and yolo_persons == 1:
-            logger.info(f"Face Cascades detected {face_count} faces, but YOLOv8 detected 1 person. Overriding face_count to 1.")
+            logger.info(f"Face detectors found {face_count} faces, but YOLOv8 detected 1 person. Overriding face_count to 1.")
             face_count = 1
+
+        # Determine if a face/person is actually present in this frame
+        face_present_flag = (face_count > 0)
+
+        # Update persistent face tracking state machine
+        tracker = attempt_trackers.get(attemptId)
+        if tracker is None:
+            tracker = AttemptTracker(attemptId)
+            attempt_trackers[attemptId] = tracker
         
+        tracking_status = tracker.update(face_present_flag, face_confidence)
+        
+        # Calculate time elapsed since first lost frame
+        elapsed_lost = 0.0
+        if tracker.first_lost_time is not None:
+            elapsed_lost = time.time() - tracker.first_lost_time
+
         # Evaluate violations
-        if face_count == 0:
+        # We only flag NO_FACE_DETECTED violation if the tracking state has transitioned to 'Face Lost'
+        # or if the temporary loss has persisted for at least 2 seconds (to match requirements).
+        if tracking_status == "Face Lost" or (tracking_status == "Temporary Detection Loss" and elapsed_lost >= 2.0):
             violations.append("NO_FACE_DETECTED")
         elif face_count > 1:
             violations.append("MULTIPLE_FACES_DETECTED")
@@ -503,6 +607,12 @@ async def analyze_frame(
         
         return {
             "faceCount": face_count,
+            "faceConfidence": face_confidence,
+            "trackingStatus": tracking_status,
+            "facePresent": (tracking_status in ["Face Present", "Face Recovered"]),
+            "faceLost": (tracking_status == "Face Lost"),
+            "faceRecovered": (tracking_status == "Face Recovered"),
+            "elapsedLost": elapsed_lost,
             "objectsDetected": objects_detected,
             "ocrText": None,
             "violations": violations,
@@ -515,6 +625,12 @@ async def analyze_frame(
         # Graceful fallback: return safe state to avoid crashing exam flow
         return {
             "faceCount": 1,
+            "faceConfidence": 1.0,
+            "trackingStatus": "Face Present",
+            "facePresent": True,
+            "faceLost": False,
+            "faceRecovered": False,
+            "elapsedLost": 0.0,
             "objectsDetected": [],
             "ocrText": None,
             "violations": [],

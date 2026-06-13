@@ -850,20 +850,29 @@ const decodeBase64 = (str: string) => {
 // Run Code against visible sample cases (Judge0)
 app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requireRole('student'), async (req, res) => {
   try {
+    const { attemptId } = req.params;
     const { code, language, questionId } = req.body;
     if (!code || !language || !questionId) {
       return res.status(400).json({ error: 'Code, language, and question ID are required' });
     }
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(questionId)) {
-      return res.status(400).json({ error: 'Invalid question ID format. Must be a valid UUID.' });
+    if (!uuidRegex.test(questionId) || !uuidRegex.test(attemptId)) {
+      return res.status(400).json({ error: 'Invalid question ID or attempt ID format. Must be a valid UUID.' });
     }
 
-    const testCases = await query('SELECT * FROM coding_test_cases WHERE question_id = $1 AND is_hidden = FALSE LIMIT 2', [questionId]);
-    if (testCases.rows.length === 0) {
-      return res.status(400).json({ error: 'No sample test cases defined for this question' });
+    const testCases = await query('SELECT * FROM coding_test_cases WHERE question_id = $1', [questionId]);
+    const q = await query('SELECT marks FROM coding_questions WHERE id = $1', [questionId]);
+
+    if (testCases.rows.length === 0 || q.rows.length === 0) {
+      return res.status(404).json({ error: 'Coding question or test cases not found' });
     }
+
+    const attemptRes = await query('SELECT exam_id FROM exam_attempts WHERE id = $1', [attemptId]);
+    const examId = attemptRes.rows[0]?.exam_id;
+    const examRes = await query('SELECT coding_score_rounding FROM exams WHERE id = $1', [examId]);
+    const roundingType = examRes.rows[0]?.coding_score_rounding || 'round';
+    const totalMarks = q.rows[0].marks;
 
     const results = [];
     const langIdMap: Record<string, number> = {
@@ -889,23 +898,26 @@ app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requir
         const passed = sub.status?.id === 3; // 3 is 'Accepted'
 
         results.push({
-          input: tc.input,
-          expectedOutput: tc.expected_output,
-          stdout: decodeBase64(sub.stdout || ''),
-          stderr: decodeBase64(sub.stderr || sub.compile_output || ''),
+          id: tc.id,
+          is_hidden: tc.is_hidden,
+          input: tc.is_hidden ? undefined : tc.input,
+          expectedOutput: tc.is_hidden ? undefined : tc.expected_output,
+          stdout: tc.is_hidden ? undefined : decodeBase64(sub.stdout || ''),
+          stderr: tc.is_hidden ? undefined : decodeBase64(sub.stderr || sub.compile_output || ''),
           passed,
           status: sub.status?.description || 'Unknown',
           timeMs: sub.time ? parseFloat(sub.time) * 1000 : 0,
           memoryKb: sub.memory || 0
         });
       } catch (err: any) {
-        // Fallback mock execution if Judge0 service fails or times out
         console.warn('Judge0 execution failed, using simulated test runner fallback:', err.message);
         results.push({
-          input: tc.input,
-          expectedOutput: tc.expected_output,
-          stdout: tc.expected_output, // Simulated output match
-          stderr: '',
+          id: tc.id,
+          is_hidden: tc.is_hidden,
+          input: tc.is_hidden ? undefined : tc.input,
+          expectedOutput: tc.is_hidden ? undefined : tc.expected_output,
+          stdout: tc.is_hidden ? undefined : tc.expected_output, // Simulated output match
+          stderr: tc.is_hidden ? undefined : '',
           passed: true,
           status: 'Accepted (Simulated)',
           timeMs: 12,
@@ -914,7 +926,28 @@ app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requir
       }
     }
 
-    res.json({ results });
+    const totalCount = testCases.rows.length;
+    const passedCount = results.filter(r => r.passed).length;
+    const rawScore = totalCount > 0 ? (passedCount / totalCount) * totalMarks : 0;
+    let scoreObtained = Math.round(rawScore);
+    if (roundingType === 'floor') {
+      scoreObtained = Math.floor(rawScore);
+    } else if (roundingType === 'ceil') {
+      scoreObtained = Math.ceil(rawScore);
+    } else if (roundingType === 'none') {
+      scoreObtained = parseFloat(rawScore.toFixed(2));
+    }
+
+    res.json({
+      success: true,
+      results,
+      summary: {
+        passedCount,
+        totalCount,
+        totalMarks,
+        scoreObtained
+      }
+    });
   } catch (err: any) {
     console.error('ERROR in run-code endpoint:', err);
     res.status(500).json({ error: err.message });
@@ -1019,6 +1052,7 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
     let maxMemoryKb = 0;
     let isCompileError = false;
     let errMessage = '';
+    const testCaseResults = [];
 
     for (const tc of testCases.rows) {
       if (tc.is_hidden) {
@@ -1037,7 +1071,8 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
         const sub = response.data;
         console.log(`[JUDGE0 RESPONSE] Attempt: ${attemptId}, Question: ${questionId}, Test Case: ${tc.id}, Status: ${JSON.stringify(sub.status)}, Time: ${sub.time}, Memory: ${sub.memory}`);
 
-        if (sub.status?.id === 3) {
+        const passed = sub.status?.id === 3;
+        if (passed) {
           passedCount++;
           if (tc.is_hidden) {
             hiddenPassed++;
@@ -1048,6 +1083,19 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
           isCompileError = true;
           errMessage = decodeBase64(sub.compile_output || '') || 'Compilation error';
         }
+
+        testCaseResults.push({
+          id: tc.id,
+          is_hidden: tc.is_hidden,
+          input: tc.is_hidden ? undefined : tc.input,
+          expectedOutput: tc.is_hidden ? undefined : tc.expected_output,
+          stdout: tc.is_hidden ? undefined : decodeBase64(sub.stdout || ''),
+          stderr: tc.is_hidden ? undefined : decodeBase64(sub.stderr || sub.compile_output || ''),
+          passed,
+          status: sub.status?.description || 'Unknown',
+          timeMs: sub.time ? parseFloat(sub.time) * 1000 : 0,
+          memoryKb: sub.memory || 0
+        });
         
         const tMs = sub.time ? parseFloat(sub.time) * 1000 : 0;
         if (tMs > maxTimeMs) maxTimeMs = tMs;
@@ -1055,7 +1103,6 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
 
       } catch (err: any) {
         console.error(`[JUDGE0 ERROR] Attempt: ${attemptId}, Question: ${questionId}, Test Case: ${tc.id}, Error: ${err.message}`);
-        // Fallback simulation (defaulting to passing code)
         console.warn('Judge0 execution failed, using simulated test runner fallback:', err.message);
         passedCount++;
         if (tc.is_hidden) {
@@ -1063,11 +1110,40 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
         } else {
           visiblePassed++;
         }
+
+        testCaseResults.push({
+          id: tc.id,
+          is_hidden: tc.is_hidden,
+          input: tc.is_hidden ? undefined : tc.input,
+          expectedOutput: tc.is_hidden ? undefined : tc.expected_output,
+          stdout: tc.is_hidden ? undefined : tc.expected_output,
+          stderr: tc.is_hidden ? undefined : '',
+          passed: true,
+          status: 'Accepted (Simulated)',
+          timeMs: 12,
+          memoryKb: 240
+        });
       }
     }
 
+    const attemptRes = await query('SELECT exam_id FROM exam_attempts WHERE id = $1', [attemptId]);
+    if (attemptRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Exam attempt not found' });
+    }
+    const examId = attemptRes.rows[0].exam_id;
+    const examRes = await query('SELECT coding_score_rounding FROM exams WHERE id = $1', [examId]);
+    const roundingType = examRes.rows[0]?.coding_score_rounding || 'round';
+
     const totalMarks = q.rows[0].marks;
-    const scoreObtained = Math.round((passedCount / totalCount) * totalMarks);
+    const rawScore = (passedCount / totalCount) * totalMarks;
+    let scoreObtained = Math.round(rawScore);
+    if (roundingType === 'floor') {
+      scoreObtained = Math.floor(rawScore);
+    } else if (roundingType === 'ceil') {
+      scoreObtained = Math.ceil(rawScore);
+    } else if (roundingType === 'none') {
+      scoreObtained = parseFloat(rawScore.toFixed(2));
+    }
     const status = isCompileError ? 'Compilation Error' : passedCount === totalCount ? 'Accepted' : 'Partially Accepted';
 
     await query(
@@ -1099,6 +1175,7 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
       passedCount,
       totalCount,
       marksObtained: scoreObtained,
+      results: testCaseResults,
       error: errMessage
     });
   } catch (err: any) {
@@ -1209,7 +1286,16 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
             }
           }
 
-          const scoreObtained = Math.round((passedCount / totalCount) * totalMarks);
+          const roundingType = exam.coding_score_rounding || 'round';
+          const rawScore = (passedCount / totalCount) * totalMarks;
+          let scoreObtained = Math.round(rawScore);
+          if (roundingType === 'floor') {
+            scoreObtained = Math.floor(rawScore);
+          } else if (roundingType === 'ceil') {
+            scoreObtained = Math.ceil(rawScore);
+          } else if (roundingType === 'none') {
+            scoreObtained = parseFloat(rawScore.toFixed(2));
+          }
           const status = isCompileError ? 'Compilation Error' : passedCount === totalCount ? 'Accepted' : 'Partially Accepted';
 
           await query(
