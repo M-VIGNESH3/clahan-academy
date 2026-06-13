@@ -227,7 +227,7 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req: Authe
       const durationMins = row.duration_minutes !== null && row.duration_minutes !== undefined ? row.duration_minutes : 60;
       const examEndTime = new Date(scheduleDate.getTime() + (windowOpenMins + durationMins) * 60 * 1000);
       const now = new Date();
-      const resultsReleased = now >= examEndTime;
+      const resultsReleased = now >= examEndTime || row.status === 'completed' || row.status === 'terminated';
 
       if (!resultsReleased) {
         return {

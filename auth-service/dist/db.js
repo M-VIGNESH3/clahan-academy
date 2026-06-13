@@ -260,6 +260,13 @@ async function initDb() {
         UNIQUE(attempt_id, question_id)
       );
     `);
+        // Ensure the new columns exist on coding_responses
+        await client.query(`
+      ALTER TABLE coding_responses ADD COLUMN IF NOT EXISTS visible_test_cases_passed INTEGER DEFAULT 0;
+      ALTER TABLE coding_responses ADD COLUMN IF NOT EXISTS visible_test_cases_total INTEGER DEFAULT 0;
+      ALTER TABLE coding_responses ADD COLUMN IF NOT EXISTS hidden_test_cases_passed INTEGER DEFAULT 0;
+      ALTER TABLE coding_responses ADD COLUMN IF NOT EXISTS hidden_test_cases_total INTEGER DEFAULT 0;
+    `);
         // Proctoring Logs
         await client.query(`
       CREATE TABLE IF NOT EXISTS proctoring_logs (
@@ -267,9 +274,13 @@ async function initDb() {
         attempt_id UUID REFERENCES exam_attempts(id) ON DELETE CASCADE,
         event_type VARCHAR(100) NOT NULL,
         details TEXT,
+        screenshot TEXT,
         severity VARCHAR(50) DEFAULT 'warning' CHECK (severity IN ('warning', 'critical')),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+        await client.query(`
+      ALTER TABLE proctoring_logs ADD COLUMN IF NOT EXISTS screenshot TEXT;
     `);
         // Settings
         await client.query(`

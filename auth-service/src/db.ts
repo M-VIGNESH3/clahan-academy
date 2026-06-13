@@ -248,6 +248,14 @@ export async function initDb() {
       );
     `);
 
+    // Ensure the new columns exist on coding_responses
+    await client.query(`
+      ALTER TABLE coding_responses ADD COLUMN IF NOT EXISTS visible_test_cases_passed INTEGER DEFAULT 0;
+      ALTER TABLE coding_responses ADD COLUMN IF NOT EXISTS visible_test_cases_total INTEGER DEFAULT 0;
+      ALTER TABLE coding_responses ADD COLUMN IF NOT EXISTS hidden_test_cases_passed INTEGER DEFAULT 0;
+      ALTER TABLE coding_responses ADD COLUMN IF NOT EXISTS hidden_test_cases_total INTEGER DEFAULT 0;
+    `);
+
     // Proctoring Logs
     await client.query(`
       CREATE TABLE IF NOT EXISTS proctoring_logs (

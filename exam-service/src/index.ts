@@ -954,6 +954,30 @@ app.post('/api/exams/student/attempts/:attemptId/save-code', authenticate, requi
   }
 });
 
+// Log question navigation events
+app.post('/api/exams/student/attempts/:attemptId/navigation', authenticate, requireRole('student'), async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    const { fromQuestionId, toQuestionId, section } = req.body;
+    
+    await query(
+      `INSERT INTO audit_logs (user_id, action, details)
+       VALUES ($1, $2, $3)`,
+      [
+        (req as any).user.id, 
+        'QUESTION_NAVIGATION', 
+        JSON.stringify({ attemptId, fromQuestionId, toQuestionId, section })
+      ]
+    );
+
+    console.log(`[NAVIGATION LOG] User: ${(req as any).user.id} navigated question in attempt ${attemptId}: section=${section}, from=${fromQuestionId}, to=${toQuestionId}`);
+
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Submit Code (Runs all test cases including hidden ones, scores response)
 app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, requireRole('student'), async (req, res) => {
   try {
@@ -987,12 +1011,21 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
 
     let passedCount = 0;
     let totalCount = testCases.rows.length;
+    let visiblePassed = 0;
+    let visibleTotal = 0;
+    let hiddenPassed = 0;
+    let hiddenTotal = 0;
     let maxTimeMs = 0;
     let maxMemoryKb = 0;
     let isCompileError = false;
     let errMessage = '';
 
     for (const tc of testCases.rows) {
+      if (tc.is_hidden) {
+        hiddenTotal++;
+      } else {
+        visibleTotal++;
+      }
       try {
         const response = await axios.post(`${JUDGE0_URL}/submissions?base64_encoded=true&wait=true`, {
           source_code: encodeBase64(code),
@@ -1002,8 +1035,15 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
         }, { timeout: 8000 });
 
         const sub = response.data;
+        console.log(`[JUDGE0 RESPONSE] Attempt: ${attemptId}, Question: ${questionId}, Test Case: ${tc.id}, Status: ${JSON.stringify(sub.status)}, Time: ${sub.time}, Memory: ${sub.memory}`);
+
         if (sub.status?.id === 3) {
           passedCount++;
+          if (tc.is_hidden) {
+            hiddenPassed++;
+          } else {
+            visiblePassed++;
+          }
         } else if (sub.status?.id === 6) {
           isCompileError = true;
           errMessage = decodeBase64(sub.compile_output || '') || 'Compilation error';
@@ -1014,9 +1054,15 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
         if (sub.memory && sub.memory > maxMemoryKb) maxMemoryKb = sub.memory;
 
       } catch (err: any) {
+        console.error(`[JUDGE0 ERROR] Attempt: ${attemptId}, Question: ${questionId}, Test Case: ${tc.id}, Error: ${err.message}`);
         // Fallback simulation (defaulting to passing code)
         console.warn('Judge0 execution failed, using simulated test runner fallback:', err.message);
         passedCount++;
+        if (tc.is_hidden) {
+          hiddenPassed++;
+        } else {
+          visiblePassed++;
+        }
       }
     }
 
@@ -1027,8 +1073,9 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
     await query(
       `INSERT INTO coding_responses (
         attempt_id, question_id, code, language, status,
-        test_cases_passed, total_test_cases, execution_time_ms, memory_used_kb, marks_obtained
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        test_cases_passed, total_test_cases, execution_time_ms, memory_used_kb, marks_obtained,
+        visible_test_cases_passed, visible_test_cases_total, hidden_test_cases_passed, hidden_test_cases_total
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        ON CONFLICT (attempt_id, question_id) 
        DO UPDATE SET code = EXCLUDED.code,
                      language = EXCLUDED.language,
@@ -1037,8 +1084,13 @@ app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, req
                      total_test_cases = EXCLUDED.total_test_cases,
                      execution_time_ms = EXCLUDED.execution_time_ms,
                      memory_used_kb = EXCLUDED.memory_used_kb,
-                     marks_obtained = EXCLUDED.marks_obtained`,
-      [attemptId, questionId, code, language, status, passedCount, totalCount, Math.round(maxTimeMs), maxMemoryKb, scoreObtained]
+                     marks_obtained = EXCLUDED.marks_obtained,
+                     visible_test_cases_passed = EXCLUDED.visible_test_cases_passed,
+                     visible_test_cases_total = EXCLUDED.visible_test_cases_total,
+                     hidden_test_cases_passed = EXCLUDED.hidden_test_cases_passed,
+                     hidden_test_cases_total = EXCLUDED.hidden_test_cases_total`,
+      [attemptId, questionId, code, language, status, passedCount, totalCount, Math.round(maxTimeMs), maxMemoryKb, scoreObtained,
+       visiblePassed, visibleTotal, hiddenPassed, hiddenTotal]
     );
 
     res.json({
@@ -1076,8 +1128,105 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
     const examResult = await query('SELECT * FROM exams WHERE id = $1', [examId]);
     const exam = examResult.rows[0];
 
-    const durationMins = exam.duration_minutes !== null && exam.duration_minutes !== undefined ? exam.duration_minutes : 60;
-    const timePassedSeconds = (Date.now() - new Date(attempt.created_at).getTime()) / 1000;
+    // Auto-evaluate coding responses with status = 'Draft' on exam submission
+    try {
+      const codingDrafts = await query(
+        `SELECT cr.*, cq.marks 
+         FROM coding_responses cr 
+         JOIN coding_questions cq ON cr.question_id = cq.id 
+         WHERE cr.attempt_id = $1 AND cr.status = 'Draft'`,
+        [attemptId]
+      );
+
+      for (const draft of codingDrafts.rows) {
+        const questionId = draft.question_id;
+        const code = draft.code;
+        const language = draft.language;
+        const totalMarks = draft.marks;
+
+        const testCases = await query('SELECT * FROM coding_test_cases WHERE question_id = $1', [questionId]);
+        if (testCases.rows.length > 0) {
+          const langIdMap: Record<string, number> = {
+            'python': 71,
+            'java': 62,
+            'cpp': 54,
+            'c++': 54,
+            'javascript': 63,
+            'js': 63
+          };
+          const judgeLanguageId = langIdMap[language.toLowerCase()] || 71;
+
+          let passedCount = 0;
+          let totalCount = testCases.rows.length;
+          let visiblePassed = 0;
+          let visibleTotal = 0;
+          let hiddenPassed = 0;
+          let hiddenTotal = 0;
+          let maxTimeMs = 0;
+          let maxMemoryKb = 0;
+          let isCompileError = false;
+
+          for (const tc of testCases.rows) {
+            if (tc.is_hidden) {
+              hiddenTotal++;
+            } else {
+              visibleTotal++;
+            }
+            try {
+              const response = await axios.post(`${JUDGE0_URL}/submissions?base64_encoded=true&wait=true`, {
+                source_code: encodeBase64(code),
+                language_id: judgeLanguageId,
+                stdin: encodeBase64(tc.input),
+                expected_output: encodeBase64(tc.expected_output)
+              }, { timeout: 8000 });
+
+              const sub = response.data;
+              console.log(`[AUTO-EVAL JUDGE0 RESPONSE] Attempt: ${attemptId}, Question: ${questionId}, Test Case: ${tc.id}, Status: ${JSON.stringify(sub.status)}, Time: ${sub.time}, Memory: ${sub.memory}`);
+
+              if (sub.status?.id === 3) {
+                passedCount++;
+                if (tc.is_hidden) {
+                  hiddenPassed++;
+                } else {
+                  visiblePassed++;
+                }
+              } else if (sub.status?.id === 6) {
+                isCompileError = true;
+              }
+              
+              const tMs = sub.time ? parseFloat(sub.time) * 1000 : 0;
+              if (tMs > maxTimeMs) maxTimeMs = tMs;
+              if (sub.memory && sub.memory > maxMemoryKb) maxMemoryKb = sub.memory;
+
+            } catch (err: any) {
+              console.error(`[AUTO-EVAL JUDGE0 ERROR] Attempt: ${attemptId}, Question: ${questionId}, Test Case: ${tc.id}, Error: ${err.message}`);
+              passedCount++;
+              if (tc.is_hidden) {
+                hiddenPassed++;
+              } else {
+                visiblePassed++;
+              }
+            }
+          }
+
+          const scoreObtained = Math.round((passedCount / totalCount) * totalMarks);
+          const status = isCompileError ? 'Compilation Error' : passedCount === totalCount ? 'Accepted' : 'Partially Accepted';
+
+          await query(
+            `UPDATE coding_responses
+             SET status = $1, test_cases_passed = $2, total_test_cases = $3,
+                 execution_time_ms = $4, memory_used_kb = $5, marks_obtained = $6,
+                 visible_test_cases_passed = $7, visible_test_cases_total = $8,
+                 hidden_test_cases_passed = $9, hidden_test_cases_total = $10
+             WHERE attempt_id = $11 AND question_id = $12`,
+            [status, passedCount, totalCount, Math.round(maxTimeMs), maxMemoryKb, scoreObtained,
+             visiblePassed, visibleTotal, hiddenPassed, hiddenTotal, attemptId, questionId]
+          );
+        }
+      }
+    } catch (evalErr: any) {
+      console.error('ERROR during auto-evaluating draft coding answers:', evalErr);
+    }
 
     // Compute MCQ scores
     const mcqsScoreRes = await query('SELECT COALESCE(SUM(marks_obtained), 0) as sum FROM mcq_responses WHERE attempt_id = $1', [attemptId]);
@@ -1096,6 +1245,9 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
 
     const percentage = maxScorePossible > 0 ? (totalScore / maxScorePossible) * 100 : 0.0;
     const passed = percentage >= exam.cutoff_percentage;
+
+    // Log result calculation details and score breakdown
+    console.log(`[RESULT CALCULATION EVENT] Attempt: ${attemptId} | Student: ${studentId} | Exam: ${examId} | MCQ Score: ${mcqScore}/${mcqMaxRes.rows[0].sum} | Coding Score: ${codingScore}/${codingMaxRes.rows[0].sum} | Total Score: ${totalScore}/${maxScorePossible} | Percentage: ${percentage.toFixed(2)}% | Cutoff: ${exam.cutoff_percentage}% | Passed: ${passed}`);
 
     // Fetch detailed statistics for the prompt
     let mcqTotal = 0;
@@ -1269,7 +1421,7 @@ app.get('/api/exams/student/attempts/:attemptId/result', authenticate, async (re
     const durationMins = attempt.duration_minutes !== null && attempt.duration_minutes !== undefined ? attempt.duration_minutes : 60;
     const examEndTime = new Date(scheduleDate.getTime() + (windowOpenMins + durationMins) * 60 * 1000);
 
-    if (now < examEndTime) {
+    if (now < examEndTime && attempt.status !== 'completed' && attempt.status !== 'terminated') {
       return res.status(403).json({ error: 'Results are not available yet. Please wait until all students have completed the exam.' });
     }
 
@@ -1290,7 +1442,12 @@ app.get('/api/exams/student/attempts/:attemptId/result', authenticate, async (re
               cr.code, cr.language, COALESCE(cr.status, 'No Submission') as status, 
               COALESCE(cr.test_cases_passed, 0) as test_cases_passed, 
               COALESCE(cr.total_test_cases, 0) as total_test_cases, 
-              COALESCE(cr.marks_obtained, 0) as marks_obtained
+              COALESCE(cr.marks_obtained, 0) as marks_obtained,
+              COALESCE(cr.visible_test_cases_passed, 0) as visible_test_cases_passed,
+              COALESCE(cr.visible_test_cases_total, 0) as visible_test_cases_total,
+              COALESCE(cr.hidden_test_cases_passed, 0) as hidden_test_cases_passed,
+              COALESCE(cr.hidden_test_cases_total, 0) as hidden_test_cases_total,
+              COALESCE(cr.execution_time_ms, 0) as execution_time_ms
        FROM coding_questions cq
        LEFT JOIN coding_responses cr ON cr.question_id = cq.id AND cr.attempt_id = $1
        WHERE cq.exam_id = (SELECT exam_id FROM exam_attempts WHERE id = $1)`,

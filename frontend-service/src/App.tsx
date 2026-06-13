@@ -284,6 +284,8 @@ export default function App() {
 
   const dragQuestionRef = useRef(false);
   const dragEditorRef = useRef(false);
+  const prevQuestionIndexRef = useRef<number | null>(null);
+  const prevSectionRef = useRef<'mcq' | 'coding' | null>(null);
 
   const startDragQuestion = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -322,6 +324,48 @@ export default function App() {
       console.error('Failed to save code immediately:', err);
     }
   };
+
+  useEffect(() => {
+    // 1. Sync ongoing attempt state to localStorage
+    if (currentAttempt?.id) {
+      localStorage.setItem(`clahan_active_section_${currentAttempt.id}`, selectedSection);
+      localStorage.setItem(`clahan_active_index_${currentAttempt.id}`, activeQuestionIndex.toString());
+    }
+
+    // 2. Isolated question state: clear code execution results on question/section change
+    setCodeExecutionResults([]);
+    setIsRunningCode(false);
+    setOutputTab('output');
+
+    // 3. Log question navigation events to backend
+    const currentQId = selectedSection === 'mcq' 
+      ? examMCQs[activeQuestionIndex]?.id 
+      : examCodings[activeQuestionIndex]?.id;
+
+    const prevQId = prevSectionRef.current === 'mcq'
+      ? examMCQs[prevQuestionIndexRef.current || 0]?.id
+      : examCodings[prevQuestionIndexRef.current || 0]?.id;
+
+    if (currentAttempt?.id && currentQId && prevQId && (prevQuestionIndexRef.current !== activeQuestionIndex || prevSectionRef.current !== selectedSection)) {
+      fetch(`${API_EXAMS}/student/attempts/${currentAttempt.id}/navigation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          fromQuestionId: prevQId, 
+          toQuestionId: currentQId, 
+          section: selectedSection 
+        })
+      }).catch(err => console.warn('Failed to log navigation event:', err));
+    }
+
+    // Update refs for next change
+    prevQuestionIndexRef.current = activeQuestionIndex;
+    prevSectionRef.current = selectedSection;
+
+  }, [activeQuestionIndex, selectedSection, currentAttempt?.id, examMCQs, examCodings]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -6145,20 +6189,24 @@ export default function App() {
                       </div>
                     ) : (
                       <div className="flex flex-col items-center gap-3 py-4 border-b border-white/5">
-                        <button 
-                          onClick={() => { setSelectedSection('mcq'); setActiveQuestionIndex(0); }}
-                          className={`p-2 rounded-lg border transition-all ${selectedSection === 'mcq' ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' : 'border-transparent text-slate-400 hover:bg-slate-800'}`}
-                          title="Switch to MCQ section"
-                        >
-                          <BookOpen className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={() => { setSelectedSection('coding'); setActiveQuestionIndex(0); }}
-                          className={`p-2 rounded-lg border transition-all ${selectedSection === 'coding' ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' : 'border-transparent text-slate-400 hover:bg-slate-800'}`}
-                          title="Switch to Coding section"
-                        >
-                          <Code className="h-4 w-4" />
-                        </button>
+                        {(currentExam?.exam_type !== 'coding' || examMCQs.length > 0) && (
+                          <button 
+                            onClick={() => { setSelectedSection('mcq'); setActiveQuestionIndex(0); }}
+                            className={`p-2 rounded-lg border transition-all ${selectedSection === 'mcq' ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' : 'border-transparent text-slate-400 hover:bg-slate-800'}`}
+                            title="Switch to MCQ section"
+                          >
+                            <BookOpen className="h-4 w-4" />
+                          </button>
+                        )}
+                        {(currentExam?.exam_type !== 'mcq' || examCodings.length > 0) && (
+                          <button 
+                            onClick={() => { setSelectedSection('coding'); setActiveQuestionIndex(0); }}
+                            className={`p-2 rounded-lg border transition-all ${selectedSection === 'coding' ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' : 'border-transparent text-slate-400 hover:bg-slate-800'}`}
+                            title="Switch to Coding section"
+                          >
+                            <Code className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     )}
 
@@ -6834,7 +6882,22 @@ export default function App() {
                               </div>
                             ) : (
                               <div className="space-y-3">
-                                <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest block font-black">Visible Test Cases</span>
+                                <div className="p-3 bg-slate-900 border border-white/10 rounded-xl flex items-center justify-between font-mono text-xs shadow-md">
+                                  <span className="text-slate-400 font-semibold">Test Case Summary:</span>
+                                  <div className="flex gap-4">
+                                    <span className="text-emerald-400 font-extrabold">
+                                      {codeExecutionResults.filter(r => r.passed).length} Passed
+                                    </span>
+                                    <span className="text-rose-400 font-extrabold">
+                                      {codeExecutionResults.filter(r => !r.passed).length} Failed
+                                    </span>
+                                    <span className="text-indigo-400 font-bold font-mono bg-indigo-500/10 px-2 py-0.5 rounded text-[10px]">
+                                      Total: {codeExecutionResults.length}
+                                    </span>
+                                  </div>
+                                </div>
+                                
+                                <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest block font-black pt-1">Visible Test Cases</span>
                                 {codeExecutionResults.map((res, i) => (
                                   <div key={i} className="p-3 bg-slate-950 rounded-xl border border-white/5 flex items-center justify-between text-[10px] font-mono shadow-sm">
                                     <div className="flex items-center gap-2.5">
@@ -6947,14 +7010,19 @@ export default function App() {
                     onClick={() => {
                       saveCurrentCodeImmediately();
                       if (selectedSection === 'coding' && activeQuestionIndex === 0) {
-                        setSelectedSection('mcq');
-                        setActiveQuestionIndex(examMCQs.length - 1);
+                        if (examMCQs.length > 0) {
+                          setSelectedSection('mcq');
+                          setActiveQuestionIndex(examMCQs.length - 1);
+                        }
                       } else {
                         setActiveQuestionIndex(p => Math.max(0, p - 1));
                       }
                     }}
                     className="px-4 py-2 border border-white/10 rounded-xl text-xs font-bold text-slate-355 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-                    disabled={selectedSection === 'mcq' && activeQuestionIndex === 0}
+                    disabled={
+                      (selectedSection === 'mcq' && activeQuestionIndex === 0) ||
+                      (selectedSection === 'coding' && activeQuestionIndex === 0 && examMCQs.length === 0)
+                    }
                   >
                     Previous Question
                   </button>
@@ -7093,9 +7161,33 @@ export default function App() {
                         </pre>
                       </div>
 
-                      <div className="flex justify-between items-center text-[10px] font-bold">
-                        <span className="text-emerald-500">Passed cases: {res.test_cases_passed} / {res.total_test_cases}</span>
-                        <span className="text-muted-foreground">Marks obtained: {res.marks_obtained} / {res.marks} pts</span>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100 dark:border-slate-800 pt-3 text-xs font-semibold">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-emerald-500 flex items-center gap-1">
+                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+                            Passed: {res.test_cases_passed} / {res.total_test_cases}
+                          </span>
+                          <span className="text-rose-500 flex items-center gap-1">
+                            <span className="inline-block w-2 h-2 rounded-full bg-rose-500"></span>
+                            Failed: {res.total_test_cases - res.test_cases_passed} / {res.total_test_cases}
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-1 text-slate-600 dark:text-slate-400">
+                          <span className="text-indigo-600 dark:text-indigo-400">
+                            Visible Cases: {res.visible_test_cases_passed || 0} / {res.visible_test_cases_total || 0} Passed
+                          </span>
+                          <span className="text-indigo-650 dark:text-purple-400">
+                            Hidden Cases: {res.hidden_test_cases_passed || 0} / {res.hidden_test_cases_total || 0} Passed
+                          </span>
+                        </div>
+                        <div className="flex flex-col gap-1 text-right items-end justify-between">
+                          <span className="text-slate-500 dark:text-slate-400 font-mono text-[10px]">
+                            Execution Time: {res.execution_time_ms || 0}ms
+                          </span>
+                          <span className="text-slate-900 dark:text-white font-bold text-sm bg-indigo-50 dark:bg-indigo-950/30 px-3 py-1 rounded-xl">
+                            Score: {res.marks_obtained} / {res.marks} pts
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
