@@ -567,6 +567,9 @@ export default function App() {
   const proctorIntervalRef = useRef<any>(null);
   const currentPageRef = useRef(currentPage);
   const isSubmittingRef = useRef(false);
+  const currentAttemptRef = useRef(currentAttempt);
+  const currentExamRef = useRef(currentExam);
+  const timeLeftRef = useRef(timeLeft);
 
   const handleTabSwitchRef = useRef<any>(null);
   const handleVisibilityChangeRef = useRef<any>(null);
@@ -803,6 +806,18 @@ export default function App() {
   useEffect(() => {
     currentPageRef.current = currentPage;
   }, [currentPage]);
+
+  useEffect(() => {
+    currentAttemptRef.current = currentAttempt;
+  }, [currentAttempt]);
+
+  useEffect(() => {
+    currentExamRef.current = currentExam;
+  }, [currentExam]);
+
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
   
   // Toast notifications
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }>>([]);
@@ -2383,7 +2398,7 @@ export default function App() {
       socketRef.current = socket;
 
       socket.on('connect', () => {
-        socket.emit('join-exam', { token, attemptId, examId: currentExam?.id });
+        socket.emit('join-exam', { token, attemptId, examId: currentExamRef.current?.id });
         logDebugEvent('Exam Connected');
       });
 
@@ -2523,9 +2538,9 @@ export default function App() {
 
   const handleExamTermination = async (reason?: string, isAutoSubmitted?: boolean) => {
     cleanupProctoring();
-    if (currentAttempt?.id && !isAutoSubmitted) {
+    if (currentAttemptRef.current?.id && !isAutoSubmitted) {
       try {
-        await fetch(`${API_EXAMS}/student/attempts/${currentAttempt.id}/terminate`, {
+        await fetch(`${API_EXAMS}/student/attempts/${currentAttemptRef.current.id}/terminate`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -2574,7 +2589,7 @@ export default function App() {
   const saveMcqChoice = async (questionId: string, option: string) => {
     setMcqAnswers(prev => ({ ...prev, [questionId]: option }));
     try {
-      await fetch(`${API_EXAMS}/student/attempts/${currentAttempt?.id}/mcq-response`, {
+      await fetch(`${API_EXAMS}/student/attempts/${currentAttemptRef.current?.id}/mcq-response`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2594,7 +2609,7 @@ export default function App() {
       return updated;
     });
     try {
-      await fetch(`${API_EXAMS}/student/attempts/${currentAttempt?.id}/mcq-response`, {
+      await fetch(`${API_EXAMS}/student/attempts/${currentAttemptRef.current?.id}/mcq-response`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2623,7 +2638,7 @@ export default function App() {
     setCodeExecutionResults([]);
     setCodeSummary(null);
     try {
-      const res = await fetch(`${API_EXAMS}/student/attempts/${currentAttempt?.id}/run-code`, {
+      const res = await fetch(`${API_EXAMS}/student/attempts/${currentAttemptRef.current?.id}/run-code`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2670,7 +2685,7 @@ export default function App() {
     if (!sol) return;
     showToast('Submitting solution against all test cases...');
     try {
-      const res = await fetch(`${API_EXAMS}/student/attempts/${currentAttempt?.id}/submit-code`, {
+      const res = await fetch(`${API_EXAMS}/student/attempts/${currentAttemptRef.current?.id}/submit-code`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2715,10 +2730,10 @@ export default function App() {
       return;
     }
     cleanupProctoring();
-    const timeTaken = ((currentExam?.duration_minutes || 60) * 60) - timeLeft;
+    const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
 
     try {
-      const res = await fetch(`${API_EXAMS}/student/attempts/${currentAttempt?.id}/submit`, {
+      const res = await fetch(`${API_EXAMS}/student/attempts/${currentAttemptRef.current?.id}/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2728,8 +2743,10 @@ export default function App() {
       });
       if (res.ok) {
         const result = await res.json();
-        setSelectedResultAttemptId(currentAttempt!.id);
-        fetchResultDetails(currentAttempt!.id);
+        if (currentAttemptRef.current) {
+          setSelectedResultAttemptId(currentAttemptRef.current.id);
+          fetchResultDetails(currentAttemptRef.current.id);
+        }
       } else {
         const data = await res.json();
         showToast(data.error || 'Failed to submit exam', 'error');
@@ -2738,9 +2755,9 @@ export default function App() {
       // Mock result evaluation
       const mockResult = {
         attempt: {
-          exam_name: currentExam?.name || 'Technical Aptitude Exam',
-          exam_type: currentExam?.exam_type || 'both',
-          cutoff_percentage: currentExam?.cutoff_percentage || 50,
+          exam_name: currentExamRef.current?.name || 'Technical Aptitude Exam',
+          exam_type: currentExamRef.current?.exam_type || 'both',
+          cutoff_percentage: currentExamRef.current?.cutoff_percentage || 50,
           score: 12,
           maxScore: 15,
           percentage: 80.00,
