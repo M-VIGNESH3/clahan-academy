@@ -592,6 +592,15 @@ export default function App() {
     if (handleVisibilityChangeRef.current) handleVisibilityChangeRef.current();
   }, []);
 
+  // Synchronize webcam stream to active video element on page/step transitions
+  useEffect(() => {
+    if (videoRef.current && cameraStream) {
+      if (videoRef.current.srcObject !== cameraStream) {
+        videoRef.current.srcObject = cameraStream;
+      }
+    }
+  }, [currentPage, validationStep, cameraStream]);
+
   // View Result Detail State
   const [selectedResultAttemptId, setSelectedResultAttemptId] = useState<string | null>(null);
   const [detailedResult, setDetailedResult] = useState<any>(null);
@@ -2505,6 +2514,17 @@ export default function App() {
           if (ctx) {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const dataUrl = canvas.toDataURL('image/jpeg', 0.70);
+            
+            // Log frame and stream metadata for debugging
+            console.log("[PROCTOR FRAME METRICS]", {
+              readyState: video.readyState,
+              videoWidth: video.videoWidth,
+              videoHeight: video.videoHeight,
+              paused: video.paused,
+              ended: video.ended,
+              frameSizeInBytes: dataUrl.length
+            });
+
             socketRef.current.emit('proctor-frame', { image: dataUrl });
           }
         } catch (err) {
@@ -6223,7 +6243,7 @@ export default function App() {
             <div className="max-w-xl mx-auto my-auto p-8 rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl text-center space-y-6">
               <h3 className="font-extrabold text-lg">Hardware Handshake Verification</h3>
               <div className="h-44 w-60 mx-auto rounded-2xl overflow-hidden bg-slate-900 border border-white/10 relative flex items-center justify-center">
-                <video ref={(el) => { videoRef.current = el; if (el && cameraStream) { el.srcObject = cameraStream; } }} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-cover" />
+                <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-cover" />
                 {!cameraPermission && <Video className="h-8 w-8 text-white/40 animate-pulse" />}
               </div>
 
@@ -6341,10 +6361,7 @@ export default function App() {
                   {/* Small Camera PIP */}
                   <div className="h-10 w-14 rounded-lg bg-slate-950 border border-white/10 overflow-hidden relative shadow-lg">
                     <video 
-                      ref={(el) => { 
-                        videoRef.current = el; 
-                        if (el && cameraStream) { el.srcObject = cameraStream; } 
-                      }} 
+                      ref={videoRef} 
                       autoPlay 
                       playsInline 
                       muted 
