@@ -595,6 +595,24 @@ async def analyze_frame(
             tracker = AttemptTracker(attemptId)
             attempt_trackers[attemptId] = tracker
         
+        # Calculate pre-update elapsed lost time
+        temp_elapsed = 0.0
+        if tracker.first_lost_time is not None:
+            temp_elapsed = time.time() - tracker.first_lost_time
+
+        logger.info(
+            f"[FRAME]\n"
+            f"Attempt={attemptId}\n"
+            f"face_count={face_count}\n"
+            f"face_confidence={face_confidence:.4f}\n"
+            f"yolo_persons={yolo_persons}\n"
+            f"detection_source={detection_source}\n"
+            f"face_present_flag={face_present_flag}\n"
+            f"tracker_state={tracker.state}\n"
+            f"tracker_first_lost_time={tracker.first_lost_time}\n"
+            f"elapsed_lost={temp_elapsed:.1f}"
+        )
+
         tracking_status = tracker.update(face_present_flag, face_confidence)
         
         # Calculate time elapsed since first lost frame
