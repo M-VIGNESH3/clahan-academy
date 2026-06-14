@@ -36,15 +36,8 @@ services:
     container_name: clahan-auth-service
     ports:
       - "4001:4001"
-    environment:
-      PORT: 4001
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/clahan
-      REDIS_URL: redis://redis:6379
-      JWT_ACCESS_SECRET: super_secret_access_token_key
-      JWT_REFRESH_SECRET: super_secret_refresh_token_key
-      SMTP_HOST: smtp.gmail.com
-      SMTP_PORT: 587
-      SMTP_USER: aiexamplatform123@gmail.com
+    env_file:
+      - ./auth-service/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,11 +49,8 @@ services:
     container_name: clahan-admin-service
     ports:
       - "4002:4002"
-    environment:
-      PORT: 4002
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/clahan
-      REDIS_URL: redis://redis:6379
-      JWT_ACCESS_SECRET: super_secret_access_token_key
+    env_file:
+      - ./admin-service/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,10 +62,8 @@ services:
     container_name: clahan-student-service
     ports:
       - "4003:4003"
-    environment:
-      PORT: 4003
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/clahan
-      JWT_ACCESS_SECRET: super_secret_access_token_key
+    env_file:
+      - ./student-service/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -85,12 +73,8 @@ services:
     container_name: clahan-exam-service
     ports:
       - "4004:4004"
-    environment:
-      PORT: 4004
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/clahan
-      JWT_ACCESS_SECRET: super_secret_access_token_key
-      AI_SERVICE_URL: http://ai-service:8000
-      JUDGE0_URL: http://judge0-api:2358
+    env_file:
+      - ./exam-service/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -104,12 +88,8 @@ services:
     container_name: clahan-proctoring-service
     ports:
       - "4005:4005"
-    environment:
-      PORT: 4005
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/clahan
-      REDIS_URL: redis://redis:6379
-      JWT_ACCESS_SECRET: super_secret_access_token_key
-      AI_SERVICE_URL: http://ai-service:8000
+    env_file:
+      - ./proctoring-service/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -123,17 +103,8 @@ services:
     container_name: clahan-notification-service
     ports:
       - "4006:4006"
-    environment:
-      PORT: 4006
-      REDIS_URL: redis://redis:6379
-      SMTP_HOST: smtp.gmail.com
-      SMTP_PORT: 465
-      SMTP_USER: aiexamplatform123@gmail.com
-      SMTP_PASS: zmso iaml jdkh wpxn
-      SMTP_FROM: aiexamplatform123@gmail.com
-      FRONTEND_URL: https://clahanacademy.com
-      SENDGRID_API_KEY: "${SENDGRID_API_KEY:-}"
-      SENDGRID_FROM: "${SENDGRID_FROM:-noreply@clahanacademy.com}"
+    env_file:
+      - ./notification-service/.env
     depends_on:
       redis:
         condition: service_healthy
@@ -143,9 +114,8 @@ services:
     container_name: clahan-ai-service
     ports:
       - "8000:8000"
-    environment:
-      PORT: 8000
-      OLLAMA_URL: http://ollama-service:11434
+    env_file:
+      - ./ai-service/.env
 
   ollama-service:
     image: ollama/ollama:latest

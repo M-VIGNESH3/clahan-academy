@@ -159,6 +159,9 @@ async function initDb() {
       ALTER TABLE exams ALTER COLUMN year DROP NOT NULL;
     `);
         await client.query(`
+      ALTER TABLE exams ADD COLUMN IF NOT EXISTS coding_score_rounding VARCHAR(50) DEFAULT 'round';
+    `);
+        await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS trainer_id UUID REFERENCES trainers(id) ON DELETE SET NULL;
     `);
         await client.query(`

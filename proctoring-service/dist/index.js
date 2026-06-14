@@ -36,6 +36,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const dotenv = __importStar(require("dotenv"));
+dotenv.config();
 const express_1 = __importDefault(require("express"));
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
@@ -47,6 +49,12 @@ const jwt = __importStar(require("jsonwebtoken"));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 4005;
 const JWT_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'super_secret_access_token_key';
+const TAB_SWITCH_LIMIT = parseInt(process.env.TAB_SWITCH_LIMIT || '3');
+const MOBILE_PHONE_LIMIT = parseInt(process.env.MOBILE_PHONE_LIMIT || '5');
+const BOOK_LIMIT = parseInt(process.env.BOOK_LIMIT || '8');
+const MULTIPLE_FACES_LIMIT = parseInt(process.env.MULTIPLE_FACES_LIMIT || '5');
+const NO_FACE_TIMEOUT_MS = parseInt(process.env.NO_FACE_TIMEOUT_MS || '10000');
+const FULLSCREEN_EXIT_LIMIT = parseInt(process.env.FULLSCREEN_EXIT_LIMIT || '3');
 process.on('uncaughtException', (err) => {
     console.error('Uncaught Exception in proctoring-service:', err);
 });
@@ -211,6 +219,11 @@ io.on('connection', (socket) => {
     // Helper function to handle a proctor violation
     async function processViolation(attemptId, studentId, examId, eventType, details, severity, socket, screenshot) {
         try {
+            // Prevent processing violations if the attempt is already completed or terminated
+            const attemptCheck = await query('SELECT status FROM exam_attempts WHERE id = $1', [attemptId]);
+            if (attemptCheck.rows.length === 0 || attemptCheck.rows[0].status !== 'ongoing') {
+                return;
+            }
             // Save violation log to database
             await query(`INSERT INTO proctoring_logs (attempt_id, event_type, details, severity, screenshot)
          VALUES ($1, $2, $3, $4, $5)`, [attemptId, eventType, details, severity, screenshot || null]);
@@ -239,50 +252,50 @@ io.on('connection', (socket) => {
                 shouldTerminate = true;
                 terminationReason = details || 'Proctoring violation limit reached.';
             }
-            // Rule 1: 3 Tab switches -> Terminate
-            else if ((counts['TAB_SWITCH'] || 0) >= 3) {
+            // Rule 1: Tab switches -> Terminate
+            else if ((counts['TAB_SWITCH'] || 0) >= TAB_SWITCH_LIMIT) {
                 shouldTerminate = true;
-                terminationReason = 'Multiple tab switches detected (limit 3).';
+                terminationReason = `Multiple tab switches detected (limit ${TAB_SWITCH_LIMIT}).`;
             }
             // Rule 2: Camera disabled -> Terminate / Auto Submit
             else if (eventType === 'CAMERA_DISABLED') {
                 shouldTerminate = true;
                 terminationReason = 'Webcam was disabled or blocked.';
             }
-            // Rule 3: Mobile Phone detected -> Terminate after 5 consecutive detections
+            // Rule 3: Mobile Phone detected -> Terminate after limit consecutive detections
             else if (eventType === 'MOBILE_PHONE_DETECTED') {
                 const consec = consecutiveViolations[attemptId] || {};
-                if ((consec['MOBILE_PHONE_DETECTED'] || 0) >= 5) {
+                if ((consec['MOBILE_PHONE_DETECTED'] || 0) >= MOBILE_PHONE_LIMIT) {
                     shouldTerminate = true;
                     terminationReason = 'Mobile phone or device detected in camera view.';
                 }
             }
-            // Rule 4: Book detected -> Terminate after 8 consecutive detections
+            // Rule 4: Book detected -> Terminate after limit consecutive detections
             else if (eventType === 'BOOK_DETECTED') {
                 const consec = consecutiveViolations[attemptId] || {};
-                if ((consec['BOOK_DETECTED'] || 0) >= 8) {
+                if ((consec['BOOK_DETECTED'] || 0) >= BOOK_LIMIT) {
                     shouldTerminate = true;
                     terminationReason = 'Book or study notes detected in camera view.';
                 }
             }
-            // Rule 5: Multiple faces -> Terminate after 5 consecutive detections
+            // Rule 5: Multiple faces -> Terminate after limit consecutive detections
             else if (eventType === 'MULTIPLE_FACES_DETECTED') {
                 const consec = consecutiveViolations[attemptId] || {};
-                if ((consec['MULTIPLE_FACES_DETECTED'] || 0) >= 5) {
+                if ((consec['MULTIPLE_FACES_DETECTED'] || 0) >= MULTIPLE_FACES_LIMIT) {
                     shouldTerminate = true;
                     terminationReason = 'Multiple faces detected in the webcam view.';
                 }
             }
-            // Rule 6: No face for long duration -> Terminate after 10 seconds
+            // Rule 6: No face for long duration -> Terminate after timeout
             else if (eventType === 'NO_FACE_DETECTED') {
                 const start = violationStartTimes[attemptId]?.['NO_FACE_DETECTED'];
-                if (start && (Date.now() - start) >= 10000) {
+                if (start && (Date.now() - start) >= NO_FACE_TIMEOUT_MS) {
                     shouldTerminate = true;
-                    terminationReason = 'Prolonged Face Absence (terminated after 10 seconds).';
+                    terminationReason = `Prolonged Face Absence (terminated after ${NO_FACE_TIMEOUT_MS / 1000} seconds).`;
                 }
             }
-            // Rule 7: Fullscreen exit -> Warning then Terminate (limit 3)
-            else if ((counts['FULLSCREEN_EXIT'] || 0) >= 3) {
+            // Rule 7: Fullscreen exit -> Warning then Terminate
+            else if ((counts['FULLSCREEN_EXIT'] || 0) >= FULLSCREEN_EXIT_LIMIT) {
                 shouldTerminate = true;
                 terminationReason = 'Exited fullscreen mode multiple times.';
             }
@@ -322,6 +335,7 @@ io.on('connection', (socket) => {
                     attemptId,
                     studentId,
                     reason: terminationReason,
+                    counts
                 });
                 console.log(`Attempt ${attemptId} auto-terminated due to: ${terminationReason}`);
             }
@@ -331,10 +345,10 @@ io.on('connection', (socket) => {
                 const consec = consecutiveViolations[attemptId] || {};
                 const consecCount = consec[eventType] || 0;
                 const maxLimits = {
-                    'MOBILE_PHONE_DETECTED': 2,
-                    'BOOK_DETECTED': 8,
-                    'MULTIPLE_FACES_DETECTED': 5,
-                    'NO_FACE_DETECTED': 20
+                    'MOBILE_PHONE_DETECTED': MOBILE_PHONE_LIMIT,
+                    'BOOK_DETECTED': BOOK_LIMIT,
+                    'MULTIPLE_FACES_DETECTED': MULTIPLE_FACES_LIMIT,
+                    'NO_FACE_DETECTED': Math.round(NO_FACE_TIMEOUT_MS / 500)
                 };
                 const limit = maxLimits[eventType] || 3;
                 const warningNum = isWebcamEvent ? consecCount : (counts[eventType] || 1);
@@ -404,16 +418,6 @@ io.on('connection', (socket) => {
                 // Initialize consecutive violation storage for this attempt
                 consecutiveViolations[attemptId] = consecutiveViolations[attemptId] || {};
                 const consec = consecutiveViolations[attemptId];
-                // Emit real-time tracking status to student
-                socket.emit('proctor-status', {
-                    faceConfidence: result.faceConfidence || 0.0,
-                    trackingStatus: result.trackingStatus || 'Face Present',
-                    facePresent: !!result.facePresent,
-                    faceLost: !!result.faceLost,
-                    faceRecovered: !!result.faceRecovered,
-                    elapsedLost: result.elapsedLost || 0.0,
-                    violations: result.violations || []
-                });
                 // Determine if face detection is currently losing/lost tracking
                 const isLosingFace = result.trackingStatus === 'Face Lost' || result.trackingStatus === 'Temporary Detection Loss';
                 if (!isLosingFace) {
@@ -438,9 +442,31 @@ io.on('connection', (socket) => {
                 if (!result.violations.includes('CAMERA_DISABLED')) {
                     consec['CAMERA_DISABLED'] = 0;
                 }
+                // Calculate real-time elapsed seconds for face absence
+                let elapsedSec = 0;
+                if (isLosingFace) {
+                    if (!violationStartTimes[attemptId]) {
+                        violationStartTimes[attemptId] = {};
+                    }
+                    if (!violationStartTimes[attemptId]['NO_FACE_DETECTED']) {
+                        violationStartTimes[attemptId]['NO_FACE_DETECTED'] = Date.now();
+                    }
+                    elapsedSec = (Date.now() - violationStartTimes[attemptId]['NO_FACE_DETECTED']) / 1000;
+                }
+                // Emit real-time tracking status to student
+                socket.emit('proctor-status', {
+                    faceConfidence: result.faceConfidence || 0.0,
+                    trackingStatus: result.trackingStatus || 'Face Present',
+                    facePresent: !!result.facePresent,
+                    faceLost: !!result.faceLost,
+                    faceRecovered: !!result.faceRecovered,
+                    elapsedLost: elapsedSec,
+                    violations: result.violations || [],
+                    faceCount: result.faceCount || 0,
+                    detectionSource: result.detectionSource || 'None'
+                });
                 // Handle face loss timing with synchronized tracker state from AI service
                 if (isLosingFace) {
-                    const elapsedSec = result.elapsedLost || 0;
                     consec['NO_FACE_FRAMES'] = (consec['NO_FACE_FRAMES'] || 0) + 1;
                     console.log(`[PROCTOR LOG] Attempt: ${attemptId} | Status: ${result.trackingStatus} | Face Confidence: ${(result.faceConfidence || 0).toFixed(2)} | Elapsed Loss: ${elapsedSec.toFixed(1)}s`);
                     if (elapsedSec >= 2 && elapsedSec < 5 && !consec['WARNED_2S']) {
