@@ -568,6 +568,7 @@ export default function App() {
   // Real-time proctor socket client
   const socketRef = useRef<Socket | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const bgVideoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const proctorIntervalRef = useRef<any>(null);
   const currentPageRef = useRef(currentPage);
@@ -600,6 +601,37 @@ export default function App() {
       }
     }
   }, [currentPage, validationStep, cameraStream]);
+
+  // Synchronize webcam stream to off-screen persistent video element to prevent browser throttling/blank frames
+  useEffect(() => {
+    if (cameraStream) {
+      let bgVideo = document.getElementById('clahan-proctor-bg-video') as HTMLVideoElement;
+      if (!bgVideo) {
+        bgVideo = document.createElement('video');
+        bgVideo.id = 'clahan-proctor-bg-video';
+        bgVideo.autoplay = true;
+        bgVideo.playsInline = true;
+        bgVideo.muted = true;
+        bgVideo.style.position = 'absolute';
+        bgVideo.style.left = '-9999px';
+        bgVideo.style.top = '0';
+        bgVideo.style.width = '640px';
+        bgVideo.style.height = '480px';
+        bgVideo.style.pointerEvents = 'none';
+        document.body.appendChild(bgVideo);
+      }
+      if (bgVideo.srcObject !== cameraStream) {
+        bgVideo.srcObject = cameraStream;
+      }
+      bgVideoRef.current = bgVideo;
+    }
+    return () => {
+      const bgVideo = document.getElementById('clahan-proctor-bg-video');
+      if (bgVideo) {
+        bgVideo.remove();
+      }
+    };
+  }, [cameraStream]);
 
   // View Result Detail State
   const [selectedResultAttemptId, setSelectedResultAttemptId] = useState<string | null>(null);
@@ -2504,13 +2536,16 @@ export default function App() {
 
     // Periodically capture and stream webcam frame to the socket
     proctorIntervalRef.current = setInterval(() => {
-      if (currentPageRef.current === 'exam-env' && videoRef.current && socketRef.current) {
+      if (currentPageRef.current === 'exam-env' && socketRef.current) {
         try {
-          const video = videoRef.current;
-           const canvas = document.createElement('canvas');
+          const video = bgVideoRef.current || videoRef.current;
+          if (!video) return;
+          
+          const canvas = document.createElement('canvas');
           canvas.width = 640;
           canvas.height = 480;
-          const ctx = canvas.getContext('2d');
+          // Set willReadFrequently: true to optimize CPU-based readback of base64 image data
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
           if (ctx) {
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const dataUrl = canvas.toDataURL('image/jpeg', 0.70);
