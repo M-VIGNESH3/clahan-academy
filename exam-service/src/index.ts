@@ -36,6 +36,30 @@ pool.on('error', (err) => {
 });
 const query = (text: string, params?: any[]) => pool.query(text, params);
 
+async function validateAttemptNotExpired(attemptId: string) {
+  const attemptResult = await query(
+    `SELECT ea.created_at, ea.status, e.duration_minutes 
+     FROM exam_attempts ea 
+     JOIN exams e ON ea.exam_id = e.id 
+     WHERE ea.id = $1`,
+    [attemptId]
+  );
+  if (attemptResult.rows.length === 0) {
+    throw new Error('Attempt not found');
+  }
+  const attempt = attemptResult.rows[0];
+  if (attempt.status !== 'ongoing') {
+    throw new Error('Attempt is already finalized or terminated');
+  }
+  const now = Date.now();
+  const startTime = new Date(attempt.created_at).getTime();
+  const durationMs = attempt.duration_minutes * 60 * 1000;
+  const gracePeriodMs = 10000; // 10s grace period
+  if (now > startTime + durationMs + gracePeriodMs) {
+    throw new Error('Exam time limit exceeded. Action rejected.');
+  }
+}
+
 // Redis client for notifications
 const redisClient = createClient({
   url: process.env.REDIS_URL || 'redis://redis:6379',
@@ -772,6 +796,11 @@ app.get('/api/exams/student/attempts/:attemptId', authenticate, async (req, res)
 app.post('/api/exams/student/attempts/:attemptId/mcq-response', authenticate, requireRole('student'), async (req, res) => {
   try {
     const { attemptId } = req.params;
+    try {
+      await validateAttemptNotExpired(attemptId);
+    } catch (validationErr: any) {
+      return res.status(403).json({ error: validationErr.message });
+    }
     const { questionId, selectedOption } = req.body;
     if (!questionId) {
       return res.status(400).json({ error: 'Question ID is required' });
@@ -851,6 +880,11 @@ const decodeBase64 = (str: string) => {
 app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requireRole('student'), async (req, res) => {
   try {
     const { attemptId } = req.params;
+    try {
+      await validateAttemptNotExpired(attemptId);
+    } catch (validationErr: any) {
+      return res.status(403).json({ error: validationErr.message });
+    }
     const { code, language, questionId } = req.body;
     if (!code || !language || !questionId) {
       return res.status(400).json({ error: 'Code, language, and question ID are required' });
@@ -958,6 +992,11 @@ app.post('/api/exams/student/attempts/:attemptId/run-code', authenticate, requir
 app.post('/api/exams/student/attempts/:attemptId/save-code', authenticate, requireRole('student'), async (req, res) => {
   try {
     const { attemptId } = req.params;
+    try {
+      await validateAttemptNotExpired(attemptId);
+    } catch (validationErr: any) {
+      return res.status(403).json({ error: validationErr.message });
+    }
     const { code, language, questionId } = req.body;
     if (!questionId) {
       return res.status(400).json({ error: 'Question ID is required' });
@@ -1015,6 +1054,11 @@ app.post('/api/exams/student/attempts/:attemptId/navigation', authenticate, requ
 app.post('/api/exams/student/attempts/:attemptId/submit-code', authenticate, requireRole('student'), async (req, res) => {
   try {
     const { attemptId } = req.params;
+    try {
+      await validateAttemptNotExpired(attemptId);
+    } catch (validationErr: any) {
+      return res.status(403).json({ error: validationErr.message });
+    }
     const { code, language, questionId } = req.body;
     if (!code || !language || !questionId) {
       return res.status(400).json({ error: 'Code, language, and question ID are required' });

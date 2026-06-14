@@ -3,7 +3,7 @@ import {
   BookOpen, Code, Shield, Video, Bell, Settings, Award, Users, CheckCircle, AlertTriangle, 
   Trash2, Copy, Send, Download, Upload, Plus, Play, Check, Moon, Sun, ArrowRight, User, 
   LogOut, RefreshCw, Layers, Cpu, Laptop, Terminal, Mail, Phone, MapPin, Eye, EyeOff, Lock,
-  Maximize2, ShieldAlert, X, Sparkles, ChevronLeft, ChevronRight, Star, Minimize2, Bookmark
+  Maximize2, ShieldAlert, X, Sparkles, ChevronLeft, ChevronRight, Star, Minimize2, Bookmark, Clock
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import * as XLSX from 'xlsx';
@@ -563,6 +563,7 @@ export default function App() {
   const [tabWarnings, setTabWarnings] = useState(0);
   const [proctorLogs, setProctorLogs] = useState<string[]>([]);
   const [timeLeft, setTimeLeft] = useState(0); // seconds
+  const [isExamLocked, setIsExamLocked] = useState(false);
   const timerRef = useRef<any>(null);
   
   // Real-time proctor socket client
@@ -2397,7 +2398,12 @@ export default function App() {
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timerRef.current);
-          submitEntireExam(true); // auto submit
+          setIsExamLocked(true);
+          // Auto-save coding questions and submit the exam
+          (async () => {
+            await saveCurrentCodeImmediately();
+            await submitEntireExam(true);
+          })();
           return 0;
         }
         return prev - 1;
@@ -2816,13 +2822,29 @@ export default function App() {
       });
       if (res.ok) {
         const result = await res.json();
-        if (currentAttemptRef.current) {
-          setSelectedResultAttemptId(currentAttemptRef.current.id);
-          fetchResultDetails(currentAttemptRef.current.id);
+        if (isAuto) {
+          showToast("Time is up. Your exam has been automatically submitted successfully. Redirecting to dashboard...", "success");
+          setTimeout(() => {
+            setCurrentPage('student-dash');
+            loadStudentDashboard();
+            setIsExamLocked(false);
+          }, 5000);
+        } else {
+          if (currentAttemptRef.current) {
+            setSelectedResultAttemptId(currentAttemptRef.current.id);
+            fetchResultDetails(currentAttemptRef.current.id);
+          }
         }
       } else {
         const data = await res.json();
         showToast(data.error || 'Failed to submit exam', 'error');
+        if (isAuto) {
+          setTimeout(() => {
+            setCurrentPage('student-dash');
+            loadStudentDashboard();
+            setIsExamLocked(false);
+          }, 5000);
+        }
       }
     } catch (err) {
       // Mock result evaluation
@@ -2847,8 +2869,17 @@ export default function App() {
           { title: 'Two Sum Algorithm', code: 'def solve(): pass', status: 'Accepted', test_cases_passed: 1, total_test_cases: 1, marks_obtained: 10, marks: 10 }
         ]
       };
-      setDetailedResult(mockResult);
-      setCurrentPage('result-view');
+      if (isAuto) {
+        showToast("Time is up. Your exam has been automatically submitted successfully. Redirecting to dashboard...", "success");
+        setTimeout(() => {
+          setCurrentPage('student-dash');
+          loadStudentDashboard();
+          setIsExamLocked(false);
+        }, 5000);
+      } else {
+        setDetailedResult(mockResult);
+        setCurrentPage('result-view');
+      }
     } finally {
       isSubmittingRef.current = false;
     }
@@ -6410,15 +6441,16 @@ export default function App() {
                   {/* Submission Button */}
                   <button
                     onClick={() => {
+                      if (isExamLocked) return;
                       if (timeLeft > 0) {
                         showToast("You cannot submit early. Please wait for the exam time to complete.", "warning");
                         return;
                       }
                       submitEntireExam();
                     }}
-                    disabled={timeLeft > 0}
+                    disabled={timeLeft > 0 || isExamLocked}
                     className={`px-5 py-2.5 text-white font-bold rounded-lg text-xs uppercase tracking-wider transition-all border ${
-                      timeLeft > 0 
+                      (timeLeft > 0 || isExamLocked)
                         ? 'bg-slate-800/40 cursor-not-allowed text-slate-500 border-white/5' 
                         : 'bg-rose-600 hover:bg-rose-500 border-rose-500/30 shadow-lg shadow-rose-600/25'
                     }`}
@@ -6549,12 +6581,13 @@ export default function App() {
                       <div className="p-3 space-y-1.5 border-b border-white/5 bg-slate-950/20">
                         {(currentExam?.exam_type !== 'coding' || examMCQs.length > 0) && (
                           <button
-                            onClick={() => { setSelectedSection('mcq'); setActiveQuestionIndex(0); }}
+                            onClick={() => { if (!isExamLocked) { setSelectedSection('mcq'); setActiveQuestionIndex(0); } }}
+                            disabled={isExamLocked}
                             className={`w-full py-2 px-2.5 text-left rounded-lg transition-all border flex items-center justify-between ${
                               selectedSection === 'mcq' 
                                 ? 'bg-indigo-600/20 text-indigo-405 border-indigo-500/30 font-bold' 
                                 : 'bg-slate-905 border-white/5 text-slate-400 hover:bg-slate-800 text-xs'
-                            }`}
+                            } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             <span className="text-xs font-semibold flex items-center gap-1.5">
                               <BookOpen className="h-3.5 w-3.5" />
@@ -6564,12 +6597,13 @@ export default function App() {
                         )}
                         {(currentExam?.exam_type !== 'mcq' || examCodings.length > 0) && (
                           <button
-                            onClick={() => { setSelectedSection('coding'); setActiveQuestionIndex(0); }}
+                            onClick={() => { if (!isExamLocked) { setSelectedSection('coding'); setActiveQuestionIndex(0); } }}
+                            disabled={isExamLocked}
                             className={`w-full py-2 px-2.5 text-left rounded-lg transition-all border flex items-center justify-between ${
                               selectedSection === 'coding' 
                                 ? 'bg-indigo-600/20 text-indigo-405 border-indigo-500/30 font-bold' 
                                 : 'bg-slate-905 border-white/5 text-slate-400 hover:bg-slate-800 text-xs'
-                            }`}
+                            } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             <span className="text-xs font-semibold flex items-center gap-1.5">
                               <Code className="h-3.5 w-3.5" />
@@ -6582,8 +6616,9 @@ export default function App() {
                       <div className="flex flex-col items-center gap-3 py-4 border-b border-white/5">
                         {(currentExam?.exam_type !== 'coding' || examMCQs.length > 0) && (
                           <button 
-                            onClick={() => { setSelectedSection('mcq'); setActiveQuestionIndex(0); }}
-                            className={`p-2 rounded-lg border transition-all ${selectedSection === 'mcq' ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' : 'border-transparent text-slate-400 hover:bg-slate-800'}`}
+                            onClick={() => { if (!isExamLocked) { setSelectedSection('mcq'); setActiveQuestionIndex(0); } }}
+                            disabled={isExamLocked}
+                            className={`p-2 rounded-lg border transition-all ${selectedSection === 'mcq' ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' : 'border-transparent text-slate-400 hover:bg-slate-800'} ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                             title="Switch to MCQ section"
                           >
                             <BookOpen className="h-4 w-4" />
@@ -6591,8 +6626,9 @@ export default function App() {
                         )}
                         {(currentExam?.exam_type !== 'mcq' || examCodings.length > 0) && (
                           <button 
-                            onClick={() => { setSelectedSection('coding'); setActiveQuestionIndex(0); }}
-                            className={`p-2 rounded-lg border transition-all ${selectedSection === 'coding' ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' : 'border-transparent text-slate-400 hover:bg-slate-800'}`}
+                            onClick={() => { if (!isExamLocked) { setSelectedSection('coding'); setActiveQuestionIndex(0); } }}
+                            disabled={isExamLocked}
+                            className={`p-2 rounded-lg border transition-all ${selectedSection === 'coding' ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' : 'border-transparent text-slate-400 hover:bg-slate-800'} ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                             title="Switch to Coding section"
                           >
                             <Code className="h-4 w-4" />
@@ -6630,10 +6666,12 @@ export default function App() {
                             <button
                               key={q.id}
                               onClick={() => {
+                                if (isExamLocked) return;
                                 saveCurrentCodeImmediately();
                                 setActiveQuestionIndex(idx);
                               }}
-                              className={`h-9 w-9 flex items-center justify-center rounded-lg text-xs transition-all border shadow-inner ${bgClass}`}
+                              disabled={isExamLocked}
+                              className={`h-9 w-9 flex items-center justify-center rounded-lg text-xs transition-all border shadow-inner ${bgClass} ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                               title={`Go to Question ${idx + 1} ${isMarked ? '(Marked for Review)' : isAnswered ? '(Answered)' : '(Not Answered)'}`}
                             >
                               {idx + 1}
@@ -6700,12 +6738,13 @@ export default function App() {
                           return (
                             <button
                               key={opt}
-                              onClick={() => saveMcqChoice(examMCQs[activeQuestionIndex].id, opt)}
+                              onClick={() => { if (!isExamLocked) saveMcqChoice(examMCQs[activeQuestionIndex].id, opt); }}
+                              disabled={isExamLocked}
                               className={`w-full text-left p-4 rounded-xl text-xs font-semibold transition-all border flex items-center gap-4 ${
                                 isSelected 
                                   ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/15' 
-                                  : 'bg-slate-950 border-white/5 text-slate-300 hover:border-white/15 hover:bg-slate-850'
-                              }`}
+                                  : 'bg-slate-955 border-white/5 text-slate-300 hover:border-white/15 hover:bg-slate-850'
+                              } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                               <span className={`h-6 w-6 rounded-lg flex items-center justify-center border font-bold text-[10px] transition-colors ${
                                 isSelected ? 'bg-white text-indigo-600 border-transparent' : 'bg-slate-900 border-white/10 text-slate-400'
@@ -6722,17 +6761,19 @@ export default function App() {
                       <div className="flex justify-between items-center mt-8 border-t border-white/10 pt-5">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => setActiveQuestionIndex(p => Math.max(0, p - 1))}
+                            onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.max(0, p - 1)); }}
                             className="px-4 py-2 border border-white/10 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-                            disabled={activeQuestionIndex === 0}
+                            disabled={isExamLocked || activeQuestionIndex === 0}
                           >
                             Previous
                           </button>
                           <button
                             onClick={() => {
+                              if (isExamLocked) return;
                               const qId = examMCQs[activeQuestionIndex].id;
                               setMarkedForReview(prev => ({ ...prev, [qId]: !prev[qId] }));
                             }}
+                            disabled={isExamLocked}
                             className={`px-4 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-colors ${
                               markedForReview[examMCQs[activeQuestionIndex].id]
                                 ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
@@ -6746,7 +6787,8 @@ export default function App() {
 
                         {mcqAnswers[examMCQs[activeQuestionIndex].id] && (
                           <button
-                            onClick={() => clearMcqChoice(examMCQs[activeQuestionIndex].id)}
+                            onClick={() => { if (!isExamLocked) clearMcqChoice(examMCQs[activeQuestionIndex].id); }}
+                            disabled={isExamLocked}
                             className="px-4 py-2 bg-rose-500/10 text-rose-450 hover:bg-rose-500/20 rounded-xl text-xs font-bold border border-rose-500/20 transition-all"
                           >
                             Clear Response
@@ -6754,9 +6796,9 @@ export default function App() {
                         )}
                         
                         <button
-                          onClick={() => setActiveQuestionIndex(p => Math.min(examMCQs.length - 1, p + 1))}
+                          onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.min(examMCQs.length - 1, p + 1)); }}
                           className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-colors disabled:opacity-30 disabled:hover:bg-indigo-600"
-                          disabled={activeQuestionIndex === examMCQs.length - 1}
+                          disabled={isExamLocked || activeQuestionIndex === examMCQs.length - 1}
                         >
                           Next Question
                         </button>
@@ -7120,7 +7162,7 @@ export default function App() {
                             lineNumbers: 'on',
                             roundedSelection: false,
                             scrollBeyondLastLine: false,
-                            readOnly: false,
+                            readOnly: isExamLocked,
                             automaticLayout: true,
                             cursorBlinking: 'smooth',
                             formatOnType: true,
@@ -7136,14 +7178,16 @@ export default function App() {
                       <div className="bg-slate-900 border-t border-white/5 px-4 py-3 flex items-center justify-between">
                         <button
                           onClick={() => {
+                            if (isExamLocked) return;
                             const qId = examCodings[activeQuestionIndex].id;
                             setMarkedForReview(prev => ({ ...prev, [qId]: !prev[qId] }));
                           }}
+                          disabled={isExamLocked}
                           className={`px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-colors ${
                             markedForReview[examCodings[activeQuestionIndex].id]
                               ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
                               : 'border-white/5 text-slate-400 hover:bg-slate-800'
-                          }`}
+                          } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <Bookmark className="h-3.5 w-3.5" />
                           {markedForReview[examCodings[activeQuestionIndex].id] ? 'Flagged' : 'Mark for Review'}
@@ -7151,17 +7195,18 @@ export default function App() {
 
                         <div className="flex gap-2">
                           <button
-                            onClick={() => runCodeSample(examCodings[activeQuestionIndex].id)}
+                            onClick={() => { if (!isExamLocked) runCodeSample(examCodings[activeQuestionIndex].id); }}
                             className="px-4 py-2 bg-slate-955 hover:bg-slate-800 border border-white/10 rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 text-slate-350 transition-colors"
-                            disabled={isRunningCode}
+                            disabled={isExamLocked || isRunningCode}
                           >
                             <Play className="h-3.5 w-3.5 text-indigo-400" /> 
                             {isRunningCode ? 'Running...' : 'Run Samples'}
                           </button>
                           
                           <button
-                            onClick={() => submitCodingSolution(examCodings[activeQuestionIndex].id)}
-                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/30 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+                            onClick={() => { if (!isExamLocked) submitCodingSolution(examCodings[activeQuestionIndex].id); }}
+                            disabled={isExamLocked}
+                            className={`px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/30 text-white rounded-xl text-xs font-bold transition-all shadow-md ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             Submit Code
                           </button>
@@ -7464,6 +7509,7 @@ export default function App() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
+                      if (isExamLocked) return;
                       saveCurrentCodeImmediately();
                       if (selectedSection === 'coding' && activeQuestionIndex === 0) {
                         if (examMCQs.length > 0) {
@@ -7476,6 +7522,7 @@ export default function App() {
                     }}
                     className="px-4 py-2 border border-white/10 rounded-xl text-xs font-bold text-slate-355 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
                     disabled={
+                      isExamLocked ||
                       (selectedSection === 'mcq' && activeQuestionIndex === 0) ||
                       (selectedSection === 'coding' && activeQuestionIndex === 0 && examMCQs.length === 0)
                     }
@@ -7487,6 +7534,7 @@ export default function App() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
+                      if (isExamLocked) return;
                       saveCurrentCodeImmediately();
                       const totalQs = selectedSection === 'mcq' ? examMCQs.length : examCodings.length;
                       if (activeQuestionIndex === totalQs - 1) {
@@ -7500,12 +7548,32 @@ export default function App() {
                         setActiveQuestionIndex(p => p + 1);
                       }
                     }}
-                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-505 text-white font-bold rounded-xl text-xs transition-colors"
+                    disabled={isExamLocked}
+                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-550 text-white font-bold rounded-xl text-xs transition-colors disabled:opacity-30"
                   >
                     Next Question
                   </button>
                 </div>
               </footer>
+
+              {isExamLocked && (
+                <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+                  <div className="max-w-md w-full bg-slate-900 border border-white/10 rounded-3xl p-8 shadow-2xl text-center space-y-6 animate-toast">
+                    <div className="mx-auto w-16 h-16 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center justify-center animate-bounce">
+                      <Clock className="h-8 w-8 text-rose-500" />
+                    </div>
+                    <div className="space-y-2">
+                      <h3 className="text-xl font-extrabold text-white">Time is Up!</h3>
+                      <p className="text-xs text-slate-350 leading-relaxed">
+                        Time is up. Your exam has been automatically submitted successfully. Redirecting to dashboard...
+                      </p>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-indigo-500 rounded-full animate-loader"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
             </div>
           )}

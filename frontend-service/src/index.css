@@ -187,3 +187,18 @@ select:disabled, option:disabled {
   animation: toast-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Auto-submit progress loader animation */
+@keyframes loader-width {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+.animate-loader {
+  animation: loader-width 5s linear forwards;
+}
+
+
