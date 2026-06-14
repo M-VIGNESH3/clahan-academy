@@ -498,12 +498,12 @@ export default function App() {
 
   // Persist current question selection & reviews to local storage for recovery
   useEffect(() => {
-    if (currentPage === 'exam-env' && currentAttempt?.id) {
+    if (currentPage === 'exam-env' && currentAttempt?.id && validationStep === 'active') {
       localStorage.setItem(`clahan_active_section_${currentAttempt.id}`, selectedSection);
       localStorage.setItem(`clahan_active_index_${currentAttempt.id}`, String(activeQuestionIndex));
       localStorage.setItem(`clahan_marked_for_review_${currentAttempt.id}`, JSON.stringify(markedForReview));
     }
-  }, [currentPage, currentAttempt?.id, selectedSection, activeQuestionIndex, markedForReview]);
+  }, [currentPage, currentAttempt?.id, validationStep, selectedSection, activeQuestionIndex, markedForReview]);
 
   // Unsaved changes warning on page unload
   useEffect(() => {

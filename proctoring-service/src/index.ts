@@ -203,6 +203,12 @@ io.on('connection', (socket: Socket) => {
     screenshot?: string
   ) {
     try {
+      // Prevent processing violations if the attempt is already completed or terminated
+      const attemptCheck = await query('SELECT status FROM exam_attempts WHERE id = $1', [attemptId]);
+      if (attemptCheck.rows.length === 0 || attemptCheck.rows[0].status !== 'ongoing') {
+        return;
+      }
+
       // Save violation log to database
       await query(
         `INSERT INTO proctoring_logs (attempt_id, event_type, details, severity, screenshot)
@@ -427,19 +433,6 @@ io.on('connection', (socket: Socket) => {
         consecutiveViolations[attemptId] = consecutiveViolations[attemptId] || {};
         const consec = consecutiveViolations[attemptId];
 
-        // Emit real-time tracking status to student
-        socket.emit('proctor-status', {
-          faceConfidence: result.faceConfidence || 0.0,
-          trackingStatus: result.trackingStatus || 'Face Present',
-          facePresent: !!result.facePresent,
-          faceLost: !!result.faceLost,
-          faceRecovered: !!result.faceRecovered,
-          elapsedLost: result.elapsedLost || 0.0,
-          violations: result.violations || [],
-          faceCount: result.faceCount || 0,
-          detectionSource: result.detectionSource || 'None'
-        });
-
         // Determine if face detection is currently losing/lost tracking
         const isLosingFace = result.trackingStatus === 'Face Lost' || result.trackingStatus === 'Temporary Detection Loss';
 
@@ -466,9 +459,33 @@ io.on('connection', (socket: Socket) => {
           consec['CAMERA_DISABLED'] = 0;
         }
 
+        // Calculate real-time elapsed seconds for face absence
+        let elapsedSec = 0;
+        if (isLosingFace) {
+          if (!violationStartTimes[attemptId]) {
+            violationStartTimes[attemptId] = {};
+          }
+          if (!violationStartTimes[attemptId]['NO_FACE_DETECTED']) {
+            violationStartTimes[attemptId]['NO_FACE_DETECTED'] = Date.now();
+          }
+          elapsedSec = (Date.now() - violationStartTimes[attemptId]['NO_FACE_DETECTED']) / 1000;
+        }
+
+        // Emit real-time tracking status to student
+        socket.emit('proctor-status', {
+          faceConfidence: result.faceConfidence || 0.0,
+          trackingStatus: result.trackingStatus || 'Face Present',
+          facePresent: !!result.facePresent,
+          faceLost: !!result.faceLost,
+          faceRecovered: !!result.faceRecovered,
+          elapsedLost: elapsedSec,
+          violations: result.violations || [],
+          faceCount: result.faceCount || 0,
+          detectionSource: result.detectionSource || 'None'
+        });
+
         // Handle face loss timing with synchronized tracker state from AI service
         if (isLosingFace) {
-          const elapsedSec = result.elapsedLost || 0;
           consec['NO_FACE_FRAMES'] = (consec['NO_FACE_FRAMES'] || 0) + 1;
 
           console.log(`[PROCTOR LOG] Attempt: ${attemptId} | Status: ${result.trackingStatus} | Face Confidence: ${(result.faceConfidence || 0).toFixed(2)} | Elapsed Loss: ${elapsedSec.toFixed(1)}s`);
