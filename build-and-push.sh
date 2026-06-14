@@ -18,7 +18,8 @@ NC='\033[0;37m' # No Color
 BOLD='\033[1m'
 
 # Configuration
-DOCKER_USER="vignesh8386"
+DOCKER_REGISTRY=${DOCKER_REGISTRY:-"clahan.azurecr.io"} # Set to empty string for Docker Hub
+DOCKER_USER=${DOCKER_USER:-"vignesh8386"}               # Only used if DOCKER_REGISTRY is empty
 TAG=${1:-latest}
 SERVICES=(
   "auth-service"
@@ -38,7 +39,11 @@ FAILED_SERVICES=()
 echo -e "${BLUE}${BOLD}======================================================================${NC}"
 echo -e "${BLUE}${BOLD}               Clahan Academy - Docker Build & Push                   ${NC}"
 echo -e "${BLUE}${BOLD}======================================================================${NC}"
-echo -e "${BLUE}Docker Hub Account :${NC} ${YELLOW}${DOCKER_USER}${NC}"
+if [ -n "$DOCKER_REGISTRY" ]; then
+  echo -e "${BLUE}Docker Registry    :${NC} ${YELLOW}${DOCKER_REGISTRY}${NC}"
+else
+  echo -e "${BLUE}Docker Hub Account :${NC} ${YELLOW}${DOCKER_USER}${NC}"
+fi
 echo -e "${BLUE}Target Image Tag   :${NC} ${YELLOW}${TAG}${NC}"
 echo -e "${BLUE}${BOLD}======================================================================${NC}"
 echo ""
@@ -60,8 +65,13 @@ fi
 
 echo -e "${GREEN}Prerequisites met. Docker daemon is running.${NC}"
 echo ""
-echo -e "${YELLOW}Please ensure you are logged into Docker Hub (${DOCKER_USER}).${NC}"
-echo -e "${YELLOW}If not logged in, run: docker login${NC}"
+if [ -n "$DOCKER_REGISTRY" ]; then
+  echo -e "${YELLOW}Please ensure you are logged into your registry (${DOCKER_REGISTRY}).${NC}"
+  echo -e "${YELLOW}If not logged in, run: docker login ${DOCKER_REGISTRY}${NC}"
+else
+  echo -e "${YELLOW}Please ensure you are logged into Docker Hub (${DOCKER_USER}).${NC}"
+  echo -e "${YELLOW}If not logged in, run: docker login${NC}"
+fi
 echo -e "Press Ctrl+C to abort, or waiting 3 seconds to continue..."
 sleep 3
 echo ""
@@ -75,7 +85,11 @@ for service in "${SERVICES[@]}"; do
   # Set paths
   SERVICE_DIR="./${service}"
   DOCKERFILE="${SERVICE_DIR}/Dockerfile"
-  IMAGE_NAME="${DOCKER_USER}/clahan-${service}:${TAG}"
+  if [ -n "$DOCKER_REGISTRY" ]; then
+    IMAGE_NAME="${DOCKER_REGISTRY}/clahan-${service}:${TAG}"
+  else
+    IMAGE_NAME="${DOCKER_USER}/clahan-${service}:${TAG}"
+  fi
 
   # Verification
   if [ ! -d "${SERVICE_DIR}" ]; then
@@ -101,7 +115,11 @@ for service in "${SERVICES[@]}"; do
   fi
 
   # Push Image
-  echo -e "${YELLOW}Pushing image ${IMAGE_NAME} to Docker Hub...${NC}"
+  if [ -n "$DOCKER_REGISTRY" ]; then
+    echo -e "${YELLOW}Pushing image ${IMAGE_NAME} to registry ${DOCKER_REGISTRY}...${NC}"
+  else
+    echo -e "${YELLOW}Pushing image ${IMAGE_NAME} to Docker Hub...${NC}"
+  fi
   if docker push "${IMAGE_NAME}"; then
     echo -e "${GREEN}Successfully pushed image: ${IMAGE_NAME}${NC}"
     SUCCESS_COUNT=$((SUCCESS_COUNT + 1))

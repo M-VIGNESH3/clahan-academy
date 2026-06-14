@@ -7,7 +7,8 @@
 $ErrorActionPreference = "Stop"
 
 # Configuration
-$DockerUser = "vignesh8386"
+$DockerRegistry = if ($env:DOCKER_REGISTRY -ne $null) { $env:DOCKER_REGISTRY } else { "clahan.azurecr.io" }
+$DockerUser = if ($env:DOCKER_USER -ne $null) { $env:DOCKER_USER } else { "vignesh8386" }
 $Tag = if ($args[0]) { $args[0] } else { "latest" }
 $Services = @(
   "auth-service",
@@ -26,7 +27,11 @@ $FailedServices = @()
 Write-Host "======================================================================" -ForegroundColor Blue
 Write-Host "               Clahan Academy - Docker Build & Push                   " -ForegroundColor Blue
 Write-Host "======================================================================" -ForegroundColor Blue
-Write-Host "Docker Hub Account : $DockerUser" -ForegroundColor Yellow
+if ($DockerRegistry) {
+    Write-Host "Docker Registry    : $DockerRegistry" -ForegroundColor Yellow
+} else {
+    Write-Host "Docker Hub Account : $DockerUser" -ForegroundColor Yellow
+}
 Write-Host "Target Image Tag   : $Tag" -ForegroundColor Yellow
 Write-Host "======================================================================" -ForegroundColor Blue
 Write-Host ""
@@ -54,8 +59,13 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Prerequisites met. Docker daemon is running.`n" -ForegroundColor Green
-Write-Host "Please ensure you are logged into Docker Hub ($DockerUser)." -ForegroundColor Yellow
-Write-Host "If not logged in, run: docker login" -ForegroundColor Yellow
+if ($DockerRegistry) {
+    Write-Host "Please ensure you are logged into your registry ($DockerRegistry)." -ForegroundColor Yellow
+    Write-Host "If not logged in, run: docker login $DockerRegistry" -ForegroundColor Yellow
+} else {
+    Write-Host "Please ensure you are logged into Docker Hub ($DockerUser)." -ForegroundColor Yellow
+    Write-Host "If not logged in, run: docker login" -ForegroundColor Yellow
+}
 Write-Host "Press Ctrl+C to abort, or waiting 3 seconds to continue..."
 Start-Sleep -Seconds 3
 Write-Host ""
@@ -68,7 +78,7 @@ foreach ($service in $Services) {
 
     $serviceDir = "./$service"
     $dockerfile = "$serviceDir/Dockerfile"
-    $imageName = "${DockerUser}/clahan-${service}:${Tag}"
+    $imageName = if ($DockerRegistry) { "${DockerRegistry}/clahan-${service}:${Tag}" } else { "${DockerUser}/clahan-${service}:${Tag}" }
 
     if (-not (Test-Path -Path $serviceDir -PathType Container)) {
         Write-Host "Error: Directory $serviceDir does not exist. Skipping." -ForegroundColor Red
@@ -94,7 +104,11 @@ foreach ($service in $Services) {
     }
 
     # Push Image
-    Write-Host "Pushing image $imageName to Docker Hub..." -ForegroundColor Yellow
+    if ($DockerRegistry) {
+        Write-Host "Pushing image $imageName to registry $DockerRegistry..." -ForegroundColor Yellow
+    } else {
+        Write-Host "Pushing image $imageName to Docker Hub..." -ForegroundColor Yellow
+    }
     docker push $imageName
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Successfully pushed image: $imageName" -ForegroundColor Green
