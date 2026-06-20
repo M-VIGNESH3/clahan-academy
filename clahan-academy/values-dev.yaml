@@ -1,0 +1,25 @@
+# Dev overrides
+global:
+  environment: dev
+
+# We can keep replicaCounts to 1 for development to save costs
+frontend:
+  replicaCount: 1
+auth:
+  replicaCount: 1
+admin:
+  replicaCount: 1
+student:
+  replicaCount: 1
+exam:
+  replicaCount: 1
+proctoring:
+  replicaCount: 1
+notification:
+  replicaCount: 1
+ai:
+  replicaCount: 1
+ollama:
+  replicaCount: 1
+judge0:
+  replicaCount: 1

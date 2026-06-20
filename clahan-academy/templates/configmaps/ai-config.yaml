@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "clahan.fullname" . }}-ai
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai
+data:
+  PORT: "8000"
+  OLLAMA_URL: {{ .Values.ai.config.ollamaUrl | quote }}

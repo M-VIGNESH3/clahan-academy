@@ -1,0 +1,118 @@
+# Common App Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "clahan.fullname" . }}-app-common
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - {{ include "clahan.name" . }}-frontend
+          - {{ include "clahan.name" . }}-auth
+          - {{ include "clahan.name" . }}-admin
+          - {{ include "clahan.name" . }}-student
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              role: app
+    - from:
+        - namespaceSelector: {} # Allow ingress from Ingress Controller (AGIC)
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              role: app
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+---
+# Exam and Proctoring (AI Clients) Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "clahan.fullname" . }}-app-ai-clients
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - {{ include "clahan.name" . }}-exam
+          - {{ include "clahan.name" . }}-proctoring
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              role: app
+    - from:
+        - namespaceSelector: {} # Allow from AGIC
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              role: app
+    - to:
+        - podSelector:
+            matchLabels:
+              role: ai
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+---
+# Notification Service Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "clahan.fullname" . }}-notification-netpol
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "clahan.name" . }}-notification
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector: {} # Allow healthcheck traffic
+  egress:
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 6379 # Redis
+        - protocol: TCP
+          port: 587  # SMTP

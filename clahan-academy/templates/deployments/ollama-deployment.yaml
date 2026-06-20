@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "clahan.fullname" . }}-ollama
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ollama
+    role: ai
+spec:
+  replicas: {{ .Values.ollama.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "clahan.name" . }}-ollama
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "clahan.name" . }}-ollama
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        role: ai
+    spec:
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "clahan.fullname" . }}-ollama
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      initContainers:
+        - name: pull-phi3-model
+          image: ollama/ollama:latest
+          command: ["sh", "-c"]
+          args:
+            - |
+              ollama serve &
+              sleep 5
+              ollama pull phi3
+              kill %1
+          volumeMounts:
+            - name: ollama-models
+              mountPath: /root/.ollama
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+
+      containers:
+        - name: ollama
+          {{- if .Values.global.imageRegistry }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.ollama.image.repository }}:{{ .Values.ollama.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.ollama.image.repository }}:{{ .Values.ollama.image.tag }}"
+          {{- end }}
+          imagePullPolicy: {{ .Values.ollama.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 11434
+              protocol: TCP
+          
+          resources:
+            {{- toYaml .Values.ollama.resources | nindent 12 }}
+          
+          securityContext:
+            readOnlyRootFilesystem: {{ .Values.ollama.securityContext.readOnlyRootFilesystem }}
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.ollama.probes.liveness.path }}
+              port: 11434
+            initialDelaySeconds: {{ .Values.ollama.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.ollama.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.ollama.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.ollama.probes.liveness.failureThreshold }}
+          
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.ollama.probes.readiness.path }}
+              port: 11434
+            initialDelaySeconds: {{ .Values.ollama.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.ollama.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.ollama.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.ollama.probes.readiness.failureThreshold }}
+          
+          envFrom:
+            - configMapRef:
+                name: {{ include "clahan.fullname" . }}-ollama
+
+          volumeMounts:
+            - name: tmp-dir
+              mountPath: /tmp
+            - name: ollama-models
+              mountPath: /root/.ollama
+
+      volumes:
+        - name: tmp-dir
+          emptyDir: {}
+        - name: ollama-models
+          persistentVolumeClaim:
+            claimName: {{ include "clahan.fullname" . }}-ollama-models
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - {{ include "clahan.name" . }}-ollama
+                topologyKey: kubernetes.io/hostname
+      
+      nodeSelector:
+        {{- toYaml .Values.ollama.nodeSelector | nindent 8 }}
+      
+      tolerations:
+        {{- toYaml .Values.ollama.tolerations | nindent 8 }}

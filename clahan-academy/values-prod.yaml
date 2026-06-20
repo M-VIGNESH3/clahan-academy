@@ -1,0 +1,64 @@
+# Production overrides
+global:
+  environment: prod
+
+ingress:
+  host: clahan.academy
+  tls:
+    clusterIssuer: letsencrypt-prod
+
+storage:
+  ollama:
+    size: 50Gi
+  ai:
+    size: 30Gi
+
+frontend:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+
+auth:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+
+admin:
+  replicaCount: 2
+
+student:
+  replicaCount: 2
+
+exam:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+
+proctoring:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 75
+
+notification:
+  replicaCount: 2
+
+ai:
+  replicaCount: 2
+
+ollama:
+  replicaCount: 2
+
+judge0:
+  replicaCount: 2

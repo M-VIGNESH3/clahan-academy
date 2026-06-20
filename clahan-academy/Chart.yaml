@@ -1,0 +1,6 @@
+apiVersion: v2
+name: clahan-academy
+description: A production-ready Helm chart for Clahan Academy V2 on Azure Kubernetes Service (AKS)
+type: application
+version: 2.0.0
+appVersion: "2.0.0"

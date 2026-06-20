@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "clahan.fullname" . }}-ollama
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ollama
+  annotations:
+    azure.workload.identity/use: "true"
+automountServiceAccountToken: false

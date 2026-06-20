@@ -11,32 +11,40 @@ The system consists of a Frontend Single Page Application (SPA), a central AI Hu
 ```mermaid
 graph TD
     %% User Tier
-    Client[Frontend Client / SPA]
+    Client["Frontend Client / SPA"]
 
     %% Gateway/Proxy Routing (App Level)
     subgraph Frontend Proxy
-        Client -->|/api/auth| AuthServ[Auth Service]
-        Client -->|/api/admin| AdminServ[Admin Service]
-        Client -->|/api/student| StudentServ[Student Service]
-        Client -->|/api/exams| ExamServ[Exam Service]
-        Client -->|/api/proctor & WebSockets| ProctorServ[Proctoring Service]
-        Client -->|/api/notifications| NotificationServ[Notification Service]
+        Client -->|"/api/auth"| AuthServ["Auth Service"]
+        Client -->|"/api/admin"| AdminServ["Admin Service"]
+        Client -->|"/api/student"| StudentServ["Student Service"]
+        Client -->|"/api/exams"| ExamServ["Exam Service"]
+        Client -->|"/api/proctor & WebSockets"| ProctorServ["Proctoring Service"]
+        Client -->|"/api/notifications"| NotificationServ["Notification Service"]
     end
 
     %% Data & Cache Layer
     subgraph Data Layer
-        AuthServ & AdminServ & StudentServ & ExamServ & ProctorServ -->|SQL| Postgres[(PostgreSQL)]
-        AuthServ & AdminServ & ProctorServ & NotificationServ -->|PubSub / Cache| Redis[(Redis)]
+        AuthServ -->|SQL| Postgres[(PostgreSQL)]
+        AdminServ -->|SQL| Postgres
+        StudentServ -->|SQL| Postgres
+        ExamServ -->|SQL| Postgres
+        ProctorServ -->|SQL| Postgres
+
+        AuthServ -->|"PubSub / Cache"| Redis[(Redis)]
+        AdminServ -->|"PubSub / Cache"| Redis
+        ProctorServ -->|"PubSub / Cache"| Redis
+        NotificationServ -->|"PubSub / Cache"| Redis
     end
 
     %% AI Subsystem
     subgraph AI Subsystem
-        ExamServ -->|REST| AIServ[AI Service Hub]
+        ExamServ -->|REST| AIServ["AI Service Hub"]
         ProctorServ -->|REST| AIServ
         
-        AIServ -->|LLM Queries| Ollama[Ollama Service]
-        AIServ -->|Object Detection| YOLO[YOLO v8 Service]
-        AIServ -->|Text Processing| OCR[OCR Service]
+        AIServ -->|LLM Queries| Ollama["Ollama Service"]
+        AIServ -->|Object Detection| YOLO["YOLO v8 Service"]
+        AIServ -->|Text Processing| OCR["OCR Service"]
     end
 ```
 
@@ -114,16 +122,16 @@ sequenceDiagram
     participant AI as AI Service Hub
     participant Y as YOLO Service
 
-    Student->>UI: Start Exam
-    UI->>PS: Open Socket.io Connection
+    Student->>UI: "Start Exam"
+    UI->>PS: "Open Socket.io Connection"
     loop Every N Seconds
-        UI->>PS: Stream WebCam Frames / Gaze Coordinates
-        PS->>AI: Request Object Detection (Frame Data)
-        AI->>Y: Perform Inference
-        Y-->>AI: return Detections (e.g. Cell Phone, Multiple People)
-        AI-->>PS: return Detections
+        UI->>PS: "Stream WebCam Frames / Gaze Coordinates"
+        PS->>AI: "Request Object Detection (Frame Data)"
+        AI->>Y: "Perform Inference"
+        Y-->>AI: "return Detections (e.g. Cell Phone, Multiple People)"
+        AI-->>PS: "return Detections"
         alt Infraction Detected
-            PS->>UI: Emit Real-Time Warning Alert
+            PS->>UI: "Emit Real-Time Warning Alert"
         end
     end
 ```
@@ -138,14 +146,14 @@ sequenceDiagram
     participant AI as AI Service Hub
     participant O as Ollama Service
 
-    Student->>UI: Submit Subjective Exam Answers
-    UI->>ES: Submit Answers
-    ES->>AI: Evaluate Answers (Questions, Rubric, Student Answer)
-    AI->>O: Prompt LLM for Evaluation & Grading
-    O-->>AI: Return Evaluation Score & Feedback Text
-    AI-->>ES: Return Grading Score
-    ES->>ES: Store Grade in PostgreSQL
-    ES-->>UI: Display Results to Student
+    Student->>UI: "Submit Subjective Exam Answers"
+    UI->>ES: "Submit Answers"
+    ES->>AI: "Evaluate Answers (Questions, Rubric, Student Answer)"
+    AI->>O: "Prompt LLM for Evaluation & Grading"
+    O-->>AI: "Return Evaluation Score & Feedback Text"
+    AI-->>ES: "Return Grading Score"
+    ES->>ES: "Store Grade in PostgreSQL"
+    ES-->>UI: "Display Results to Student"
 ```
 
 ---

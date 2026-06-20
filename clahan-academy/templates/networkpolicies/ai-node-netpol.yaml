@@ -1,0 +1,53 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "clahan.fullname" . }}-ai-node-netpol
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      role: ai
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic to ai-service and judge0 from app services (specifically exam/proctoring)
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - {{ include "clahan.name" . }}-exam
+                  - {{ include "clahan.name" . }}-proctoring
+      ports:
+        - protocol: TCP
+          port: 8000 # ai-service
+        - protocol: TCP
+          port: 2358 # judge0
+    # Allow ai-service to reach ollama
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "clahan.name" . }}-ai
+      ports:
+        - protocol: TCP
+          port: 11434 # ollama
+  egress:
+    # Allow pods in AI tier to talk to each other
+    - to:
+        - podSelector:
+            matchLabels:
+              role: ai
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+    # Allow external Blob storage / Internet (for Ollama model pull, Azure SDK credentials etc)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0

@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "clahan.fullname" . }}-judge0
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: judge0
+spec:
+  type: {{ if eq "judge0" "frontend" }}NodePort{{ else }}ClusterIP{{ end }}
+  ports:
+    - name: http
+      port: 2358
+      targetPort: 2358
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "clahan.name" . }}-judge0
+    app.kubernetes.io/instance: {{ .Release.Name }}

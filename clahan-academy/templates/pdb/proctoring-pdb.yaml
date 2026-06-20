@@ -1,0 +1,16 @@
+{{- if .Values.proctoring.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "clahan.fullname" . }}-proctoring
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: proctoring
+spec:
+  minAvailable: {{ .Values.proctoring.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "clahan.name" . }}-proctoring
+      app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

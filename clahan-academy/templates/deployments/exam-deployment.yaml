@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "clahan.fullname" . }}-exam
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: exam
+    role: app
+spec:
+  {{- if not .Values.exam.autoscaling.enabled }}
+  replicas: {{ .Values.exam.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "clahan.name" . }}-exam
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "clahan.name" . }}-exam
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        role: app
+        azure.workload.identity/use: "true"
+    spec:
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "clahan.fullname" . }}-exam
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: exam
+          {{- if .Values.global.imageRegistry }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.exam.image.repository }}:{{ .Values.exam.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.exam.image.repository }}:{{ .Values.exam.image.tag }}"
+          {{- end }}
+          imagePullPolicy: {{ .Values.exam.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 4004
+              protocol: TCP
+          
+          resources:
+            {{- toYaml .Values.exam.resources | nindent 12 }}
+          
+          securityContext:
+            readOnlyRootFilesystem: {{ .Values.exam.securityContext.readOnlyRootFilesystem }}
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.exam.probes.liveness.path }}
+              port: 4004
+            initialDelaySeconds: {{ .Values.exam.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.exam.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.exam.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.exam.probes.liveness.failureThreshold }}
+          
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.exam.probes.readiness.path }}
+              port: 4004
+            initialDelaySeconds: {{ .Values.exam.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.exam.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.exam.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.exam.probes.readiness.failureThreshold }}
+          
+          envFrom:
+            - configMapRef:
+                name: {{ include "clahan.fullname" . }}-exam
+            - secretRef:
+                name: {{ include "clahan.fullname" . }}-exam-secret
+
+          volumeMounts:
+            - name: tmp-dir
+              mountPath: /tmp
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+
+      volumes:
+        - name: tmp-dir
+          emptyDir: {}
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "{{ include "clahan.fullname" . }}-exam-spc"
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - {{ include "clahan.name" . }}-exam
+                topologyKey: kubernetes.io/hostname
+      
+      nodeSelector:
+        {{- toYaml .Values.exam.nodeSelector | nindent 8 }}
+      
+      tolerations:
+        {{- toYaml .Values.exam.tolerations | nindent 8 }}

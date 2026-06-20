@@ -1,0 +1,45 @@
+
+================================================================================
+CLAHAN ACADEMY V2 HELM CHART INSTALLED SUCCESSFULLY!
+================================================================================
+
+1. APPLICATION URL:
+   ----------------
+   The application is accessible at:
+   http{{ if .Values.ingress.tls.enabled }}s{{ end }}://{{ .Values.ingress.host }}
+
+2. POST-INSTALL VERIFICATION STEPS:
+   ---------------------------------
+   - Check if all pods are running and healthy:
+     kubectl get pods -n {{ .Release.Namespace }} -w
+
+   - Verify Ingress creation and status:
+     kubectl get ingress -n {{ .Release.Namespace }}
+
+   - Check SecretProviderClass CSI Volume Mounting Status:
+     kubectl describe secretproviderclass -n {{ .Release.Namespace }}
+
+     Verify K8s synced Secrets:
+     kubectl get secrets -n {{ .Release.Namespace }}
+
+3. ACCESSING POD LOGS:
+   -------------------
+   Get logs for specific services using:
+   - Frontend:      kubectl logs -l app.kubernetes.io/name={{ include "clahan.name" . }}-frontend -n {{ .Release.Namespace }} --tail=100
+   - Auth:          kubectl logs -l app.kubernetes.io/name={{ include "clahan.name" . }}-auth -n {{ .Release.Namespace }} --tail=100
+   - Admin:         kubectl logs -l app.kubernetes.io/name={{ include "clahan.name" . }}-admin -n {{ .Release.Namespace }} --tail=100
+   - Student:       kubectl logs -l app.kubernetes.io/name={{ include "clahan.name" . }}-student -n {{ .Release.Namespace }} --tail=100
+   - Exam:          kubectl logs -l app.kubernetes.io/name={{ include "clahan.name" . }}-exam -n {{ .Release.Namespace }} --tail=100
+   - Proctoring:    kubectl logs -l app.kubernetes.io/name={{ include "clahan.name" . }}-proctoring -n {{ .Release.Namespace }} --tail=100
+   - Notification:  kubectl logs -l app.kubernetes.io/name={{ include "clahan.name" . }}-notification -n {{ .Release.Namespace }} --tail=100
+   - AI Service:    kubectl logs -l app.kubernetes.io/name={{ include "clahan.name" . }}-ai -n {{ .Release.Namespace }} --tail=100
+   - Ollama:        kubectl logs -l app.kubernetes.io/name={{ include "clahan.name" . }}-ollama -n {{ .Release.Namespace }} --tail=100
+   - Judge0:        kubectl logs -l app.kubernetes.io/name={{ include "clahan.name" . }}-judge0 -n {{ .Release.Namespace }} --tail=100
+
+4. AZURE WORKLOAD IDENTITY STATUS:
+   -------------------------------
+   Ensure that the Azure AD workload identity webhook injected the credentials
+   into the pods by running:
+   kubectl describe pod -l role=app -n {{ .Release.Namespace }} | grep AZURE_
+
+================================================================================

@@ -1,0 +1,145 @@
+# terraform/modules/aks/main.tf
+
+terraform {
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.100"
+    }
+  }
+}
+
+locals {
+  tags = merge(var.tags, {
+    module = "aks"
+  })
+}
+
+# The main Azure Kubernetes Service (AKS) private cluster configuration
+resource "azurerm_kubernetes_cluster" "main" {
+  name                                = var.cluster_name
+  location                            = var.location
+  resource_group_name                 = var.resource_group_name
+  kubernetes_version                  = var.kubernetes_version
+  dns_prefix                          = var.dns_prefix
+  sku_tier                            = "Standard"
+  private_cluster_enabled             = true
+  private_dns_zone_id                 = var.private_dns_zone_aks_id
+  private_cluster_public_fqdn_enabled = false
+
+  default_node_pool {
+    name                = "app"
+    node_count          = 1
+    vm_size             = "Standard_D4s_v3"
+    os_disk_size_gb     = 128
+    vnet_subnet_id      = var.subnet_aks_id
+    enable_auto_scaling = true
+    min_count           = 1
+    max_count           = 3
+    max_pods            = 50
+    node_labels = {
+      "pool"        = "app"
+      "environment" = "dev"
+    }
+    upgrade_settings {
+      max_surge = "10%"
+    }
+    temporary_name_for_rotation = "apptemp"
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  network_profile {
+    network_plugin    = "azure"
+    network_policy    = "calico"
+    service_cidr      = "10.1.0.0/16"
+    dns_service_ip    = "10.1.0.10"
+    load_balancer_sku = "standard"
+    outbound_type     = "loadBalancer"
+  }
+
+  oms_agent {
+    log_analytics_workspace_id = var.log_analytics_workspace_id
+  }
+
+  key_vault_secrets_provider {
+    secret_rotation_enabled  = true
+    secret_rotation_interval = "2m"
+  }
+
+  ingress_application_gateway {
+    gateway_name = "agw-clahan-academy"
+    subnet_id    = var.subnet_appgw_id
+  }
+
+  workload_identity_enabled         = true
+  oidc_issuer_enabled               = true
+  azure_policy_enabled              = true
+  role_based_access_control_enabled = true
+
+  azure_active_directory_role_based_access_control {
+    managed            = true
+    azure_rbac_enabled = true
+  }
+
+  maintenance_window {
+    allowed {
+      day   = "Sunday"
+      hours = [2, 3]
+    }
+  }
+
+  tags = local.tags
+}
+
+# Node pool dedicated for AI workload with GPU support or extra compute capabilities
+resource "azurerm_kubernetes_cluster_node_pool" "ai" {
+  name                  = "ai"
+  kubernetes_cluster_id = azurerm_kubernetes_cluster.main.id
+  vm_size               = "Standard_D8s_v3"
+  node_count            = 1
+  vnet_subnet_id        = var.subnet_aks_id
+  enable_auto_scaling   = false
+  os_disk_size_gb       = 256
+  max_pods              = 30
+  node_labels = {
+    "pool"             = "ai"
+    "allow-privileged" = "true"
+  }
+  node_taints = ["dedicated=ai:NoSchedule"]
+  tags        = local.tags
+}
+
+# Allow AKS to pull images from ACR
+resource "azurerm_role_assignment" "aks_acr_pull" {
+  role_definition_name             = "AcrPull"
+  principal_id                     = azurerm_kubernetes_cluster.main.kubelet_identity[0].object_id
+  scope                            = var.acr_id
+  skip_service_principal_aad_check = true
+}
+
+# Allow AKS to manage VNet for pod networking
+resource "azurerm_role_assignment" "aks_vnet_contributor" {
+  role_definition_name             = "Network Contributor"
+  principal_id                     = azurerm_kubernetes_cluster.main.identity[0].principal_id
+  scope                            = var.vnet_id
+  skip_service_principal_aad_check = true
+}
+
+# Allow AGIC to manage Application Gateway resources
+resource "azurerm_role_assignment" "agic_rg_contributor" {
+  role_definition_name             = "Contributor"
+  principal_id                     = azurerm_kubernetes_cluster.main.ingress_application_gateway[0].ingress_application_gateway_identity[0].object_id
+  scope                            = var.resource_group_id
+  skip_service_principal_aad_check = true
+}
+
+# Allow AKS to manage private DNS zone for private cluster
+resource "azurerm_role_assignment" "aks_dns_contributor" {
+  role_definition_name             = "Private DNS Zone Contributor"
+  principal_id                     = azurerm_kubernetes_cluster.main.identity[0].principal_id
+  scope                            = var.private_dns_zone_aks_id
+  skip_service_principal_aad_check = true
+}

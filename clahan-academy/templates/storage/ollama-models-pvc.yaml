@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "clahan.fullname" . }}-ollama-models
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.storage.ollama.accessMode | default "ReadWriteMany" }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.ollama.size | quote }}
+  storageClassName: {{ .Values.storage.storageClassName | default "azureblob-nfs-premium" | quote }}

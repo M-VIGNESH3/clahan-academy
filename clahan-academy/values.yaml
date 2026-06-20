@@ -1,0 +1,416 @@
+global:
+  imageRegistry: acrclahan.azurecr.io
+  imagePullSecrets:
+    - name: acr-secret
+  namespace: clahan-academy
+  environment: dev
+
+azure:
+  tenantId: "your-azure-tenant-id"
+  keyVaultName: kv-clahan-academy
+  keyVaultResourceGroup: rg-clahan-academy
+  storageAccountName: stclahan
+  workloadIdentity:
+    enabled: true
+    auth: { clientId: "auth-managed-identity-client-id" }
+    admin: { clientId: "admin-managed-identity-client-id" }
+    student: { clientId: "student-managed-identity-client-id" }
+    exam: { clientId: "exam-managed-identity-client-id" }
+    proctoring: { clientId: "proctoring-managed-identity-client-id" }
+    notification: { clientId: "notification-managed-identity-client-id" }
+    ai: { clientId: "ai-managed-identity-client-id" }
+
+ingress:
+  enabled: true
+  className: azure-application-gateway
+  host: clahan.academy
+  tls:
+    enabled: true
+    clusterIssuer: letsencrypt-prod
+
+storage:
+  storageClassName: azureblob-nfs-premium
+  ollama:
+    size: 20Gi
+    accessMode: ReadWriteMany
+  ai:
+    size: 10Gi
+    accessMode: ReadWriteMany
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: frontend-service
+    tag: latest
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  securityContext:
+    readOnlyRootFilesystem: true
+  nodeSelector:
+    agentpool: app
+  tolerations:
+    []
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  probes:
+    liveness:
+      path: /
+      initialDelaySeconds: 15
+      periodSeconds: 15
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+auth:
+  replicaCount: 1
+  image:
+    repository: auth-service
+    tag: latest
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  securityContext:
+    readOnlyRootFilesystem: true
+  nodeSelector:
+    agentpool: app
+  tolerations:
+    []
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  probes:
+    liveness:
+      path: /api/auth/health
+      initialDelaySeconds: 15
+      periodSeconds: 15
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /api/auth/health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+admin:
+  replicaCount: 1
+  image:
+    repository: admin-service
+    tag: latest
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  securityContext:
+    readOnlyRootFilesystem: true
+  nodeSelector:
+    agentpool: app
+  tolerations:
+    []
+  probes:
+    liveness:
+      path: /api/admin/health
+      initialDelaySeconds: 15
+      periodSeconds: 15
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /api/admin/health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+student:
+  replicaCount: 1
+  image:
+    repository: student-service
+    tag: latest
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  securityContext:
+    readOnlyRootFilesystem: true
+  nodeSelector:
+    agentpool: app
+  tolerations:
+    []
+  probes:
+    liveness:
+      path: /api/student/health
+      initialDelaySeconds: 15
+      periodSeconds: 15
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /api/student/health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+exam:
+  replicaCount: 1
+  image:
+    repository: exam-service
+    tag: latest
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  securityContext:
+    readOnlyRootFilesystem: true
+  nodeSelector:
+    agentpool: app
+  tolerations:
+    []
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+  probes:
+    liveness:
+      path: /api/exams/health
+      initialDelaySeconds: 15
+      periodSeconds: 15
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /api/exams/health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+  config:
+    aiServiceUrl: http://ai-service:8000
+    judge0Url: http://judge0:2358
+
+proctoring:
+  replicaCount: 1
+  image:
+    repository: proctoring-service
+    tag: latest
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  securityContext:
+    readOnlyRootFilesystem: true
+  nodeSelector:
+    agentpool: app
+  tolerations:
+    []
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  probes:
+    liveness:
+      path: /api/proctor/health
+      initialDelaySeconds: 15
+      periodSeconds: 15
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /api/proctor/health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+  config:
+    aiServiceUrl: http://ai-service:8000
+
+notification:
+  replicaCount: 1
+  image:
+    repository: notification-service
+    tag: latest
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  securityContext:
+    readOnlyRootFilesystem: true
+  nodeSelector:
+    agentpool: app
+  tolerations:
+    []
+  probes:
+    liveness:
+      path: /api/notifications/health
+      initialDelaySeconds: 15
+      periodSeconds: 15
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /api/notifications/health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+  config:
+    smtpHost: smtp.sendgrid.net
+    smtpPort: 587
+
+ai:
+  replicaCount: 1
+  image:
+    repository: ai-service
+    tag: latest
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  securityContext:
+    readOnlyRootFilesystem: true
+  nodeSelector:
+    agentpool: ai
+  tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "ai"
+      effect: "NoSchedule"
+  probes:
+    liveness:
+      path: /health
+      initialDelaySeconds: 15
+      periodSeconds: 15
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /health
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+  config:
+    ollamaUrl: http://ollama:11434
+
+ollama:
+  replicaCount: 1
+  image:
+    repository: ollama/ollama
+    tag: latest
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 2000m
+      memory: 4Gi
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+  securityContext:
+    readOnlyRootFilesystem: false
+  nodeSelector:
+    agentpool: ai
+  tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "ai"
+      effect: "NoSchedule"
+  probes:
+    liveness:
+      path: /api/tags
+      initialDelaySeconds: 15
+      periodSeconds: 15
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /api/tags
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+judge0:
+  replicaCount: 1
+  image:
+    repository: judge0/judge0
+    tag: latest
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  securityContext:
+    readOnlyRootFilesystem: false
+  nodeSelector:
+    agentpool: ai
+  tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "ai"
+      effect: "NoSchedule"
+  probes:
+    liveness:
+      path: /system_info
+      initialDelaySeconds: 15
+      periodSeconds: 15
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /system_info
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3

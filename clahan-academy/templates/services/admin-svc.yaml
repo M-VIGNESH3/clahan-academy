@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "clahan.fullname" . }}-admin
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: admin
+spec:
+  type: {{ if eq "admin" "frontend" }}NodePort{{ else }}ClusterIP{{ end }}
+  ports:
+    - name: http
+      port: 4002
+      targetPort: 4002
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "clahan.name" . }}-admin
+    app.kubernetes.io/instance: {{ .Release.Name }}

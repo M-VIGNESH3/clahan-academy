@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "clahan.fullname" . }}-ai
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai
+spec:
+  type: {{ if eq "ai" "frontend" }}NodePort{{ else }}ClusterIP{{ end }}
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "clahan.name" . }}-ai
+    app.kubernetes.io/instance: {{ .Release.Name }}

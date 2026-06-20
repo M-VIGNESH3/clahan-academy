@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "clahan.fullname" . }}-ai
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ai
+    role: ai
+spec:
+  replicas: {{ .Values.ai.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "clahan.name" . }}-ai
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "clahan.name" . }}-ai
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        role: ai
+        azure.workload.identity/use: "true"
+    spec:
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "clahan.fullname" . }}-ai
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: ai
+          {{- if .Values.global.imageRegistry }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.ai.image.repository }}:{{ .Values.ai.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.ai.image.repository }}:{{ .Values.ai.image.tag }}"
+          {{- end }}
+          imagePullPolicy: {{ .Values.ai.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          
+          resources:
+            {{- toYaml .Values.ai.resources | nindent 12 }}
+          
+          securityContext:
+            readOnlyRootFilesystem: {{ .Values.ai.securityContext.readOnlyRootFilesystem }}
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.ai.probes.liveness.path }}
+              port: 8000
+            initialDelaySeconds: {{ .Values.ai.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.ai.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.ai.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.ai.probes.liveness.failureThreshold }}
+          
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.ai.probes.readiness.path }}
+              port: 8000
+            initialDelaySeconds: {{ .Values.ai.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.ai.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.ai.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.ai.probes.readiness.failureThreshold }}
+          
+          envFrom:
+            - configMapRef:
+                name: {{ include "clahan.fullname" . }}-ai
+            - secretRef:
+                name: {{ include "clahan.fullname" . }}-ai-secret
+
+          volumeMounts:
+            - name: tmp-dir
+              mountPath: /tmp
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+            - name: ai-models
+              mountPath: /app/models
+
+      volumes:
+        - name: tmp-dir
+          emptyDir: {}
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "{{ include "clahan.fullname" . }}-ai-spc"
+        - name: ai-models
+          persistentVolumeClaim:
+            claimName: {{ include "clahan.fullname" . }}-ai-models
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - {{ include "clahan.name" . }}-ai
+                topologyKey: kubernetes.io/hostname
+      
+      nodeSelector:
+        {{- toYaml .Values.ai.nodeSelector | nindent 8 }}
+      
+      tolerations:
+        {{- toYaml .Values.ai.tolerations | nindent 8 }}

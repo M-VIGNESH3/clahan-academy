@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "clahan.fullname" . }}-auth
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: auth
+    role: app
+spec:
+  {{- if not .Values.auth.autoscaling.enabled }}
+  replicas: {{ .Values.auth.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "clahan.name" . }}-auth
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "clahan.name" . }}-auth
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        role: app
+        azure.workload.identity/use: "true"
+    spec:
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "clahan.fullname" . }}-auth
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: auth
+          {{- if .Values.global.imageRegistry }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.auth.image.repository }}:{{ .Values.auth.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.auth.image.repository }}:{{ .Values.auth.image.tag }}"
+          {{- end }}
+          imagePullPolicy: {{ .Values.auth.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 4001
+              protocol: TCP
+          
+          resources:
+            {{- toYaml .Values.auth.resources | nindent 12 }}
+          
+          securityContext:
+            readOnlyRootFilesystem: {{ .Values.auth.securityContext.readOnlyRootFilesystem }}
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.auth.probes.liveness.path }}
+              port: 4001
+            initialDelaySeconds: {{ .Values.auth.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.auth.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.auth.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.auth.probes.liveness.failureThreshold }}
+          
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.auth.probes.readiness.path }}
+              port: 4001
+            initialDelaySeconds: {{ .Values.auth.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.auth.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.auth.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.auth.probes.readiness.failureThreshold }}
+          
+          envFrom:
+            - configMapRef:
+                name: {{ include "clahan.fullname" . }}-auth
+            - secretRef:
+                name: {{ include "clahan.fullname" . }}-auth-secret
+
+          volumeMounts:
+            - name: tmp-dir
+              mountPath: /tmp
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+
+      volumes:
+        - name: tmp-dir
+          emptyDir: {}
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "{{ include "clahan.fullname" . }}-auth-spc"
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - {{ include "clahan.name" . }}-auth
+                topologyKey: kubernetes.io/hostname
+      
+      nodeSelector:
+        {{- toYaml .Values.auth.nodeSelector | nindent 8 }}
+      
+      tolerations:
+        {{- toYaml .Values.auth.tolerations | nindent 8 }}

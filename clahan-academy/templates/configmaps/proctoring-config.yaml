@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "clahan.fullname" . }}-proctoring
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: proctoring
+data:
+  PORT: "4005"
+  NODE_ENV: {{ .Values.global.environment | quote }}
+  AI_SERVICE_URL: {{ .Values.proctoring.config.aiServiceUrl | quote }}

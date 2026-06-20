@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "clahan.fullname" . }}-auth
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: auth
+spec:
+  type: {{ if eq "auth" "frontend" }}NodePort{{ else }}ClusterIP{{ end }}
+  ports:
+    - name: http
+      port: 4001
+      targetPort: 4001
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "clahan.name" . }}-auth
+    app.kubernetes.io/instance: {{ .Release.Name }}

@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "clahan.fullname" . }}-student
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: student
+    role: app
+spec:
+  replicas: {{ .Values.student.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "clahan.name" . }}-student
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "clahan.name" . }}-student
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        role: app
+        azure.workload.identity/use: "true"
+    spec:
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "clahan.fullname" . }}-student
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: student
+          {{- if .Values.global.imageRegistry }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.student.image.repository }}:{{ .Values.student.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.student.image.repository }}:{{ .Values.student.image.tag }}"
+          {{- end }}
+          imagePullPolicy: {{ .Values.student.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 4003
+              protocol: TCP
+          
+          resources:
+            {{- toYaml .Values.student.resources | nindent 12 }}
+          
+          securityContext:
+            readOnlyRootFilesystem: {{ .Values.student.securityContext.readOnlyRootFilesystem }}
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.student.probes.liveness.path }}
+              port: 4003
+            initialDelaySeconds: {{ .Values.student.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.student.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.student.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.student.probes.liveness.failureThreshold }}
+          
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.student.probes.readiness.path }}
+              port: 4003
+            initialDelaySeconds: {{ .Values.student.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.student.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.student.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.student.probes.readiness.failureThreshold }}
+          
+          envFrom:
+            - configMapRef:
+                name: {{ include "clahan.fullname" . }}-student
+            - secretRef:
+                name: {{ include "clahan.fullname" . }}-student-secret
+
+          volumeMounts:
+            - name: tmp-dir
+              mountPath: /tmp
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+
+      volumes:
+        - name: tmp-dir
+          emptyDir: {}
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "{{ include "clahan.fullname" . }}-student-spc"
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - {{ include "clahan.name" . }}-student
+                topologyKey: kubernetes.io/hostname
+      
+      nodeSelector:
+        {{- toYaml .Values.student.nodeSelector | nindent 8 }}
+      
+      tolerations:
+        {{- toYaml .Values.student.tolerations | nindent 8 }}

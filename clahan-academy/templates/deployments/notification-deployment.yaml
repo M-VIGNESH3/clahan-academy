@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "clahan.fullname" . }}-notification
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: notification
+    role: app
+spec:
+  replicas: {{ .Values.notification.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "clahan.name" . }}-notification
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "clahan.name" . }}-notification
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        role: app
+        azure.workload.identity/use: "true"
+    spec:
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "clahan.fullname" . }}-notification
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: notification
+          {{- if .Values.global.imageRegistry }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.notification.image.repository }}:{{ .Values.notification.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.notification.image.repository }}:{{ .Values.notification.image.tag }}"
+          {{- end }}
+          imagePullPolicy: {{ .Values.notification.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 4006
+              protocol: TCP
+          
+          resources:
+            {{- toYaml .Values.notification.resources | nindent 12 }}
+          
+          securityContext:
+            readOnlyRootFilesystem: {{ .Values.notification.securityContext.readOnlyRootFilesystem }}
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.notification.probes.liveness.path }}
+              port: 4006
+            initialDelaySeconds: {{ .Values.notification.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.notification.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.notification.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.notification.probes.liveness.failureThreshold }}
+          
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.notification.probes.readiness.path }}
+              port: 4006
+            initialDelaySeconds: {{ .Values.notification.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.notification.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.notification.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.notification.probes.readiness.failureThreshold }}
+          
+          envFrom:
+            - configMapRef:
+                name: {{ include "clahan.fullname" . }}-notification
+            - secretRef:
+                name: {{ include "clahan.fullname" . }}-notification-secret
+
+          volumeMounts:
+            - name: tmp-dir
+              mountPath: /tmp
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+
+      volumes:
+        - name: tmp-dir
+          emptyDir: {}
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "{{ include "clahan.fullname" . }}-notification-spc"
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - {{ include "clahan.name" . }}-notification
+                topologyKey: kubernetes.io/hostname
+      
+      nodeSelector:
+        {{- toYaml .Values.notification.nodeSelector | nindent 8 }}
+      
+      tolerations:
+        {{- toYaml .Values.notification.tolerations | nindent 8 }}

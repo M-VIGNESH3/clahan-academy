@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "clahan.fullname" . }}-proctoring
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app.kubernetes.io/component: proctoring
+    role: app
+spec:
+  {{- if not .Values.proctoring.autoscaling.enabled }}
+  replicas: {{ .Values.proctoring.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "clahan.name" . }}-proctoring
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "clahan.name" . }}-proctoring
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        role: app
+        azure.workload.identity/use: "true"
+    spec:
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "clahan.fullname" . }}-proctoring
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      containers:
+        - name: proctoring
+          {{- if .Values.global.imageRegistry }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.proctoring.image.repository }}:{{ .Values.proctoring.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.proctoring.image.repository }}:{{ .Values.proctoring.image.tag }}"
+          {{- end }}
+          imagePullPolicy: {{ .Values.proctoring.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 4005
+              protocol: TCP
+          
+          resources:
+            {{- toYaml .Values.proctoring.resources | nindent 12 }}
+          
+          securityContext:
+            readOnlyRootFilesystem: {{ .Values.proctoring.securityContext.readOnlyRootFilesystem }}
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.proctoring.probes.liveness.path }}
+              port: 4005
+            initialDelaySeconds: {{ .Values.proctoring.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.proctoring.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.proctoring.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.proctoring.probes.liveness.failureThreshold }}
+          
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.proctoring.probes.readiness.path }}
+              port: 4005
+            initialDelaySeconds: {{ .Values.proctoring.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.proctoring.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.proctoring.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.proctoring.probes.readiness.failureThreshold }}
+          
+          envFrom:
+            - configMapRef:
+                name: {{ include "clahan.fullname" . }}-proctoring
+            - secretRef:
+                name: {{ include "clahan.fullname" . }}-proctoring-secret
+
+          volumeMounts:
+            - name: tmp-dir
+              mountPath: /tmp
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets"
+              readOnly: true
+
+      volumes:
+        - name: tmp-dir
+          emptyDir: {}
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: "{{ include "clahan.fullname" . }}-proctoring-spc"
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - {{ include "clahan.name" . }}-proctoring
+                topologyKey: kubernetes.io/hostname
+      
+      nodeSelector:
+        {{- toYaml .Values.proctoring.nodeSelector | nindent 8 }}
+      
+      tolerations:
+        {{- toYaml .Values.proctoring.tolerations | nindent 8 }}
