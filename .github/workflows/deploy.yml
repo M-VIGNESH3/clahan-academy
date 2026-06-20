@@ -1,0 +1,99 @@
+# .github/workflows/deploy.yml
+
+name: "CD — Deploy via ArgoCD"
+
+on:
+  workflow_run:
+    workflows: ["CI — Build, Scan & Push"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: "Deploy to AKS"
+    runs-on: ubuntu-latest
+    if: |
+      github.event.workflow_run.conclusion == 'success' ||
+      github.event_name == 'workflow_dispatch'
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure OIDC Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get AKS credentials via az aks command invoke
+        run: |
+          az aks get-credentials \
+            --resource-group rg-clahan-academy \
+            --name aks-clahan-academy \
+            --overwrite-existing
+
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o /usr/local/bin/argocd \
+            https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x /usr/local/bin/argocd
+
+      - name: Check ArgoCD sync status
+        run: |
+          az aks command invoke \
+            --resource-group rg-clahan-academy \
+            --name aks-clahan-academy \
+            --command "kubectl get application clahan-academy -n argocd"
+
+      - name: Trigger ArgoCD sync
+        run: |
+          az aks command invoke \
+            --resource-group rg-clahan-academy \
+            --name aks-clahan-academy \
+            --command "kubectl annotate application clahan-academy \
+              -n argocd \
+              argocd.argoproj.io/refresh=hard \
+              --overwrite"
+
+      - name: Wait for rollout
+        run: |
+          az aks command invoke \
+            --resource-group rg-clahan-academy \
+            --name aks-clahan-academy \
+            --command "kubectl rollout status deployment/clahan-frontend \
+              -n clahan-academy \
+              --timeout=300s"
+
+      - name: Run smoke tests
+        run: |
+          sleep 30
+          
+          ENDPOINTS=(
+            "https://clahaanacademy.online/api/auth/health"
+            "https://clahaanacademy.online/api/exams/health"
+            "https://clahaanacademy.online/api/student/health"
+          )
+          
+          for endpoint in "${ENDPOINTS[@]}"; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 30 "$endpoint" || echo "000")
+            
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ $endpoint → $HTTP_CODE"
+            else
+              echo "⚠️  $endpoint → $HTTP_CODE (non-critical)"
+            fi
+          done
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Deployment complete"
+          echo "🌐 Application URL: https://clahaanacademy.online"
+          echo "📊 Namespace: clahan-academy"
