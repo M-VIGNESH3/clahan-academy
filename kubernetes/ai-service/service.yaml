@@ -1,0 +1,15 @@
+# kubernetes/ai-service/service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-service
+  namespace: production
+spec:
+  type: ClusterIP
+  selector:
+    app: ai
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP

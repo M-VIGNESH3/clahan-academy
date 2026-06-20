@@ -1,0 +1,64 @@
+# kubernetes/exam-service/deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exam
+  namespace: production
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: exam
+  template:
+    metadata:
+      labels:
+        app: exam
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: exam-sa
+      containers:
+        - name: exam
+          # Exam engine - 2 replicas for availability during exams
+          image: acrclahanacademy.azurecr.io/clahan-exam:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4004
+          envFrom:
+            - configMapRef:
+                name: clahan-config
+            - secretRef:
+                name: clahan-secrets
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: clahan-config
+                  key: EXAM_PORT
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 4004
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 4004
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

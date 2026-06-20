@@ -1,0 +1,31 @@
+# kubernetes/judge0/service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: judge0-api
+  namespace: production
+spec:
+  type: ClusterIP
+  selector:
+    app: judge0-api
+  ports:
+    - port: 2358
+      targetPort: 2358
+      protocol: TCP
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: judge0-redis
+  namespace: production
+spec:
+  type: ClusterIP
+  selector:
+    app: judge0-redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+      protocol: TCP

@@ -134,11 +134,11 @@ notification:
   port: 4006
   resources:
     requests:
-      cpu: "50m"
+      cpu: "100m"
       memory: "128Mi"
     limits:
-      cpu: "200m"
-      memory: "256Mi"
+      cpu: "500m"
+      memory: "512Mi"
 
 ai:
   image:

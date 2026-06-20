@@ -1,0 +1,59 @@
+# kubernetes/judge0/worker-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: judge0-worker
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: judge0-worker
+  template:
+    metadata:
+      labels:
+        app: judge0-worker
+    spec:
+      nodeSelector:
+        pool: ai
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: ai
+          effect: NoSchedule
+      containers:
+        - name: judge0-worker
+          image: mrkushalsm/judge0:cgv2
+          command: ["./scripts/workers"]
+          securityContext:
+            privileged: true
+          env:
+            - name: REDIS_HOST
+              value: "judge0-redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: POSTGRES_DB
+              value: "judge0"
+            - name: POSTGRES_USER
+              value: "clahanadmin"
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: clahan-secrets
+                  key: DATABASE_URL
+          volumeMounts:
+            - name: cgroup
+              mountPath: /sys/fs/cgroup
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+      volumes:
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
+            type: Directory

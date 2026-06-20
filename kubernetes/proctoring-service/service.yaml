@@ -1,0 +1,15 @@
+# kubernetes/proctoring-service/service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: proctoring-service
+  namespace: production
+spec:
+  type: ClusterIP
+  selector:
+    app: proctoring
+  ports:
+    - port: 4005
+      targetPort: 4005
+      protocol: TCP

@@ -1,0 +1,15 @@
+# kubernetes/notification-service/service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: production
+spec:
+  type: ClusterIP
+  selector:
+    app: notification
+  ports:
+    - port: 4006
+      targetPort: 4006
+      protocol: TCP

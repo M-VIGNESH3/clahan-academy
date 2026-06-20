@@ -1,0 +1,15 @@
+# kubernetes/exam-service/service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: exam-service
+  namespace: production
+spec:
+  type: ClusterIP
+  selector:
+    app: exam
+  ports:
+    - port: 4004
+      targetPort: 4004
+      protocol: TCP

@@ -1,0 +1,57 @@
+# kubernetes/judge0/api-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: judge0-api
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: judge0-api
+  template:
+    metadata:
+      labels:
+        app: judge0-api
+    spec:
+      nodeSelector:
+        pool: ai
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: ai
+          effect: NoSchedule
+      containers:
+        - name: judge0-api
+          image: mrkushalsm/judge0:cgv2
+          ports:
+            - containerPort: 2358
+          env:
+            - name: REDIS_HOST
+              value: "judge0-redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: POSTGRES_DB
+              value: "judge0"
+            - name: POSTGRES_USER
+              value: "clahanadmin"
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: clahan-secrets
+                  key: DATABASE_URL
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /system_info
+              port: 2358
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3

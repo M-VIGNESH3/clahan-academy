@@ -1,0 +1,77 @@
+# kubernetes/ollama/deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ollama
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ollama
+  template:
+    metadata:
+      labels:
+        app: ollama
+    spec:
+      nodeSelector:
+        pool: ai
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: ai
+          effect: NoSchedule
+      initContainers:
+        - name: pull-phi3
+          image: ollama/ollama:latest
+          command: ["sh", "-c"]
+          args:
+            - |
+              ollama serve &
+              sleep 10
+              ollama pull phi3
+              pkill ollama || true
+          volumeMounts:
+            - name: models
+              mountPath: /root/.ollama
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+      containers:
+        - name: ollama
+          image: ollama/ollama:latest
+          ports:
+            - containerPort: 11434
+          volumeMounts:
+            - name: models
+              mountPath: /root/.ollama
+          resources:
+            requests:
+              cpu: 2000m
+              memory: 4Gi
+            limits:
+              cpu: 4000m
+              memory: 8Gi
+          livenessProbe:
+            httpGet:
+              path: /api/tags
+              port: 11434
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /api/tags
+              port: 11434
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 5
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: ollama-models-pvc
