@@ -1,0 +1,23 @@
+# helm/clahan-academy/templates/hpa/exam-hpa.yaml
+
+{{- if .Values.exam.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: exam-service-hpa
+  namespace: clahan-academy
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: exam-service
+  minReplicas: {{ .Values.exam.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.exam.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.exam.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}

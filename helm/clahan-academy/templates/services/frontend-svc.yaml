@@ -1,0 +1,18 @@
+# helm/clahan-academy/templates/services/frontend-svc.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: clahan-academy
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.frontend.port }}
+      targetPort: {{ .Values.frontend.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app: frontend-service

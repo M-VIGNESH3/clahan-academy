@@ -1,0 +1,13 @@
+# helm/clahan-academy/templates/storage/ollama-pvc.yaml
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-models-pvc
+  namespace: clahan-academy
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: {{ .Values.ollama.persistence.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.ollama.persistence.size }}

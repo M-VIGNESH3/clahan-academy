@@ -1,0 +1,9 @@
+# kubernetes/namespace.yaml
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    azure.workload.identity/use: "true"
+    environment: production

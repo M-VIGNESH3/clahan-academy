@@ -1,0 +1,11 @@
+# helm/clahan-academy/templates/serviceaccounts/frontend-sa.yaml
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: clahan-frontend-sa
+  namespace: clahan-academy
+  annotations:
+    azure.workload.identity/client-id: {{ .Values.azure.workloadIdentity.frontend.clientId | quote }}
+  labels:
+    azure.workload.identity/use: "true"

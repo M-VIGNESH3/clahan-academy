@@ -1,0 +1,65 @@
+# helm/clahan-academy/templates/deployments/judge0-worker-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: judge0-worker
+  namespace: clahan-academy
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app: judge0-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: judge0-worker
+  template:
+    metadata:
+      labels:
+        app: judge0-worker
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: clahan-exam-sa
+      nodeSelector:
+        {{- toYaml .Values.judge0.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.judge0.tolerations | nindent 8 }}
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: clahan-exam-secrets
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
+            type: Directory
+      containers:
+        - name: judge0-worker
+          image: "{{ .Values.judge0.worker.image }}"
+          command: ["./scripts/workers"]
+          env:
+            - name: REDIS_HOST
+              value: "judge0-redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: clahan-exam-secrets
+                  key: JUDGE0_DB_CONNECTION_STRING
+            - name: POSTGRES_DB
+              value: "judge0"
+            - name: POSTGRES_USER
+              value: "clahanadmin"
+          volumeMounts:
+            - name: secrets-store
+              mountPath: /mnt/secrets
+              readOnly: true
+            - name: cgroup
+              mountPath: /sys/fs/cgroup
+          resources:
+            {{- toYaml .Values.judge0.worker.resources | nindent 12 }}
+          securityContext:
+            privileged: true

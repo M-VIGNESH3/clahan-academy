@@ -1,0 +1,65 @@
+# helm/clahan-academy/templates/deployments/admin-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-service
+  namespace: clahan-academy
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app: admin-service
+spec:
+  replicas: {{ .Values.admin.replicaCount }}
+  selector:
+    matchLabels:
+      app: admin-service
+  template:
+    metadata:
+      labels:
+        app: admin-service
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: clahan-admin-sa
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: clahan-admin-secrets
+      containers:
+        - name: admin
+          image: "{{ .Values.admin.image.repository }}:{{ .Values.admin.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.admin.port }}
+          envFrom:
+            - secretRef:
+                name: clahan-admin-secrets
+          volumeMounts:
+            - name: secrets-store
+              mountPath: /mnt/secrets
+              readOnly: true
+          resources:
+            {{- toYaml .Values.admin.resources | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          livenessProbe:
+            httpGet:
+              path: /api/admin/health
+              port: {{ .Values.admin.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/admin/health
+              port: {{ .Values.admin.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3

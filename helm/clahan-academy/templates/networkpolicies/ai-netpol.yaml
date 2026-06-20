@@ -1,0 +1,96 @@
+# helm/clahan-academy/templates/networkpolicies/ai-netpol.yaml
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ai-netpol
+  namespace: clahan-academy
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - ai-service
+          - ollama
+          - judge0-api
+          - judge0-worker
+          - judge0-redis
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress to ai-service only from exam-service and proctoring-service
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - exam-service
+                  - proctoring-service
+      ports:
+        - protocol: TCP
+          port: 8000
+    # Allow ollama to be reached by ai-service
+    - from:
+        - podSelector:
+            matchLabels:
+              app: ai-service
+      ports:
+        - protocol: TCP
+          port: 11434
+    # Allow judge0-api to be reached by exam-service
+    - from:
+        - podSelector:
+            matchLabels:
+              app: exam-service
+      ports:
+        - protocol: TCP
+          port: 2358
+    # Allow judge0 components to communicate with local judge0-redis
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - judge0-api
+                  - judge0-worker
+      ports:
+        - protocol: TCP
+          port: 6379
+  egress:
+    # Allow ai-service to reach ollama
+    - to:
+        - podSelector:
+            matchLabels:
+              app: ollama
+      ports:
+        - protocol: TCP
+          port: 11434
+    # Allow judge0 components to communicate with each other
+    - to:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - judge0-api
+                  - judge0-worker
+                  - judge0-redis
+      ports:
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 2358
+    # Allow egress to external PostgreSQL, Key Vault, and DNS
+    - ports:
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 443
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

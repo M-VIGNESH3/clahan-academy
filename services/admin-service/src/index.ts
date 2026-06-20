@@ -871,6 +871,15 @@ app.delete('/api/admin/trainers/:id', authenticateAdmin, async (req, res) => {
   }
 });
 
+
+// Health check endpoints for Kubernetes liveness and readiness probes
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({ status: 'ok', service: 'admin-service' });
+});
+
+app.get('/ready', (_req, res) => {
+  res.status(200).json({ status: 'ready', service: 'admin-service' });
+});
 app.listen(PORT, () => {
   console.log(`Admin Service listening on port ${PORT}`);
 });

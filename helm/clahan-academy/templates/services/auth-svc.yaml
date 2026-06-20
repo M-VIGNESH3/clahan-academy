@@ -1,0 +1,18 @@
+# helm/clahan-academy/templates/services/auth-svc.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: clahan-academy
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.auth.port }}
+      targetPort: {{ .Values.auth.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app: auth-service

@@ -1,0 +1,65 @@
+# helm/clahan-academy/templates/deployments/notification-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: clahan-academy
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app: notification-service
+spec:
+  replicas: {{ .Values.notification.replicaCount }}
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: clahan-notification-sa
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: clahan-notification-secrets
+      containers:
+        - name: notification
+          image: "{{ .Values.notification.image.repository }}:{{ .Values.notification.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.notification.port }}
+          envFrom:
+            - secretRef:
+                name: clahan-notification-secrets
+          volumeMounts:
+            - name: secrets-store
+              mountPath: /mnt/secrets
+              readOnly: true
+          resources:
+            {{- toYaml .Values.notification.resources | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          livenessProbe:
+            httpGet:
+              path: /api/notifications/health
+              port: {{ .Values.notification.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/notifications/health
+              port: {{ .Values.notification.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3

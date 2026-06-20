@@ -1640,6 +1640,15 @@ app.post('/api/exams/admin/generate-coding-question', authenticate, requireRole(
   }
 });
 
+
+// Health check endpoints for Kubernetes liveness and readiness probes
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({ status: 'ok', service: 'exam-service' });
+});
+
+app.get('/ready', (_req, res) => {
+  res.status(200).json({ status: 'ready', service: 'exam-service' });
+});
 app.listen(PORT, () => {
   console.log(`Exam Service listening on port ${PORT}`);
 });

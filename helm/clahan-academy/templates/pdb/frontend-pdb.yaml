@@ -1,0 +1,12 @@
+# helm/clahan-academy/templates/pdb/frontend-pdb.yaml
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: frontend-service-pdb
+  namespace: clahan-academy
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: frontend-service

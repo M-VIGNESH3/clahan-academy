@@ -1,0 +1,12 @@
+# helm/clahan-academy/templates/networkpolicies/default-deny.yaml
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: clahan-academy
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress

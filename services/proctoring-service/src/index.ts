@@ -782,3 +782,12 @@ io.on('connection', (socket: Socket) => {
 server.listen(PORT, () => {
   console.log(`Proctoring Service listening on port ${PORT}`);
 });
+
+// Health check endpoints for Kubernetes liveness and readiness probes
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({ status: 'ok', service: 'proctoring-service' });
+});
+
+app.get('/ready', (_req, res) => {
+  res.status(200).json({ status: 'ready', service: 'proctoring-service' });
+});

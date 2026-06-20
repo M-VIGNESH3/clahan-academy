@@ -1,0 +1,11 @@
+# helm/clahan-academy/templates/serviceaccounts/auth-sa.yaml
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: clahan-auth-sa
+  namespace: clahan-academy
+  annotations:
+    azure.workload.identity/client-id: {{ .Values.azure.workloadIdentity.auth.clientId | quote }}
+  labels:
+    azure.workload.identity/use: "true"

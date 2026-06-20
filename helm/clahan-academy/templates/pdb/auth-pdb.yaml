@@ -1,0 +1,12 @@
+# helm/clahan-academy/templates/pdb/auth-pdb.yaml
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: auth-service-pdb
+  namespace: clahan-academy
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: auth-service

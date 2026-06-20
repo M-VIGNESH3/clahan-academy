@@ -370,6 +370,15 @@ worker.on('failed', (job, err) => {
   }
 });
 
+
+// Health check endpoints for Kubernetes liveness and readiness probes
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({ status: 'ok', service: 'notification-service' });
+});
+
+app.get('/ready', (_req, res) => {
+  res.status(200).json({ status: 'ready', service: 'notification-service' });
+});
 app.listen(PORT, () => {
   console.log(`Notification Service running REST API on port ${PORT}`);
 });

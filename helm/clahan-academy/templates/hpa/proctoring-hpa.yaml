@@ -1,0 +1,23 @@
+# helm/clahan-academy/templates/hpa/proctoring-hpa.yaml
+
+{{- if .Values.proctoring.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: proctoring-service-hpa
+  namespace: clahan-academy
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: proctoring-service
+  minReplicas: {{ .Values.proctoring.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.proctoring.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.proctoring.autoscaling.targetCPUUtilizationPercentage }}
+{{- end }}

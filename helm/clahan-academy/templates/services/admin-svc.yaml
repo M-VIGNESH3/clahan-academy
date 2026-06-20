@@ -1,0 +1,18 @@
+# helm/clahan-academy/templates/services/admin-svc.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-service
+  namespace: clahan-academy
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.admin.port }}
+      targetPort: {{ .Values.admin.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app: admin-service

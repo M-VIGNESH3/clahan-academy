@@ -1,0 +1,118 @@
+# helm/clahan-academy/templates/networkpolicies/app-netpol.yaml
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-netpol
+  namespace: clahan-academy
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - frontend-service
+          - auth-service
+          - admin-service
+          - student-service
+          - exam-service
+          - proctoring-service
+          - notification-service
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow app services to communicate with each other
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - frontend-service
+                  - auth-service
+                  - admin-service
+                  - student-service
+                  - exam-service
+                  - proctoring-service
+                  - notification-service
+      ports:
+        - protocol: TCP
+          port: 5173
+        - protocol: TCP
+          port: 4001
+        - protocol: TCP
+          port: 4002
+        - protocol: TCP
+          port: 4003
+        - protocol: TCP
+          port: 4004
+        - protocol: TCP
+          port: 4005
+        - protocol: TCP
+          port: 4006
+    # Allow ingress from Application Gateway (usually from kube-system or external ingress controllers)
+    - from:
+        - namespaceSelector: {}
+  egress:
+    # Allow communication to other app services
+    - to:
+        - podSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - frontend-service
+                  - auth-service
+                  - admin-service
+                  - student-service
+                  - exam-service
+                  - proctoring-service
+                  - notification-service
+      ports:
+        - protocol: TCP
+          port: 5173
+        - protocol: TCP
+          port: 4001
+        - protocol: TCP
+          port: 4002
+        - protocol: TCP
+          port: 4003
+        - protocol: TCP
+          port: 4004
+        - protocol: TCP
+          port: 4005
+        - protocol: TCP
+          port: 4006
+    # Allow app services to reach ai-service
+    - to:
+        - podSelector:
+            matchLabels:
+              app: ai-service
+      ports:
+        - protocol: TCP
+          port: 8000
+    # Allow app services to reach judge0-api
+    - to:
+        - podSelector:
+            matchLabels:
+              app: judge0-api
+      ports:
+        - protocol: TCP
+          port: 2358
+    # Allow egress to PostgreSQL
+    - ports:
+        - protocol: TCP
+          port: 5432
+    # Allow egress to Redis
+    - ports:
+        - protocol: TCP
+          port: 6380
+    # Allow egress to Key Vault (HTTPS) & DNS/core services
+    - ports:
+        - protocol: TCP
+          port: 443
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

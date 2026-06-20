@@ -1,0 +1,18 @@
+# helm/clahan-academy/templates/services/student-svc.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: student-service
+  namespace: clahan-academy
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.student.port }}
+      targetPort: {{ .Values.student.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app: student-service

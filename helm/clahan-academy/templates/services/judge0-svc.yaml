@@ -1,0 +1,18 @@
+# helm/clahan-academy/templates/services/judge0-svc.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: judge0-service
+  namespace: clahan-academy
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.judge0.api.port }}
+      targetPort: {{ .Values.judge0.api.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app: judge0-api

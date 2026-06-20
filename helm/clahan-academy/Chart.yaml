@@ -1,0 +1,16 @@
+# helm/clahan-academy/Chart.yaml
+
+apiVersion: v2
+name: clahan-academy
+description: Clahan Academy V2 - Online Exam Platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - education
+  - exam
+  - proctoring
+home: https://clahaanacademy.online
+maintainers:
+  - name: M-VIGNESH3
+    email: vigneshmtinku@gmail.com

@@ -1,0 +1,8 @@
+# helm/clahan-academy/templates/namespace.yaml
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clahan-academy
+  labels:
+    azure.workload.identity/use: "true"

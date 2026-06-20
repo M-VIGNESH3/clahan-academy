@@ -172,6 +172,15 @@ def letterbox_image(img, target_size=(640, 640)):
     return canvas, scale, dx, dy
 
 app = FastAPI(title="Clahan Academy AI Service", version="2.0.0")
+# Health check endpoints for Kubernetes liveness and readiness probes
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok", "service": "ai-service"}
+
+@app.get("/ready")
+def ready():
+    return {"status": "ready", "service": "ai-service"}
+
 
 app.add_middleware(
     CORSMiddleware,

@@ -89,6 +89,22 @@ app.get('/health', (req, res) => {
   res.json({ status: 'healthy', service: 'auth-service' });
 });
 
+app.get('/healthz', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'auth-service',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/ready', (req, res) => {
+  res.status(200).json({
+    status: 'ready',
+    service: 'auth-service',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // BullMQ Queue setup
 const redisUrl = process.env.REDIS_URL || 'redis://redis:6379';
 let redisHost = 'redis';

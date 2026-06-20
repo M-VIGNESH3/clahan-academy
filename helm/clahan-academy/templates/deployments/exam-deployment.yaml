@@ -1,0 +1,65 @@
+# helm/clahan-academy/templates/deployments/exam-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: exam-service
+  namespace: clahan-academy
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app: exam-service
+spec:
+  replicas: {{ .Values.exam.replicaCount }}
+  selector:
+    matchLabels:
+      app: exam-service
+  template:
+    metadata:
+      labels:
+        app: exam-service
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: clahan-exam-sa
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: clahan-exam-secrets
+      containers:
+        - name: exam
+          image: "{{ .Values.exam.image.repository }}:{{ .Values.exam.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.exam.port }}
+          envFrom:
+            - secretRef:
+                name: clahan-exam-secrets
+          volumeMounts:
+            - name: secrets-store
+              mountPath: /mnt/secrets
+              readOnly: true
+          resources:
+            {{- toYaml .Values.exam.resources | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+          livenessProbe:
+            httpGet:
+              path: /api/exams/health
+              port: {{ .Values.exam.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/exams/health
+              port: {{ .Values.exam.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3

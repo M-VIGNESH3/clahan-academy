@@ -323,7 +323,7 @@ app.get('/api/student/notifications', authenticateStudent, async (req: Authentic
       notifications.push({
         id: `result-${attempt.id}`,
         title: `Result Available: ${attempt.exam_name}`,
-        message: `Your result for "${attempt.exam_name}" is available. Score: ${attempt.percentage}% — ${resultText}.`,
+        message: `Your result for "${attempt.exam_name}" is available. Score: ${attempt.percentage}% â€” ${resultText}.`,
         createdAt: attempt.attempt_date,
         type: 'result_published'
       });
@@ -361,6 +361,15 @@ app.get('/api/student/trainers', authenticateStudent, async (req: AuthenticatedR
   }
 });
 
+
+// Health check endpoints for Kubernetes liveness and readiness probes
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({ status: 'ok', service: 'student-service' });
+});
+
+app.get('/ready', (_req, res) => {
+  res.status(200).json({ status: 'ready', service: 'student-service' });
+});
 app.listen(PORT, () => {
   console.log(`Student Service listening on port ${PORT}`);
 });

@@ -1,0 +1,72 @@
+# helm/clahan-academy/templates/deployments/judge0-api-deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: judge0-api
+  namespace: clahan-academy
+  labels:
+    {{- include "clahan.labels" . | nindent 4 }}
+    app: judge0-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: judge0-api
+  template:
+    metadata:
+      labels:
+        app: judge0-api
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: clahan-exam-sa
+      nodeSelector:
+        {{- toYaml .Values.judge0.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.judge0.tolerations | nindent 8 }}
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: clahan-exam-secrets
+      containers:
+        - name: judge0-api
+          image: "{{ .Values.judge0.api.image }}"
+          ports:
+            - containerPort: {{ .Values.judge0.api.port }}
+          env:
+            - name: REDIS_HOST
+              value: "judge0-redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: clahan-exam-secrets
+                  key: JUDGE0_DB_CONNECTION_STRING
+            - name: POSTGRES_DB
+              value: "judge0"
+            - name: POSTGRES_USER
+              value: "clahanadmin"
+          volumeMounts:
+            - name: secrets-store
+              mountPath: /mnt/secrets
+              readOnly: true
+          resources:
+            {{- toYaml .Values.judge0.api.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /system_info
+              port: {{ .Values.judge0.api.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /system_info
+              port: {{ .Values.judge0.api.port }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
