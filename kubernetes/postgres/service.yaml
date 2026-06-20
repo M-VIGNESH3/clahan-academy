@@ -1,0 +1,16 @@
+# FOR DEMO/EVALUATION ONLY
+# Production uses Azure Database for PostgreSQL Flexible Server
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: production
+  labels:
+    app: postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
