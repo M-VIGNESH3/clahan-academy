@@ -1,0 +1,15 @@
+# kubernetes/auth-service/service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: production
+spec:
+  type: ClusterIP
+  selector:
+    app: auth
+  ports:
+    - port: 4001
+      targetPort: 4001
+      protocol: TCP

@@ -1,0 +1,15 @@
+# kubernetes/frontend-service/service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: production
+spec:
+  type: ClusterIP
+  selector:
+    app: frontend
+  ports:
+    - port: 5173
+      targetPort: 5173
+      protocol: TCP

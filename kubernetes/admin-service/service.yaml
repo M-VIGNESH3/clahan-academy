@@ -1,0 +1,15 @@
+# kubernetes/admin-service/service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-service
+  namespace: production
+spec:
+  type: ClusterIP
+  selector:
+    app: admin
+  ports:
+    - port: 4002
+      targetPort: 4002
+      protocol: TCP

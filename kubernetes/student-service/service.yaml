@@ -1,0 +1,15 @@
+# kubernetes/student-service/service.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: student-service
+  namespace: production
+spec:
+  type: ClusterIP
+  selector:
+    app: student
+  ports:
+    - port: 4003
+      targetPort: 4003
+      protocol: TCP

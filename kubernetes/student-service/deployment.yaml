@@ -1,0 +1,64 @@
+# kubernetes/student-service/deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: student
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: student
+  template:
+    metadata:
+      labels:
+        app: student
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: student-sa
+      containers:
+        - name: student
+          # Student dashboard and profile service
+          image: acrclahanacademy.azurecr.io/clahan-student:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4003
+          envFrom:
+            - configMapRef:
+                name: clahan-config
+            - secretRef:
+                name: clahan-secrets
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: clahan-config
+                  key: STUDENT_PORT
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 4003
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 4003
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

@@ -1,0 +1,35 @@
+# kubernetes/configmap.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clahan-config
+  namespace: production
+data:
+  # Service ports
+  FRONTEND_PORT: "5173"
+  AUTH_PORT: "4001"
+  ADMIN_PORT: "4002"
+  STUDENT_PORT: "4003"
+  EXAM_PORT: "4004"
+  PROCTORING_PORT: "4005"
+  NOTIFICATION_PORT: "4006"
+  AI_PORT: "8000"
+
+  # Internal cluster DNS URLs
+  AI_SERVICE_URL: "http://ai-service.production.svc.cluster.local:8000"
+  JUDGE0_URL: "http://judge0-api.production.svc.cluster.local:2358"
+  OLLAMA_URL: "http://ollama.production.svc.cluster.local:11434"
+  FRONTEND_URL: "https://clahaanacademy.online"
+
+  # App config
+  NODE_ENV: "production"
+  RATE_LIMIT_MAX: "100"
+
+  # Proctoring violation limits
+  TAB_SWITCH_LIMIT: "3"
+  MOBILE_PHONE_LIMIT: "5"
+  BOOK_LIMIT: "8"
+  MULTIPLE_FACES_LIMIT: "5"
+  NO_FACE_TIMEOUT_MS: "10000"
+  FULLSCREEN_EXIT_LIMIT: "3"

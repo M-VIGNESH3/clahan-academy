@@ -1,0 +1,64 @@
+# kubernetes/admin-service/deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admin
+  template:
+    metadata:
+      labels:
+        app: admin
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: admin-sa
+      containers:
+        - name: admin
+          # Admin panel - college batch and student management
+          image: acrclahanacademy.azurecr.io/clahan-admin:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 4002
+          envFrom:
+            - configMapRef:
+                name: clahan-config
+            - secretRef:
+                name: clahan-secrets
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: clahan-config
+                  key: ADMIN_PORT
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 4002
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 4002
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
