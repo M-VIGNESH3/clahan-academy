@@ -1,0 +1,61 @@
+# argocd/dev/project.yaml
+
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: clahan-academy
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "Clahan Academy V2 - Online Exam Platform"
+  
+  sourceRepos:
+    - https://github.com/M-VIGNESH3/clahan-academy.git
+  
+  destinations:
+    - namespace: clahan-academy
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+    - namespace: cert-manager
+      server: https://kubernetes.default.svc
+  
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: cert-manager.io
+      kind: ClusterIssuer
+    - group: secrets-store.csi.x-k8s.io
+      kind: SecretProviderClass
+  
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ServiceAccount
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: Secret
+    - group: ""
+      kind: PersistentVolumeClaim
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+    - group: secrets-store.csi.x-k8s.io
+      kind: SecretProviderClass
+  
+  roles:
+    - name: developer
+      description: Developer read-only access
+      policies:
+        - p, proj:clahan-academy:developer, applications, get, clahan-academy/*, allow
+        - p, proj:clahan-academy:developer, applications, sync, clahan-academy/*, allow
