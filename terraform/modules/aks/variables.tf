@@ -9,7 +9,7 @@ variable "cluster_name" {
 variable "location" {
   description = "Azure region"
   type        = string
-  default     = "westcentralus"
+  default     = "eastus"
 }
 
 variable "resource_group_name" {
@@ -29,13 +29,13 @@ variable "kubernetes_version" {
 }
 
 variable "dns_prefix" {
-  description = "DNS prefix for the AKS cluster"
+  description = "DNS prefix for AKS"
   type        = string
   default     = "clahan"
 }
 
 variable "subnet_aks_id" {
-  description = "ID of the AKS subnet (10.0.4.0/24)"
+  description = "ID of the AKS subnet"
   type        = string
 }
 
@@ -64,12 +64,6 @@ variable "acr_id" {
   type        = string
 }
 
-variable "tags" {
-  description = "Tags to apply to all resources"
-  type        = map(string)
-  default     = {}
-}
-
 variable "app_node_vm_size" {
   description = "VM size for app node pool"
   type        = string
@@ -94,3 +88,8 @@ variable "app_max_count" {
   default     = 3
 }
 
+variable "tags" {
+  description = "Tags to apply to all resources"
+  type        = map(string)
+  default     = {}
+}

@@ -27,37 +27,37 @@ output "kube_config_raw" {
 }
 
 output "oidc_issuer_url" {
-  description = "OIDC issuer URL for workload identity federation"
+  description = "OIDC issuer URL for workload identity"
   value       = azurerm_kubernetes_cluster.main.oidc_issuer_url
 }
 
 output "kubelet_identity_object_id" {
-  description = "Object ID of the kubelet managed identity"
+  description = "Object ID of kubelet managed identity"
   value       = azurerm_kubernetes_cluster.main.kubelet_identity[0].object_id
 }
 
 output "kubelet_identity_client_id" {
-  description = "Client ID of the kubelet managed identity"
+  description = "Client ID of kubelet managed identity"
   value       = azurerm_kubernetes_cluster.main.kubelet_identity[0].client_id
 }
 
 output "cluster_identity_principal_id" {
-  description = "Principal ID of the cluster system-assigned identity"
-  value       = azurerm_kubernetes_cluster.main.identity[0].principal_id
+  description = "Principal ID of AKS user assigned identity"
+  value       = azurerm_user_assigned_identity.aks.principal_id
 }
 
 output "agic_identity_object_id" {
-  description = "Object ID of the AGIC managed identity"
+  description = "Object ID of AGIC managed identity"
   value       = azurerm_kubernetes_cluster.main.ingress_application_gateway[0].ingress_application_gateway_identity[0].object_id
 }
 
 output "key_vault_secrets_provider_client_id" {
-  description = "Client ID of the Key Vault secrets provider identity"
+  description = "Client ID of Key Vault secrets provider identity"
   value       = azurerm_kubernetes_cluster.main.key_vault_secrets_provider[0].secret_identity[0].client_id
 }
 
 output "key_vault_secrets_provider_object_id" {
-  description = "Object ID of the Key Vault secrets provider identity"
+  description = "Object ID of Key Vault secrets provider identity"
   value       = azurerm_kubernetes_cluster.main.key_vault_secrets_provider[0].secret_identity[0].object_id
 }
 
@@ -67,7 +67,7 @@ output "node_resource_group" {
 }
 
 output "ingress_application_gateway_id" {
-  description = "ID of the Application Gateway created by AGIC addon"
+  description = "ID of the Application Gateway created by AGIC"
   value       = azurerm_kubernetes_cluster.main.ingress_application_gateway[0].effective_gateway_id
 }
 

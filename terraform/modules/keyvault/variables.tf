@@ -8,7 +8,7 @@ variable "resource_group_name" {
 variable "location" {
   description = "Azure region"
   type        = string
-  default     = "westcentralus"
+  default     = "eastus"
 }
 
 variable "tenant_id" {
@@ -17,7 +17,7 @@ variable "tenant_id" {
 }
 
 variable "deployer_object_id" {
-  description = "Object ID of the person/SP running Terraform"
+  description = "Object ID of the person running Terraform"
   type        = string
 }
 
@@ -29,11 +29,13 @@ variable "github_sp_object_id" {
 variable "subnet_privateendpoints_id" {
   description = "ID of the private endpoints subnet"
   type        = string
+  default     = ""
 }
 
 variable "private_dns_zone_keyvault_id" {
   description = "ID of the Key Vault private DNS zone"
   type        = string
+  default     = ""
 }
 
 variable "tags" {
@@ -42,26 +44,21 @@ variable "tags" {
   default     = {}
 }
 
-variable "postgres_admin_password" {
-  description = "PostgreSQL admin password to store in Key Vault"
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
 variable "secrets" {
   description = "Sensitive secrets to store in Key Vault"
-  type = object({    judge0_    smtp_host                   = string
-    smtp_port                   = string
-    smtp_user                   = string
-    smtp_pass                   = string
-    smtp_from                   = string
-    sendgrid_api_key            = string
-    sendgrid_from               = string
-    blob_storage_account        = string
-    blob_storage_key            = string
-    snyk_token                  = string
-    sonar_token                 = string
+  type = object({
+    redis_connection_string = string
+    smtp_host               = string
+    smtp_port               = string
+    smtp_user               = string
+    smtp_pass               = string
+    smtp_from               = string
+    sendgrid_api_key        = string
+    sendgrid_from           = string
+    blob_storage_account    = string
+    blob_storage_key        = string
+    snyk_token              = string
+    sonar_token             = string
   })
   sensitive = true
 }
