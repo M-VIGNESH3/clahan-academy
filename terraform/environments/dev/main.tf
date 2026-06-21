@@ -57,7 +57,7 @@ module "postgres" {
   source = "../../modules/postgres"
 
   resource_group_name          = module.networking.resource_group_name
-  location = var.location
+  location                     = var.location
   subnet_postgres_id           = module.networking.subnet_postgres_id
   private_dns_zone_postgres_id = module.networking.private_dns_zone_ids["postgres"]
   tags                         = local.tags
@@ -66,27 +66,25 @@ module "postgres" {
 module "keyvault" {
   source = "../../modules/keyvault"
 
-  resource_group_name          = module.networking.resource_group_name
-  location                     = var.location
-  tenant_id                    = var.tenant_id
-  deployer_object_id           = var.deployer_object_id
-  github_sp_object_id          = var.github_sp_object_id
-  tags                         = local.tags
+  resource_group_name = module.networking.resource_group_name
+  location            = var.location
+  tenant_id           = var.tenant_id
+  deployer_object_id  = var.deployer_object_id
+  github_sp_object_id = var.github_sp_object_id
+  tags                = local.tags
 
   secrets = {
-    db_connection_string        = module.postgres.app_connection_string
-    judge0_db_connection_string = module.postgres.judge0_connection_string
-    smtp_host                   = var.smtp_host
-    smtp_port                   = var.smtp_port
-    smtp_user                   = var.smtp_user
-    smtp_pass                   = var.smtp_pass
-    smtp_from                   = var.smtp_from
-    sendgrid_api_key            = var.sendgrid_api_key
-    sendgrid_from               = var.sendgrid_from
-    blob_storage_account        = module.storage.storage_account_name
-    blob_storage_key            = module.storage.primary_access_key
-    snyk_token                  = var.snyk_token
-    sonar_token                 = var.sonar_token
+    smtp_host            = var.smtp_host
+    smtp_port            = var.smtp_port
+    smtp_user            = var.smtp_user
+    smtp_pass            = var.smtp_pass
+    smtp_from            = var.smtp_from
+    sendgrid_api_key     = var.sendgrid_api_key
+    sendgrid_from        = var.sendgrid_from
+    blob_storage_account = module.storage.storage_account_name
+    blob_storage_key     = module.storage.primary_access_key
+    snyk_token           = var.snyk_token
+    sonar_token          = var.sonar_token
   }
 }
 
@@ -100,7 +98,6 @@ module "aks" {
   kubernetes_version         = "1.29"
   dns_prefix                 = "clahan"
   subnet_aks_id              = module.networking.subnet_aks_id
-  subnet_appgw_id            = module.networking.subnet_appgw_id
   vnet_id                    = module.networking.vnet_id
   log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
   acr_id                     = module.acr.acr_id

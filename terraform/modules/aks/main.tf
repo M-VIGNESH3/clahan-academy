@@ -1,4 +1,5 @@
 # terraform/modules/aks/main.tf
+# AKS cluster with kGateway for ingress routing
 
 locals {
   tags = merge(var.tags, {
@@ -17,7 +18,6 @@ resource "azurerm_role_assignment" "aks_vnet" {
   role_definition_name = "Network Contributor"
   principal_id         = azurerm_user_assigned_identity.aks.principal_id
   scope                = var.vnet_id
-
   lifecycle {
     ignore_changes = all
   }
@@ -32,9 +32,7 @@ resource "azurerm_kubernetes_cluster" "main" {
   sku_tier                = "Standard"
   private_cluster_enabled = false
 
-  depends_on = [
-    azurerm_role_assignment.aks_vnet
-  ]
+  depends_on = [azurerm_role_assignment.aks_vnet]
 
   default_node_pool {
     name                        = "app"
@@ -81,11 +79,6 @@ resource "azurerm_kubernetes_cluster" "main" {
     secret_rotation_interval = "2m"
   }
 
-  ingress_application_gateway {
-    gateway_name = "agw-clahan-academy"
-    subnet_id    = var.subnet_appgw_id
-  }
-
   workload_identity_enabled         = true
   oidc_issuer_enabled               = true
   azure_policy_enabled              = true
@@ -118,18 +111,6 @@ resource "azurerm_role_assignment" "aks_acr_pull" {
   principal_id                     = azurerm_kubernetes_cluster.main.kubelet_identity[0].object_id
   scope                            = var.acr_id
   skip_service_principal_aad_check = true
-
-  lifecycle {
-    ignore_changes = all
-  }
-}
-
-resource "azurerm_role_assignment" "agic_rg_contributor" {
-  role_definition_name             = "Contributor"
-  principal_id                     = azurerm_kubernetes_cluster.main.ingress_application_gateway[0].ingress_application_gateway_identity[0].object_id
-  scope                            = var.resource_group_id
-  skip_service_principal_aad_check = true
-
   lifecycle {
     ignore_changes = all
   }

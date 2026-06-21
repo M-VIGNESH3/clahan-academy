@@ -8,7 +8,7 @@ variable "resource_group_name" {
 variable "location" {
   description = "Azure region"
   type        = string
-  default     = "westcentralus"
+  default = "eastus2"
 }
 
 variable "aks_oidc_issuer_url" {

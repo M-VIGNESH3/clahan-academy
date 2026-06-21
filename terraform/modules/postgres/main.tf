@@ -1,6 +1,10 @@
 # terraform/modules/postgres/main.tf
+# PostgreSQL Flexible Server with VNet integration in eastus2
+
 locals {
-  tags = merge(var.tags, { module = "postgres" })
+  tags = merge(var.tags, {
+    module = "postgres"
+  })
 }
 
 resource "random_password" "postgres_admin" {
@@ -25,6 +29,9 @@ resource "azurerm_postgresql_flexible_server" "main" {
   backup_retention_days        = var.backup_retention_days
   geo_redundant_backup_enabled = var.geo_redundant_backup_enabled
 
+  delegated_subnet_id = var.subnet_postgres_id
+  private_dns_zone_id = var.private_dns_zone_postgres_id
+
   maintenance_window {
     day_of_week  = 0
     start_hour   = 2
@@ -32,17 +39,13 @@ resource "azurerm_postgresql_flexible_server" "main" {
   }
 
   lifecycle {
-    ignore_changes = [administrator_password, zone]
+    ignore_changes = [
+      administrator_password,
+      zone
+    ]
   }
 
   tags = local.tags
-}
-
-resource "azurerm_postgresql_flexible_server_firewall_rule" "azure_services" {
-  name             = "allow-azure-services"
-  server_id        = azurerm_postgresql_flexible_server.main.id
-  start_ip_address = "0.0.0.0"
-  end_ip_address   = "0.0.0.0"
 }
 
 resource "azurerm_postgresql_flexible_server_database" "clahan_academy" {
@@ -57,4 +60,10 @@ resource "azurerm_postgresql_flexible_server_database" "judge0" {
   server_id = azurerm_postgresql_flexible_server.main.id
   charset   = "UTF8"
   collation = "en_US.utf8"
+}
+
+resource "azurerm_postgresql_flexible_server_configuration" "connection_throttling" {
+  name      = "connection_throttling"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  value     = "on"
 }

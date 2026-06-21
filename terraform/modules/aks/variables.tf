@@ -9,7 +9,7 @@ variable "cluster_name" {
 variable "location" {
   description = "Azure region"
   type        = string
-  default     = "eastus"
+  default = "eastus2"
 }
 
 variable "resource_group_name" {
@@ -39,10 +39,7 @@ variable "subnet_aks_id" {
   type        = string
 }
 
-variable "subnet_appgw_id" {
-  description = "ID of the Application Gateway subnet"
-  type        = string
-}
+
 
 variable "vnet_id" {
   description = "ID of the virtual network"

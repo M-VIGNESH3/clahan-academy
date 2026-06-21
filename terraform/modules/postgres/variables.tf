@@ -1,14 +1,12 @@
 # terraform/modules/postgres/variables.tf
 
 variable "resource_group_name" {
-  description = "Name of the resource group"
-  type        = string
+  type = string
 }
 
 variable "location" {
-  description = "Azure region"
-  type        = string
-  default     = "eastus"
+  type    = string
+  default = "eastus2"
 }
 
 variable "subnet_postgres_id" {
@@ -22,31 +20,26 @@ variable "private_dns_zone_postgres_id" {
 }
 
 variable "sku_name" {
-  description = "PostgreSQL SKU"
-  type        = string
-  default     = "GP_Standard_D2s_v3"
+  type    = string
+  default = "GP_Standard_D2s_v3"
 }
 
 variable "storage_mb" {
-  description = "Storage in MB"
-  type        = number
-  default     = 32768
+  type    = number
+  default = 32768
 }
 
 variable "backup_retention_days" {
-  description = "Backup retention days"
-  type        = number
-  default     = 7
+  type    = number
+  default = 7
 }
 
 variable "geo_redundant_backup_enabled" {
-  description = "Geo-redundant backup"
-  type        = bool
-  default     = false
+  type    = bool
+  default = false
 }
 
 variable "tags" {
-  description = "Tags"
-  type        = map(string)
-  default     = {}
+  type    = map(string)
+  default = {}
 }

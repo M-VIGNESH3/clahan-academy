@@ -1,39 +1,28 @@
 # terraform/modules/keyvault/variables.tf
 
 variable "resource_group_name" {
-  description = "Name of the resource group"
-  type        = string
+  type = string
 }
-
 variable "location" {
-  description = "Azure region"
-  type        = string
-  default     = "eastus"
+  type    = string
+  default = "eastus2"
 }
-
 variable "tenant_id" {
-  description = "Azure AD tenant ID"
-  type        = string
+  type = string
 }
-
 variable "deployer_object_id" {
-  description = "Object ID of the person running Terraform"
-  type        = string
+  type = string
 }
-
 variable "github_sp_object_id" {
-  description = "Object ID of the GitHub Actions service principal"
-  type        = string
+  type = string
 }
-
 variable "tags" {
-  description = "Tags to apply to all resources"
-  type        = map(string)
-  default     = {}
+  type    = map(string)
+  default = {}
 }
-
 variable "secrets" {
   description = "Sensitive secrets to store in Key Vault"
+  sensitive   = true
   type = object({
     smtp_host            = string
     smtp_port            = string
@@ -47,5 +36,4 @@ variable "secrets" {
     snyk_token           = string
     sonar_token          = string
   })
-  sensitive = true
 }
