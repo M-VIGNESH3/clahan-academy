@@ -100,15 +100,6 @@ resource "azurerm_key_vault_secret" "judge0_db_connection_string" {
   depends_on   = [time_sleep.wait_for_rbac]
 }
 
-resource "azurerm_key_vault_secret" "redis_connection_string" {
-  name         = "redis-connection-string"
-  value        = var.secrets.redis_connection_string
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
 resource "azurerm_key_vault_secret" "jwt_access_secret" {
   name         = "jwt-access-secret"
   value        = random_password.jwt_access.result
