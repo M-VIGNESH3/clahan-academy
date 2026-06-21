@@ -39,7 +39,7 @@ output "postgres_fqdn" {
 
 output "redis_hostname" {
   description = "Redis cache hostname"
-  value       = module.redis.redis_hostname
+  value       = "redis.clahan-dev.svc.cluster.local"
 }
 
 output "log_analytics_workspace_id" {
@@ -88,15 +88,15 @@ output "estimated_monthly_cost" {
     aks_app_node   = "~$140 USD (Standard_D4s_v3 x1)"
     aks_ai_node    = "~$280 USD (Standard_D8s_v3 x1)"
     postgres       = "~$90 USD (GP_Standard_D2s_v3)"
-    redis          = "~$55 USD (Standard C1)"
+    redis          = "~$0 USD (In-cluster Pod)"
     app_gateway    = "~$35 USD (WAF v2)"
     bastion        = "~$140 USD (Basic SKU)"
-    jump_vm        = "~$30 USD (Standard_B2s)"
+    jump_vm        = "~$60 USD (Standard_B2ms)"
     storage        = "~$5 USD (Standard LRS)"
     key_vault      = "~$5 USD (Standard)"
     functions      = "~$0 USD (Consumption)"
     monitoring     = "~$5 USD (30 day retention)"
-    total_estimate = "~$785 USD per month"
-    note           = "Stop jump VM and AI node when not in use to save ~$310/month"
+    total_estimate = "~$760 USD per month"
+    note           = "Stop jump VM and AI node when not in use to save ~$340/month"
   }
 }
