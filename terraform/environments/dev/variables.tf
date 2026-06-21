@@ -39,12 +39,6 @@ variable "deployer_object_id" {
   type        = string
 }
 
-variable "github_token" {
-  description = "GitHub Personal Access Token for managing repo secrets"
-  type        = string
-  sensitive   = true
-}
-
 variable "admin_email" {
   description = "Admin email for alerts and notifications"
   type        = string

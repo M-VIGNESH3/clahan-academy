@@ -173,10 +173,3 @@ module "functions" {
   tags                             = local.tags
 }
 
-
-
-
-
-
-
-
