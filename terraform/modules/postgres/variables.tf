@@ -21,11 +21,6 @@ variable "private_dns_zone_postgres_id" {
   type        = string
 }
 
-variable "key_vault_id" {
-  description = "Resource ID of the Key Vault to store secrets"
-  type        = string
-}
-
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
@@ -61,4 +56,3 @@ variable "high_availability_mode" {
   type        = string
   default     = "Disabled"
 }
-

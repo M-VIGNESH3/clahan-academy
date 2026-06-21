@@ -26,6 +26,12 @@ variable "key_vault_id" {
   type        = string
 }
 
+variable "vm_size" {
+  description = "VM size for Jump VM"
+  type        = string
+  default     = "Standard_B2ms"
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)

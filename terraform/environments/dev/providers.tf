@@ -15,7 +15,10 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.6"
     }
-    
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.11"
+    }
   }
 }
 
@@ -39,6 +42,6 @@ provider "azuread" {
   tenant_id = var.tenant_id
 }
 
-# GitHub provider removed - secrets managed manually
-
 provider "random" {}
+
+provider "time" {}

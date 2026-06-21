@@ -1,4 +1,4 @@
-# terraform/modules/jumpvm\main.tf
+# terraform/modules/jumpvm/main.tf
 
 locals {
   tags = merge(var.tags, {
@@ -71,7 +71,7 @@ locals {
     # Install redis-cli
     apt-get install -y redis-tools
     
-    echo "Ã¢Å“â€¦ Jump VM setup complete" >> /var/log/jumpvm-setup.log
+    echo "✅ Jump VM setup complete" >> /var/log/jumpvm-setup.log
   EOF
 }
 
@@ -80,7 +80,7 @@ resource "azurerm_linux_virtual_machine" "main" {
   name                            = "vm-clahan-mgmt"
   resource_group_name             = var.resource_group_name
   location                        = var.location
-  size                            = "Standard_B2s"
+  size                            = var.vm_size
   admin_username                  = "clahanadmin"
   admin_password                  = random_password.vm_admin.result
   disable_password_authentication = false
@@ -115,6 +115,10 @@ resource "azurerm_role_assignment" "vm_aks_admin" {
   principal_id                     = azurerm_linux_virtual_machine.main.identity[0].principal_id
   scope                            = var.aks_cluster_id
   skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # Jump VM can read secrets from Key Vault
@@ -123,6 +127,10 @@ resource "azurerm_role_assignment" "vm_keyvault_reader" {
   principal_id                     = azurerm_linux_virtual_machine.main.identity[0].principal_id
   scope                            = var.key_vault_id
   skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # Store VM admin password in Key Vault for emergency access

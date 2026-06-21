@@ -109,6 +109,10 @@ resource "azurerm_role_assignment" "aks_acr_pull" {
   principal_id                     = azurerm_kubernetes_cluster.main.kubelet_identity[0].object_id
   scope                            = var.acr_id
   skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # Allow AKS to manage VNet for pod networking
@@ -117,6 +121,10 @@ resource "azurerm_role_assignment" "aks_vnet_contributor" {
   principal_id                     = azurerm_kubernetes_cluster.main.identity[0].principal_id
   scope                            = var.vnet_id
   skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # Allow AGIC to manage Application Gateway resources
@@ -125,6 +133,10 @@ resource "azurerm_role_assignment" "agic_rg_contributor" {
   principal_id                     = azurerm_kubernetes_cluster.main.ingress_application_gateway[0].ingress_application_gateway_identity[0].object_id
   scope                            = var.resource_group_id
   skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # Allow AKS to manage private DNS zone for private cluster
@@ -133,4 +145,8 @@ resource "azurerm_role_assignment" "aks_dns_contributor" {
   principal_id                     = azurerm_kubernetes_cluster.main.identity[0].principal_id
   scope                            = var.private_dns_zone_aks_id
   skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes = all
+  }
 }

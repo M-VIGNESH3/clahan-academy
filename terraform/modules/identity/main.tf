@@ -1,4 +1,4 @@
-# terraform/modules/identity\main.tf
+# terraform/modules/identity/main.tf
 
 locals {
   tags = merge(var.tags, {
@@ -58,6 +58,11 @@ resource "azurerm_role_assignment" "keyvault_secrets_user" {
   principal_id                     = azurerm_user_assigned_identity.services[each.key].principal_id
   scope                            = var.key_vault_id
   skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes        = all
+    create_before_destroy = true
+  }
 }
 
 # Admin and AI services can read and write blobs
@@ -67,6 +72,11 @@ resource "azurerm_role_assignment" "storage_blob_contributor" {
   principal_id                     = azurerm_user_assigned_identity.services[each.key].principal_id
   scope                            = var.storage_account_id
   skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes        = all
+    create_before_destroy = true
+  }
 }
 
 # Exam, student, frontend services can read blobs
@@ -76,6 +86,11 @@ resource "azurerm_role_assignment" "storage_blob_reader" {
   principal_id                     = azurerm_user_assigned_identity.services[each.key].principal_id
   scope                            = var.storage_account_id
   skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes        = all
+    create_before_destroy = true
+  }
 }
 
 # GitHub Actions can push images to ACR
@@ -84,6 +99,11 @@ resource "azurerm_role_assignment" "github_acr_push" {
   principal_id                     = var.github_sp_object_id
   scope                            = var.acr_id
   skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes        = all
+    create_before_destroy = true
+  }
 }
 
 # GitHub Actions can read secrets from Key Vault during CI
@@ -92,4 +112,9 @@ resource "azurerm_role_assignment" "github_keyvault_reader" {
   principal_id                     = var.github_sp_object_id
   scope                            = var.key_vault_id
   skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes        = all
+    create_before_destroy = true
+  }
 }

@@ -16,13 +16,8 @@ variable "subnet_privateendpoints_id" {
   type        = string
 }
 
-variable "private_dns_zone_blob_id" {
-  description = "ID of the Blob Storage private DNS zone"
-  type        = string
-}
-
-variable "key_vault_id" {
-  description = "Resource ID of the Key Vault to store secrets"
+variable "deployer_object_id" {
+  description = "Object ID of the person/SP running Terraform"
   type        = string
 }
 

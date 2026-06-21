@@ -16,11 +16,6 @@ variable "subnet_privateendpoints_id" {
   type        = string
 }
 
-variable "private_dns_zone_acr_id" {
-  description = "ID of the ACR private DNS zone"
-  type        = string
-}
-
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)

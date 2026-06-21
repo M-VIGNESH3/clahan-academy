@@ -42,12 +42,18 @@ variable "tags" {
   default     = {}
 }
 
+variable "postgres_admin_password" {
+  description = "PostgreSQL admin password to store in Key Vault"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "secrets" {
   description = "Sensitive secrets to store in Key Vault"
   type = object({
     db_connection_string        = string
     judge0_db_connection_string = string
-    redis_connection_string     = string
     smtp_host                   = string
     smtp_port                   = string
     smtp_user                   = string

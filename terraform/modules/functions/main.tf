@@ -1,4 +1,4 @@
-# terraform/modules/functions\main.tf
+# terraform/modules/functions/main.tf
 
 locals {
   tags = merge(var.tags, {
@@ -64,6 +64,10 @@ resource "azurerm_role_assignment" "function_keyvault_reader" {
   principal_id                     = azurerm_linux_function_app.main.identity[0].principal_id
   scope                            = var.key_vault_id
   skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # Allow Function App to check AKS cluster health
@@ -72,4 +76,8 @@ resource "azurerm_role_assignment" "function_aks_reader" {
   principal_id                     = azurerm_linux_function_app.main.identity[0].principal_id
   scope                            = var.aks_cluster_id
   skip_service_principal_aad_check = true
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
