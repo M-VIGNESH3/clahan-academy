@@ -1,4 +1,5 @@
 # terraform/modules/keyvault/main.tf
+# Azure Key Vault - central secret store for all application secrets
 
 locals {
   tags = merge(var.tags, {
@@ -6,7 +7,7 @@ locals {
   })
 }
 
-# Central secret store for all application secrets
+# Key Vault with RBAC authorization
 resource "azurerm_key_vault" "main" {
   name                          = "kv-clahan-academy"
   location                      = var.location
@@ -16,19 +17,18 @@ resource "azurerm_key_vault" "main" {
   enable_rbac_authorization     = true
   soft_delete_retention_days    = 90
   purge_protection_enabled      = true
-  public_network_access_enabled = false
+  public_network_access_enabled = true
 
   network_acls {
-    bypass                     = "AzureServices"
-    default_action             = "Deny"
-    ip_rules                   = []
-    virtual_network_subnet_ids = []
+    bypass         = "AzureServices"
+    default_action = "Allow"
+    ip_rules       = []
   }
 
   tags = local.tags
 }
 
-# Deployer (person running Terraform) can manage all secrets
+# Deployer gets Secrets Officer (deployer is a User not SP)
 resource "azurerm_role_assignment" "deployer_secrets_officer" {
   role_definition_name = "Key Vault Secrets Officer"
   principal_id         = var.deployer_object_id
@@ -39,7 +39,7 @@ resource "azurerm_role_assignment" "deployer_secrets_officer" {
   }
 }
 
-# GitHub Actions can read secrets during CI/CD pipelines
+# GitHub Actions gets Secrets User
 resource "azurerm_role_assignment" "github_secrets_user" {
   role_definition_name             = "Key Vault Secrets User"
   principal_id                     = var.github_sp_object_id
@@ -51,247 +51,16 @@ resource "azurerm_role_assignment" "github_secrets_user" {
   }
 }
 
-# Wait for RBAC role assignments to propagate to avoid authorization errors
+# Wait 90 seconds for RBAC to propagate before writing secrets
 resource "time_sleep" "wait_for_rbac" {
   depends_on = [
     azurerm_role_assignment.deployer_secrets_officer,
     azurerm_role_assignment.github_secrets_user
   ]
-  create_duration = "60s"
+  create_duration = "90s"
 }
 
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "db_connection_string" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "db-connection-string"
-  value        = var.secrets.db_connection_string
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "judge0_db_connection_string" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "judge0-db-connection-string"
-  value        = var.secrets.judge0_db_connection_string
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "jwt_access_secret" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "jwt-access-secret"
-  value        = random_password.jwt_access.result
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "jwt_refresh_secret" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "jwt-refresh-secret"
-  value        = random_password.jwt_refresh.result
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "smtp_host" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "smtp-host"
-  value        = var.secrets.smtp_host
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "smtp_port" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "smtp-port"
-  value        = var.secrets.smtp_port
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "smtp_user" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "smtp-user"
-  value        = var.secrets.smtp_user
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "smtp_pass" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "smtp-pass"
-  value        = var.secrets.smtp_pass
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "smtp_from" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "smtp-from"
-  value        = var.secrets.smtp_from
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "sendgrid_api_key" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "sendgrid-api-key"
-  value        = var.secrets.sendgrid_api_key
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "sendgrid_from" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "sendgrid-from"
-  value        = var.secrets.sendgrid_from
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "blob_storage_account" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "blob-storage-account"
-  value        = var.secrets.blob_storage_account
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "blob_storage_key" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "blob-storage-key"
-  value        = var.secrets.blob_storage_key
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "snyk_token" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "snyk-token"
-  value        = var.secrets.snyk_token
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "sonar_token" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "sonar-token"
-  value        = var.secrets.sonar_token
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# SENSITIVE - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "postgres_admin_password" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "postgres-admin-password"
-  value        = var.postgres_admin_password
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# NON-SENSITIVE - Can be moved to ConfigMap later if needed
-resource "azurerm_key_vault_secret" "frontend_url" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "frontend-url"
-  value        = "https://clahaanacademy.online"
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# NON-SENSITIVE - Can be moved to ConfigMap later if needed
-resource "azurerm_key_vault_secret" "ai_service_url" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "ai-service-url"
-  value        = "http://ai-service.clahan-academy.svc.cluster.local:8000"
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# NON-SENSITIVE - Can be moved to ConfigMap later if needed
-resource "azurerm_key_vault_secret" "ollama_url" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "ollama-url"
-  value        = "http://ollama.clahan-academy.svc.cluster.local:11434"
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# NON-SENSITIVE - Can be moved to ConfigMap later if needed
-resource "azurerm_key_vault_secret" "judge0_url" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "judge0-url"
-  value        = "http://judge0-api.clahan-academy.svc.cluster.local:2358"
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# NON-SENSITIVE - Can be moved to ConfigMap later if needed
-resource "azurerm_key_vault_secret" "node_env" {
-  depends_on = [time_sleep.wait_for_rbac]
-  name         = "node-env"
-  value        = "production"
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-# Auto-generated JWT access token signing secret
+# Auto-generate JWT secrets
 resource "random_password" "jwt_access" {
   length           = 64
   special          = true
@@ -302,7 +71,6 @@ resource "random_password" "jwt_access" {
   min_special      = 4
 }
 
-# Auto-generated JWT refresh token signing secret
 resource "random_password" "jwt_refresh" {
   length           = 64
   special          = true
@@ -313,24 +81,193 @@ resource "random_password" "jwt_refresh" {
   min_special      = 4
 }
 
-# Private endpoint ensures Key Vault is only accessible within VNet
-resource "azurerm_private_endpoint" "keyvault" {
-  name                = "pe-keyvault"
-  location            = var.location
-  resource_group_name = var.resource_group_name
-  subnet_id           = var.subnet_privateendpoints_id
+# SENSITIVE SECRETS - Never move to ConfigMap
+resource "azurerm_key_vault_secret" "db_connection_string" {
+  name         = "db-connection-string"
+  value        = var.secrets.db_connection_string
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
 
-  private_service_connection {
-    name                           = "pec-keyvault"
-    private_connection_resource_id = azurerm_key_vault.main.id
-    subresource_names              = ["vault"]
-    is_manual_connection           = false
-  }
+resource "azurerm_key_vault_secret" "judge0_db_connection_string" {
+  name         = "judge0-db-connection-string"
+  value        = var.secrets.judge0_db_connection_string
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
 
-  private_dns_zone_group {
-    name                 = "keyvault-dns-group"
-    private_dns_zone_ids = [var.private_dns_zone_keyvault_id]
-  }
+resource "azurerm_key_vault_secret" "redis_connection_string" {
+  name         = "redis-connection-string"
+  value        = var.secrets.redis_connection_string
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
 
-  tags = local.tags
+resource "azurerm_key_vault_secret" "jwt_access_secret" {
+  name         = "jwt-access-secret"
+  value        = random_password.jwt_access.result
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "jwt_refresh_secret" {
+  name         = "jwt-refresh-secret"
+  value        = random_password.jwt_refresh.result
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "smtp_host" {
+  name         = "smtp-host"
+  value        = var.secrets.smtp_host
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "smtp_port" {
+  name         = "smtp-port"
+  value        = var.secrets.smtp_port
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "smtp_user" {
+  name         = "smtp-user"
+  value        = var.secrets.smtp_user
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "smtp_pass" {
+  name         = "smtp-pass"
+  value        = var.secrets.smtp_pass
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "smtp_from" {
+  name         = "smtp-from"
+  value        = var.secrets.smtp_from
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "sendgrid_api_key" {
+  name         = "sendgrid-api-key"
+  value        = var.secrets.sendgrid_api_key
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "sendgrid_from" {
+  name         = "sendgrid-from"
+  value        = var.secrets.sendgrid_from
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "blob_storage_account" {
+  name         = "blob-storage-account"
+  value        = var.secrets.blob_storage_account
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "blob_storage_key" {
+  name         = "blob-storage-key"
+  value        = var.secrets.blob_storage_key
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "snyk_token" {
+  name         = "snyk-token"
+  value        = var.secrets.snyk_token
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "sonar_token" {
+  name         = "sonar-token"
+  value        = var.secrets.sonar_token
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+# NON-SENSITIVE - Can be moved to ConfigMap later
+resource "azurerm_key_vault_secret" "frontend_url" {
+  name         = "frontend-url"
+  value        = "https://clahaanacademy.online"
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "ai_service_url" {
+  name         = "ai-service-url"
+  value        = "http://ai-service.clahan-academy.svc.cluster.local:8000"
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "ollama_url" {
+  name         = "ollama-url"
+  value        = "http://ollama.clahan-academy.svc.cluster.local:11434"
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "judge0_url" {
+  name         = "judge0-url"
+  value        = "http://judge0-api.clahan-academy.svc.cluster.local:2358"
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
+}
+
+resource "azurerm_key_vault_secret" "node_env" {
+  name         = "node-env"
+  value        = "production"
+  key_vault_id = azurerm_key_vault.main.id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [time_sleep.wait_for_rbac]
 }
