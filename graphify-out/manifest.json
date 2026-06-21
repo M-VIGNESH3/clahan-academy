@@ -109,11 +109,6 @@
     "ast_hash": "9c0adf880379ac7acd1039e9740a6dfb",
     "semantic_hash": ""
   },
-  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\ingress.yaml": {
-    "mtime": 1781845970.729715,
-    "ast_hash": "0e9b08da65f02ba074d154875ecdd109",
-    "semantic_hash": ""
-  },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\namespace.yaml": {
     "mtime": 1781845970.7118907,
     "ast_hash": "d77ecdc1abd6346cd05aaaa2d0b3c23c",
@@ -600,13 +595,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\values.yaml": {
-    "mtime": 1781970730.6137922,
-    "ast_hash": "2b6b5869dc6a06c14d42aca37bfc4c3d",
-    "semantic_hash": ""
-  },
-  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\ingress.yaml": {
-    "mtime": 1781968108.5257852,
-    "ast_hash": "487f16ae9c98b498ad9c758317b21902",
+    "mtime": 1782028632.1020975,
+    "ast_hash": "725ba2f7945a441e4266d5ed2031b3b1",
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\namespace.yaml": {
@@ -1097,6 +1087,76 @@
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\values-prod.yaml": {
     "mtime": 1781978281.4172983,
     "ast_hash": "915d665e3418ca0ee2982e0c0f19d7a0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\scripts\\install-kgateway.sh": {
+    "mtime": 1782028663.8414876,
+    "ast_hash": "5de466fa39405e09b76e3787a5a36cce",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\build-and-push.ps1": {
+    "mtime": 1781439946.068903,
+    "ast_hash": "44febf762c09d0d6c796ec591b1f020d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\build-and-push.sh": {
+    "mtime": 1781439933.6950889,
+    "ast_hash": "bff21fd5d168484a995ec18d99b449ec",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\terraform\\scripts\\bootstrap.sh": {
+    "mtime": 1781938425.5546532,
+    "ast_hash": "f49a94f0be13a13da5788c03f9c21f15",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\argocd\\dev\\application.yaml": {
+    "mtime": 1781971515.3863854,
+    "ast_hash": "dc0f1cfd0624a2f28670ff8ca83a9ecb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\argocd\\dev\\project.yaml": {
+    "mtime": 1781971502.065169,
+    "ast_hash": "5ba8042ee81fac1e0e30595897763a90",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\gateway.yaml": {
+    "mtime": 1782028631.58373,
+    "ast_hash": "f764eed1de83804b4a449eafce4fc525",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\httproute.yaml": {
+    "mtime": 1782028631.94578,
+    "ast_hash": "04fdc4f755313af99f4cff58fa77a583",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\gateway.yaml": {
+    "mtime": 1782028649.3729048,
+    "ast_hash": "ce5ff0b7961e121c180f0bc698f08994",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\docker-compose.yml": {
+    "mtime": 1781428406.3595042,
+    "ast_hash": "7249e2d93a89625b22ea1cd8acdd00ac",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\README.md": {
+    "mtime": 1781972039.145613,
+    "ast_hash": "7f409fa58c72d6661425e88361ca13c5",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\.github\\workflows\\build.yml": {
+    "mtime": 1782009531.7037017,
+    "ast_hash": "6736c01538aaa7da6d7dd1c07f4c3e6e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\.github\\workflows\\deploy.yml": {
+    "mtime": 1781966961.1936023,
+    "ast_hash": "1e28c3af184121acabdf775737a82030",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\terraform\\.github\\workflows\\terraform-apply.yml": {
+    "mtime": 1782009774.7681606,
+    "ast_hash": "43886ac6bbe4455453e0b1640f3a7f86",
     "semantic_hash": ""
   }
 }

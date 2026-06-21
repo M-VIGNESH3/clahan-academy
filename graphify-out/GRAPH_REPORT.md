@@ -1,16 +1,16 @@
-# Graph Report - clahan academy  (2026-06-20)
+# Graph Report - clahan academy  (2026-06-21)
 
 ## Corpus Check
-- 51 files · ~101,310 words
+- 56 files · ~108,690 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1006 nodes · 990 edges · 71 communities (66 shown, 5 thin omitted)
+- 1059 nodes · 1056 edges · 76 communities (69 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `60d0c08c`
+- Built from commit: `282f5e1a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -82,14 +82,18 @@
 - [[_COMMUNITY_Community 68|Community 68]]
 - [[_COMMUNITY_Community 69|Community 69]]
 - [[_COMMUNITY_Community 70|Community 70]]
+- [[_COMMUNITY_Community 71|Community 71]]
+- [[_COMMUNITY_Community 72|Community 72]]
+- [[_COMMUNITY_Community 73|Community 73]]
+- [[_COMMUNITY_Community 74|Community 74]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `compilerOptions` - 16 edges
 2. `Table Definitions & DDL Schema` - 16 edges
 3. `🎓 Clahan Academy V2` - 15 edges
-4. `Clahan-Academy Online Exam Platform Infrastructure (Active-Standby DR)` - 13 edges
-5. `compilerOptions` - 12 edges
-6. `compilerOptions` - 12 edges
+4. `🎓 Clahan Academy V2` - 15 edges
+5. `bootstrap.sh script` - 13 edges
+6. `Clahan-Academy Online Exam Platform Infrastructure (Active-Standby DR)` - 13 edges
 7. `compilerOptions` - 12 edges
 8. `compilerOptions` - 12 edges
 9. `compilerOptions` - 12 edges
@@ -98,7 +102,7 @@
 ## Surprising Connections (you probably didn't know these)
 - None detected - all connections are within the same source files.
 
-## Communities (71 total, 5 thin omitted)
+## Communities (76 total, 7 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
@@ -197,8 +201,8 @@ Cohesion: 0.14
 Nodes (12): app, parsed, deliveryLogs, sendGridFrom, sendGridKey, smtpFrom, smtpHost, smtpPass (+4 more)
 
 ### Community 24 - "Community 24"
-Cohesion: 0.47
-Nodes (7): bootstrap.sh script, check_tool(), create_federated_credential(), error(), info(), print_banner(), success()
+Cohesion: 0.28
+Nodes (13): bootstrap.sh script, check_tool(), create_federated_credential(), error(), info(), print_banner(), check_tool(), create_federated_credential() (+5 more)
 
 ### Community 27 - "Community 27"
 Cohesion: 0.09
@@ -348,20 +352,26 @@ Nodes (5): ☁️ 6. Production-Grade Azure Architecture, Active-Standby Cross-R
 Cohesion: 0.50
 Nodes (4): 🛠️ 5. Deployment Configurations, A. Pre-Exam Verification Handshake, code:bash (docker-compose up --build -d), Production Container Stack (Docker Compose)
 
+### Community 71 - "Community 71"
+Cohesion: 0.06
+Nodes (31): Approach 1: Standalone Manifests (Quick Demo), Approach 2: GitOps/ArgoCD (Production), 🏗️ Architecture, 🎁 Bonus Features, 🔄 CI/CD Pipelines, 🎓 Clahan Academy V2, 🔐 Cloud Integration (Workload Identity), code:block1 (+-----------------------+) (+23 more)
+
+### Community 72 - "Community 72"
+Cohesion: 0.47
+Nodes (7): bootstrap.sh script, check_tool(), create_federated_credential(), error(), info(), print_banner(), success()
+
 ## Knowledge Gaps
-- **633 isolated node(s):** `build-and-push.sh script`, `copy-env-examples.sh script`, `version`, `isEnabled`, `excludedTypes` (+628 more)
+- **656 isolated node(s):** `build-and-push.sh script`, `copy-env-examples.sh script`, `version`, `isEnabled`, `excludedTypes` (+651 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Clahan Academy V2 — Complete System Documentation & Architecture Guide` connect `Community 35` to `Community 36`?**
-  _High betweenness centrality (0.004) - this node is a cross-community bridge._
-- **Why does `Clahan Academy Online Exam Platform — Comprehensive System Reference` connect `Community 62` to `Community 64`, `Community 65`, `Community 66`, `Community 67`?**
   _High betweenness centrality (0.002) - this node is a cross-community bridge._
 - **What connects `build-and-push.sh script`, `copy-env-examples.sh script`, `version` to the rest of the system?**
-  _634 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _657 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
@@ -370,3 +380,5 @@ _Questions this graph is uniquely positioned to answer:_
   _Cohesion score 0.06896551724137931 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
   _Cohesion score 0.07142857142857142 - nodes in this community are weakly interconnected._
+- **Should `Community 4` be split into smaller, more focused modules?**
+  _Cohesion score 0.07692307692307693 - nodes in this community are weakly interconnected._

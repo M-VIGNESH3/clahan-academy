@@ -1,0 +1,210 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: clahan-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: clahan
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d clahan"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: clahan-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth-service:
+    build: ./auth-service
+    container_name: clahan-auth-service
+    ports:
+      - "4001:4001"
+    env_file:
+      - ./auth-service/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  admin-service:
+    build: ./admin-service
+    container_name: clahan-admin-service
+    ports:
+      - "4002:4002"
+    env_file:
+      - ./admin-service/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  student-service:
+    build: ./student-service
+    container_name: clahan-student-service
+    ports:
+      - "4003:4003"
+    env_file:
+      - ./student-service/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  exam-service:
+    build: ./exam-service
+    container_name: clahan-exam-service
+    ports:
+      - "4004:4004"
+    env_file:
+      - ./exam-service/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+      judge0-api:
+        condition: service_started
+
+  proctoring-service:
+    build: ./proctoring-service
+    container_name: clahan-proctoring-service
+    ports:
+      - "4005:4005"
+    env_file:
+      - ./proctoring-service/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ai-service:
+        condition: service_started
+
+  notification-service:
+    build: ./notification-service
+    container_name: clahan-notification-service
+    ports:
+      - "4006:4006"
+    env_file:
+      - ./notification-service/.env
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  ai-service:
+    build: ./ai-service
+    container_name: clahan-ai-service
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./ai-service/.env
+
+  ollama-service:
+    image: ollama/ollama:latest
+    container_name: clahan-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+
+  frontend-service:
+    build:
+      context: ./frontend-service
+      dockerfile: Dockerfile
+    container_name: clahan-frontend-service
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      - auth-service
+      - admin-service
+      - student-service
+      - exam-service
+      - proctoring-service
+
+  # --- JUDGE0 COMPILATION STACK ---
+  judge0-db:
+    image: postgres:16-alpine
+    container_name: clahan-judge0-db
+    environment:
+      POSTGRES_DB: judge0
+      POSTGRES_USER: judge0
+      POSTGRES_PASSWORD: judge0_password
+    volumes:
+      - judge0-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d judge0 -U judge0"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  judge0-redis:
+    image: redis:7-alpine
+    container_name: clahan-judge0-redis
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  judge0-api:
+    image: mrkushalsm/judge0:cgv2
+    container_name: clahan-judge0-api
+    ports:
+      - "2358:2358"
+    environment:
+      REDIS_HOST: judge0-redis
+      REDIS_PORT: 6379
+      POSTGRES_HOST: judge0-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: judge0
+      POSTGRES_USER: judge0
+      POSTGRES_PASSWORD: judge0_password
+    depends_on:
+      judge0-db:
+        condition: service_healthy
+      judge0-redis:
+        condition: service_healthy
+
+  judge0-worker:
+    image: mrkushalsm/judge0:cgv2
+    container_name: clahan-judge0-worker
+    command: ["./scripts/workers"]
+    privileged: true # Required for compiler sandbox runtime isolation
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    environment:
+      REDIS_HOST: judge0-redis
+      REDIS_PORT: 6379
+      POSTGRES_HOST: judge0-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: judge0
+      POSTGRES_USER: judge0
+      POSTGRES_PASSWORD: judge0_password
+    depends_on:
+      judge0-api:
+        condition: service_started
+
+volumes:
+  pgdata:
+  redisdata:
+  ollama-data:
+  judge0-db-data:

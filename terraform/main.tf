@@ -1,24 +1,20 @@
-# terraform/environments/dev/main.tf
-
-# Clahan Academy V2 - Dev Environment
-# Wires all Terraform modules together
-# Region: West Central US
-# Last updated: 2026
+# terraform/main.tf
+# Main entrypoint for Clahan Academy V2 Infrastructure
 
 locals {
   tags = {
-    Environment = "dev"
+    Environment = var.environment
     Project     = "clahan-academy"
     Owner       = "M-VIGNESH3"
     ManagedBy   = "terraform"
-    Region      = "westcentralus"
+    Region      = var.location
   }
 }
 
 data "azurerm_client_config" "current" {}
 
 module "networking" {
-  source = "../../modules/networking"
+  source = "./modules/networking"
 
   resource_group_name = var.resource_group_name
   location            = var.location
@@ -26,7 +22,7 @@ module "networking" {
 }
 
 module "monitoring" {
-  source = "../../modules/monitoring"
+  source = "./modules/monitoring"
 
   resource_group_name = module.networking.resource_group_name
   location            = var.location
@@ -35,7 +31,7 @@ module "monitoring" {
 }
 
 module "acr" {
-  source = "../../modules/acr"
+  source = "./modules/acr"
 
   resource_group_name        = module.networking.resource_group_name
   location                   = var.location
@@ -44,7 +40,7 @@ module "acr" {
 }
 
 module "storage" {
-  source = "../../modules/storage"
+  source = "./modules/storage"
 
   resource_group_name        = module.networking.resource_group_name
   location                   = var.location
@@ -54,23 +50,28 @@ module "storage" {
 }
 
 module "postgres" {
-  source = "../../modules/postgres"
+  source = "./modules/postgres"
 
   resource_group_name          = module.networking.resource_group_name
   location                     = var.location
   subnet_postgres_id           = module.networking.subnet_postgres_id
   private_dns_zone_postgres_id = module.networking.private_dns_zone_ids["postgres"]
+  sku_name                     = var.postgres_sku
+  storage_mb                   = var.postgres_storage_mb
+  backup_retention_days        = var.postgres_backup_days
+  geo_redundant_backup_enabled = var.postgres_geo_redundant
   tags                         = local.tags
 }
 
 module "keyvault" {
-  source = "../../modules/keyvault"
+  source = "./modules/keyvault"
 
   resource_group_name = module.networking.resource_group_name
   location            = var.location
   tenant_id           = var.tenant_id
   deployer_object_id  = var.deployer_object_id
   github_sp_object_id = var.github_sp_object_id
+  key_vault_name      = var.key_vault_name
   tags                = local.tags
 
   secrets = {
@@ -89,7 +90,7 @@ module "keyvault" {
 }
 
 module "aks" {
-  source = "../../modules/aks"
+  source = "./modules/aks"
 
   cluster_name               = "aks-clahan-academy"
   location                   = var.location
@@ -101,11 +102,15 @@ module "aks" {
   vnet_id                    = module.networking.vnet_id
   log_analytics_workspace_id = module.monitoring.log_analytics_workspace_id
   acr_id                     = module.acr.acr_id
+  app_node_vm_size           = var.app_node_vm_size
+  app_node_count             = var.app_node_count
+  app_min_count              = var.app_min_count
+  app_max_count              = var.app_max_count
   tags                       = local.tags
 }
 
 module "identity" {
-  source = "../../modules/identity"
+  source = "./modules/identity"
 
   resource_group_name = module.networking.resource_group_name
   location            = var.location
@@ -118,7 +123,7 @@ module "identity" {
 }
 
 module "jumpvm" {
-  source = "../../modules/jumpvm"
+  source = "./modules/jumpvm"
 
   resource_group_name = module.networking.resource_group_name
   location            = var.location
@@ -128,7 +133,6 @@ module "jumpvm" {
   tags                = local.tags
 }
 
-# Functions module removed - VM quota limit on free subscription
 # DB Secrets at root level to avoid circular dependency
 resource "azurerm_key_vault_secret" "db_connection_string" {
   name         = "db-connection-string"

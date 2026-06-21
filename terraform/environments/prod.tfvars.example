@@ -1,0 +1,47 @@
+# ================================================================
+# PRODUCTION Environment Variables Example
+# Copy to prod.tfvars and fill in your values
+# ================================================================
+
+environment         = "prod"
+resource_group_name = "rg-clahan-prod"
+location            = "eastus2"
+
+# Azure Identity (from bootstrap output)
+subscription_id      = "34c41824-bb7a-4316-af37-2597f35b730e"
+tenant_id            = "67e6de35-58f8-4419-b1c4-1e5d7c49e04b"
+github_app_client_id = "PLACEHOLDER_YOUR_VALUE_HERE"
+github_sp_object_id  = "PLACEHOLDER_YOUR_VALUE_HERE"
+deployer_object_id   = "PLACEHOLDER_YOUR_VALUE_HERE"
+
+# Admin
+admin_email = "admin@clahaanacademy.online"
+
+# SMTP (sensitive - use TF_VAR_* env vars in pipeline)
+smtp_host = "smtp.gmail.com"
+smtp_port = "587"
+smtp_user = "PLACEHOLDER_YOUR_VALUE_HERE"
+smtp_pass = "PLACEHOLDER_YOUR_VALUE_HERE"
+smtp_from = "PLACEHOLDER_YOUR_VALUE_HERE"
+
+# Security tokens (set via TF_VAR_* in pipeline)
+snyk_token  = "PLACEHOLDER_YOUR_VALUE_HERE"
+sonar_token = "PLACEHOLDER_YOUR_VALUE_HERE"
+
+# Key Vault (globally unique name)
+key_vault_name = "kv-clahan-prod"
+
+# AKS PRODUCTION sizing (bigger than dev)
+app_node_vm_size = "Standard_D4s_v3"
+app_node_count   = 2
+app_min_count    = 2
+app_max_count    = 5
+
+# PostgreSQL PRODUCTION
+postgres_sku           = "GP_Standard_D4s_v3"
+postgres_storage_mb    = 65536
+postgres_backup_days   = 14
+postgres_geo_redundant = true
+
+# Redis PRODUCTION
+redis_capacity = 2

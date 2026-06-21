@@ -1,0 +1,31 @@
+# terraform/.gitignore
+# Terraform state - NEVER commit
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfplan
+tfplan
+
+# Environment files with secrets - NEVER commit
+environments/prod.tfvars
+environments/dev.tfvars
+
+# BUT commit the example files
+!environments/prod.tfvars.example
+!environments/dev.tfvars.example
+
+# Bootstrap output
+.bootstrap-output.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

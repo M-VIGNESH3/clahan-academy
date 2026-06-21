@@ -66,10 +66,10 @@ resource "azurerm_subnet" "aks" {
 
 # Subnet dedicated to Private Endpoints for secure private access to resources
 resource "azurerm_subnet" "privateendpoints" {
-  name                                      = "snet-privateendpoints"
-  address_prefixes                          = ["10.0.5.0/24"]
-  resource_group_name                       = azurerm_resource_group.main.name
-  virtual_network_name                      = azurerm_virtual_network.main.name
+  name                              = "snet-privateendpoints"
+  address_prefixes                  = ["10.0.5.0/24"]
+  resource_group_name               = azurerm_resource_group.main.name
+  virtual_network_name              = azurerm_virtual_network.main.name
   private_endpoint_network_policies = "Disabled"
 }
 

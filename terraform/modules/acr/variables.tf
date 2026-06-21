@@ -8,7 +8,7 @@ variable "resource_group_name" {
 variable "location" {
   description = "Azure region"
   type        = string
-  default = "eastus2"
+  default     = "eastus2"
 }
 
 variable "subnet_privateendpoints_id" {

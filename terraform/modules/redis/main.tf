@@ -20,10 +20,10 @@ resource "azurerm_redis_cache" "main" {
   enable_non_ssl_port = false
 
   redis_configuration {
-    enable_authentication            = true
-    maxmemory_policy                 = "allkeys-lru"
-    maxmemory_reserved               = 50
-    maxfragmentationmemory_reserved  = 50
+    enable_authentication           = true
+    maxmemory_policy                = "allkeys-lru"
+    maxmemory_reserved              = 50
+    maxfragmentationmemory_reserved = 50
   }
 
   patch_schedule {

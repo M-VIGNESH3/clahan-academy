@@ -1,4 +1,5 @@
-# terraform/environments/prod/providers.tf
+# terraform/providers.tf
+# Provider definitions for Clahan Academy V2 Infrastructure
 
 terraform {
   required_version = ">= 1.6.0"
@@ -14,6 +15,10 @@ terraform {
     random = {
       source  = "hashicorp/random"
       version = "~> 3.6"
+    }
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.11"
     }
   }
 }
@@ -39,3 +44,5 @@ provider "azuread" {
 }
 
 provider "random" {}
+
+provider "time" {}

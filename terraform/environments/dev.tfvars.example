@@ -1,0 +1,47 @@
+# ================================================================
+# DEVELOPMENT Environment Variables Example
+# Copy to dev.tfvars and fill in your values
+# ================================================================
+
+environment         = "dev"
+resource_group_name = "rg-clahan-dev"
+location            = "eastus2"
+
+# Azure Identity (from bootstrap output)
+subscription_id      = "34c41824-bb7a-4316-af37-2597f35b730e"
+tenant_id            = "67e6de35-58f8-4419-b1c4-1e5d7c49e04b"
+github_app_client_id = "PLACEHOLDER_YOUR_VALUE_HERE"
+github_sp_object_id  = "PLACEHOLDER_YOUR_VALUE_HERE"
+deployer_object_id   = "PLACEHOLDER_YOUR_VALUE_HERE"
+
+# Admin
+admin_email = "admin@clahaanacademy.online"
+
+# SMTP
+smtp_host = "smtp.gmail.com"
+smtp_port = "587"
+smtp_user = "PLACEHOLDER_YOUR_VALUE_HERE"
+smtp_pass = "PLACEHOLDER_YOUR_VALUE_HERE"
+smtp_from = "PLACEHOLDER_YOUR_VALUE_HERE"
+
+# Security tokens
+snyk_token  = "PLACEHOLDER_YOUR_VALUE_HERE"
+sonar_token = "PLACEHOLDER_YOUR_VALUE_HERE"
+
+# Key Vault (globally unique name)
+key_vault_name = "kv-clahan-dev"
+
+# AKS DEV sizing (minimal)
+app_node_vm_size = "Standard_D2s_v3"
+app_node_count   = 1
+app_min_count    = 1
+app_max_count    = 3
+
+# PostgreSQL DEV
+postgres_sku           = "GP_Standard_D2s_v3"
+postgres_storage_mb    = 32768
+postgres_backup_days   = 7
+postgres_geo_redundant = false
+
+# Redis DEV
+redis_capacity = 1
