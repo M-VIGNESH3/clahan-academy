@@ -1,5 +1,5 @@
 # terraform/modules/postgres/main.tf
-# PostgreSQL Flexible Server with private access
+# PostgreSQL Flexible Server
 
 locals {
   tags = merge(var.tags, {
@@ -17,7 +17,6 @@ resource "random_password" "postgres_admin" {
   min_special      = 2
 }
 
-# PostgreSQL Flexible Server
 resource "azurerm_postgresql_flexible_server" "main" {
   name                = "psql-clahan-academy"
   resource_group_name = var.resource_group_name
@@ -45,15 +44,13 @@ resource "azurerm_postgresql_flexible_server" "main" {
   lifecycle {
     ignore_changes = [
       administrator_password,
-      zone,
-      high_availability[0].standby_availability_zone
+      zone
     ]
   }
 
   tags = local.tags
 }
 
-# Main application database
 resource "azurerm_postgresql_flexible_server_database" "clahan_academy" {
   name      = "clahan_academy"
   server_id = azurerm_postgresql_flexible_server.main.id
@@ -61,7 +58,6 @@ resource "azurerm_postgresql_flexible_server_database" "clahan_academy" {
   collation = "en_US.utf8"
 }
 
-# Judge0 compilation sandbox database
 resource "azurerm_postgresql_flexible_server_database" "judge0" {
   name      = "judge0"
   server_id = azurerm_postgresql_flexible_server.main.id
@@ -71,12 +67,6 @@ resource "azurerm_postgresql_flexible_server_database" "judge0" {
 
 resource "azurerm_postgresql_flexible_server_configuration" "connection_throttling" {
   name      = "connection_throttling"
-  server_id = azurerm_postgresql_flexible_server.main.id
-  value     = "on"
-}
-
-resource "azurerm_postgresql_flexible_server_configuration" "log_connections" {
-  name      = "log_connections"
   server_id = azurerm_postgresql_flexible_server.main.id
   value     = "on"
 }

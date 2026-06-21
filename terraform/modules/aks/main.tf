@@ -16,14 +16,7 @@ resource "azurerm_user_assigned_identity" "aks" {
 }
 
 # AKS identity needs DNS contributor on the private DNS zone
-resource "azurerm_role_assignment" "aks_dns" {
-  role_definition_name = "Private DNS Zone Contributor"
-  principal_id         = azurerm_user_assigned_identity.aks.principal_id
-  scope                = var.private_dns_zone_aks_id
-
-  lifecycle {
-    ignore_changes = all
-  }
+# aks_dns role removed - public cluster
 }
 
 # AKS identity needs Network Contributor on VNet
@@ -45,9 +38,9 @@ resource "azurerm_kubernetes_cluster" "main" {
   kubernetes_version                = var.kubernetes_version
   dns_prefix                        = var.dns_prefix
   sku_tier                          = "Standard"
-  private_cluster_enabled           = true
-  private_dns_zone_id               = var.private_dns_zone_aks_id
-  private_cluster_public_fqdn_enabled = false
+  private_cluster_enabled = false
+  # private_dns_zone_id removed for public cluster
+  # private_cluster_public_fqdn_enabled removed
 
   depends_on = [
     azurerm_role_assignment.aks_dns,

@@ -52,6 +52,7 @@ variable "vnet_id" {
 variable "private_dns_zone_aks_id" {
   description = "ID of the AKS private DNS zone"
   type        = string
+  default     = ""
 }
 
 variable "log_analytics_workspace_id" {

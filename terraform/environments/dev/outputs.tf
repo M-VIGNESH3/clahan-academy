@@ -52,10 +52,7 @@ output "app_insights_name" {
   value       = module.monitoring.app_insights_name
 }
 
-output "function_app_name" {
-  description = "Azure Function App name"
-  value       = module.functions.function_app_name
-}
+
 
 output "jump_vm_name" {
   description = "Jump VM name for Bastion access"
