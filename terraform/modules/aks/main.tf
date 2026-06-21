@@ -37,7 +37,7 @@ resource "azurerm_kubernetes_cluster" "main" {
   default_node_pool {
     name                        = "app"
     node_count                  = var.app_node_count
-    vm_size                     = "Standard_D2s_v3"
+    vm_size = "Standard_D2s_v3"
     os_disk_size_gb             = 128
     vnet_subnet_id              = var.subnet_aks_id
     enable_auto_scaling         = true
@@ -90,7 +90,7 @@ resource "azurerm_kubernetes_cluster" "main" {
 resource "azurerm_kubernetes_cluster_node_pool" "ai" {
   name                  = "ai"
   kubernetes_cluster_id = azurerm_kubernetes_cluster.main.id
-  vm_size               = "Standard_D2s_v3"
+  vm_size = "Standard_D2s_v3"
   node_count            = 1
   vnet_subnet_id        = var.subnet_aks_id
   enable_auto_scaling   = false
