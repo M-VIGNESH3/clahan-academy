@@ -1,0 +1,76 @@
+# FOR DEMO/EVALUATION ONLY
+# kGateway - Gateway API for external access
+# Install kGateway first: helm install kgateway oci://cr.kgateway.dev/kgateway-helm/kgateway
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: clahan-gateway
+  namespace: production
+spec:
+  gatewayClassName: kgateway
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: clahan-routes
+  namespace: production
+spec:
+  parentRefs:
+    - name: clahan-gateway
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/auth
+      backendRefs:
+        - name: auth-service
+          port: 4001
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/admin
+      backendRefs:
+        - name: admin-service
+          port: 4002
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/student
+      backendRefs:
+        - name: student-service
+          port: 4003
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/exams
+      backendRefs:
+        - name: exam-service
+          port: 4004
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/proctor
+      backendRefs:
+        - name: proctoring-service
+          port: 4005
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/notifications
+      backendRefs:
+        - name: notification-service
+          port: 4006
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: frontend-service
+          port: 5173

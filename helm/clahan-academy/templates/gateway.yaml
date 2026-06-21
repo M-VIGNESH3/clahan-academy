@@ -1,0 +1,31 @@
+# helm/clahan-academy/templates/gateway.yaml
+# kGateway - Gateway API implementation
+# Replaces AGIC/nginx ingress controller
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: clahan-gateway
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: clahan-gateway
+    app.kubernetes.io/managed-by: helm
+spec:
+  gatewayClassName: kgateway
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: https
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: clahan-tls-secret
+            kind: Secret
+      allowedRoutes:
+        namespaces:
+          from: Same

@@ -1,0 +1,79 @@
+# helm/clahan-academy/templates/httproute.yaml
+# HTTPRoute - routes traffic to correct microservices
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: clahan-routes
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app.kubernetes.io/name: clahan-routes
+    app.kubernetes.io/managed-by: helm
+spec:
+  parentRefs:
+    - name: clahan-gateway
+      namespace: {{ .Values.global.namespace }}
+  hostnames:
+    - {{ .Values.ingress.host | quote }}
+  rules:
+    # Auth Service
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/auth
+      backendRefs:
+        - name: auth-service
+          port: 4001
+
+    # Admin Service
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/admin
+      backendRefs:
+        - name: admin-service
+          port: 4002
+
+    # Student Service
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/student
+      backendRefs:
+        - name: student-service
+          port: 4003
+
+    # Exam Service
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/exams
+      backendRefs:
+        - name: exam-service
+          port: 4004
+
+    # Proctoring Service (WebSocket supported)
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/proctor
+      backendRefs:
+        - name: proctoring-service
+          port: 4005
+
+    # Notification Service
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/notifications
+      backendRefs:
+        - name: notification-service
+          port: 4006
+
+    # Frontend - catch all
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: frontend-service
+          port: 5173

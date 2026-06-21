@@ -217,8 +217,10 @@ judge0:
 
 ingress:
   enabled: true
-  className: azure-application-gateway
   host: clahaanacademy.online
   tls:
     enabled: true
-    clusterIssuer: letsencrypt-prod
+    secretName: clahan-tls-secret
+
+gateway:
+  className: kgateway
