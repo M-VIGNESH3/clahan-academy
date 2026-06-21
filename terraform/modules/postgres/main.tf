@@ -22,7 +22,7 @@ resource "azurerm_postgresql_flexible_server" "main" {
   name                          = "psql-clahan-academy"
   resource_group_name           = var.resource_group_name
   location                      = var.location
-  administrator_login            = "clahanadmin"
+  administrator_login           = "clahanadmin"
   administrator_password        = random_password.postgres_admin.result
   sku_name                      = var.sku_name
   version                       = "15"
