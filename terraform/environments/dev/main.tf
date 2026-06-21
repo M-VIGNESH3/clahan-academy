@@ -60,7 +60,6 @@ module "postgres" {
   location                     = var.location
   subnet_postgres_id           = module.networking.subnet_postgres_id
   private_dns_zone_postgres_id = module.networking.private_dns_zone_ids["postgres"]
-  key_vault_id                 = module.keyvault.key_vault_id
   tags                         = local.tags
 }
 
@@ -133,3 +132,30 @@ module "jumpvm" {
 }
 
 # Functions module removed - VM quota limit on free subscription
+# DB Secrets at root level to avoid circular dependency
+resource "azurerm_key_vault_secret" "db_connection_string" {
+  name         = "db-connection-string"
+  value        = module.postgres.app_connection_string
+  key_vault_id = module.keyvault.key_vault_id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [module.keyvault, module.postgres]
+}
+
+resource "azurerm_key_vault_secret" "judge0_db_connection_string" {
+  name         = "judge0-db-connection-string"
+  value        = module.postgres.judge0_connection_string
+  key_vault_id = module.keyvault.key_vault_id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [module.keyvault, module.postgres]
+}
+
+resource "azurerm_key_vault_secret" "postgres_admin_password" {
+  name         = "postgres-admin-password"
+  value        = module.postgres.admin_password
+  key_vault_id = module.keyvault.key_vault_id
+  content_type = "text/plain"
+  tags         = local.tags
+  depends_on   = [module.keyvault, module.postgres]
+}

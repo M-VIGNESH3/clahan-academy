@@ -8,11 +8,11 @@ variable "resource_group_name" {
 variable "location" {
   description = "Azure region"
   type        = string
-  default     = "westcentralus"
+  default     = "eastus"
 }
 
 variable "subnet_postgres_id" {
-  description = "ID of the PostgreSQL delegated subnet (10.0.7.0/24)"
+  description = "ID of the delegated PostgreSQL subnet"
   type        = string
 }
 
@@ -21,14 +21,8 @@ variable "private_dns_zone_postgres_id" {
   type        = string
 }
 
-variable "tags" {
-  description = "Tags to apply to all resources"
-  type        = map(string)
-  default     = {}
-}
-
 variable "sku_name" {
-  description = "PostgreSQL SKU name"
+  description = "PostgreSQL SKU"
   type        = string
   default     = "GP_Standard_D2s_v3"
 }
@@ -40,24 +34,19 @@ variable "storage_mb" {
 }
 
 variable "backup_retention_days" {
-  description = "Backup retention in days"
+  description = "Backup retention days"
   type        = number
   default     = 7
 }
 
 variable "geo_redundant_backup_enabled" {
-  description = "Enable geo-redundant backups"
+  description = "Geo-redundant backup"
   type        = bool
   default     = false
 }
 
-variable "high_availability_mode" {
-  description = "High availability mode (Disabled, ZoneRedundant, SameZone)"
-  type        = string
-  default     = "Disabled"
-}
-
-variable "key_vault_id" {
-  description = "Resource ID of the Key Vault to store secrets"
-  type        = string
+variable "tags" {
+  description = "Tags"
+  type        = map(string)
+  default     = {}
 }
