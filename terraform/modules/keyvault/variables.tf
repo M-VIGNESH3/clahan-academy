@@ -51,10 +51,7 @@ variable "postgres_admin_password" {
 
 variable "secrets" {
   description = "Sensitive secrets to store in Key Vault"
-  type = object({
-    db_connection_string        = string
-    judge0_db_connection_string = string
-    smtp_host                   = string
+  type = object({    judge0_    smtp_host                   = string
     smtp_port                   = string
     smtp_user                   = string
     smtp_pass                   = string

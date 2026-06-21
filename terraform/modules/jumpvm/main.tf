@@ -71,7 +71,7 @@ locals {
     # Install redis-cli
     apt-get install -y redis-tools
     
-    echo "Ã¢Å“â€¦ Jump VM setup complete" >> /var/log/jumpvm-setup.log
+    echo "ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¦ Jump VM setup complete" >> /var/log/jumpvm-setup.log
   EOF
 }
 
@@ -135,6 +135,12 @@ resource "azurerm_role_assignment" "vm_keyvault_reader" {
 
 # Store VM admin password in Key Vault for emergency access
 resource "azurerm_key_vault_secret" "vm_admin_password" {
+  depends_on = [
+    azurerm_role_assignment.vm_keyvault_reader
+  ]
+  depends_on = [
+    azurerm_role_assignment.vm_keyvault_reader
+  ]
   name         = "jumpvm-admin-password"
   value        = random_password.vm_admin.result
   key_vault_id = var.key_vault_id

@@ -70,3 +70,13 @@ output "ingress_application_gateway_id" {
   description = "ID of the Application Gateway created by AGIC addon"
   value       = azurerm_kubernetes_cluster.main.ingress_application_gateway[0].effective_gateway_id
 }
+
+output "aks_identity_principal_id" {
+  description = "Principal ID of the AKS user assigned identity"
+  value       = azurerm_user_assigned_identity.aks.principal_id
+}
+
+output "aks_identity_id" {
+  description = "Resource ID of the AKS user assigned identity"
+  value       = azurerm_user_assigned_identity.aks.id
+}

@@ -82,23 +82,6 @@ resource "random_password" "jwt_refresh" {
 }
 
 # SENSITIVE SECRETS - Never move to ConfigMap
-resource "azurerm_key_vault_secret" "db_connection_string" {
-  name         = "db-connection-string"
-  value        = var.secrets.db_connection_string
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
-
-resource "azurerm_key_vault_secret" "judge0_db_connection_string" {
-  name         = "judge0-db-connection-string"
-  value        = var.secrets.judge0_db_connection_string
-  key_vault_id = azurerm_key_vault.main.id
-  content_type = "text/plain"
-  tags         = local.tags
-  depends_on   = [time_sleep.wait_for_rbac]
-}
 
 resource "azurerm_key_vault_secret" "jwt_access_secret" {
   name         = "jwt-access-secret"

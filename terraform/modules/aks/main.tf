@@ -7,6 +7,64 @@ locals {
 }
 
 # The main Azure Kubernetes Service (AKS) private cluster configuration
+# User assigned identity for AKS (required for private cluster with custom DNS zone)
+resource "azurerm_user_assigned_identity" "aks" {
+  name                = "mi-aks-clahan-academy"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  tags                = local.tags
+}
+
+# Give AKS identity DNS contributor on the private DNS zone
+resource "azurerm_role_assignment" "aks_dns" {
+  role_definition_name = "Private DNS Zone Contributor"
+  principal_id         = azurerm_user_assigned_identity.aks.principal_id
+  scope                = var.private_dns_zone_aks_id
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+# Give AKS identity Network Contributor on VNet
+resource "azurerm_role_assignment" "aks_vnet" {
+  role_definition_name = "Network Contributor"
+  principal_id         = azurerm_user_assigned_identity.aks.principal_id
+  scope                = var.vnet_id
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+# User assigned identity for AKS (required for private cluster with custom DNS zone)
+resource "azurerm_user_assigned_identity" "aks" {
+  name                = "mi-aks-clahan-academy"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  tags                = local.tags
+}
+
+# Give AKS identity DNS contributor on the private DNS zone
+resource "azurerm_role_assignment" "aks_dns" {
+  role_definition_name = "Private DNS Zone Contributor"
+  principal_id         = azurerm_user_assigned_identity.aks.principal_id
+  scope                = var.private_dns_zone_aks_id
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+# Give AKS identity Network Contributor on VNet
+resource "azurerm_role_assignment" "aks_vnet" {
+  role_definition_name = "Network Contributor"
+  principal_id         = azurerm_user_assigned_identity.aks.principal_id
+  scope                = var.vnet_id
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
 resource "azurerm_kubernetes_cluster" "main" {
   name                                = var.cluster_name
   location                            = var.location
@@ -39,7 +97,8 @@ resource "azurerm_kubernetes_cluster" "main" {
   }
 
   identity {
-    type = "SystemAssigned"
+    type = "UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.aks.id]
   }
 
   network_profile {
