@@ -1,0 +1,19 @@
+{
+  "name": "clahan-academy-functions",
+  "version": "1.0.0",
+  "description": "Azure Functions for Clahan Academy health monitoring",
+  "scripts": {
+    "build": "tsc",
+    "start": "func start",
+    "lint": "eslint . --ext .ts"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.8"
+  },
+  "devDependencies": {
+    "@azure/functions": "^4.0.0",
+    "typescript": "^5.3.0",
+    "@types/node": "^20.0.0",
+    "@types/nodemailer": "^6.4.14"
+  }
+}
