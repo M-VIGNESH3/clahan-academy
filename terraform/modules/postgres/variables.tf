@@ -7,14 +7,7 @@ variable "location" {
   type    = string
   default = "eastus2"
 }
-variable "subnet_postgres_id" {
-  description = "Delegated subnet for PostgreSQL VNet integration"
-  type        = string
-}
-variable "private_dns_zone_postgres_id" {
-  description = "Private DNS zone for PostgreSQL"
-  type        = string
-}
+
 variable "sku_name" {
   type    = string
   default = "GP_Standard_D2s_v3"

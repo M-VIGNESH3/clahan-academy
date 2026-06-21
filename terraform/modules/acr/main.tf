@@ -8,7 +8,7 @@ locals {
 
 # Azure Container Registry - stores all application Docker images
 resource "azurerm_container_registry" "main" {
-  name                          = "acrclahanacademy"
+  name                          = "acrclahandev2026"
   resource_group_name           = var.resource_group_name
   location                      = var.location
   sku                           = "Standard"

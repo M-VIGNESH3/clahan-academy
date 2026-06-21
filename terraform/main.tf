@@ -54,8 +54,6 @@ module "postgres" {
 
   resource_group_name          = module.networking.resource_group_name
   location                     = var.location
-  subnet_postgres_id           = module.networking.subnet_postgres_id
-  private_dns_zone_postgres_id = module.networking.private_dns_zone_ids["postgres"]
   sku_name                     = var.postgres_sku
   storage_mb                   = var.postgres_storage_mb
   backup_retention_days        = var.postgres_backup_days
@@ -96,7 +94,7 @@ module "aks" {
   location                   = var.location
   resource_group_name        = module.networking.resource_group_name
   resource_group_id          = module.networking.resource_group_id
-  kubernetes_version         = "1.29"
+  kubernetes_version = "1.35"
   dns_prefix                 = "clahan"
   subnet_aks_id              = module.networking.subnet_aks_id
   vnet_id                    = module.networking.vnet_id

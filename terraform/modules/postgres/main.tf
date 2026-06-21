@@ -31,8 +31,6 @@ resource "azurerm_postgresql_flexible_server" "main" {
   geo_redundant_backup_enabled = var.geo_redundant_backup_enabled
 
   # VNet integration - private access only
-  delegated_subnet_id = var.subnet_postgres_id
-  private_dns_zone_id = var.private_dns_zone_postgres_id
 
   maintenance_window {
     day_of_week  = 0
@@ -68,4 +66,10 @@ resource "azurerm_postgresql_flexible_server_configuration" "connection_throttli
   name      = "connection_throttling"
   server_id = azurerm_postgresql_flexible_server.main.id
   value     = "on"
+}
+resource "azurerm_postgresql_flexible_server_firewall_rule" "azure_services" {
+  name             = "allow-azure-services"
+  server_id        = azurerm_postgresql_flexible_server.main.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "0.0.0.0"
 }
