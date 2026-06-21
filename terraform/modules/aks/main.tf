@@ -1,6 +1,4 @@
 # terraform/modules/aks/main.tf
-# AKS cluster (public control plane for now, easier to stabilize)
-# AI workloads isolated using taints/tolerations on separate node pool
 
 locals {
   tags = merge(var.tags, {
@@ -8,7 +6,6 @@ locals {
   })
 }
 
-# User assigned identity for AKS
 resource "azurerm_user_assigned_identity" "aks" {
   name                = "mi-aks-clahan-academy"
   resource_group_name = var.resource_group_name
@@ -16,7 +13,6 @@ resource "azurerm_user_assigned_identity" "aks" {
   tags                = local.tags
 }
 
-# AKS identity needs Network Contributor on VNet
 resource "azurerm_role_assignment" "aks_vnet" {
   role_definition_name = "Network Contributor"
   principal_id         = azurerm_user_assigned_identity.aks.principal_id
@@ -27,15 +23,14 @@ resource "azurerm_role_assignment" "aks_vnet" {
   }
 }
 
-# AKS cluster
 resource "azurerm_kubernetes_cluster" "main" {
-  name                       = var.cluster_name
-  location                   = var.location
-  resource_group_name        = var.resource_group_name
-  kubernetes_version         = var.kubernetes_version
-  dns_prefix                 = var.dns_prefix
-  sku_tier                   = "Standard"
-  private_cluster_enabled    = false
+  name                    = var.cluster_name
+  location                = var.location
+  resource_group_name     = var.resource_group_name
+  kubernetes_version      = var.kubernetes_version
+  dns_prefix              = var.dns_prefix
+  sku_tier                = "Standard"
+  private_cluster_enabled = false
 
   depends_on = [
     azurerm_role_assignment.aks_vnet
@@ -86,6 +81,11 @@ resource "azurerm_kubernetes_cluster" "main" {
     secret_rotation_interval = "2m"
   }
 
+  ingress_application_gateway {
+    gateway_name = "agw-clahan-academy"
+    subnet_id    = var.subnet_appgw_id
+  }
+
   workload_identity_enabled         = true
   oidc_issuer_enabled               = true
   azure_policy_enabled              = true
@@ -94,7 +94,6 @@ resource "azurerm_kubernetes_cluster" "main" {
   tags = local.tags
 }
 
-# Dedicated AI node pool
 resource "azurerm_kubernetes_cluster_node_pool" "ai" {
   name                  = "ai"
   kubernetes_cluster_id = azurerm_kubernetes_cluster.main.id
@@ -110,14 +109,10 @@ resource "azurerm_kubernetes_cluster_node_pool" "ai" {
     allow-privileged = "true"
   }
 
-  node_taints = [
-    "dedicated=ai:NoSchedule"
-  ]
-
-  tags = local.tags
+  node_taints = ["dedicated=ai:NoSchedule"]
+  tags        = local.tags
 }
 
-# Allow AKS kubelet to pull images from ACR
 resource "azurerm_role_assignment" "aks_acr_pull" {
   role_definition_name             = "AcrPull"
   principal_id                     = azurerm_kubernetes_cluster.main.kubelet_identity[0].object_id
@@ -129,7 +124,6 @@ resource "azurerm_role_assignment" "aks_acr_pull" {
   }
 }
 
-# Allow AGIC to manage Application Gateway
 resource "azurerm_role_assignment" "agic_rg_contributor" {
   role_definition_name             = "Contributor"
   principal_id                     = azurerm_kubernetes_cluster.main.ingress_application_gateway[0].ingress_application_gateway_identity[0].object_id
