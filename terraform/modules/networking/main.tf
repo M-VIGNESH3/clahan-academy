@@ -11,7 +11,7 @@ locals {
     acr      = "privatelink.azurecr.io"
     blob     = "privatelink.blob.core.windows.net"
     redis    = "privatelink.redis.cache.windows.net"
-    aks      = "privatelink.westcentralus.azmk8s.io"
+    aks      = "privatelink.southeastasia.azmk8s.io"
   }
 }
 
