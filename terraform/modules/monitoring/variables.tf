@@ -8,11 +8,11 @@ variable "resource_group_name" {
 variable "location" {
   description = "Azure region"
   type        = string
-  default     = "westcentralus"
+  default     = "southeastasia"
 }
 
 variable "admin_email" {
-  description = "Admin email address for alert notifications"
+  description = "Admin email for alert notifications"
   type        = string
   default     = "admin@clahaanacademy.online"
 }

@@ -71,7 +71,7 @@ locals {
     # Install redis-cli
     apt-get install -y redis-tools
     
-    echo "✅ Jump VM setup complete" >> /var/log/jumpvm-setup.log
+    echo "Ã¢Å“â€¦ Jump VM setup complete" >> /var/log/jumpvm-setup.log
   EOF
 }
 

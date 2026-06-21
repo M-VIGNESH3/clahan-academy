@@ -1,4 +1,6 @@
 # terraform/modules/monitoring/main.tf
+# Monitoring module - Log Analytics, App Insights, Alerts
+# Metric alerts added after resources exist (separate step)
 
 locals {
   tags = merge(var.tags, {
@@ -6,7 +8,7 @@ locals {
   })
 }
 
-# Central log analytics workspace for all Azure resource logs
+# Central log analytics workspace
 resource "azurerm_log_analytics_workspace" "main" {
   name                = "law-clahan-academy"
   location            = var.location
@@ -16,7 +18,7 @@ resource "azurerm_log_analytics_workspace" "main" {
   tags                = local.tags
 }
 
-# Application Insights for application performance monitoring
+# Application Insights linked to workspace
 resource "azurerm_application_insights" "main" {
   name                = "appi-clahan-academy"
   location            = var.location
@@ -27,7 +29,7 @@ resource "azurerm_application_insights" "main" {
   tags                = local.tags
 }
 
-# Action group for sending alert notifications to admin
+# Action group for alert notifications
 resource "azurerm_monitor_action_group" "alerts" {
   name                = "ag-clahan-alerts"
   resource_group_name = var.resource_group_name

@@ -53,6 +53,9 @@ resource "azurerm_federated_identity_credential" "services" {
 
 # All services can read secrets from Key Vault
 resource "azurerm_role_assignment" "keyvault_secrets_user" {
+  lifecycle {
+    ignore_changes = all
+  }
   for_each                         = local.services
   role_definition_name             = "Key Vault Secrets User"
   principal_id                     = azurerm_user_assigned_identity.services[each.key].principal_id
@@ -67,6 +70,9 @@ resource "azurerm_role_assignment" "keyvault_secrets_user" {
 
 # Admin and AI services can read and write blobs
 resource "azurerm_role_assignment" "storage_blob_contributor" {
+  lifecycle {
+    ignore_changes = all
+  }
   for_each                         = local.storage_contributor_services
   role_definition_name             = "Storage Blob Data Contributor"
   principal_id                     = azurerm_user_assigned_identity.services[each.key].principal_id
@@ -81,6 +87,9 @@ resource "azurerm_role_assignment" "storage_blob_contributor" {
 
 # Exam, student, frontend services can read blobs
 resource "azurerm_role_assignment" "storage_blob_reader" {
+  lifecycle {
+    ignore_changes = all
+  }
   for_each                         = local.storage_reader_services
   role_definition_name             = "Storage Blob Data Reader"
   principal_id                     = azurerm_user_assigned_identity.services[each.key].principal_id
@@ -95,6 +104,9 @@ resource "azurerm_role_assignment" "storage_blob_reader" {
 
 # GitHub Actions can push images to ACR
 resource "azurerm_role_assignment" "github_acr_push" {
+  lifecycle {
+    ignore_changes = all
+  }
   role_definition_name             = "AcrPush"
   principal_id                     = var.github_sp_object_id
   scope                            = var.acr_id
@@ -108,6 +120,9 @@ resource "azurerm_role_assignment" "github_acr_push" {
 
 # GitHub Actions can read secrets from Key Vault during CI
 resource "azurerm_role_assignment" "github_keyvault_reader" {
+  lifecycle {
+    ignore_changes = all
+  }
   role_definition_name             = "Key Vault Secrets User"
   principal_id                     = var.github_sp_object_id
   scope                            = var.key_vault_id

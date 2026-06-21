@@ -62,6 +62,7 @@ resource "time_sleep" "wait_for_rbac" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "db_connection_string" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "db-connection-string"
   value        = var.secrets.db_connection_string
   key_vault_id = azurerm_key_vault.main.id
@@ -72,6 +73,7 @@ resource "azurerm_key_vault_secret" "db_connection_string" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "judge0_db_connection_string" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "judge0-db-connection-string"
   value        = var.secrets.judge0_db_connection_string
   key_vault_id = azurerm_key_vault.main.id
@@ -82,6 +84,7 @@ resource "azurerm_key_vault_secret" "judge0_db_connection_string" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "jwt_access_secret" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "jwt-access-secret"
   value        = random_password.jwt_access.result
   key_vault_id = azurerm_key_vault.main.id
@@ -92,6 +95,7 @@ resource "azurerm_key_vault_secret" "jwt_access_secret" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "jwt_refresh_secret" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "jwt-refresh-secret"
   value        = random_password.jwt_refresh.result
   key_vault_id = azurerm_key_vault.main.id
@@ -102,6 +106,7 @@ resource "azurerm_key_vault_secret" "jwt_refresh_secret" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "smtp_host" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "smtp-host"
   value        = var.secrets.smtp_host
   key_vault_id = azurerm_key_vault.main.id
@@ -112,6 +117,7 @@ resource "azurerm_key_vault_secret" "smtp_host" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "smtp_port" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "smtp-port"
   value        = var.secrets.smtp_port
   key_vault_id = azurerm_key_vault.main.id
@@ -122,6 +128,7 @@ resource "azurerm_key_vault_secret" "smtp_port" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "smtp_user" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "smtp-user"
   value        = var.secrets.smtp_user
   key_vault_id = azurerm_key_vault.main.id
@@ -132,6 +139,7 @@ resource "azurerm_key_vault_secret" "smtp_user" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "smtp_pass" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "smtp-pass"
   value        = var.secrets.smtp_pass
   key_vault_id = azurerm_key_vault.main.id
@@ -142,6 +150,7 @@ resource "azurerm_key_vault_secret" "smtp_pass" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "smtp_from" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "smtp-from"
   value        = var.secrets.smtp_from
   key_vault_id = azurerm_key_vault.main.id
@@ -152,6 +161,7 @@ resource "azurerm_key_vault_secret" "smtp_from" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "sendgrid_api_key" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "sendgrid-api-key"
   value        = var.secrets.sendgrid_api_key
   key_vault_id = azurerm_key_vault.main.id
@@ -162,6 +172,7 @@ resource "azurerm_key_vault_secret" "sendgrid_api_key" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "sendgrid_from" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "sendgrid-from"
   value        = var.secrets.sendgrid_from
   key_vault_id = azurerm_key_vault.main.id
@@ -172,6 +183,7 @@ resource "azurerm_key_vault_secret" "sendgrid_from" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "blob_storage_account" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "blob-storage-account"
   value        = var.secrets.blob_storage_account
   key_vault_id = azurerm_key_vault.main.id
@@ -182,6 +194,7 @@ resource "azurerm_key_vault_secret" "blob_storage_account" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "blob_storage_key" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "blob-storage-key"
   value        = var.secrets.blob_storage_key
   key_vault_id = azurerm_key_vault.main.id
@@ -192,6 +205,7 @@ resource "azurerm_key_vault_secret" "blob_storage_key" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "snyk_token" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "snyk-token"
   value        = var.secrets.snyk_token
   key_vault_id = azurerm_key_vault.main.id
@@ -202,6 +216,7 @@ resource "azurerm_key_vault_secret" "snyk_token" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "sonar_token" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "sonar-token"
   value        = var.secrets.sonar_token
   key_vault_id = azurerm_key_vault.main.id
@@ -212,6 +227,7 @@ resource "azurerm_key_vault_secret" "sonar_token" {
 
 # SENSITIVE - Never move to ConfigMap
 resource "azurerm_key_vault_secret" "postgres_admin_password" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "postgres-admin-password"
   value        = var.postgres_admin_password
   key_vault_id = azurerm_key_vault.main.id
@@ -222,6 +238,7 @@ resource "azurerm_key_vault_secret" "postgres_admin_password" {
 
 # NON-SENSITIVE - Can be moved to ConfigMap later if needed
 resource "azurerm_key_vault_secret" "frontend_url" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "frontend-url"
   value        = "https://clahaanacademy.online"
   key_vault_id = azurerm_key_vault.main.id
@@ -232,6 +249,7 @@ resource "azurerm_key_vault_secret" "frontend_url" {
 
 # NON-SENSITIVE - Can be moved to ConfigMap later if needed
 resource "azurerm_key_vault_secret" "ai_service_url" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "ai-service-url"
   value        = "http://ai-service.clahan-academy.svc.cluster.local:8000"
   key_vault_id = azurerm_key_vault.main.id
@@ -242,6 +260,7 @@ resource "azurerm_key_vault_secret" "ai_service_url" {
 
 # NON-SENSITIVE - Can be moved to ConfigMap later if needed
 resource "azurerm_key_vault_secret" "ollama_url" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "ollama-url"
   value        = "http://ollama.clahan-academy.svc.cluster.local:11434"
   key_vault_id = azurerm_key_vault.main.id
@@ -252,6 +271,7 @@ resource "azurerm_key_vault_secret" "ollama_url" {
 
 # NON-SENSITIVE - Can be moved to ConfigMap later if needed
 resource "azurerm_key_vault_secret" "judge0_url" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "judge0-url"
   value        = "http://judge0-api.clahan-academy.svc.cluster.local:2358"
   key_vault_id = azurerm_key_vault.main.id
@@ -262,6 +282,7 @@ resource "azurerm_key_vault_secret" "judge0_url" {
 
 # NON-SENSITIVE - Can be moved to ConfigMap later if needed
 resource "azurerm_key_vault_secret" "node_env" {
+  depends_on = [time_sleep.wait_for_rbac]
   name         = "node-env"
   value        = "production"
   key_vault_id = azurerm_key_vault.main.id
