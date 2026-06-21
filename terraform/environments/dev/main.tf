@@ -173,26 +173,10 @@ module "functions" {
   tags                             = local.tags
 }
 
-resource "github_actions_secret" "azure_client_id" {
-  repository      = "clahan-academy"
-  secret_name     = "AZURE_CLIENT_ID"
-  plaintext_value = var.github_app_client_id
-}
 
-resource "github_actions_secret" "azure_tenant_id" {
-  repository      = "clahan-academy"
-  secret_name     = "AZURE_TENANT_ID"
-  plaintext_value = var.tenant_id
-}
 
-resource "github_actions_secret" "azure_subscription_id" {
-  repository      = "clahan-academy"
-  secret_name     = "AZURE_SUBSCRIPTION_ID"
-  plaintext_value = var.subscription_id
-}
 
-resource "github_actions_secret" "acr_login_server" {
-  repository      = "clahan-academy"
-  secret_name     = "ACR_LOGIN_SERVER"
-  plaintext_value = module.acr.acr_login_server
-}
+
+
+
+

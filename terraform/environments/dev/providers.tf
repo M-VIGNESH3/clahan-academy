@@ -15,10 +15,7 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.6"
     }
-    github = {
-      source  = "integrations/github"
-      version = "~> 6.0"
-    }
+    
   }
 }
 
@@ -42,9 +39,6 @@ provider "azuread" {
   tenant_id = var.tenant_id
 }
 
-provider "github" {
-  token = var.github_token
-  owner = "M-VIGNESH3"
-}
+# GitHub provider removed - secrets managed manually
 
 provider "random" {}
