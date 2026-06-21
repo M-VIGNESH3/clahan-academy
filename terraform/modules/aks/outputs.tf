@@ -16,8 +16,8 @@ output "cluster_fqdn" {
 }
 
 output "cluster_private_fqdn" {
-  description = "Private FQDN of the AKS cluster"
-  value       = azurerm_kubernetes_cluster.main.private_fqdn
+  description = "Private FQDN of the AKS cluster (null for public cluster)"
+  value       = try(azurerm_kubernetes_cluster.main.private_fqdn, null)
 }
 
 output "kube_config_raw" {
