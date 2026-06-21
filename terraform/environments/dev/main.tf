@@ -73,7 +73,6 @@ module "keyvault" {
   github_sp_object_id          = var.github_sp_object_id
   subnet_privateendpoints_id   = module.networking.subnet_privateendpoints_id
   private_dns_zone_keyvault_id = module.networking.private_dns_zone_ids["keyvault"]
-  postgres_admin_password      = module.postgres.admin_password
   tags                         = local.tags
 
   secrets = {
