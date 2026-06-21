@@ -1,17 +1,4 @@
-# terraform/modules/jumpvm/main.tf
-
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 3.100"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.6"
-    }
-  }
-}
+# terraform/modules/jumpvm\main.tf
 
 locals {
   tags = merge(var.tags, {
@@ -84,7 +71,7 @@ locals {
     # Install redis-cli
     apt-get install -y redis-tools
     
-    echo "✅ Jump VM setup complete" >> /var/log/jumpvm-setup.log
+    echo "Ã¢Å“â€¦ Jump VM setup complete" >> /var/log/jumpvm-setup.log
   EOF
 }
 

@@ -69,3 +69,28 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "app_node_vm_size" {
+  description = "VM size for app node pool"
+  type        = string
+  default     = "Standard_D4s_v3"
+}
+
+variable "app_node_count" {
+  description = "Initial app node count"
+  type        = number
+  default     = 1
+}
+
+variable "app_min_count" {
+  description = "Minimum app nodes for autoscaling"
+  type        = number
+  default     = 1
+}
+
+variable "app_max_count" {
+  description = "Maximum app nodes for autoscaling"
+  type        = number
+  default     = 3
+}
+

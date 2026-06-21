@@ -1,17 +1,4 @@
-# terraform/modules/keyvault/main.tf
-
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 3.100"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.6"
-    }
-  }
-}
+# terraform/modules/keyvault\main.tf
 
 locals {
   tags = merge(var.tags, {

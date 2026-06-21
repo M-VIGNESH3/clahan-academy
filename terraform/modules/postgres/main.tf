@@ -1,18 +1,5 @@
 # terraform/modules/postgres/main.tf
 
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 3.100"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.6"
-    }
-  }
-}
-
 locals {
   tags = merge(var.tags, {
     module = "postgres"
@@ -37,17 +24,20 @@ resource "azurerm_postgresql_flexible_server" "main" {
   location               = var.location
   administrator_login    = "clahanadmin"
   administrator_password = random_password.postgres_admin.result
-  sku_name               = "GP_Standard_D2s_v3"
+  sku_name               = var.sku_name
   version                = "15"
-  storage_mb             = 32768
-  backup_retention_days  = 7
+  storage_mb             = var.storage_mb
+  backup_retention_days  = var.backup_retention_days
 
-  geo_redundant_backup_enabled = false
+  geo_redundant_backup_enabled = var.geo_redundant_backup_enabled
   delegated_subnet_id          = var.subnet_postgres_id
   private_dns_zone_id          = var.private_dns_zone_postgres_id
 
-  high_availability {
-    mode = "Disabled"
+  dynamic "high_availability" {
+    for_each = var.high_availability_mode != "Disabled" ? [1] : []
+    content {
+      mode = var.high_availability_mode
+    }
   }
 
   maintenance_window {

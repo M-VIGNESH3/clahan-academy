@@ -31,3 +31,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "redis_capacity" {
+  description = "Redis cache capacity (1=C1, 2=C2)"
+  type        = number
+  default     = 1
+}

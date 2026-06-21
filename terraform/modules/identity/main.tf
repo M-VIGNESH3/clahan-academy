@@ -1,13 +1,4 @@
-# terraform/modules/identity/main.tf
-
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 3.100"
-    }
-  }
-}
+# terraform/modules/identity\main.tf
 
 locals {
   tags = merge(var.tags, {

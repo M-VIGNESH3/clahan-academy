@@ -1,14 +1,5 @@
 # terraform/modules/aks/main.tf
 
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 3.100"
-    }
-  }
-}
-
 locals {
   tags = merge(var.tags, {
     module = "aks"
@@ -29,13 +20,13 @@ resource "azurerm_kubernetes_cluster" "main" {
 
   default_node_pool {
     name                = "app"
-    node_count          = 1
-    vm_size             = "Standard_D4s_v3"
+    node_count          = var.app_node_count
+    vm_size             = var.app_node_vm_size
     os_disk_size_gb     = 128
     vnet_subnet_id      = var.subnet_aks_id
     enable_auto_scaling = true
-    min_count           = 1
-    max_count           = 3
+    min_count           = var.app_min_count
+    max_count           = var.app_max_count
     max_pods            = 50
     node_labels = {
       "pool"        = "app"

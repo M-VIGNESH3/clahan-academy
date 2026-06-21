@@ -31,3 +31,34 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "sku_name" {
+  description = "PostgreSQL SKU name"
+  type        = string
+  default     = "GP_Standard_D2s_v3"
+}
+
+variable "storage_mb" {
+  description = "Storage in MB"
+  type        = number
+  default     = 32768
+}
+
+variable "backup_retention_days" {
+  description = "Backup retention in days"
+  type        = number
+  default     = 7
+}
+
+variable "geo_redundant_backup_enabled" {
+  description = "Enable geo-redundant backups"
+  type        = bool
+  default     = false
+}
+
+variable "high_availability_mode" {
+  description = "High availability mode (Disabled, ZoneRedundant, SameZone)"
+  type        = string
+  default     = "Disabled"
+}
+

@@ -1,0 +1,31 @@
+# helm/clahan-academy/values-dev.yaml
+
+# Dev environment overrides
+# Applied on top of values.yaml for dev deployments
+# ArgoCD uses: values.yaml + values-dev.yaml
+
+global:
+  environment: dev
+  namespace: clahan-dev
+
+ingress:
+  host: dev.clahaanacademy.online
+
+# Dev: lower replicas to save cost
+frontend:
+  replicaCount: 1
+
+auth:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+exam:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+proctoring:
+  replicaCount: 1
+  autoscaling:
+    enabled: false

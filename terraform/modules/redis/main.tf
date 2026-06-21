@@ -1,14 +1,5 @@
 # terraform/modules/redis/main.tf
 
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~> 3.100"
-    }
-  }
-}
-
 locals {
   tags = merge(var.tags, {
     module = "redis"
@@ -20,7 +11,7 @@ resource "azurerm_redis_cache" "main" {
   name                = "redis-clahan-academy"
   location            = var.location
   resource_group_name = var.resource_group_name
-  capacity            = 1
+  capacity            = var.redis_capacity
   family              = "C"
   sku_name            = "Standard"
   enable_non_ssl_port = false

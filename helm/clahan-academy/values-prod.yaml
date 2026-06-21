@@ -1,0 +1,49 @@
+# helm/clahan-academy/values-prod.yaml
+
+# Production environment overrides
+# Applied on top of values.yaml for dev deployments
+# ArgoCD uses: values.yaml + values-prod.yaml
+
+global:
+  environment: prod
+  namespace: clahan-prod
+
+ingress:
+  host: clahaanacademy.online
+
+# Prod: higher replicas for HA
+frontend:
+  replicaCount: 2
+
+auth:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 60
+
+admin:
+  replicaCount: 2
+
+student:
+  replicaCount: 2
+
+exam:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 60
+
+proctoring:
+  replicaCount: 3
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 60
+
+notification:
+  replicaCount: 2

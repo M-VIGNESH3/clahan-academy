@@ -1,30 +1,87 @@
-# Graphify files
-graphify-out/
-.agents/
-# Node dependencies
-node_modules/
-**/node_modules/
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.tfplan
+tfplan
+.terraformrc
+override.tf
 
-# Local env files
+# Environment files
 .env
-**/.env
-**/.env.local
+.env.*
+!.env.example
+*.env.local
+
+# Secrets and credentials
+*.pem
+*.key
+*.pfx
+*.p12
+.bootstrap-output.txt
+credentials.json
+*-credentials.json
+
+# Node.js
+node_modules/
+dist/
+build/
+.npm
+*.tgz
+.node_repl_history
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+*.egg
+dist/
+build/
+pip-log.txt
+
+# Docker
+.docker/
+*.tar
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
 
 # Logs
 *.log
+logs/
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 
-# IDE & Editor files
-.vscode/
-.idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.swp
+# Coverage
+coverage/
+.nyc_output/
+*.lcov
+htmlcov/
+.coverage
 
-# OS files
+# OS
 .DS_Store
-Thumbs.db
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Azure
+.azure/
+azureauth.json
