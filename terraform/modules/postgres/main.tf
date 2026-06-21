@@ -1,5 +1,6 @@
 # terraform/modules/postgres/main.tf
-# PostgreSQL Flexible Server with VNet integration in eastus2
+# PostgreSQL Flexible Server with VNet integration
+# Uses delegated subnet for private access within VNet
 
 locals {
   tags = merge(var.tags, {
@@ -29,6 +30,7 @@ resource "azurerm_postgresql_flexible_server" "main" {
   backup_retention_days        = var.backup_retention_days
   geo_redundant_backup_enabled = var.geo_redundant_backup_enabled
 
+  # VNet integration - private access only
   delegated_subnet_id = var.subnet_postgres_id
   private_dns_zone_id = var.private_dns_zone_postgres_id
 
