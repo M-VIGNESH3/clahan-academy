@@ -9,7 +9,7 @@ locals {
 
 # Key Vault with RBAC authorization
 resource "azurerm_key_vault" "main" {
-  name                          = "kv-clahan-academy"
+  name                          = "kv-clahan34c4"
   location                      = var.location
   resource_group_name           = var.resource_group_name
   sku_name                      = "standard"

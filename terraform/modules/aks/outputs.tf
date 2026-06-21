@@ -46,10 +46,7 @@ output "cluster_identity_principal_id" {
   value       = azurerm_user_assigned_identity.aks.principal_id
 }
 
-output "agic_identity_object_id" {
-  description = "Object ID of AGIC managed identity"
-  value       = azurerm_kubernetes_cluster.main.ingress_application_gateway[0].ingress_application_gateway_identity[0].object_id
-}
+
 
 output "key_vault_secrets_provider_client_id" {
   description = "Client ID of Key Vault secrets provider identity"
@@ -66,10 +63,7 @@ output "node_resource_group" {
   value       = azurerm_kubernetes_cluster.main.node_resource_group
 }
 
-output "ingress_application_gateway_id" {
-  description = "ID of the Application Gateway created by AGIC"
-  value       = azurerm_kubernetes_cluster.main.ingress_application_gateway[0].effective_gateway_id
-}
+
 
 output "aks_identity_principal_id" {
   description = "Principal ID of the AKS user assigned identity"

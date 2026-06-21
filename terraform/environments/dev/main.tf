@@ -57,7 +57,7 @@ module "postgres" {
   source = "../../modules/postgres"
 
   resource_group_name          = module.networking.resource_group_name
-  location                     = var.location
+  location                     = "canadaeast"
   subnet_postgres_id           = module.networking.subnet_postgres_id
   private_dns_zone_postgres_id = module.networking.private_dns_zone_ids["postgres"]
   tags                         = local.tags

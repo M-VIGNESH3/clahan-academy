@@ -86,11 +86,6 @@ resource "azurerm_kubernetes_cluster" "main" {
     secret_rotation_interval = "2m"
   }
 
-  ingress_application_gateway {
-    gateway_name = "agw-clahan-academy"
-    subnet_id    = var.subnet_appgw_id
-  }
-
   workload_identity_enabled         = true
   oidc_issuer_enabled               = true
   azure_policy_enabled              = true
