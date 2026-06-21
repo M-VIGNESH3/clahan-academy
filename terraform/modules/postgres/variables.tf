@@ -56,3 +56,8 @@ variable "high_availability_mode" {
   type        = string
   default     = "Disabled"
 }
+
+variable "key_vault_id" {
+  description = "Resource ID of the Key Vault to store secrets"
+  type        = string
+}

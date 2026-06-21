@@ -70,7 +70,7 @@ resource "azurerm_subnet" "privateendpoints" {
   address_prefixes                          = ["10.0.5.0/24"]
   resource_group_name                       = azurerm_resource_group.main.name
   virtual_network_name                      = azurerm_virtual_network.main.name
-  private_endpoint_network_policies_enabled = false
+  private_endpoint_network_policies = "Disabled"
 }
 
 # Subnet delegated to Azure Functions integration

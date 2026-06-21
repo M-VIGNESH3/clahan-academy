@@ -60,6 +60,7 @@ module "postgres" {
   location                     = var.location
   subnet_postgres_id           = module.networking.subnet_postgres_id
   private_dns_zone_postgres_id = module.networking.private_dns_zone_ids["postgres"]
+  key_vault_id                 = module.keyvault.key_vault_id
   tags                         = local.tags
 }
 
@@ -71,8 +72,6 @@ module "keyvault" {
   tenant_id                    = var.tenant_id
   deployer_object_id           = var.deployer_object_id
   github_sp_object_id          = var.github_sp_object_id
-  subnet_privateendpoints_id   = module.networking.subnet_privateendpoints_id
-  private_dns_zone_keyvault_id = module.networking.private_dns_zone_ids["keyvault"]
   tags                         = local.tags
 
   secrets = {
