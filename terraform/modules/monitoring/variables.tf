@@ -17,24 +17,6 @@ variable "admin_email" {
   default     = "admin@clahaanacademy.online"
 }
 
-variable "aks_cluster_id" {
-  description = "Resource ID of the AKS cluster for alerts"
-  type        = string
-  default     = ""
-}
-
-variable "redis_id" {
-  description = "Resource ID of the Redis cache for alerts"
-  type        = string
-  default     = ""
-}
-
-variable "postgres_server_id" {
-  description = "Resource ID of the PostgreSQL server for alerts"
-  type        = string
-  default     = ""
-}
-
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)

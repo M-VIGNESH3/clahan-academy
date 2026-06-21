@@ -31,8 +31,6 @@ module "monitoring" {
   resource_group_name = module.networking.resource_group_name
   location            = var.location
   admin_email         = var.admin_email
-  aks_cluster_id      = module.aks.cluster_id
-  postgres_server_id  = module.postgres.server_id
   tags                = local.tags
 }
 
