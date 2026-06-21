@@ -62,11 +62,6 @@ resource "azurerm_postgresql_flexible_server_database" "judge0" {
   collation = "en_US.utf8"
 }
 
-resource "azurerm_postgresql_flexible_server_configuration" "connection_throttling" {
-  name      = "connection_throttling"
-  server_id = azurerm_postgresql_flexible_server.main.id
-  value     = "on"
-}
 resource "azurerm_postgresql_flexible_server_firewall_rule" "azure_services" {
   name             = "allow-azure-services"
   server_id        = azurerm_postgresql_flexible_server.main.id
