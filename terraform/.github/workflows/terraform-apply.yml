@@ -1,0 +1,258 @@
+# .github/workflows/terraform-apply.yml
+
+name: "IaC — Terraform Plan & Apply"
+
+on:
+  push:
+    branches: [main]
+    paths: ["terraform/**"]
+  pull_request:
+    branches: [main]
+    paths: ["terraform/**"]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy (dev/prod)"
+        required: true
+        default: "dev"
+        type: choice
+        options: [dev, prod]
+      action:
+        description: "Terraform action"
+        required: true
+        default: "plan"
+        type: choice
+        options: [plan, apply, destroy]
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  TF_VERSION: "1.7.0"
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_USE_OIDC: "true"
+  
+  # Non-sensitive TF variables (not secrets)
+  TF_VAR_subscription_id: "34c41824-bb7a-4316-af37-2597f35b730e"
+  TF_VAR_tenant_id: "67e6de35-58f8-4419-b1c4-1e5d7c49e04b"
+  TF_VAR_smtp_host: "smtp.gmail.com"
+  TF_VAR_smtp_port: "587"
+  TF_VAR_admin_email: "admin@clahaanacademy.online"
+  TF_VAR_sendgrid_api_key: ""
+  TF_VAR_sendgrid_from: ""
+
+jobs:
+  setup:
+    name: "⚙️ Setup"
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+      tf_dir: ${{ steps.env.outputs.tf_dir }}
+    
+    steps:
+      - name: Determine environment
+        id: env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            ENV="${{ github.event.inputs.environment }}"
+          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            ENV="dev"
+          else
+            ENV="dev"
+          fi
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          echo "tf_dir=terraform/environments/$ENV" >> $GITHUB_OUTPUT
+          echo "🌍 Environment: $ENV"
+
+  terraform-validate:
+    name: "✅ Validate"
+    runs-on: ubuntu-latest
+    needs: setup
+    
+    env:
+      TF_VAR_smtp_pass: ${{ secrets.TF_VAR_smtp_pass }}
+      TF_VAR_smtp_user: ${{ secrets.TF_VAR_smtp_user }}
+      TF_VAR_smtp_from: ${{ secrets.TF_VAR_smtp_from }}
+      TF_VAR_snyk_token: ${{ secrets.TF_VAR_snyk_token }}
+      TF_VAR_sonar_token: ${{ secrets.TF_VAR_sonar_token }}
+      TF_VAR_github_token: ${{ secrets.TF_VAR_github_token }}
+      TF_VAR_github_app_client_id: ${{ secrets.TF_VAR_github_app_client_id }}
+      TF_VAR_github_sp_object_id: ${{ secrets.TF_VAR_github_sp_object_id }}
+      TF_VAR_deployer_object_id: ${{ secrets.TF_VAR_deployer_object_id }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      
+      - name: Azure OIDC Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Terraform Init
+        working-directory: ${{ needs.setup.outputs.tf_dir }}
+        run: terraform init -reconfigure
+      
+      - name: Terraform Format Check
+        working-directory: ${{ needs.setup.outputs.tf_dir }}
+        run: terraform fmt -check -recursive -diff
+      
+      - name: Terraform Validate
+        working-directory: ${{ needs.setup.outputs.tf_dir }}
+        run: terraform validate
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ **Terraform Validate passed** for `${{ needs.setup.outputs.environment }}`'
+            })
+
+  terraform-plan:
+    name: "📋 Plan (${{ needs.setup.outputs.environment }})"
+    runs-on: ubuntu-latest
+    needs: [setup, terraform-validate]
+    
+    env:
+      TF_VAR_smtp_pass: ${{ secrets.TF_VAR_smtp_pass }}
+      TF_VAR_smtp_user: ${{ secrets.TF_VAR_smtp_user }}
+      TF_VAR_smtp_from: ${{ secrets.TF_VAR_smtp_from }}
+      TF_VAR_snyk_token: ${{ secrets.TF_VAR_snyk_token }}
+      TF_VAR_sonar_token: ${{ secrets.TF_VAR_sonar_token }}
+      TF_VAR_github_token: ${{ secrets.TF_VAR_github_token }}
+      TF_VAR_github_app_client_id: ${{ secrets.TF_VAR_github_app_client_id }}
+      TF_VAR_github_sp_object_id: ${{ secrets.TF_VAR_github_sp_object_id }}
+      TF_VAR_deployer_object_id: ${{ secrets.TF_VAR_deployer_object_id }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      
+      - name: Azure OIDC Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Terraform Init
+        working-directory: ${{ needs.setup.outputs.tf_dir }}
+        run: terraform init -reconfigure
+      
+      - name: Terraform Plan
+        id: plan
+        working-directory: ${{ needs.setup.outputs.tf_dir }}
+        run: |
+          if [ "${{ github.event.inputs.action }}" == "destroy" ]; then
+            terraform plan -destroy -out=tfplan -detailed-exitcode -no-color 2>&1 | tee plan-output.txt
+          else
+            terraform plan -out=tfplan -detailed-exitcode -no-color 2>&1 | tee plan-output.txt
+          fi
+          echo "exitcode=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+        continue-on-error: true
+      
+      - name: Save plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ needs.setup.outputs.environment }}
+          path: |
+            ${{ needs.setup.outputs.tf_dir }}/tfplan
+            ${{ needs.setup.outputs.tf_dir }}/plan-output.txt
+          retention-days: 5
+      
+      - name: Post plan to PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const planOutput = fs.readFileSync(
+              '${{ needs.setup.outputs.tf_dir }}/plan-output.txt', 
+              'utf8'
+            ).slice(0, 60000);
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 📋 Terraform Plan — \`${{ needs.setup.outputs.environment }}\`\n\`\`\`hcl\n${planOutput}\n\`\`\``
+            })
+
+  terraform-apply:
+    name: "🚀 Apply (${{ needs.setup.outputs.environment }})"
+    runs-on: ubuntu-latest
+    needs: [setup, terraform-plan]
+    if: |
+      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action != 'plan')
+    environment: ${{ needs.setup.outputs.environment == 'prod' && 'production' || 'infrastructure' }}
+    
+    env:
+      TF_VAR_smtp_pass: ${{ secrets.TF_VAR_smtp_pass }}
+      TF_VAR_smtp_user: ${{ secrets.TF_VAR_smtp_user }}
+      TF_VAR_smtp_from: ${{ secrets.TF_VAR_smtp_from }}
+      TF_VAR_snyk_token: ${{ secrets.TF_VAR_snyk_token }}
+      TF_VAR_sonar_token: ${{ secrets.TF_VAR_sonar_token }}
+      TF_VAR_github_token: ${{ secrets.TF_VAR_github_token }}
+      TF_VAR_github_app_client_id: ${{ secrets.TF_VAR_github_app_client_id }}
+      TF_VAR_github_sp_object_id: ${{ secrets.TF_VAR_github_sp_object_id }}
+      TF_VAR_deployer_object_id: ${{ secrets.TF_VAR_deployer_object_id }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      
+      - name: Azure OIDC Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Terraform Init
+        working-directory: ${{ needs.setup.outputs.tf_dir }}
+        run: terraform init -reconfigure
+      
+      - name: Download plan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ needs.setup.outputs.environment }}
+          path: ${{ needs.setup.outputs.tf_dir }}
+      
+      - name: Terraform Apply or Destroy
+        working-directory: ${{ needs.setup.outputs.tf_dir }}
+        run: terraform apply -auto-approve tfplan
+      
+      - name: Show outputs
+        working-directory: ${{ needs.setup.outputs.tf_dir }}
+        run: |
+          echo "=== TERRAFORM OUTPUTS ==="
+          terraform output -no-color || true
+      
+      - name: Summary
+        run: |
+          echo "✅ Terraform Action Complete"
+          echo "🌍 Environment: ${{ needs.setup.outputs.environment }}"

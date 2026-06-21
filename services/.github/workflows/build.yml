@@ -1,0 +1,474 @@
+# .github/workflows/build.yml
+
+name: "CI — Build, Scan & Push"
+
+on:
+  push:
+    branches: [main, "feature/**", "hotfix/**"]
+    paths: ["services/**"]
+  pull_request:
+    branches: [main]
+    paths: ["services/**"]
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to build (all/frontend/auth/admin/student/exam/proctoring/notification/ai)"
+        required: false
+        default: "all"
+
+permissions:
+  id-token: write
+  contents: write
+  security-events: write
+  pull-requests: write
+
+env:
+  ACR_REGISTRY: acrclahanacademy.azurecr.io
+  KV_NAME: kv-clahan-academy
+
+jobs:
+  detect-changes:
+    name: "🔍 Detect Changed Services"
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+      has_changes: ${{ steps.detect.outputs.has_changes }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed services
+        id: detect
+        run: |
+          # Full service map
+          declare -A SERVICE_MAP=(
+            ["frontend"]="services/frontend-service:node"
+            ["auth"]="services/auth-service:node"
+            ["admin"]="services/admin-service:node"
+            ["student"]="services/student-service:node"
+            ["exam"]="services/exam-service:node"
+            ["proctoring"]="services/proctoring-service:node"
+            ["notification"]="services/notification-service:node"
+            ["ai"]="services/ai-service:python"
+          )
+          
+          ALL_SERVICES='[
+            {"service":"frontend","directory":"services/frontend-service","language":"node"},
+            {"service":"auth","directory":"services/auth-service","language":"node"},
+            {"service":"admin","directory":"services/admin-service","language":"node"},
+            {"service":"student","directory":"services/student-service","language":"node"},
+            {"service":"exam","directory":"services/exam-service","language":"node"},
+            {"service":"proctoring","directory":"services/proctoring-service","language":"node"},
+            {"service":"notification","directory":"services/notification-service","language":"node"},
+            {"service":"ai","directory":"services/ai-service","language":"python"}
+          ]'
+          
+          # Manual trigger
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            INPUT="${{ github.event.inputs.service }}"
+            if [ "$INPUT" == "all" ] || [ -z "$INPUT" ]; then
+              MATRIX=$(echo $ALL_SERVICES | jq -c '{"include": .}')
+              echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+              echo "✅ Manual trigger: all services"
+              exit 0
+            else
+              # Find specific service
+              ENTRY=$(echo $ALL_SERVICES | jq -c \
+                --arg svc "$INPUT" \
+                '[.[] | select(.service == $svc)]')
+              if [ "$(echo $ENTRY | jq length)" == "0" ]; then
+                echo "❌ Service '$INPUT' not found"
+                echo "has_changes=false" >> $GITHUB_OUTPUT
+                exit 0
+              fi
+              MATRIX=$(echo $ENTRY | jq -c '{"include": .}')
+              echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+              echo "✅ Manual trigger: $INPUT only"
+              exit 0
+            fi
+          fi
+          
+          # Auto detect from git diff
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            CHANGED=$(git diff --name-only \
+              origin/${{ github.base_ref }}...HEAD)
+          else
+            CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || \
+              git diff --name-only HEAD)
+          fi
+          
+          echo "Changed files:"
+          echo "$CHANGED"
+          
+          # Build matrix of changed services
+          CHANGED_SERVICES=()
+          for SVC in frontend auth admin student exam proctoring notification ai; do
+            DIR=$(echo $ALL_SERVICES | jq -r \
+              --arg s "$SVC" '.[] | select(.service==$s) | .directory')
+            LANG=$(echo $ALL_SERVICES | jq -r \
+              --arg s "$SVC" '.[] | select(.service==$s) | .language')
+            
+            if echo "$CHANGED" | grep -q "^${DIR}/"; then
+              CHANGED_SERVICES+=("{\"service\":\"${SVC}\",\"directory\":\"${DIR}\",\"language\":\"${LANG}\"}")
+              echo "✅ Changed: $SVC"
+            fi
+          done
+          
+          if [ ${#CHANGED_SERVICES[@]} -eq 0 ]; then
+            echo "ℹ️  No service changes detected"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+          else
+            JSON_ARRAY=$(printf '%s,' "${CHANGED_SERVICES[@]}" | sed 's/,$//')
+            MATRIX="{\"include\":[$JSON_ARRAY]}"
+            echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "✅ ${#CHANGED_SERVICES[@]} service(s) changed"
+          fi
+
+  sonarcloud:
+    name: "📊 SonarCloud Quality Gate"
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_changes == 'true'
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Azure OIDC Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get SonarCloud token from Key Vault
+        run: |
+          TOKEN=$(az keyvault secret show \
+            --vault-name ${{ env.KV_NAME }} \
+            --name sonar-token \
+            --query value -o tsv)
+          echo "::add-mask::$TOKEN"
+          echo "SONAR_TOKEN=$TOKEN" >> $GITHUB_ENV
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=clahan-academy
+            -Dsonar.organization=clahan-academy
+            -Dsonar.sources=services
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/__pycache__/**,**/venv/**,**/*.test.ts
+
+  snyk:
+    name: "🔒 Snyk — ${{ matrix.service }}"
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    strategy:
+      fail-fast: true
+      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure OIDC Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get Snyk token from Key Vault
+        run: |
+          TOKEN=$(az keyvault secret show \
+            --vault-name ${{ env.KV_NAME }} \
+            --name snyk-token \
+            --query value -o tsv)
+          echo "::add-mask::$TOKEN"
+          echo "SNYK_TOKEN=$TOKEN" >> $GITHUB_ENV
+
+      - name: Setup Node.js
+        if: matrix.language == 'node'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: ${{ matrix.directory }}/package-lock.json
+
+      - name: Setup Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies (Node)
+        if: matrix.language == 'node'
+        working-directory: ${{ matrix.directory }}
+        run: npm ci --legacy-peer-deps
+
+      - name: Install dependencies (Python)
+        if: matrix.language == 'python'
+        working-directory: ${{ matrix.directory }}
+        run: pip install -r requirements.txt
+
+      - name: Snyk scan (Node)
+        if: matrix.language == 'node'
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
+        with:
+          args: >
+            --severity-threshold=high
+            --file=${{ matrix.directory }}/package.json
+            --project-name=clahan-${{ matrix.service }}
+
+      - name: Snyk scan (Python)
+        if: matrix.language == 'python'
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
+        with:
+          args: >
+            --severity-threshold=high
+            --file=${{ matrix.directory }}/requirements.txt
+            --project-name=clahan-${{ matrix.service }}
+
+  build:
+    name: "🐳 Build — ${{ matrix.service }}"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, sonarcloud, snyk]
+    if: |
+      needs.detect-changes.outputs.has_changes == 'true' &&
+      needs.sonarcloud.result == 'success' &&
+      needs.snyk.result == 'success'
+    strategy:
+      fail-fast: true
+      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+    outputs:
+      sha: ${{ steps.meta.outputs.sha }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure OIDC Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to ACR
+        run: az acr login --name acrclahanacademy
+
+      - name: Generate image metadata
+        id: meta
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "image=${{ env.ACR_REGISTRY }}/clahan-${{ matrix.service }}" >> $GITHUB_OUTPUT
+          echo "🏷️  Image tag: $SHA"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./${{ matrix.directory }}
+          push: false
+          load: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha }}
+            ${{ steps.meta.outputs.image }}:latest
+          cache-from: |
+            type=registry,ref=${{ steps.meta.outputs.image }}:buildcache
+          cache-to: |
+            type=registry,ref=${{ steps.meta.outputs.image }}:buildcache,mode=max
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/M-VIGNESH3/clahan-academy
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+
+      - name: Save image for Trivy
+        run: |
+          mkdir -p /tmp/images
+          docker save ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.sha }} \
+            -o /tmp/images/image-${{ matrix.service }}.tar
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-${{ matrix.service }}-${{ steps.meta.outputs.sha }}
+          path: /tmp/images/image-${{ matrix.service }}.tar
+          retention-days: 1
+
+  trivy:
+    name: "🛡️ Trivy — ${{ matrix.service }}"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build]
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    strategy:
+      fail-fast: true
+      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+
+    permissions:
+      id-token: write
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: image-${{ matrix.service }}-${{ needs.build.outputs.sha }}
+          path: /tmp/images/
+
+      - name: Load Docker image
+        run: docker load -i /tmp/images/image-${{ matrix.service }}.tar
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          input: /tmp/images/image-${{ matrix.service }}.tar
+          format: sarif
+          output: trivy-${{ matrix.service }}.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF to Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-${{ matrix.service }}.sarif
+          category: trivy-${{ matrix.service }}
+
+      - name: Trivy summary
+        if: always()
+        run: |
+          echo "🛡️ Trivy scan complete for ${{ matrix.service }}"
+
+  push:
+    name: "📦 Push — ${{ matrix.service }}"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build, trivy]
+    if: |
+      needs.detect-changes.outputs.has_changes == 'true' &&
+      needs.trivy.result == 'success' &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name != 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+    outputs:
+      image_tag: ${{ steps.push.outputs.image_tag }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure OIDC Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Login to ACR
+        run: az acr login --name acrclahanacademy
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: image-${{ matrix.service }}-${{ needs.build.outputs.sha }}
+          path: /tmp/images/
+
+      - name: Push to ACR
+        id: push
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          IMAGE="${{ env.ACR_REGISTRY }}/clahan-${{ matrix.service }}"
+          
+          docker load -i /tmp/images/image-${{ matrix.service }}.tar
+          
+          docker push ${IMAGE}:${SHA}
+          docker tag ${IMAGE}:${SHA} ${IMAGE}:latest
+          docker push ${IMAGE}:latest
+          
+          echo "image_tag=${SHA}" >> $GITHUB_OUTPUT
+          echo "✅ Pushed ${IMAGE}:${SHA}"
+
+  update-helm:
+    name: "📝 Update Helm — ${{ matrix.service }}"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, push]
+    if: |
+      needs.detect-changes.outputs.has_changes == 'true' &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name != 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Install yq
+        run: |
+          wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod +x /usr/local/bin/yq
+
+      - name: Update image tag in Helm values
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          VALUES="helm/clahan-academy/values.yaml"
+          
+          yq eval \
+            ".${{ matrix.service }}.image.tag = \"${SHA}\"" \
+            -i ${VALUES}
+          
+          echo "✅ Updated ${{ matrix.service }} → ${SHA}"
+
+      - name: Commit and push
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add helm/clahan-academy/values.yaml
+          git diff --staged --quiet || git commit -m \
+            "chore: update ${{ matrix.service }} image to ${SHA} [skip ci]"
+          git push
