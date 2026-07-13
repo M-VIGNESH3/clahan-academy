@@ -166,10 +166,13 @@ services:
       retries: 5
 
   judge0-api:
-    image: mrkushalsm/judge0:cgv2
+    image: judge0/judge0:1.13.0
     container_name: clahan-judge0-api
     ports:
       - "2358:2358"
+    privileged: true # Required for compiler sandbox runtime isolation during synchronous requests
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
     environment:
       REDIS_HOST: judge0-redis
       REDIS_PORT: 6379
@@ -185,7 +188,7 @@ services:
         condition: service_healthy
 
   judge0-worker:
-    image: mrkushalsm/judge0:cgv2
+    image: judge0/judge0:1.13.0
     container_name: clahan-judge0-worker
     command: ["./scripts/workers"]
     privileged: true # Required for compiler sandbox runtime isolation

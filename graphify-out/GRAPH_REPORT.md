@@ -1,16 +1,16 @@
-# Graph Report - clahan academy  (2026-06-21)
+# Graph Report - clahan academy  (2026-07-13)
 
 ## Corpus Check
-- 56 files · ~108,690 words
+- 56 files · ~108,785 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1059 nodes · 1056 edges · 76 communities (69 shown, 7 thin omitted)
+- 1061 nodes · 1068 edges · 76 communities (69 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `282f5e1a`
+- Built from commit: `76f4aca6`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -317,8 +317,8 @@ Cohesion: 0.06
 Nodes (31): Approach 1: Standalone Manifests (Quick Demo), Approach 2: GitOps/ArgoCD (Production), 🏗️ Architecture, 🎁 Bonus Features, 🔄 CI/CD Pipelines, 🎓 Clahan Academy V2, 🔐 Cloud Integration (Workload Identity), code:block1 (+-----------------------+) (+23 more)
 
 ### Community 59 - "Community 59"
-Cohesion: 0.07
-Nodes (35): 1. Network & Port Requirements, 2. Step-by-Step System Provisioning, 3. Environment Variables Configuration, 4. Launching the Docker Stack, 5. Nginx Reverse Proxy & HTTPS Certificate Configuration, 6. System Monitoring Dashboard Verification, A. Core SMTP Configurations (Node.js APIs), A. Core SMTP Configurations (`notification-service/.env`) (+27 more)
+Cohesion: 0.08
+Nodes (37): 1. Network & Port Requirements, 2. Step-by-Step System Provisioning, 3. Environment Variables Configuration, 4. Launching the Docker Stack, 5. Nginx Reverse Proxy & HTTPS Certificate Configuration, 6. System Monitoring Dashboard Verification, A. Core SMTP Configurations (Node.js APIs), A. Core SMTP Configurations (`notification-service/.env`) (+29 more)
 
 ### Community 60 - "Community 60"
 Cohesion: 0.33
@@ -361,7 +361,7 @@ Cohesion: 0.47
 Nodes (7): bootstrap.sh script, check_tool(), create_federated_credential(), error(), info(), print_banner(), success()
 
 ## Knowledge Gaps
-- **656 isolated node(s):** `build-and-push.sh script`, `copy-env-examples.sh script`, `version`, `isEnabled`, `excludedTypes` (+651 more)
+- **653 isolated node(s):** `build-and-push.sh script`, `copy-env-examples.sh script`, `version`, `isEnabled`, `excludedTypes` (+648 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -371,7 +371,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Why does `Clahan Academy V2 — Complete System Documentation & Architecture Guide` connect `Community 35` to `Community 36`?**
   _High betweenness centrality (0.002) - this node is a cross-community bridge._
 - **What connects `build-and-push.sh script`, `copy-env-examples.sh script`, `version` to the rest of the system?**
-  _657 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _654 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**

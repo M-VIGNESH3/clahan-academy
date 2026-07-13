@@ -45,24 +45,35 @@ newgrp docker
 ---
 
 ### Step B: Configure Host Cgroups (Critical for Compiler Sandbox)
-On modern Linux systems running systemd version 255+ and Linux Kernel 6.x+, the host defaults to isolated cgroup namespaces. The sandboxed compiler runtime (Judge0) requires direct cgroup sharing to register and enforce compile memory/CPU limits. Without this config, code evaluation submissions will result in `Internal Error`.
+On modern Linux host operating systems (like Ubuntu 22.04 LTS or 24.04 LTS), the OS defaults to Cgroup v2. However, the standard Judge0 compiler sandboxing engine (`isolate`) requires Cgroup v1 with specific memory controllers and swap accounting enabled at the kernel level. Without this configuration, code execution submissions will fail with `Internal Error` (sandbox ID out of range or chown `/box` errors).
 
-1. Create or edit the Docker daemon configuration file:
+To configure Cgroup v1 compatibility and enable memory/swap controllers on the host VM:
+
+1. Open the GRUB bootloader configuration file:
    ```bash
-   sudo nano /etc/docker/daemon.json
+   sudo nano /etc/default/grub
    ```
 
-2. Add the host cgroup namespace sharing directive:
-   ```json
-   {
-     "default-cgroupns-mode": "host"
-   }
+2. Locate the line starting with `GRUB_CMDLINE_LINUX` (or edit `GRUB_CMDLINE_LINUX_DEFAULT`) and set it to:
+   ```text
+   GRUB_CMDLINE_LINUX="cgroup_enable=memory swapaccount=1 systemd.unified_cgroup_hierarchy=0"
    ```
 
-3. Save the file and reload the Docker system service:
+3. Save the file and compile the new configuration changes into the bootloader:
    ```bash
-   sudo systemctl restart docker
+   sudo update-grub
    ```
+
+4. Reboot the host VM to apply the kernel boot parameters:
+   ```bash
+   sudo reboot
+   ```
+
+5. Once the VM has restarted, verify that Cgroup Version 1 is active:
+   ```bash
+   docker info | grep -i cgroup
+   ```
+   *The output should confirm `Cgroup Version: 1` and `Cgroup Driver: cgroupfs`.*
 
 ---
 

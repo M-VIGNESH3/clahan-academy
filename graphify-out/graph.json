@@ -6381,37 +6381,55 @@
       "norm_label": "step b: configure host cgroups (critical for compiler sandbox)"
     },
     {
-      "label": "code:bash (sudo nano /etc/docker/daemon.json)",
+      "label": "code:bash (sudo nano /etc/default/grub)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L51",
+      "source_location": "L53",
       "id": "clahan_academy_deploy_new_vm_codeblock_2",
       "community": 59,
-      "norm_label": "code:bash (sudo nano /etc/docker/daemon.json)"
+      "norm_label": "code:bash (sudo nano /etc/default/grub)"
     },
     {
-      "label": "code:json ({)",
+      "label": "code:text (GRUB_CMDLINE_LINUX=\"cgroup_enable=memory swapaccount=1 syste)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L56",
+      "source_location": "L58",
       "id": "clahan_academy_deploy_new_vm_codeblock_3",
       "community": 59,
-      "norm_label": "code:json ({)"
+      "norm_label": "code:text (grub_cmdline_linux=\"cgroup_enable=memory swapaccount=1 syste)"
     },
     {
-      "label": "code:bash (sudo systemctl restart docker)",
+      "label": "code:bash (sudo update-grub)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
       "source_location": "L63",
       "id": "clahan_academy_deploy_new_vm_codeblock_4",
       "community": 59,
-      "norm_label": "code:bash (sudo systemctl restart docker)"
+      "norm_label": "code:bash (sudo update-grub)"
+    },
+    {
+      "label": "code:bash (sudo reboot)",
+      "file_type": "document",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L68",
+      "id": "clahan_academy_deploy_new_vm_codeblock_5",
+      "community": 59,
+      "norm_label": "code:bash (sudo reboot)"
+    },
+    {
+      "label": "code:bash (docker info | grep -i cgroup)",
+      "file_type": "document",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L73",
+      "id": "clahan_academy_deploy_new_vm_codeblock_6",
+      "community": 59,
+      "norm_label": "code:bash (docker info | grep -i cgroup)"
     },
     {
       "label": "Step C: Prep Workspace and Dummy Configuration Files",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L69",
+      "source_location": "L80",
       "id": "clahan_academy_deploy_new_vm_step_c_prep_workspace_and_dummy_configuration_files",
       "community": 59,
       "norm_label": "step c: prep workspace and dummy configuration files"
@@ -6420,8 +6438,8 @@
       "label": "code:bash (git clone <your-repository-git-url> /home/ubuntu/clahan-acad)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L71",
-      "id": "clahan_academy_deploy_new_vm_codeblock_5",
+      "source_location": "L82",
+      "id": "clahan_academy_deploy_new_vm_codeblock_7",
       "community": 59,
       "norm_label": "code:bash (git clone <your-repository-git-url> /home/ubuntu/clahan-acad)"
     },
@@ -6429,8 +6447,8 @@
       "label": "code:bash (touch judge0.conf)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L77",
-      "id": "clahan_academy_deploy_new_vm_codeblock_6",
+      "source_location": "L88",
+      "id": "clahan_academy_deploy_new_vm_codeblock_8",
       "community": 59,
       "norm_label": "code:bash (touch judge0.conf)"
     },
@@ -6438,8 +6456,8 @@
       "label": "code:bash (chmod +x copy-env-examples.sh)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L82",
-      "id": "clahan_academy_deploy_new_vm_codeblock_7",
+      "source_location": "L93",
+      "id": "clahan_academy_deploy_new_vm_codeblock_9",
       "community": 59,
       "norm_label": "code:bash (chmod +x copy-env-examples.sh)"
     },
@@ -6447,7 +6465,7 @@
       "label": "3. Environment Variables Configuration",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L90",
+      "source_location": "L101",
       "id": "clahan_academy_deploy_new_vm_3_environment_variables_configuration",
       "community": 59,
       "norm_label": "3. environment variables configuration"
@@ -6456,7 +6474,7 @@
       "label": "A. Core SMTP Configurations (`notification-service/.env`)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L96",
+      "source_location": "L107",
       "id": "clahan_academy_deploy_new_vm_a_core_smtp_configurations_notification_service_env",
       "community": 59,
       "norm_label": "a. core smtp configurations (`notification-service/.env`)"
@@ -6465,7 +6483,7 @@
       "label": "B. Twilio SendGrid API Integration (`notification-service/.env`)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L104",
+      "source_location": "L115",
       "id": "clahan_academy_deploy_new_vm_b_twilio_sendgrid_api_integration_notification_service_env",
       "community": 59,
       "norm_label": "b. twilio sendgrid api integration (`notification-service/.env`)"
@@ -6474,7 +6492,7 @@
       "label": "C. Live Proctoring Violation Limits (`proctoring-service/.env`)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L109",
+      "source_location": "L120",
       "id": "clahan_academy_deploy_new_vm_c_live_proctoring_violation_limits_proctoring_service_env",
       "community": 59,
       "norm_label": "c. live proctoring violation limits (`proctoring-service/.env`)"
@@ -6483,7 +6501,7 @@
       "label": "4. Launching the Docker Stack",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L120",
+      "source_location": "L131",
       "id": "clahan_academy_deploy_new_vm_4_launching_the_docker_stack",
       "community": 59,
       "norm_label": "4. launching the docker stack"
@@ -6492,8 +6510,8 @@
       "label": "code:bash (# 1. Start core microservices)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L124",
-      "id": "clahan_academy_deploy_new_vm_codeblock_8",
+      "source_location": "L135",
+      "id": "clahan_academy_deploy_new_vm_codeblock_10",
       "community": 59,
       "norm_label": "code:bash (# 1. start core microservices)"
     },
@@ -6501,8 +6519,8 @@
       "label": "code:bash (docker compose ps)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L133",
-      "id": "clahan_academy_deploy_new_vm_codeblock_9",
+      "source_location": "L144",
+      "id": "clahan_academy_deploy_new_vm_codeblock_11",
       "community": 59,
       "norm_label": "code:bash (docker compose ps)"
     },
@@ -6510,7 +6528,7 @@
       "label": "Pull the AI LLM Model (Ollama)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L138",
+      "source_location": "L149",
       "id": "clahan_academy_deploy_new_vm_pull_the_ai_llm_model_ollama",
       "community": 59,
       "norm_label": "pull the ai llm model (ollama)"
@@ -6519,8 +6537,8 @@
       "label": "code:bash (docker exec -it clahan-ollama ollama run phi3)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L140",
-      "id": "clahan_academy_deploy_new_vm_codeblock_10",
+      "source_location": "L151",
+      "id": "clahan_academy_deploy_new_vm_codeblock_12",
       "community": 59,
       "norm_label": "code:bash (docker exec -it clahan-ollama ollama run phi3)"
     },
@@ -6528,7 +6546,7 @@
       "label": "5. Nginx Reverse Proxy & HTTPS Certificate Configuration",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L147",
+      "source_location": "L158",
       "id": "clahan_academy_deploy_new_vm_5_nginx_reverse_proxy_https_certificate_configuration",
       "community": 59,
       "norm_label": "5. nginx reverse proxy & https certificate configuration"
@@ -6537,7 +6555,7 @@
       "label": "Step A: Install Nginx and Let's Encrypt Certbot",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L151",
+      "source_location": "L162",
       "id": "clahan_academy_deploy_new_vm_step_a_install_nginx_and_let_s_encrypt_certbot",
       "community": 59,
       "norm_label": "step a: install nginx and let's encrypt certbot"
@@ -6546,8 +6564,8 @@
       "label": "code:bash (sudo apt update)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L152",
-      "id": "clahan_academy_deploy_new_vm_codeblock_11",
+      "source_location": "L163",
+      "id": "clahan_academy_deploy_new_vm_codeblock_13",
       "community": 59,
       "norm_label": "code:bash (sudo apt update)"
     },
@@ -6555,7 +6573,7 @@
       "label": "Step B: Create Domain Server Configurations",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L157",
+      "source_location": "L168",
       "id": "clahan_academy_deploy_new_vm_step_b_create_domain_server_configurations",
       "community": 59,
       "norm_label": "step b: create domain server configurations"
@@ -6564,8 +6582,8 @@
       "label": "code:bash (sudo nano /etc/nginx/sites-available/YOUR_DOMAIN.com)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L159",
-      "id": "clahan_academy_deploy_new_vm_codeblock_12",
+      "source_location": "L170",
+      "id": "clahan_academy_deploy_new_vm_codeblock_14",
       "community": 59,
       "norm_label": "code:bash (sudo nano /etc/nginx/sites-available/your_domain.com)"
     },
@@ -6573,8 +6591,8 @@
       "label": "code:nginx (server {)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L165",
-      "id": "clahan_academy_deploy_new_vm_codeblock_13",
+      "source_location": "L176",
+      "id": "clahan_academy_deploy_new_vm_codeblock_15",
       "community": 59,
       "norm_label": "code:nginx (server {)"
     },
@@ -6582,7 +6600,7 @@
       "label": "Step C: Enable and Test Nginx",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L205",
+      "source_location": "L216",
       "id": "clahan_academy_deploy_new_vm_step_c_enable_and_test_nginx",
       "community": 59,
       "norm_label": "step c: enable and test nginx"
@@ -6591,8 +6609,8 @@
       "label": "code:bash (# Link to active sites configuration)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L206",
-      "id": "clahan_academy_deploy_new_vm_codeblock_14",
+      "source_location": "L217",
+      "id": "clahan_academy_deploy_new_vm_codeblock_16",
       "community": 59,
       "norm_label": "code:bash (# link to active sites configuration)"
     },
@@ -6600,7 +6618,7 @@
       "label": "Step D: Register SSL/TLS Certificate",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L217",
+      "source_location": "L228",
       "id": "clahan_academy_deploy_new_vm_step_d_register_ssl_tls_certificate",
       "community": 59,
       "norm_label": "step d: register ssl/tls certificate"
@@ -6609,8 +6627,8 @@
       "label": "code:bash (sudo certbot --nginx -d YOUR_DOMAIN.com -d www.YOUR_DOMAIN.c)",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L219",
-      "id": "clahan_academy_deploy_new_vm_codeblock_15",
+      "source_location": "L230",
+      "id": "clahan_academy_deploy_new_vm_codeblock_17",
       "community": 59,
       "norm_label": "code:bash (sudo certbot --nginx -d your_domain.com -d www.your_domain.c)"
     },
@@ -6618,7 +6636,7 @@
       "label": "6. System Monitoring Dashboard Verification",
       "file_type": "document",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L225",
+      "source_location": "L236",
       "id": "clahan_academy_deploy_new_vm_6_system_monitoring_dashboard_verification",
       "community": 59,
       "norm_label": "6. system monitoring dashboard verification"
@@ -10154,9 +10172,9 @@
       "source_file": "scripts/bootstrap.sh",
       "source_location": "L43",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_bootstrap_sh",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_check_tool",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_check_tool"
     },
     {
       "relation": "defines",
@@ -10164,9 +10182,9 @@
       "source_file": "scripts/bootstrap.sh",
       "source_location": "L178",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_bootstrap_sh",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_create_federated_credential",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_create_federated_credential"
     },
     {
       "relation": "defines",
@@ -10174,9 +10192,9 @@
       "source_file": "scripts/bootstrap.sh",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_bootstrap_sh",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_error",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_error"
     },
     {
       "relation": "defines",
@@ -10184,9 +10202,9 @@
       "source_file": "scripts/bootstrap.sh",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_bootstrap_sh",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_info",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_info"
     },
     {
       "relation": "defines",
@@ -10194,9 +10212,9 @@
       "source_file": "scripts/bootstrap.sh",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_bootstrap_sh",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_print_banner",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_print_banner"
     },
     {
       "relation": "defines",
@@ -10204,9 +10222,9 @@
       "source_file": "scripts/bootstrap.sh",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_bootstrap_sh",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_success",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_success"
     },
     {
       "relation": "defines",
@@ -10214,9 +10232,9 @@
       "source_file": "scripts/bootstrap.sh",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_bootstrap_sh",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_warn",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_warn"
     },
     {
       "relation": "defines",
@@ -10300,9 +10318,9 @@
       "source_location": "L74",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_users_91901_onedrive_desktop_clahan_academy_scripts_bootstrap_sh__entry",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_check_tool",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_check_tool"
     },
     {
       "relation": "calls",
@@ -10311,9 +10329,9 @@
       "source_location": "L191",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_users_91901_onedrive_desktop_clahan_academy_scripts_bootstrap_sh__entry",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_create_federated_credential",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_create_federated_credential"
     },
     {
       "relation": "calls",
@@ -10322,9 +10340,9 @@
       "source_location": "L95",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_users_91901_onedrive_desktop_clahan_academy_scripts_bootstrap_sh__entry",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_error",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_error"
     },
     {
       "relation": "calls",
@@ -10333,9 +10351,9 @@
       "source_location": "L83",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_users_91901_onedrive_desktop_clahan_academy_scripts_bootstrap_sh__entry",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_info",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_info"
     },
     {
       "relation": "calls",
@@ -10344,9 +10362,9 @@
       "source_location": "L41",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_users_91901_onedrive_desktop_clahan_academy_scripts_bootstrap_sh__entry",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_print_banner",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_print_banner"
     },
     {
       "relation": "calls",
@@ -10355,9 +10373,9 @@
       "source_location": "L110",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_users_91901_onedrive_desktop_clahan_academy_scripts_bootstrap_sh__entry",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_success",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_success"
     },
     {
       "relation": "calls",
@@ -10377,9 +10395,9 @@
       "source_location": "L71",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "scripts_bootstrap_sh_scripts_bootstrap_check_tool",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_success",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_success"
     },
     {
       "relation": "calls",
@@ -10388,9 +10406,9 @@
       "source_location": "L187",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "scripts_bootstrap_sh_scripts_bootstrap_create_federated_credential",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_success",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_success"
     },
     {
       "relation": "calls",
@@ -10399,9 +10417,9 @@
       "source_location": "L49",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "scripts_bootstrap_sh_scripts_bootstrap_check_tool",
-      "target": "scripts_bootstrap_sh_scripts_bootstrap_error",
-      "confidence_score": 1.0
+      "target": "scripts_bootstrap_sh_scripts_bootstrap_error"
     },
     {
       "relation": "contains",
@@ -10409,9 +10427,9 @@
       "source_file": "scripts/install-kgateway.sh",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_install_kgateway_sh",
-      "target": "c_users_91901_onedrive_desktop_clahan_academy_scripts_install_kgateway_sh__entry",
-      "confidence_score": 1.0
+      "target": "c_users_91901_onedrive_desktop_clahan_academy_scripts_install_kgateway_sh__entry"
     },
     {
       "relation": "contains",
@@ -10419,9 +10437,9 @@
       "source_file": "services/build-and-push.sh",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_build_and_push_sh",
-      "target": "c_users_91901_onedrive_desktop_clahan_academy_services_build_and_push_sh__entry",
-      "confidence_score": 1.0
+      "target": "c_users_91901_onedrive_desktop_clahan_academy_services_build_and_push_sh__entry"
     },
     {
       "relation": "contains",
@@ -15052,9 +15070,9 @@
       "source_file": "terraform/scripts/bootstrap.sh",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "terraform_scripts_bootstrap_sh",
-      "target": "c_users_91901_onedrive_desktop_clahan_academy_terraform_scripts_bootstrap_sh__entry",
-      "confidence_score": 1.0
+      "target": "c_users_91901_onedrive_desktop_clahan_academy_terraform_scripts_bootstrap_sh__entry"
     },
     {
       "relation": "defines",
@@ -15062,9 +15080,9 @@
       "source_file": "terraform/scripts/bootstrap.sh",
       "source_location": "L43",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "terraform_scripts_bootstrap_sh",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_check_tool",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_check_tool"
     },
     {
       "relation": "defines",
@@ -15072,9 +15090,9 @@
       "source_file": "terraform/scripts/bootstrap.sh",
       "source_location": "L178",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "terraform_scripts_bootstrap_sh",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_create_federated_credential",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_create_federated_credential"
     },
     {
       "relation": "defines",
@@ -15082,9 +15100,9 @@
       "source_file": "terraform/scripts/bootstrap.sh",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "terraform_scripts_bootstrap_sh",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_error",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_error"
     },
     {
       "relation": "defines",
@@ -15092,9 +15110,9 @@
       "source_file": "terraform/scripts/bootstrap.sh",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "terraform_scripts_bootstrap_sh",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_info",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_info"
     },
     {
       "relation": "defines",
@@ -15102,9 +15120,9 @@
       "source_file": "terraform/scripts/bootstrap.sh",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "terraform_scripts_bootstrap_sh",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_print_banner",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_print_banner"
     },
     {
       "relation": "defines",
@@ -15112,9 +15130,9 @@
       "source_file": "terraform/scripts/bootstrap.sh",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "terraform_scripts_bootstrap_sh",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_success",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_success"
     },
     {
       "relation": "defines",
@@ -15122,9 +15140,9 @@
       "source_file": "terraform/scripts/bootstrap.sh",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "terraform_scripts_bootstrap_sh",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_warn",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_warn"
     },
     {
       "relation": "calls",
@@ -15133,9 +15151,9 @@
       "source_location": "L74",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_users_91901_onedrive_desktop_clahan_academy_terraform_scripts_bootstrap_sh__entry",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_check_tool",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_check_tool"
     },
     {
       "relation": "calls",
@@ -15144,9 +15162,9 @@
       "source_location": "L191",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_users_91901_onedrive_desktop_clahan_academy_terraform_scripts_bootstrap_sh__entry",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_create_federated_credential",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_create_federated_credential"
     },
     {
       "relation": "calls",
@@ -15155,9 +15173,9 @@
       "source_location": "L95",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_users_91901_onedrive_desktop_clahan_academy_terraform_scripts_bootstrap_sh__entry",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_error",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_error"
     },
     {
       "relation": "calls",
@@ -15166,9 +15184,9 @@
       "source_location": "L83",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_users_91901_onedrive_desktop_clahan_academy_terraform_scripts_bootstrap_sh__entry",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_info",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_info"
     },
     {
       "relation": "calls",
@@ -15177,9 +15195,9 @@
       "source_location": "L41",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_users_91901_onedrive_desktop_clahan_academy_terraform_scripts_bootstrap_sh__entry",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_print_banner",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_print_banner"
     },
     {
       "relation": "calls",
@@ -15188,9 +15206,9 @@
       "source_location": "L110",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "c_users_91901_onedrive_desktop_clahan_academy_terraform_scripts_bootstrap_sh__entry",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_success",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_success"
     },
     {
       "relation": "calls",
@@ -15199,9 +15217,9 @@
       "source_location": "L71",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "terraform_scripts_bootstrap_sh_scripts_bootstrap_check_tool",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_success",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_success"
     },
     {
       "relation": "calls",
@@ -15210,9 +15228,9 @@
       "source_location": "L187",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "terraform_scripts_bootstrap_sh_scripts_bootstrap_create_federated_credential",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_success",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_success"
     },
     {
       "relation": "calls",
@@ -15221,9 +15239,9 @@
       "source_location": "L49",
       "weight": 1.0,
       "context": "call",
+      "confidence_score": 1.0,
       "source": "terraform_scripts_bootstrap_sh_scripts_bootstrap_check_tool",
-      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_error",
-      "confidence_score": 1.0
+      "target": "terraform_scripts_bootstrap_sh_scripts_bootstrap_error"
     },
     {
       "relation": "contains",
@@ -16939,6 +16957,26 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "deploy_new_vm.md",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "clahan_academy_deploy_new_vm_step_b_configure_host_cgroups_critical_for_compiler_sandbox",
+      "target": "clahan_academy_deploy_new_vm_codeblock_5",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L73",
+      "weight": 1.0,
+      "source": "clahan_academy_deploy_new_vm_step_b_configure_host_cgroups_critical_for_compiler_sandbox",
+      "target": "clahan_academy_deploy_new_vm_codeblock_6",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
       "source_location": "L71",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -16969,11 +17007,61 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "deploy_new_vm.md",
+      "source_location": "L88",
+      "weight": 1.0,
+      "source": "clahan_academy_deploy_new_vm_step_c_prep_workspace_and_dummy_configuration_files",
+      "target": "clahan_academy_deploy_new_vm_codeblock_8",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L93",
+      "weight": 1.0,
+      "source": "clahan_academy_deploy_new_vm_step_c_prep_workspace_and_dummy_configuration_files",
+      "target": "clahan_academy_deploy_new_vm_codeblock_9",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
       "source_location": "L105",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "clahan_academy_deploy_new_vm_4_launching_the_docker_stack",
       "target": "clahan_academy_deploy_new_vm_codeblock_7"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L110",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "clahan_academy_deploy_new_vm_4_launching_the_docker_stack",
+      "target": "clahan_academy_deploy_new_vm_codeblock_8"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L129",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "clahan_academy_deploy_new_vm_4_launching_the_docker_stack",
+      "target": "clahan_academy_deploy_new_vm_codeblock_9"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L116",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "clahan_academy_deploy_new_vm_pull_the_ai_llm_model_ollama",
+      "target": "clahan_academy_deploy_new_vm_codeblock_9"
     },
     {
       "relation": "contains",
@@ -17029,21 +17117,21 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L110",
+      "source_location": "L135",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "clahan_academy_deploy_new_vm_4_launching_the_docker_stack",
-      "target": "clahan_academy_deploy_new_vm_codeblock_8"
+      "target": "clahan_academy_deploy_new_vm_codeblock_10",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L129",
+      "source_location": "L144",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "clahan_academy_deploy_new_vm_4_launching_the_docker_stack",
-      "target": "clahan_academy_deploy_new_vm_codeblock_9"
+      "target": "clahan_academy_deploy_new_vm_codeblock_11",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -17054,16 +17142,6 @@
       "confidence_score": 1.0,
       "source": "clahan_academy_deploy_new_vm_4_launching_the_docker_stack",
       "target": "clahan_academy_deploy_new_vm_pull_the_ai_llm_model_ollama"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "deploy_new_vm.md",
-      "source_location": "L116",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "clahan_academy_deploy_new_vm_pull_the_ai_llm_model_ollama",
-      "target": "clahan_academy_deploy_new_vm_codeblock_9"
     },
     {
       "relation": "contains",
@@ -17084,6 +17162,46 @@
       "confidence_score": 1.0,
       "source": "clahan_academy_deploy_new_vm_step_a_install_nginx_and_let_s_encrypt_certbot",
       "target": "clahan_academy_deploy_new_vm_codeblock_10"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L147",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "clahan_academy_deploy_new_vm_step_a_install_nginx_and_let_s_encrypt_certbot",
+      "target": "clahan_academy_deploy_new_vm_codeblock_11"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L135",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "clahan_academy_deploy_new_vm_step_b_create_domain_server_configurations",
+      "target": "clahan_academy_deploy_new_vm_codeblock_11"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L151",
+      "weight": 1.0,
+      "source": "clahan_academy_deploy_new_vm_pull_the_ai_llm_model_ollama",
+      "target": "clahan_academy_deploy_new_vm_codeblock_12",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L141",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "clahan_academy_deploy_new_vm_step_b_create_domain_server_configurations",
+      "target": "clahan_academy_deploy_new_vm_codeblock_12"
     },
     {
       "relation": "contains",
@@ -17129,31 +17247,11 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "deploy_new_vm.md",
-      "source_location": "L147",
+      "source_location": "L163",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "clahan_academy_deploy_new_vm_step_a_install_nginx_and_let_s_encrypt_certbot",
-      "target": "clahan_academy_deploy_new_vm_codeblock_11"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "deploy_new_vm.md",
-      "source_location": "L135",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "clahan_academy_deploy_new_vm_step_b_create_domain_server_configurations",
-      "target": "clahan_academy_deploy_new_vm_codeblock_11"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "deploy_new_vm.md",
-      "source_location": "L141",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "clahan_academy_deploy_new_vm_step_b_create_domain_server_configurations",
-      "target": "clahan_academy_deploy_new_vm_codeblock_12"
+      "target": "clahan_academy_deploy_new_vm_codeblock_13",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -17174,6 +17272,26 @@
       "confidence_score": 1.0,
       "source": "clahan_academy_deploy_new_vm_step_c_enable_and_test_nginx",
       "target": "clahan_academy_deploy_new_vm_codeblock_13"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L170",
+      "weight": 1.0,
+      "source": "clahan_academy_deploy_new_vm_step_b_create_domain_server_configurations",
+      "target": "clahan_academy_deploy_new_vm_codeblock_14",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L176",
+      "weight": 1.0,
+      "source": "clahan_academy_deploy_new_vm_step_b_create_domain_server_configurations",
+      "target": "clahan_academy_deploy_new_vm_codeblock_15",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -17204,6 +17322,26 @@
       "confidence_score": 1.0,
       "source": "clahan_academy_deploy_new_vm_step_d_register_ssl_tls_certificate",
       "target": "clahan_academy_deploy_new_vm_codeblock_15"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L217",
+      "weight": 1.0,
+      "source": "clahan_academy_deploy_new_vm_step_c_enable_and_test_nginx",
+      "target": "clahan_academy_deploy_new_vm_codeblock_16",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "deploy_new_vm.md",
+      "source_location": "L230",
+      "weight": 1.0,
+      "source": "clahan_academy_deploy_new_vm_step_d_register_ssl_tls_certificate",
+      "target": "clahan_academy_deploy_new_vm_codeblock_17",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -18451,9 +18589,9 @@
       "source_file": "services/README.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_md",
-      "target": "services_readme_clahan_academy_v2",
-      "confidence_score": 1.0
+      "target": "services_readme_clahan_academy_v2"
     },
     {
       "relation": "contains",
@@ -18461,9 +18599,9 @@
       "source_file": "services/README.md",
       "source_location": "L19",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_clahan_academy_v2",
-      "target": "services_readme_architecture",
-      "confidence_score": 1.0
+      "target": "services_readme_architecture"
     },
     {
       "relation": "contains",
@@ -18471,9 +18609,9 @@
       "source_file": "services/README.md",
       "source_location": "L222",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_clahan_academy_v2",
-      "target": "services_readme_bonus_features",
-      "confidence_score": 1.0
+      "target": "services_readme_bonus_features"
     },
     {
       "relation": "contains",
@@ -18481,9 +18619,9 @@
       "source_file": "services/README.md",
       "source_location": "L161",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_clahan_academy_v2",
-      "target": "services_readme_ci_cd_pipelines",
-      "confidence_score": 1.0
+      "target": "services_readme_ci_cd_pipelines"
     },
     {
       "relation": "contains",
@@ -18491,9 +18629,9 @@
       "source_file": "services/README.md",
       "source_location": "L188",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_clahan_academy_v2",
-      "target": "services_readme_cloud_integration_workload_identity",
-      "confidence_score": 1.0
+      "target": "services_readme_cloud_integration_workload_identity"
     },
     {
       "relation": "contains",
@@ -18501,9 +18639,9 @@
       "source_file": "services/README.md",
       "source_location": "L285",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_clahan_academy_v2",
-      "target": "services_readme_contact",
-      "confidence_score": 1.0
+      "target": "services_readme_contact"
     },
     {
       "relation": "contains",
@@ -18511,9 +18649,9 @@
       "source_file": "services/README.md",
       "source_location": "L245",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_clahan_academy_v2",
-      "target": "services_readme_cost_estimation",
-      "confidence_score": 1.0
+      "target": "services_readme_cost_estimation"
     },
     {
       "relation": "contains",
@@ -18521,9 +18659,9 @@
       "source_file": "services/README.md",
       "source_location": "L235",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_clahan_academy_v2",
-      "target": "services_readme_disaster_recovery",
-      "confidence_score": 1.0
+      "target": "services_readme_disaster_recovery"
     },
     {
       "relation": "contains",
@@ -18531,9 +18669,9 @@
       "source_file": "services/README.md",
       "source_location": "L260",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_clahan_academy_v2",
-      "target": "services_readme_evaluator_verification_commands",
-      "confidence_score": 1.0
+      "target": "services_readme_evaluator_verification_commands"
     },
     {
       "relation": "contains",
@@ -18541,9 +18679,9 @@
       "source_file": "services/README.md",
       "source_location": "L170",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_clahan_academy_v2",
-      "target": "services_readme_kubernetes_deployment",
-      "confidence_score": 1.0
+      "target": "services_readme_kubernetes_deployment"
     },
     {
       "relation": "contains",
@@ -18551,9 +18689,9 @@
       "source_file": "services/README.md",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_clahan_academy_v2",
-      "target": "services_readme_overview",
-      "confidence_score": 1.0
+      "target": "services_readme_overview"
     },
     {
       "relation": "contains",
@@ -18561,9 +18699,9 @@
       "source_file": "services/README.md",
       "source_location": "L118",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_clahan_academy_v2",
-      "target": "services_readme_quick_start",
-      "confidence_score": 1.0
+      "target": "services_readme_quick_start"
     },
     {
       "relation": "contains",
@@ -18571,9 +18709,9 @@
       "source_file": "services/README.md",
       "source_location": "L93",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_clahan_academy_v2",
-      "target": "services_readme_repository_structure",
-      "confidence_score": 1.0
+      "target": "services_readme_repository_structure"
     },
     {
       "relation": "contains",
@@ -18581,9 +18719,9 @@
       "source_file": "services/README.md",
       "source_location": "L212",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_clahan_academy_v2",
-      "target": "services_readme_security_practices",
-      "confidence_score": 1.0
+      "target": "services_readme_security_practices"
     },
     {
       "relation": "contains",
@@ -18591,9 +18729,9 @@
       "source_file": "services/README.md",
       "source_location": "L76",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_clahan_academy_v2",
-      "target": "services_readme_tech_stack",
-      "confidence_score": 1.0
+      "target": "services_readme_tech_stack"
     },
     {
       "relation": "contains",
@@ -18601,9 +18739,9 @@
       "source_file": "services/README.md",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_architecture",
-      "target": "services_readme_codeblock_1",
-      "confidence_score": 1.0
+      "target": "services_readme_codeblock_1"
     },
     {
       "relation": "contains",
@@ -18611,9 +18749,9 @@
       "source_file": "services/README.md",
       "source_location": "L59",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_architecture",
-      "target": "services_readme_microservices_catalog",
-      "confidence_score": 1.0
+      "target": "services_readme_microservices_catalog"
     },
     {
       "relation": "contains",
@@ -18621,9 +18759,9 @@
       "source_file": "services/README.md",
       "source_location": "L94",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_repository_structure",
-      "target": "services_readme_codeblock_2",
-      "confidence_score": 1.0
+      "target": "services_readme_codeblock_2"
     },
     {
       "relation": "contains",
@@ -18631,9 +18769,9 @@
       "source_file": "services/README.md",
       "source_location": "L120",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_quick_start",
-      "target": "services_readme_prerequisites",
-      "confidence_score": 1.0
+      "target": "services_readme_prerequisites"
     },
     {
       "relation": "contains",
@@ -18641,9 +18779,9 @@
       "source_file": "services/README.md",
       "source_location": "L126",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_quick_start",
-      "target": "services_readme_step_by_step_setup",
-      "confidence_score": 1.0
+      "target": "services_readme_step_by_step_setup"
     },
     {
       "relation": "contains",
@@ -18651,9 +18789,9 @@
       "source_file": "services/README.md",
       "source_location": "L128",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_step_by_step_setup",
-      "target": "services_readme_codeblock_3",
-      "confidence_score": 1.0
+      "target": "services_readme_codeblock_3"
     },
     {
       "relation": "contains",
@@ -18661,9 +18799,9 @@
       "source_file": "services/README.md",
       "source_location": "L134",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_step_by_step_setup",
-      "target": "services_readme_codeblock_4",
-      "confidence_score": 1.0
+      "target": "services_readme_codeblock_4"
     },
     {
       "relation": "contains",
@@ -18671,9 +18809,9 @@
       "source_file": "services/README.md",
       "source_location": "L139",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_step_by_step_setup",
-      "target": "services_readme_codeblock_5",
-      "confidence_score": 1.0
+      "target": "services_readme_codeblock_5"
     },
     {
       "relation": "contains",
@@ -18681,9 +18819,9 @@
       "source_file": "services/README.md",
       "source_location": "L145",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_step_by_step_setup",
-      "target": "services_readme_codeblock_6",
-      "confidence_score": 1.0
+      "target": "services_readme_codeblock_6"
     },
     {
       "relation": "contains",
@@ -18691,9 +18829,9 @@
       "source_file": "services/README.md",
       "source_location": "L172",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_kubernetes_deployment",
-      "target": "services_readme_approach_1_standalone_manifests_quick_demo",
-      "confidence_score": 1.0
+      "target": "services_readme_approach_1_standalone_manifests_quick_demo"
     },
     {
       "relation": "contains",
@@ -18701,9 +18839,9 @@
       "source_file": "services/README.md",
       "source_location": "L179",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_kubernetes_deployment",
-      "target": "services_readme_approach_2_gitops_argocd_production",
-      "confidence_score": 1.0
+      "target": "services_readme_approach_2_gitops_argocd_production"
     },
     {
       "relation": "contains",
@@ -18711,9 +18849,9 @@
       "source_file": "services/README.md",
       "source_location": "L174",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_approach_1_standalone_manifests_quick_demo",
-      "target": "services_readme_codeblock_7",
-      "confidence_score": 1.0
+      "target": "services_readme_codeblock_7"
     },
     {
       "relation": "contains",
@@ -18721,9 +18859,9 @@
       "source_file": "services/README.md",
       "source_location": "L181",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_approach_2_gitops_argocd_production",
-      "target": "services_readme_codeblock_8",
-      "confidence_score": 1.0
+      "target": "services_readme_codeblock_8"
     },
     {
       "relation": "contains",
@@ -18731,9 +18869,9 @@
       "source_file": "services/README.md",
       "source_location": "L206",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_cloud_integration_workload_identity",
-      "target": "services_readme_codeblock_10",
-      "confidence_score": 1.0
+      "target": "services_readme_codeblock_10"
     },
     {
       "relation": "contains",
@@ -18741,9 +18879,9 @@
       "source_file": "services/README.md",
       "source_location": "L191",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_cloud_integration_workload_identity",
-      "target": "services_readme_codeblock_9",
-      "confidence_score": 1.0
+      "target": "services_readme_codeblock_9"
     },
     {
       "relation": "contains",
@@ -18751,9 +18889,9 @@
       "source_file": "services/README.md",
       "source_location": "L262",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_readme_evaluator_verification_commands",
-      "target": "services_readme_codeblock_11",
-      "confidence_score": 1.0
+      "target": "services_readme_codeblock_11"
     },
     {
       "relation": "calls",
@@ -20280,5 +20418,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "282f5e1aea2d6e93f0bd74fab78f384f19b0b4fb"
+  "built_at_commit": "76f4aca6cf15f113897b370779f39801496a774a"
 }
