@@ -30,6 +30,11 @@ interface Exam {
   is_published: boolean; window_open_minutes?: number; mcq_count?: number; coding_count?: number;
   trainer_id?: string | null; trainerId?: string | null; trainer_name?: string | null; trainerName?: string | null;
   enable_face_detection?: boolean; enableFaceDetection?: boolean;
+  enable_section_cutoff?: boolean; enableSectionCutoff?: boolean;
+  mcq_cutoff_percentage?: number; mcqCutoffPercentage?: number;
+  coding_cutoff_percentage?: number; codingCutoffPercentage?: number;
+  mcq_cutoff_marks?: number; mcqCutoffMarks?: number;
+  coding_cutoff_marks?: number; codingCutoffMarks?: number;
 }
 interface MCQQuestion {
   id: string; question: string; option_a: string; option_b: string; option_c: string; option_d: string;
@@ -46,6 +51,9 @@ interface Attempt {
   time_taken_seconds: number; feedback: string; status: 'ongoing' | 'completed' | 'terminated';
   created_at: string; exam_name?: string; exam_type?: string; cutoff_percentage?: number;
   results_released?: boolean;
+  mcq_passed?: boolean; coding_passed?: boolean; failure_reason?: string;
+  enable_section_cutoff?: boolean; mcq_cutoff_percentage?: number; coding_cutoff_percentage?: number;
+  mcq_cutoff_marks?: number; coding_cutoff_marks?: number;
 }
 
 const getLocalDatetimeString = () => {
@@ -228,12 +236,22 @@ export default function App() {
     trainerId: string;
     year: string;
     enableFaceDetection?: boolean;
+    enableSectionCutoff?: boolean;
+    mcqCutoffPercentage?: number;
+    codingCutoffPercentage?: number;
+    mcqCutoffMarks?: number;
+    codingCutoffMarks?: number;
   }>({
     name: '', description: '', examType: 'mcq',
     durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
     windowOpenMinutes: 10,
     collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year',
-    enableFaceDetection: true
+    enableFaceDetection: true,
+    enableSectionCutoff: false,
+    mcqCutoffPercentage: 50,
+    codingCutoffPercentage: 50,
+    mcqCutoffMarks: 0,
+    codingCutoffMarks: 0
   });
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [terminationModal, setTerminationModal] = useState<{ attemptId: string; studentName: string } | null>(null);
@@ -1727,7 +1745,12 @@ export default function App() {
         college_name: colleges.find(c => c.id === examForm.collegeId)?.name || 'College',
         department_name: 'CSE',
         year: examForm.year,
-        enable_face_detection: examForm.enableFaceDetection !== false
+        enable_face_detection: examForm.enableFaceDetection !== false,
+        enable_section_cutoff: examForm.enableSectionCutoff === true,
+        mcq_cutoff_percentage: examForm.mcqCutoffPercentage || 50,
+        coding_cutoff_percentage: examForm.codingCutoffPercentage || 50,
+        mcq_cutoff_marks: examForm.mcqCutoffMarks || 0,
+        coding_cutoff_marks: examForm.codingCutoffMarks || 0
       };
       setAdminExams(prev => [mockE, ...prev]);
       setSelectedExamIdForQuestions(mockId);
@@ -1757,7 +1780,12 @@ export default function App() {
           durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
           windowOpenMinutes: 10,
           collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year',
-          enableFaceDetection: true
+          enableFaceDetection: true,
+          enableSectionCutoff: false,
+          mcqCutoffPercentage: 50,
+          codingCutoffPercentage: 50,
+          mcqCutoffMarks: 0,
+          codingCutoffMarks: 0
         });
         loadAdminDashboard();
       }
@@ -1777,7 +1805,12 @@ export default function App() {
         department_ids: examForm.departmentIds,
         batch_id: examForm.batchId,
         trainer_id: examForm.trainerId,
-        enable_face_detection: examForm.enableFaceDetection !== false
+        enable_face_detection: examForm.enableFaceDetection !== false,
+        enable_section_cutoff: examForm.enableSectionCutoff === true,
+        mcq_cutoff_percentage: examForm.mcqCutoffPercentage || 50,
+        coding_cutoff_percentage: examForm.codingCutoffPercentage || 50,
+        mcq_cutoff_marks: examForm.mcqCutoffMarks || 0,
+        coding_cutoff_marks: examForm.codingCutoffMarks || 0
       } : e));
       setEditingExamId(null);
       setExamForm({
@@ -1785,7 +1818,12 @@ export default function App() {
         durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
         windowOpenMinutes: 10,
         collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year',
-        enableFaceDetection: true
+        enableFaceDetection: true,
+        enableSectionCutoff: false,
+        mcqCutoffPercentage: 50,
+        codingCutoffPercentage: 50,
+        mcqCutoffMarks: 0,
+        codingCutoffMarks: 0
       });
       showToast('Exam configuration updated successfully (Simulated)');
     }
@@ -1819,7 +1857,12 @@ export default function App() {
       batchId: ex.batch_id || '',
       trainerId: ex.trainer_id || '',
       year: ex.year || '1st Year',
-      enableFaceDetection: ex.enable_face_detection !== false
+      enableFaceDetection: ex.enable_face_detection !== false,
+      enableSectionCutoff: ex.enable_section_cutoff === true || ex.enableSectionCutoff === true,
+      mcqCutoffPercentage: ex.mcq_cutoff_percentage !== undefined ? Number(ex.mcq_cutoff_percentage) : (ex.mcqCutoffPercentage !== undefined ? Number(ex.mcqCutoffPercentage) : 50),
+      codingCutoffPercentage: ex.coding_cutoff_percentage !== undefined ? Number(ex.coding_cutoff_percentage) : (ex.codingCutoffPercentage !== undefined ? Number(ex.codingCutoffPercentage) : 50),
+      mcqCutoffMarks: ex.mcq_cutoff_marks !== undefined ? Number(ex.mcq_cutoff_marks) : (ex.mcqCutoffMarks !== undefined ? Number(ex.mcqCutoffMarks) : 0),
+      codingCutoffMarks: ex.coding_cutoff_marks !== undefined ? Number(ex.coding_cutoff_marks) : (ex.codingCutoffMarks !== undefined ? Number(ex.codingCutoffMarks) : 0)
     });
     if (ex.college_id) {
       fetchDepartments(ex.college_id);
@@ -1917,12 +1960,27 @@ export default function App() {
       showToast('No results available to download.', 'error');
       return;
     }
-    const headers = 'Student Name,Roll Number,Department,Year,Score,Percentage,Status,Reason,Submission Date\n';
+    const headers = 'Student Name,Roll Number,Department,Year,MCQ Score,MCQ Status,Coding Score,Coding Status,Overall Score,Overall Percentage,Overall Result,Failure Reason,Submission Date\n';
     const rows = adminSelectedExamResults.map(r => {
       const status = r.status === 'terminated' ? 'TERMINATED' : r.passed ? 'PASSED' : 'FAILED';
-      const reason = r.status === 'terminated' && r.feedback ? r.feedback.replace(/"/g, '""') : '';
+      
+      let mcqStatus = 'N/A';
+      if (r.mcq_passed !== undefined && r.mcq_passed !== null) {
+        mcqStatus = r.mcq_passed ? 'PASSED' : 'FAILED';
+      }
+      let codingStatus = 'N/A';
+      if (r.coding_passed !== undefined && r.coding_passed !== null) {
+        codingStatus = r.coding_passed ? 'PASSED' : 'FAILED';
+      }
+      
+      const mcqScoreStr = r.mcq_score !== undefined && r.mcq_score !== null ? r.mcq_score : 'N/A';
+      const codingScoreStr = r.coding_score !== undefined && r.coding_score !== null ? r.coding_score : 'N/A';
+
+      const reason = r.status === 'terminated' && r.feedback 
+        ? r.feedback.replace(/"/g, '""') 
+        : (r.failure_reason ? r.failure_reason.replace(/"/g, '""') : '');
       const date = new Date(r.created_at).toLocaleDateString();
-      return `"${r.full_name || 'N/A'}","${r.roll_number || 'N/A'}","${r.department_name || 'N/A'}","${r.year || 'N/A'}",${r.score},${r.percentage}%,${status},"${reason}","${date}"`;
+      return `"${r.full_name || 'N/A'}","${r.roll_number || 'N/A'}","${r.department_name || 'N/A'}","${r.year || 'N/A'}",${mcqScoreStr},${mcqStatus},${codingScoreStr},${codingStatus},${r.score},${r.percentage}%,${status},"${reason}","${date}"`;
     }).join('\n');
     
     const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
@@ -5236,7 +5294,13 @@ export default function App() {
                             name: '', description: '', examType: 'mcq',
                             durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
                             windowOpenMinutes: 10,
-                            collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year'
+                            collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year',
+                            enableFaceDetection: true,
+                            enableSectionCutoff: false,
+                            mcqCutoffPercentage: 50,
+                            codingCutoffPercentage: 50,
+                            mcqCutoffMarks: 0,
+                            codingCutoffMarks: 0
                           });
                         }} className="text-xs font-bold text-amber-600 hover:underline">Cancel Edit</button>
                       )}
@@ -5409,6 +5473,82 @@ export default function App() {
                         </label>
                       </div>
 
+                      <div className="space-y-3 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+                        <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 select-none">
+                          <input 
+                            type="checkbox" 
+                            checked={examForm.enableSectionCutoff === true} 
+                            onChange={e => setExamForm({...examForm, enableSectionCutoff: e.target.checked})} 
+                            className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-slate-900" 
+                          />
+                          Enable Section-wise Cutoffs (configure separate MCQ and Coding pass criteria)
+                        </label>
+
+                        {examForm.enableSectionCutoff && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-800/60 transition-all duration-300 ease-in-out">
+                            {/* MCQ Section Cutoff */}
+                            {examForm.examType !== 'coding' && (
+                              <div className="space-y-2 p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80">
+                                <h4 className="text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">MCQ Section</h4>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Passing Percentage (%)</label>
+                                    <input 
+                                      type="number" 
+                                      value={examForm.mcqCutoffPercentage !== undefined ? examForm.mcqCutoffPercentage : 50} 
+                                      onChange={e => setExamForm({...examForm, mcqCutoffPercentage: parseFloat(e.target.value) || 0})} 
+                                      className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1" 
+                                      min={0} 
+                                      max={100}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Passing Marks (or 0 for %)</label>
+                                    <input 
+                                      type="number" 
+                                      value={examForm.mcqCutoffMarks !== undefined ? examForm.mcqCutoffMarks : 0} 
+                                      onChange={e => setExamForm({...examForm, mcqCutoffMarks: parseFloat(e.target.value) || 0})} 
+                                      className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1" 
+                                      min={0}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Coding Section Cutoff */}
+                            {examForm.examType !== 'mcq' && (
+                              <div className="space-y-2 p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80">
+                                <h4 className="text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Coding Section</h4>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Passing Percentage (%)</label>
+                                    <input 
+                                      type="number" 
+                                      value={examForm.codingCutoffPercentage !== undefined ? examForm.codingCutoffPercentage : 50} 
+                                      onChange={e => setExamForm({...examForm, codingCutoffPercentage: parseFloat(e.target.value) || 0})} 
+                                      className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1" 
+                                      min={0} 
+                                      max={100}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Passing Marks (or 0 for %)</label>
+                                    <input 
+                                      type="number" 
+                                      value={examForm.codingCutoffMarks !== undefined ? examForm.codingCutoffMarks : 0} 
+                                      onChange={e => setExamForm({...examForm, codingCutoffMarks: parseFloat(e.target.value) || 0})} 
+                                      className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1" 
+                                      min={0}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
                       <button type="submit" className={`w-full py-3 ${editingExamId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-indigo-600 hover:bg-indigo-500'} text-white font-bold rounded-xl text-xs transition-colors`}>
                         {editingExamId ? 'Save Configuration & Reschedule' : 'Configure & Create Exam'}
                       </button>
@@ -5486,7 +5626,25 @@ export default function App() {
                                     <td className="py-3.5 px-4 font-bold text-slate-800 dark:text-slate-200">{r.full_name || 'N/A'}</td>
                                     <td className="py-3.5 px-2 font-mono">{r.roll_number || 'N/A'}</td>
                                     <td className="py-3.5 px-2 text-muted-foreground">{r.department_name || 'N/A'} - {r.year || 'N/A'}</td>
-                                    <td className="py-3.5 px-2 text-center font-bold">{r.score} pts</td>
+                                    <td className="py-3.5 px-2 text-center font-bold">
+                                      <div>{r.score} pts</div>
+                                      {r.enable_section_cutoff && (
+                                        <div className="text-[10px] text-muted-foreground mt-0.5 space-y-0.5">
+                                          {r.mcq_score !== null && r.mcq_score !== undefined && (
+                                            <div className="flex items-center justify-center gap-1">
+                                              <span>MCQ: {r.mcq_score}</span>
+                                              <span className={`w-1.5 h-1.5 rounded-full ${r.mcq_passed ? 'bg-emerald-500' : 'bg-rose-500'}`} title={r.mcq_passed ? 'MCQ Passed' : 'MCQ Failed'} />
+                                            </div>
+                                          )}
+                                          {r.coding_score !== null && r.coding_score !== undefined && (
+                                            <div className="flex items-center justify-center gap-1">
+                                              <span>Coding: {r.coding_score}</span>
+                                              <span className={`w-1.5 h-1.5 rounded-full ${r.coding_passed ? 'bg-emerald-500' : 'bg-rose-500'}`} title={r.coding_passed ? 'Coding Passed' : 'Coding Failed'} />
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </td>
                                     <td className="py-3.5 px-2 text-center font-black text-indigo-600 dark:text-indigo-400">{r.percentage}%</td>
                                     <td className="py-3.5 px-4 text-center">
                                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
@@ -5501,6 +5659,11 @@ export default function App() {
                                       {r.status === 'terminated' && r.feedback && (
                                         <div className="mt-1.5 text-[9px] text-rose-600 dark:text-rose-400 font-semibold max-w-[200px] mx-auto leading-relaxed">
                                           {r.feedback}
+                                        </div>
+                                      )}
+                                      {!r.passed && r.status !== 'terminated' && r.failure_reason && (
+                                        <div className="mt-1.5 text-[9px] text-rose-600 dark:text-rose-400 font-semibold max-w-[200px] mx-auto leading-relaxed">
+                                          {r.failure_reason}
                                         </div>
                                       )}
                                     </td>
@@ -7768,6 +7931,82 @@ export default function App() {
                 </span>
               </div>
             </div>
+
+            {/* Section-wise Cutoffs Summary Card */}
+            {detailedResult.attempt.enable_section_cutoff && (
+              <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-4">
+                <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <CheckCircle className="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />
+                  Section-wise Cutoffs Performance
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* MCQ Section Cutoff Status */}
+                  {detailedResult.attempt.max_mcq > 0 && (
+                    <div className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 flex justify-between items-center">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">MCQ Section</span>
+                        <span className="text-sm font-black text-slate-800 dark:text-white mt-1 block">
+                          {detailedResult.attempt.mcq_score} / {detailedResult.attempt.max_mcq} pts
+                        </span>
+                        <span className="text-[10px] text-muted-foreground block mt-0.5 font-mono">
+                          Required: {detailedResult.attempt.mcq_cutoff_marks > 0 
+                            ? `${detailedResult.attempt.mcq_cutoff_marks} marks` 
+                            : `${detailedResult.attempt.mcq_cutoff_percentage}%`}
+                        </span>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider uppercase ${
+                        detailedResult.attempt.mcq_passed 
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 border border-emerald-500/30' 
+                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-450 border border-rose-500/30'
+                      }`}>
+                        {detailedResult.attempt.mcq_passed ? 'PASSED' : 'FAILED'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Coding Section Cutoff Status */}
+                  {detailedResult.attempt.max_coding > 0 && (
+                    <div className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 flex justify-between items-center">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Coding Section</span>
+                        <span className="text-sm font-black text-slate-800 dark:text-white mt-1 block">
+                          {detailedResult.attempt.coding_score} / {detailedResult.attempt.max_coding} pts
+                        </span>
+                        <span className="text-[10px] text-muted-foreground block mt-0.5 font-mono">
+                          Required: {detailedResult.attempt.coding_cutoff_marks > 0 
+                            ? `${detailedResult.attempt.coding_cutoff_marks} marks` 
+                            : `${detailedResult.attempt.coding_cutoff_percentage}%`}
+                        </span>
+                      </div>
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider uppercase ${
+                        detailedResult.attempt.coding_passed 
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 border border-emerald-500/30' 
+                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-450 border border-rose-500/30'
+                      }`}>
+                        {detailedResult.attempt.coding_passed ? 'PASSED' : 'FAILED'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Failure Reason Alert */}
+            {!detailedResult.attempt.passed && detailedResult.attempt.status !== 'terminated' && (
+              <div className="p-6 rounded-2xl bg-gradient-to-tr from-rose-500/10 to-orange-500/10 border border-rose-500/20 relative overflow-hidden">
+                <div className="flex gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+                    <ShieldAlert className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-sm text-rose-900 dark:text-rose-300">Failed Assessment Reason</h4>
+                    <p className="text-sm font-semibold text-rose-800 dark:text-rose-200 mt-2">
+                      Reason: <span className="font-black text-rose-700 dark:text-rose-300">{detailedResult.attempt.failure_reason || 'Overall cutoff percentage not met.'}</span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Proctor Termination Reason Alert */}
             {detailedResult.attempt.status === 'terminated' && (

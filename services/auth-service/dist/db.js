@@ -137,6 +137,11 @@ async function initDb() {
         window_open_minutes INTEGER DEFAULT 10,
         is_published BOOLEAN DEFAULT FALSE,
         enable_face_detection BOOLEAN DEFAULT TRUE,
+        enable_section_cutoff BOOLEAN DEFAULT FALSE,
+        mcq_cutoff_percentage DECIMAL(5, 2) DEFAULT 50.00,
+        coding_cutoff_percentage DECIMAL(5, 2) DEFAULT 50.00,
+        mcq_cutoff_marks DECIMAL(5, 2) DEFAULT 0.00,
+        coding_cutoff_marks DECIMAL(5, 2) DEFAULT 0.00,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -173,6 +178,13 @@ async function initDb() {
     `);
         await client.query(`
       ALTER TABLE exams ADD COLUMN IF NOT EXISTS enable_face_detection BOOLEAN DEFAULT TRUE;
+    `);
+        await client.query(`
+      ALTER TABLE exams ADD COLUMN IF NOT EXISTS enable_section_cutoff BOOLEAN DEFAULT FALSE;
+      ALTER TABLE exams ADD COLUMN IF NOT EXISTS mcq_cutoff_percentage DECIMAL(5,2) DEFAULT 50.00;
+      ALTER TABLE exams ADD COLUMN IF NOT EXISTS coding_cutoff_percentage DECIMAL(5,2) DEFAULT 50.00;
+      ALTER TABLE exams ADD COLUMN IF NOT EXISTS mcq_cutoff_marks DECIMAL(5,2) DEFAULT 0.00;
+      ALTER TABLE exams ADD COLUMN IF NOT EXISTS coding_cutoff_marks DECIMAL(5,2) DEFAULT 0.00;
     `);
         // MCQ Questions
         await client.query(`
@@ -221,7 +233,6 @@ async function initDb() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
-        // Exam Attempts
         await client.query(`
       CREATE TABLE IF NOT EXISTS exam_attempts (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -236,8 +247,16 @@ async function initDb() {
         time_taken_seconds INTEGER DEFAULT 0,
         feedback TEXT,
         status VARCHAR(50) DEFAULT 'ongoing' CHECK (status IN ('ongoing', 'completed', 'terminated')),
+        mcq_passed BOOLEAN,
+        coding_passed BOOLEAN,
+        failure_reason VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+        await client.query(`
+      ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS mcq_passed BOOLEAN;
+      ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS coding_passed BOOLEAN;
+      ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS failure_reason VARCHAR(255);
     `);
         // MCQ Responses
         await client.query(`

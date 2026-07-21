@@ -237,7 +237,7 @@ app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res)
 // Create Exam
 app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
     try {
-        const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId, enableFaceDetection } = req.body;
+        const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId, enableFaceDetection, enableSectionCutoff, mcqCutoffPercentage, codingCutoffPercentage, mcqCutoffMarks, codingCutoffMarks } = req.body;
         if (!name || !examType || !durationMinutes || !scheduleDate || !collegeId) {
             return res.status(400).json({ error: 'Missing required parameters' });
         }
@@ -251,8 +251,12 @@ app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
         const finalYear = batchId ? null : year;
         const result = await query(`INSERT INTO exams (
         name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts,
-        schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published, trainer_id, enable_face_detection
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::uuid[], $11, $12, $13, FALSE, $14, $15) RETURNING *`, [name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, trainerId || null, enableFaceDetection !== false]);
+        schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published, trainer_id, enable_face_detection,
+        enable_section_cutoff, mcq_cutoff_percentage, coding_cutoff_percentage, mcq_cutoff_marks, coding_cutoff_marks
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::uuid[], $11, $12, $13, FALSE, $14, $15, $16, $17, $18, $19, $20) RETURNING *`, [
+            name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, trainerId || null, enableFaceDetection !== false,
+            enableSectionCutoff === true, mcqCutoffPercentage !== undefined && mcqCutoffPercentage !== null ? mcqCutoffPercentage : 50.00, codingCutoffPercentage !== undefined && codingCutoffPercentage !== null ? codingCutoffPercentage : 50.00, mcqCutoffMarks !== undefined && mcqCutoffMarks !== null ? mcqCutoffMarks : 0.00, codingCutoffMarks !== undefined && codingCutoffMarks !== null ? codingCutoffMarks : 0.00
+        ]);
         res.status(201).json(result.rows[0]);
     }
     catch (err) {
@@ -302,7 +306,7 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
 // Update Exam
 app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) => {
     try {
-        const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId, enableFaceDetection } = req.body;
+        const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId, enableFaceDetection, enableSectionCutoff, mcqCutoffPercentage, codingCutoffPercentage, mcqCutoffMarks, codingCutoffMarks } = req.body;
         if (!name || !examType || !durationMinutes || !scheduleDate || !collegeId) {
             return res.status(400).json({ error: 'Missing required parameters' });
         }
@@ -317,8 +321,13 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
         const result = await query(`UPDATE exams 
        SET name = $1, description = $2, exam_type = $3, duration_minutes = $4,
            cutoff_percentage = $5, allowed_attempts = $6, schedule_date = $7,
-           college_id = $8, department_id = $9, department_ids = $10::uuid[], batch_id = $11, year = $12, window_open_minutes = $13, trainer_id = $14, enable_face_detection = $15
-       WHERE id = $16 RETURNING *`, [name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, trainerId || null, enableFaceDetection !== false, req.params.id]);
+           college_id = $8, department_id = $9, department_ids = $10::uuid[], batch_id = $11, year = $12, window_open_minutes = $13, trainer_id = $14, enable_face_detection = $15,
+           enable_section_cutoff = $16, mcq_cutoff_percentage = $17, coding_cutoff_percentage = $18, mcq_cutoff_marks = $19, coding_cutoff_marks = $20
+       WHERE id = $21 RETURNING *`, [
+            name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, trainerId || null, enableFaceDetection !== false,
+            enableSectionCutoff === true, mcqCutoffPercentage !== undefined && mcqCutoffPercentage !== null ? mcqCutoffPercentage : 50.00, codingCutoffPercentage !== undefined && codingCutoffPercentage !== null ? codingCutoffPercentage : 50.00, mcqCutoffMarks !== undefined && mcqCutoffMarks !== null ? mcqCutoffMarks : 0.00, codingCutoffMarks !== undefined && codingCutoffMarks !== null ? codingCutoffMarks : 0.00,
+            req.params.id
+        ]);
         if (result.rows.length === 0)
             return res.status(404).json({ error: 'Exam not found' });
         res.json(result.rows[0]);
@@ -337,8 +346,8 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
         if (examCheck.rows.length === 0)
             return res.status(404).json({ error: 'Exam not found' });
         const ex = examCheck.rows[0];
-        const newExam = await query(`INSERT INTO exams (name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts, schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published, trainer_id, enable_face_detection)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE, $14, $15) RETURNING *`, [
+        const newExam = await query(`INSERT INTO exams (name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts, schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published, trainer_id, enable_face_detection, enable_section_cutoff, mcq_cutoff_percentage, coding_cutoff_percentage, mcq_cutoff_marks, coding_cutoff_marks)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE, $14, $15, $16, $17, $18, $19, $20) RETURNING *`, [
             `Copy of ${ex.name}`,
             ex.description,
             ex.exam_type,
@@ -353,7 +362,12 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
             ex.year,
             ex.window_open_minutes,
             ex.trainer_id || null,
-            ex.enable_face_detection !== false
+            ex.enable_face_detection !== false,
+            ex.enable_section_cutoff !== false && ex.enable_section_cutoff !== null ? ex.enable_section_cutoff : false,
+            ex.mcq_cutoff_percentage !== null ? ex.mcq_cutoff_percentage : 50.00,
+            ex.coding_cutoff_percentage !== null ? ex.coding_cutoff_percentage : 50.00,
+            ex.mcq_cutoff_marks !== null ? ex.mcq_cutoff_marks : 0.00,
+            ex.coding_cutoff_marks !== null ? ex.coding_cutoff_marks : 0.00
         ]);
         const newExamId = newExam.rows[0].id;
         // Copy MCQs
@@ -559,9 +573,11 @@ app.post('/api/exams/:id/coding', authenticate, requireRole('admin'), async (req
 app.get('/api/exams/:id/results', authenticate, requireRole('admin'), async (req, res) => {
     try {
         const { id } = req.params;
-        const attempts = await query(`SELECT ea.*, u.full_name, u.roll_number, d.name as department_name, u.year
+        const attempts = await query(`SELECT ea.*, u.full_name, u.roll_number, d.name as department_name, u.year,
+              e.enable_section_cutoff
        FROM exam_attempts ea
        JOIN users u ON ea.student_id = u.id
+       JOIN exams e ON ea.exam_id = e.id
        LEFT JOIN departments d ON u.department_id = d.id
        WHERE ea.exam_id = $1 AND ea.status IN ('completed', 'terminated')
        ORDER BY ea.percentage DESC`, [id]);
@@ -1244,9 +1260,70 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
         const codingMaxRes = await query('SELECT COALESCE(SUM(marks), 0) as sum FROM coding_questions WHERE exam_id = $1', [examId]);
         const maxScorePossible = parseInt(mcqMaxRes.rows[0].sum) + parseInt(codingMaxRes.rows[0].sum);
         const percentage = maxScorePossible > 0 ? (totalScore / maxScorePossible) * 100 : 0.0;
-        const passed = percentage >= exam.cutoff_percentage;
+        const overallPassedByScore = percentage >= exam.cutoff_percentage;
+        const mcqMax = parseInt(mcqMaxRes.rows[0].sum);
+        const codingMax = parseInt(codingMaxRes.rows[0].sum);
+        let mcqSectionPassed = true;
+        let mcqPercentage = 0;
+        if (mcqMax > 0) {
+            mcqPercentage = (mcqScore / mcqMax) * 100;
+            if (exam.enable_section_cutoff) {
+                if (exam.mcq_cutoff_marks !== null && parseFloat(exam.mcq_cutoff_marks) > 0) {
+                    mcqSectionPassed = mcqScore >= parseFloat(exam.mcq_cutoff_marks);
+                }
+                else {
+                    mcqSectionPassed = mcqPercentage >= parseFloat(exam.mcq_cutoff_percentage || '50.00');
+                }
+            }
+        }
+        let codingSectionPassed = true;
+        let codingPercentage = 0;
+        if (codingMax > 0) {
+            codingPercentage = (codingScore / codingMax) * 100;
+            if (exam.enable_section_cutoff) {
+                if (exam.coding_cutoff_marks !== null && parseFloat(exam.coding_cutoff_marks) > 0) {
+                    codingSectionPassed = codingScore >= parseFloat(exam.coding_cutoff_marks);
+                }
+                else {
+                    codingSectionPassed = codingPercentage >= parseFloat(exam.coding_cutoff_percentage || '50.00');
+                }
+            }
+        }
+        let finalPassed = overallPassedByScore;
+        let failureReason = '';
+        if (exam.enable_section_cutoff) {
+            if (!mcqSectionPassed) {
+                finalPassed = false;
+                failureReason = 'MCQ section cutoff not cleared';
+            }
+            if (!codingSectionPassed) {
+                finalPassed = false;
+                if (failureReason) {
+                    failureReason += ' and Coding section cutoff not cleared';
+                }
+                else {
+                    failureReason = 'Coding section cutoff not cleared';
+                }
+            }
+            if (overallPassedByScore && !finalPassed) {
+                // Did not clear section cutoff(s) but met overall percentage
+            }
+            else if (!overallPassedByScore) {
+                if (failureReason) {
+                    failureReason += ' and overall cutoff not cleared';
+                }
+                else {
+                    failureReason = 'Overall cutoff not cleared';
+                }
+            }
+        }
+        else {
+            if (!overallPassedByScore) {
+                failureReason = 'Overall cutoff not cleared';
+            }
+        }
         // Log result calculation details and score breakdown
-        console.log(`[RESULT CALCULATION EVENT] Attempt: ${attemptId} | Student: ${studentId} | Exam: ${examId} | MCQ Score: ${mcqScore}/${mcqMaxRes.rows[0].sum} | Coding Score: ${codingScore}/${codingMaxRes.rows[0].sum} | Total Score: ${totalScore}/${maxScorePossible} | Percentage: ${percentage.toFixed(2)}% | Cutoff: ${exam.cutoff_percentage}% | Passed: ${passed}`);
+        console.log(`[RESULT CALCULATION EVENT] Attempt: ${attemptId} | Student: ${studentId} | Exam: ${examId} | MCQ Score: ${mcqScore}/${mcqMaxRes.rows[0].sum} | Coding Score: ${codingScore}/${codingMaxRes.rows[0].sum} | Total Score: ${totalScore}/${maxScorePossible} | Percentage: ${percentage.toFixed(2)}% | Cutoff: ${exam.cutoff_percentage}% | Passed: ${finalPassed} | Failure Reason: ${failureReason || 'None'}`);
         // Fetch detailed statistics for the prompt
         let mcqTotal = 0;
         let mcqCorrect = 0;
@@ -1310,8 +1387,13 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
         // Update Attempt record
         await query(`UPDATE exam_attempts
        SET score = $1, percentage = $2, passed = $3, mcq_score = $4, coding_score = $5,
-           time_taken_seconds = $6, feedback = $7, status = 'completed'
-       WHERE id = $8`, [totalScore, percentage, passed, mcqScore, codingScore, timeTakenSeconds || 0, aiFeedback, attemptId]);
+           time_taken_seconds = $6, feedback = $7, status = 'completed',
+           mcq_passed = $8, coding_passed = $9, failure_reason = $10
+       WHERE id = $11`, [
+            totalScore, percentage, finalPassed, mcqScore, codingScore, timeTakenSeconds || 0, aiFeedback,
+            mcqMax > 0 ? mcqSectionPassed : null, codingMax > 0 ? codingSectionPassed : null, failureReason || null,
+            attemptId
+        ]);
         // Retrieve user email
         const student = await query('SELECT email, full_name FROM users WHERE id = $1', [studentId]);
         // Queue notification email
@@ -1323,7 +1405,7 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
                 score: totalScore,
                 maxScore: maxScorePossible,
                 percentage: Math.round(percentage),
-                passed,
+                passed: finalPassed,
                 feedback: aiFeedback
             });
         }
@@ -1332,7 +1414,7 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
             score: totalScore,
             maxScore: maxScorePossible,
             percentage: Math.round(percentage),
-            passed,
+            passed: finalPassed,
             feedback: aiFeedback
         });
     }
@@ -1358,8 +1440,9 @@ app.post('/api/exams/student/attempts/:attemptId/terminate', authenticate, requi
         }
         const feedbackStr = `Exam automatically terminated: ${reason || 'Multiple warnings exceeded / screen violations detected.'}`;
         await query(`UPDATE exam_attempts
-       SET status = 'terminated', score = 0, percentage = 0.00, passed = FALSE, feedback = $1
-       WHERE id = $2`, [feedbackStr, attemptId]);
+       SET status = 'terminated', score = 0, percentage = 0.00, passed = FALSE, feedback = $1,
+           mcq_passed = FALSE, coding_passed = FALSE, failure_reason = $2
+       WHERE id = $3`, [feedbackStr, feedbackStr, attemptId]);
         // Retrieve student email and exam details to queue email notification
         try {
             const studentResult = await query('SELECT email, full_name FROM users WHERE id = $1', [attempt.student_id]);
@@ -1392,6 +1475,7 @@ app.get('/api/exams/student/attempts/:attemptId/result', authenticate, async (re
         const { attemptId } = req.params;
         const attemptResult = await query(`SELECT ea.*, e.name as exam_name, e.exam_type, e.cutoff_percentage,
               e.schedule_date, e.window_open_minutes, e.duration_minutes,
+              e.enable_section_cutoff, e.mcq_cutoff_percentage, e.coding_cutoff_percentage, e.mcq_cutoff_marks, e.coding_cutoff_marks,
               (SELECT COALESCE(SUM(marks), 0) FROM mcq_questions mq WHERE mq.exam_id = e.id) as max_mcq,
               (SELECT COALESCE(SUM(marks), 0) FROM coding_questions cq WHERE cq.exam_id = e.id) as max_coding
        FROM exam_attempts ea
@@ -1461,6 +1545,13 @@ app.post('/api/exams/admin/generate-coding-question', authenticate, requireRole(
         console.error('Failed to generate coding question:', err.message);
         res.status(500).json({ error: 'AI Question Generation failed. Please try again or fill the details manually.' });
     }
+});
+// Health check endpoints for Kubernetes liveness and readiness probes
+app.get('/healthz', (_req, res) => {
+    res.status(200).json({ status: 'ok', service: 'exam-service' });
+});
+app.get('/ready', (_req, res) => {
+    res.status(200).json({ status: 'ready', service: 'exam-service' });
 });
 app.listen(PORT, () => {
     console.log(`Exam Service listening on port ${PORT}`);
