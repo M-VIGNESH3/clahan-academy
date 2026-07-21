@@ -186,6 +186,21 @@ async function initDb() {
       ALTER TABLE exams ADD COLUMN IF NOT EXISTS mcq_cutoff_marks DECIMAL(5,2) DEFAULT 0.00;
       ALTER TABLE exams ADD COLUMN IF NOT EXISTS coding_cutoff_marks DECIMAL(5,2) DEFAULT 0.00;
     `);
+        // Create Sections Table
+        await client.query(`
+      CREATE TABLE IF NOT EXISTS sections (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        exam_id UUID REFERENCES exams(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        section_type VARCHAR(50) NOT NULL,
+        duration_minutes INTEGER,
+        randomize_questions BOOLEAN DEFAULT FALSE,
+        is_mandatory BOOLEAN DEFAULT TRUE,
+        sort_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
         // MCQ Questions
         await client.query(`
       CREATE TABLE IF NOT EXISTS mcq_questions (
@@ -330,6 +345,41 @@ async function initDb() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+        // Ensure section_id columns exist
+        await client.query(`
+      ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS section_id UUID REFERENCES sections(id) ON DELETE SET NULL;
+      ALTER TABLE coding_questions ADD COLUMN IF NOT EXISTS section_id UUID REFERENCES sections(id) ON DELETE SET NULL;
+    `);
+        // Run data migration for older exams that do not have sections configured
+        const examsRes = await client.query('SELECT id, exam_type FROM exams');
+        for (const exam of examsRes.rows) {
+            const sectCheck = await client.query('SELECT id FROM sections WHERE exam_id = $1 LIMIT 1', [exam.id]);
+            if (sectCheck.rows.length === 0) {
+                // Exam has no sections, check if it contains questions
+                const mcqCountRes = await client.query('SELECT COUNT(*)::int as count FROM mcq_questions WHERE exam_id = $1', [exam.id]);
+                const codingCountRes = await client.query('SELECT COUNT(*)::int as count FROM coding_questions WHERE exam_id = $1', [exam.id]);
+                const mcqCount = mcqCountRes.rows[0].count;
+                const codingCount = codingCountRes.rows[0].count;
+                const hasMcq = exam.exam_type === 'mcq' || exam.exam_type === 'both' || mcqCount > 0;
+                const hasCoding = exam.exam_type === 'coding' || exam.exam_type === 'both' || codingCount > 0;
+                if (hasMcq) {
+                    const newSect = await client.query(`
+            INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
+            VALUES ($1, 'MCQ Section', 'mcq', FALSE, TRUE, 0) RETURNING id
+          `, [exam.id]);
+                    const sectId = newSect.rows[0].id;
+                    await client.query('UPDATE mcq_questions SET section_id = $1 WHERE exam_id = $2', [sectId, exam.id]);
+                }
+                if (hasCoding) {
+                    const newSect = await client.query(`
+            INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
+            VALUES ($1, 'Coding Section', 'coding', FALSE, TRUE, 1) RETURNING id
+          `, [exam.id]);
+                    const sectId = newSect.rows[0].id;
+                    await client.query('UPDATE coding_questions SET section_id = $1 WHERE exam_id = $2', [sectId, exam.id]);
+                }
+            }
+        }
         // Seed default admin if none exists
         const adminCheck = await client.query("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
         if (adminCheck.rows.length === 0) {

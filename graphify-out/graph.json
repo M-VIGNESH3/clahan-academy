@@ -2435,7 +2435,7 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L40",
       "id": "services_exam_service_src_index_ts_src_index_query",
-      "community": 7,
+      "community": 76,
       "norm_label": "query()"
     },
     {
@@ -2444,14 +2444,23 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L42",
       "id": "src_index_validateattemptnotexpired",
-      "community": 7,
+      "community": 76,
       "norm_label": "validateattemptnotexpired()"
+    },
+    {
+      "label": "seededShuffle()",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L66",
+      "id": "src_index_seededshuffle",
+      "community": 7,
+      "norm_label": "seededshuffle()"
     },
     {
       "label": "redisClient",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L67",
+      "source_location": "L87",
       "id": "services_exam_service_src_index_ts_src_index_redisclient",
       "community": 7,
       "norm_label": "redisclient"
@@ -2460,7 +2469,7 @@
       "label": "parsed",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L84",
+      "source_location": "L104",
       "id": "services_exam_service_src_index_ts_src_index_parsed",
       "community": 7,
       "norm_label": "parsed"
@@ -2469,7 +2478,7 @@
       "label": "notificationQueue",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L91",
+      "source_location": "L111",
       "id": "services_exam_service_src_index_ts_src_index_notificationqueue",
       "community": 7,
       "norm_label": "notificationqueue"
@@ -2478,7 +2487,7 @@
       "label": "queueNotification()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L98",
+      "source_location": "L118",
       "id": "services_exam_service_src_index_ts_src_index_queuenotification",
       "community": 7,
       "norm_label": "queuenotification()"
@@ -2487,7 +2496,7 @@
       "label": "queueNotificationsBulk()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L116",
+      "source_location": "L136",
       "id": "services_exam_service_src_index_ts_src_index_queuenotificationsbulk",
       "community": 7,
       "norm_label": "queuenotificationsbulk()"
@@ -2496,7 +2505,7 @@
       "label": "limiter",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L155",
+      "source_location": "L175",
       "id": "services_exam_service_src_index_ts_src_index_limiter",
       "community": 7,
       "norm_label": "limiter"
@@ -2505,7 +2514,7 @@
       "label": "AuthenticatedRequest",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L163",
+      "source_location": "L183",
       "id": "services_exam_service_src_index_ts_src_index_authenticatedrequest",
       "community": 7,
       "norm_label": "authenticatedrequest"
@@ -2514,7 +2523,7 @@
       "label": "authenticate()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L174",
+      "source_location": "L194",
       "id": "src_index_authenticate",
       "community": 7,
       "norm_label": "authenticate()"
@@ -2523,7 +2532,7 @@
       "label": "requireRole()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L187",
+      "source_location": "L207",
       "id": "src_index_requirerole",
       "community": 7,
       "norm_label": "requirerole()"
@@ -2532,16 +2541,25 @@
       "label": "codingQuestions",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L296",
+      "source_location": "L330",
       "id": "src_index_codingquestions",
       "community": 7,
       "norm_label": "codingquestions"
     },
     {
+      "label": "sectionIdMap",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L430",
+      "id": "src_index_sectionidmap",
+      "community": 7,
+      "norm_label": "sectionidmap"
+    },
+    {
       "label": "notificationPayloads",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L459",
+      "source_location": "L510",
       "id": "services_exam_service_src_index_ts_src_index_notificationpayloads",
       "community": 7,
       "norm_label": "notificationpayloads"
@@ -2550,7 +2568,7 @@
       "label": "parseCsvLine()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L496",
+      "source_location": "L547",
       "id": "src_index_parsecsvline",
       "community": 7,
       "norm_label": "parsecsvline()"
@@ -2559,7 +2577,7 @@
       "label": "lines",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L527",
+      "source_location": "L592",
       "id": "services_exam_service_src_index_ts_src_index_lines",
       "community": 7,
       "norm_label": "lines"
@@ -2568,7 +2586,7 @@
       "label": "dataRows",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L528",
+      "source_location": "L593",
       "id": "services_exam_service_src_index_ts_src_index_datarows",
       "community": 7,
       "norm_label": "datarows"
@@ -2577,7 +2595,7 @@
       "label": "parts",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L532",
+      "source_location": "L597",
       "id": "services_exam_service_src_index_ts_src_index_parts",
       "community": 7,
       "norm_label": "parts"
@@ -2586,7 +2604,7 @@
       "label": "cleanCorrect",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L545",
+      "source_location": "L610",
       "id": "src_index_cleancorrect",
       "community": 7,
       "norm_label": "cleancorrect"
@@ -2595,7 +2613,7 @@
       "label": "insertedCases",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L612",
+      "source_location": "L705",
       "id": "src_index_insertedcases",
       "community": 7,
       "norm_label": "insertedcases"
@@ -2604,7 +2622,7 @@
       "label": "{ college_id, department_id, year, batch_id, trainer_id, id: studentId }",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L656",
+      "source_location": "L749",
       "id": "src_index_college_id_department_id_year_batch_id_trainer_id_id_studentid",
       "community": 7,
       "norm_label": "{ college_id, department_id, year, batch_id, trainer_id, id: studentid }"
@@ -2613,7 +2631,7 @@
       "label": "eligible",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L675",
+      "source_location": "L768",
       "id": "src_index_eligible",
       "community": 7,
       "norm_label": "eligible"
@@ -2622,16 +2640,16 @@
       "label": "now",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L692",
+      "source_location": "L785",
       "id": "src_index_now",
-      "community": 7,
+      "community": 76,
       "norm_label": "now"
     },
     {
       "label": "sched",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L693",
+      "source_location": "L786",
       "id": "src_index_sched",
       "community": 7,
       "norm_label": "sched"
@@ -2640,7 +2658,7 @@
       "label": "windowClose",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L695",
+      "source_location": "L788",
       "id": "src_index_windowclose",
       "community": 7,
       "norm_label": "windowclose"
@@ -2649,16 +2667,70 @@
       "label": "attemptsMade",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L708",
+      "source_location": "L801",
       "id": "src_index_attemptsmade",
       "community": 7,
       "norm_label": "attemptsmade"
     },
     {
+      "label": "finalMcqs",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L909",
+      "id": "src_index_finalmcqs",
+      "community": 7,
+      "norm_label": "finalmcqs"
+    },
+    {
+      "label": "finalCodings",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L910",
+      "id": "src_index_finalcodings",
+      "community": 7,
+      "norm_label": "finalcodings"
+    },
+    {
+      "label": "sectMcqs",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L916",
+      "id": "src_index_sectmcqs",
+      "community": 7,
+      "norm_label": "sectmcqs"
+    },
+    {
+      "label": "sectCodings",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L922",
+      "id": "src_index_sectcodings",
+      "community": 7,
+      "norm_label": "sectcodings"
+    },
+    {
+      "label": "residualMcqs",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L930",
+      "id": "src_index_residualmcqs",
+      "community": 7,
+      "norm_label": "residualmcqs"
+    },
+    {
+      "label": "residualCodings",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L933",
+      "id": "src_index_residualcodings",
+      "community": 7,
+      "norm_label": "residualcodings"
+    },
+    {
       "label": "correctAnswer",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L853",
+      "source_location": "L979",
       "id": "src_index_correctanswer",
       "community": 7,
       "norm_label": "correctanswer"
@@ -2667,7 +2739,7 @@
       "label": "cleanSelected",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L854",
+      "source_location": "L980",
       "id": "src_index_cleanselected",
       "community": 7,
       "norm_label": "cleanselected"
@@ -2676,7 +2748,7 @@
       "label": "cleanOptionText",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L877",
+      "source_location": "L1003",
       "id": "src_index_cleanoptiontext",
       "community": 7,
       "norm_label": "cleanoptiontext"
@@ -2685,7 +2757,7 @@
       "label": "encodeBase64()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L900",
+      "source_location": "L1026",
       "id": "src_index_encodebase64",
       "community": 7,
       "norm_label": "encodebase64()"
@@ -2694,7 +2766,7 @@
       "label": "decodeBase64()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L904",
+      "source_location": "L1030",
       "id": "src_index_decodebase64",
       "community": 7,
       "norm_label": "decodebase64()"
@@ -2703,7 +2775,7 @@
       "label": "results",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L945",
+      "source_location": "L1071",
       "id": "src_index_results",
       "community": 7,
       "norm_label": "results"
@@ -2712,7 +2784,7 @@
       "label": "langIdMap",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L946",
+      "source_location": "L1072",
       "id": "src_index_langidmap",
       "community": 7,
       "norm_label": "langidmap"
@@ -2721,7 +2793,7 @@
       "label": "scoreObtained",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1000",
+      "source_location": "L1126",
       "id": "src_index_scoreobtained",
       "community": 7,
       "norm_label": "scoreobtained"
@@ -2730,7 +2802,7 @@
       "label": "testCaseResults",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1133",
+      "source_location": "L1259",
       "id": "src_index_testcaseresults",
       "community": 7,
       "norm_label": "testcaseresults"
@@ -2739,7 +2811,7 @@
       "label": "mcqScore",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1397",
+      "source_location": "L1523",
       "id": "src_index_mcqscore",
       "community": 7,
       "norm_label": "mcqscore"
@@ -2748,7 +2820,7 @@
       "label": "codingScore",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1401",
+      "source_location": "L1527",
       "id": "src_index_codingscore",
       "community": 7,
       "norm_label": "codingscore"
@@ -2757,7 +2829,7 @@
       "label": "mcqMax",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1413",
+      "source_location": "L1539",
       "id": "src_index_mcqmax",
       "community": 7,
       "norm_label": "mcqmax"
@@ -2766,7 +2838,7 @@
       "label": "codingMax",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1414",
+      "source_location": "L1540",
       "id": "src_index_codingmax",
       "community": 7,
       "norm_label": "codingmax"
@@ -2775,7 +2847,7 @@
       "label": "scheduleDate",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1653",
+      "source_location": "L1779",
       "id": "src_index_scheduledate",
       "community": 7,
       "norm_label": "scheduledate"
@@ -2784,7 +2856,7 @@
       "label": "examEndTime",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1656",
+      "source_location": "L1782",
       "id": "src_index_examendtime",
       "community": 7,
       "norm_label": "examendtime"
@@ -3288,7 +3360,7 @@
       "label": "CodingQuestion",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L43",
+      "source_location": "L44",
       "id": "src_app_codingquestion",
       "community": 19,
       "norm_label": "codingquestion"
@@ -3297,7 +3369,7 @@
       "label": "Attempt",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L48",
+      "source_location": "L50",
       "id": "src_app_attempt",
       "community": 19,
       "norm_label": "attempt"
@@ -3306,7 +3378,7 @@
       "label": "getLocalDatetimeString()",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L59",
+      "source_location": "L61",
       "id": "src_app_getlocaldatetimestring",
       "community": 19,
       "norm_label": "getlocaldatetimestring()"
@@ -3315,7 +3387,7 @@
       "label": "STARTER_TEMPLATES",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L64",
+      "source_location": "L66",
       "id": "src_app_starter_templates",
       "community": 19,
       "norm_label": "starter_templates"
@@ -3324,7 +3396,7 @@
       "label": "getCustomTemplate()",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L71",
+      "source_location": "L73",
       "id": "src_app_getcustomtemplate",
       "community": 19,
       "norm_label": "getcustomtemplate()"
@@ -3333,7 +3405,7 @@
       "label": "App()",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L96",
+      "source_location": "L98",
       "id": "src_app_app",
       "community": 19,
       "norm_label": "app()"
@@ -12662,9 +12734,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L1414",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_codingmax",
-      "confidence_score": 1.0
+      "target": "src_index_codingmax"
     },
     {
       "relation": "contains",
@@ -12750,6 +12822,26 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L910",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_finalcodings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L909",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_finalmcqs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
       "source_location": "L598",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -12772,9 +12864,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L1413",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_mcqmax",
-      "confidence_score": 1.0
+      "target": "src_index_mcqmax"
     },
     {
       "relation": "contains",
@@ -12820,6 +12912,26 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L933",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_residualcodings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L930",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_residualmcqs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
       "source_location": "L929",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -12855,6 +12967,46 @@
       "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
       "target": "src_index_scoreobtained"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L922",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_sectcodings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L430",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_sectionidmap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L916",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_sectmcqs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L66",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_seededshuffle",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -20456,5 +20608,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "d9ed203612cc7ac4d4acc26d70d48e1d657053d5"
+  "built_at_commit": "1a2edefbd4376275c6f3ff329e8bf21965672912"
 }

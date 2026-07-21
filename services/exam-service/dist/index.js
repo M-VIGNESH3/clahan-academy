@@ -91,6 +91,25 @@ async function validateAttemptNotExpired(attemptId) {
         throw new Error('Exam time limit exceeded. Action rejected.');
     }
 }
+function seededShuffle(array, seed) {
+    let h = 0;
+    for (let i = 0; i < seed.length; i++) {
+        h = (h << 5) - h + seed.charCodeAt(i);
+        h |= 0;
+    }
+    const rand = () => {
+        h = Math.sin(h) * 10000;
+        return h - Math.floor(h);
+    };
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(rand() * (i + 1));
+        const temp = shuffled[i];
+        shuffled[i] = shuffled[j];
+        shuffled[j] = temp;
+    }
+    return shuffled;
+}
 // Redis client for notifications
 const redisClient = (0, redis_1.createClient)({
     url: process.env.REDIS_URL || 'redis://redis:6379',
@@ -257,6 +276,19 @@ app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
             name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, trainerId || null, enableFaceDetection !== false,
             enableSectionCutoff === true, mcqCutoffPercentage !== undefined && mcqCutoffPercentage !== null ? mcqCutoffPercentage : 50.00, codingCutoffPercentage !== undefined && codingCutoffPercentage !== null ? codingCutoffPercentage : 50.00, mcqCutoffMarks !== undefined && mcqCutoffMarks !== null ? mcqCutoffMarks : 0.00, codingCutoffMarks !== undefined && codingCutoffMarks !== null ? codingCutoffMarks : 0.00
         ]);
+        const examId = result.rows[0].id;
+        if (examType === 'mcq' || examType === 'both') {
+            await query(`
+        INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
+        VALUES ($1, 'MCQ Section', 'mcq', FALSE, TRUE, 0)
+      `, [examId]);
+        }
+        if (examType === 'coding' || examType === 'both') {
+            await query(`
+        INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
+        VALUES ($1, 'Coding Section', 'coding', FALSE, TRUE, 1)
+      `, [examId]);
+        }
         res.status(201).json(result.rows[0]);
     }
     catch (err) {
@@ -292,8 +324,10 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
             const cases = await query('SELECT * FROM coding_test_cases WHERE question_id = $1 ORDER BY created_at ASC', [cq.id]);
             codingQuestions.push({ ...cq, testCases: cases.rows });
         }
+        const sections = await query('SELECT * FROM sections WHERE exam_id = $1 ORDER BY sort_order ASC', [req.params.id]);
         res.json({
             exam: examResult.rows[0],
+            sections: sections.rows,
             mcqQuestions: mcqs.rows,
             codingQuestions
         });
@@ -370,17 +404,27 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
             ex.coding_cutoff_marks !== null ? ex.coding_cutoff_marks : 0.00
         ]);
         const newExamId = newExam.rows[0].id;
+        // Copy Sections
+        const sections = await query('SELECT * FROM sections WHERE exam_id = $1 ORDER BY sort_order ASC', [id]);
+        const sectionIdMap = {};
+        for (const s of sections.rows) {
+            const newSect = await query(`INSERT INTO sections (exam_id, name, description, section_type, duration_minutes, randomize_questions, is_mandatory, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`, [newExamId, s.name, s.description || '', s.section_type, s.duration_minutes, s.randomize_questions === true, s.is_mandatory !== false, s.sort_order]);
+            sectionIdMap[s.id] = newSect.rows[0].id;
+        }
         // Copy MCQs
         const mcqs = await query('SELECT * FROM mcq_questions WHERE exam_id = $1', [id]);
         for (const m of mcqs.rows) {
-            await query(`INSERT INTO mcq_questions (exam_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`, [newExamId, m.question, m.option_a, m.option_b, m.option_c, m.option_d, m.correct_answer, m.marks, m.difficulty]);
+            const newSectId = m.section_id ? (sectionIdMap[m.section_id] || null) : null;
+            await query(`INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, [newExamId, newSectId, m.question, m.option_a, m.option_b, m.option_c, m.option_d, m.correct_answer, m.marks, m.difficulty]);
         }
         // Copy Coding Questions
         const codings = await query('SELECT * FROM coding_questions WHERE exam_id = $1', [id]);
         for (const c of codings.rows) {
-            const newCq = await query(`INSERT INTO coding_questions (exam_id, title, description, difficulty, marks, language, time_limit, memory_limit, starter_code)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`, [newExamId, c.title, c.description, c.difficulty, c.marks, c.language, c.time_limit, c.memory_limit, c.starter_code]);
+            const newSectId = c.section_id ? (sectionIdMap[c.section_id] || null) : null;
+            const newCq = await query(`INSERT INTO coding_questions (exam_id, section_id, title, description, difficulty, marks, language, time_limit, memory_limit, starter_code)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`, [newExamId, newSectId, c.title, c.description, c.difficulty, c.marks, c.language, c.time_limit, c.memory_limit, c.starter_code]);
             const newCqId = newCq.rows[0].id;
             // Copy Testcases
             const cases = await query('SELECT * FROM coding_test_cases WHERE question_id = $1', [c.id]);
@@ -486,6 +530,20 @@ app.post('/api/exams/:id/mcq/import', authenticate, requireRole('admin'), async 
         const { csvContent } = req.body;
         if (!csvContent)
             return res.status(400).json({ error: 'CSV content required' });
+        let finalSectionId = req.body.sectionId || req.body.section_id;
+        if (!finalSectionId) {
+            const mcqSections = await query("SELECT id FROM sections WHERE exam_id = $1 AND section_type = 'mcq' ORDER BY sort_order ASC LIMIT 1", [id]);
+            if (mcqSections.rows.length > 0) {
+                finalSectionId = mcqSections.rows[0].id;
+            }
+            else {
+                const newSect = await query(`
+          INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
+          VALUES ($1, 'MCQ Section', 'mcq', FALSE, TRUE, 0) RETURNING id
+        `, [id]);
+                finalSectionId = newSect.rows[0].id;
+            }
+        }
         const lines = csvContent.replace(/\r/g, '').split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
         const dataRows = lines.slice(1);
         let inserted = 0;
@@ -516,8 +574,8 @@ app.post('/api/exams/:id/mcq/import', authenticate, requireRole('admin'), async 
             if (!question || !optA || !optB || !optC || !optD || !correct) {
                 continue;
             }
-            await query(`INSERT INTO mcq_questions (exam_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`, [id, question, optA, optB, optC, optD, correct, marks, difficulty]);
+            await query(`INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, [id, finalSectionId, question, optA, optB, optC, optD, correct, marks, difficulty]);
             inserted++;
         }
         res.json({ message: 'MCQ questions imported successfully', count: inserted });
@@ -535,8 +593,22 @@ app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, r
         if (!question || !optionA || !optionB || !optionC || !optionD || !correctAnswer) {
             return res.status(400).json({ error: 'Required MCQ fields missing' });
         }
-        const result = await query(`INSERT INTO mcq_questions (exam_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`, [id, question, optionA, optionB, optionC, optionD, correctAnswer, marks || 1, difficulty || 'medium']);
+        let finalSectionId = req.body.sectionId || req.body.section_id;
+        if (!finalSectionId) {
+            const mcqSections = await query("SELECT id FROM sections WHERE exam_id = $1 AND section_type = 'mcq' ORDER BY sort_order ASC LIMIT 1", [id]);
+            if (mcqSections.rows.length > 0) {
+                finalSectionId = mcqSections.rows[0].id;
+            }
+            else {
+                const newSect = await query(`
+          INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
+          VALUES ($1, 'MCQ Section', 'mcq', FALSE, TRUE, 0) RETURNING id
+        `, [id]);
+                finalSectionId = newSect.rows[0].id;
+            }
+        }
+        const result = await query(`INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`, [id, finalSectionId, question, optionA, optionB, optionC, optionD, correctAnswer, marks || 1, difficulty || 'medium']);
         res.status(201).json(result.rows[0]);
     }
     catch (err) {
@@ -552,8 +624,22 @@ app.post('/api/exams/:id/coding', authenticate, requireRole('admin'), async (req
         if (!title || !description || !language) {
             return res.status(400).json({ error: 'Title, description and language are required' });
         }
-        const cqResult = await query(`INSERT INTO coding_questions (exam_id, title, description, difficulty, marks, language, time_limit, memory_limit, starter_code)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`, [id, title, description, difficulty || 'medium', marks || 10, language, timeLimit || 2000, memoryLimit || 512000, starterCode || '']);
+        let finalSectionId = req.body.sectionId || req.body.section_id;
+        if (!finalSectionId) {
+            const codingSections = await query("SELECT id FROM sections WHERE exam_id = $1 AND section_type = 'coding' ORDER BY sort_order ASC LIMIT 1", [id]);
+            if (codingSections.rows.length > 0) {
+                finalSectionId = codingSections.rows[0].id;
+            }
+            else {
+                const newSect = await query(`
+          INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
+          VALUES ($1, 'Coding Section', 'coding', FALSE, TRUE, 1) RETURNING id
+        `, [id]);
+                finalSectionId = newSect.rows[0].id;
+            }
+        }
+        const cqResult = await query(`INSERT INTO coding_questions (exam_id, section_id, title, description, difficulty, marks, language, time_limit, memory_limit, starter_code)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`, [id, finalSectionId, title, description, difficulty || 'medium', marks || 10, language, timeLimit || 2000, memoryLimit || 512000, starterCode || '']);
         const cq = cqResult.rows[0];
         const insertedCases = [];
         if (testCases && Array.isArray(testCases)) {
@@ -696,10 +782,13 @@ app.get('/api/exams/student/attempts/:attemptId', authenticate, async (req, res)
             return res.status(404).json({ error: 'Attempt not found' });
         const examId = attempt.rows[0].exam_id;
         const exam = await query('SELECT * FROM exams WHERE id = $1', [examId]);
+        // Fetch Sections
+        const sectionsResult = await query('SELECT * FROM sections WHERE exam_id = $1 ORDER BY sort_order ASC', [examId]);
+        const sections = sectionsResult.rows;
         // Query MCQ questions (hide correct_answer during exam)
-        const mcqsResult = await query('SELECT id, question, option_a, option_b, option_c, option_d, marks, difficulty FROM mcq_questions WHERE exam_id = $1', [examId]);
-        // Query Coding questions (hide test cases details except description if desired, we send basic details)
-        const codingRaw = await query('SELECT id, title, description, difficulty, marks, language, starter_code FROM coding_questions WHERE exam_id = $1', [examId]);
+        const mcqsResult = await query('SELECT id, section_id, question, option_a, option_b, option_c, option_d, marks, difficulty FROM mcq_questions WHERE exam_id = $1', [examId]);
+        // Query Coding questions
+        const codingRaw = await query('SELECT id, section_id, title, description, difficulty, marks, language, starter_code FROM coding_questions WHERE exam_id = $1', [examId]);
         const codingQuestions = [];
         for (const cq of codingRaw.rows) {
             // Send visible test cases only
@@ -709,13 +798,36 @@ app.get('/api/exams/student/attempts/:attemptId', authenticate, async (req, res)
                 testCases: testCases.rows
             });
         }
+        // Group and randomize MCQs/Codings by section
+        let finalMcqs = [];
+        let finalCodings = [];
+        const mcqRows = mcqsResult.rows;
+        const codingRows = codingQuestions;
+        for (const sect of sections) {
+            let sectMcqs = mcqRows.filter((q) => q.section_id === sect.id);
+            if (sect.randomize_questions) {
+                sectMcqs = seededShuffle(sectMcqs, attemptId);
+            }
+            finalMcqs.push(...sectMcqs);
+            let sectCodings = codingRows.filter((q) => q.section_id === sect.id);
+            if (sect.randomize_questions) {
+                sectCodings = seededShuffle(sectCodings, attemptId);
+            }
+            finalCodings.push(...sectCodings);
+        }
+        // Fallback for residual questions (if any exist without section_id or not mapped to existing sections)
+        const residualMcqs = mcqRows.filter((q) => !q.section_id || !sections.some((s) => s.id === q.section_id));
+        finalMcqs.push(...residualMcqs);
+        const residualCodings = codingRows.filter((q) => !q.section_id || !sections.some((s) => s.id === q.section_id));
+        finalCodings.push(...residualCodings);
         // Retrieve already recorded MCQ responses for this attempt
         const mcqResponses = await query('SELECT question_id, selected_option FROM mcq_responses WHERE attempt_id = $1', [attemptId]);
         const codingResponses = await query('SELECT question_id, code, language, status, test_cases_passed, total_test_cases FROM coding_responses WHERE attempt_id = $1', [attemptId]);
         res.json({
             exam: exam.rows[0],
-            mcqQuestions: mcqsResult.rows,
-            codingQuestions,
+            sections,
+            mcqQuestions: finalMcqs,
+            codingQuestions: finalCodings,
             responses: {
                 mcqs: mcqResponses.rows,
                 codings: codingResponses.rows
@@ -1544,6 +1656,78 @@ app.post('/api/exams/admin/generate-coding-question', authenticate, requireRole(
     catch (err) {
         console.error('Failed to generate coding question:', err.message);
         res.status(500).json({ error: 'AI Question Generation failed. Please try again or fill the details manually.' });
+    }
+});
+// Section Management endpoints
+app.get('/api/exams/:examId/sections', authenticate, async (req, res) => {
+    try {
+        const { examId } = req.params;
+        const result = await query('SELECT * FROM sections WHERE exam_id = $1 ORDER BY sort_order ASC', [examId]);
+        res.json(result.rows);
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.post('/api/exams/:examId/sections', authenticate, requireRole('admin'), async (req, res) => {
+    try {
+        const { examId } = req.params;
+        const { name, description, sectionType, durationMinutes, randomizeQuestions, isMandatory, sortOrder } = req.body;
+        if (!name || !sectionType) {
+            return res.status(400).json({ error: 'Section Name and Section Type are required' });
+        }
+        const result = await query(`INSERT INTO sections (exam_id, name, description, section_type, duration_minutes, randomize_questions, is_mandatory, sort_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`, [examId, name, description || '', sectionType, durationMinutes || null, randomizeQuestions === true, isMandatory !== false, sortOrder || 0]);
+        res.status(201).json(result.rows[0]);
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.put('/api/sections/:id', authenticate, requireRole('admin'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, description, durationMinutes, randomizeQuestions, isMandatory, sortOrder } = req.body;
+        if (!name) {
+            return res.status(400).json({ error: 'Section Name is required' });
+        }
+        const result = await query(`UPDATE sections 
+       SET name = $1, description = $2, duration_minutes = $3, randomize_questions = $4, is_mandatory = $5, sort_order = $6
+       WHERE id = $7 RETURNING *`, [name, description || '', durationMinutes || null, randomizeQuestions === true, isMandatory !== false, sortOrder || 0, id]);
+        if (result.rows.length === 0)
+            return res.status(404).json({ error: 'Section not found' });
+        res.json(result.rows[0]);
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.delete('/api/sections/:id', authenticate, requireRole('admin'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const result = await query('DELETE FROM sections WHERE id = $1 RETURNING *', [id]);
+        if (result.rows.length === 0)
+            return res.status(404).json({ error: 'Section not found' });
+        res.json({ message: 'Section deleted successfully' });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+app.post('/api/exams/:examId/sections/reorder', authenticate, requireRole('admin'), async (req, res) => {
+    try {
+        const { examId } = req.params;
+        const { sectionIds } = req.body;
+        if (!sectionIds || !Array.isArray(sectionIds)) {
+            return res.status(400).json({ error: 'sectionIds array is required' });
+        }
+        for (let i = 0; i < sectionIds.length; i++) {
+            await query('UPDATE sections SET sort_order = $1 WHERE id = $2 AND exam_id = $3', [i, sectionIds[i], examId]);
+        }
+        res.json({ message: 'Sections reordered successfully' });
+    }
+    catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 // Health check endpoints for Kubernetes liveness and readiness probes

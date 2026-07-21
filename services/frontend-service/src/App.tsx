@@ -39,11 +39,13 @@ interface Exam {
 interface MCQQuestion {
   id: string; question: string; option_a: string; option_b: string; option_c: string; option_d: string;
   correct_answer?: string; marks: number; difficulty: string;
+  section_id?: string;
 }
 interface CodingQuestion {
   id: string; title: string; description: string; difficulty: string; marks: number;
   language: string; starter_code: string; time_limit: number; memory_limit: number;
   testCases?: Array<{ id: string; input: string; expected_output: string; is_hidden: boolean }>;
+  section_id?: string;
 }
 interface Attempt {
   id: string; exam_id: string; student_id: string; attempt_number: number; score: number;
@@ -262,6 +264,14 @@ export default function App() {
   const [questionEditorTab, setQuestionEditorTab] = useState<'mcq' | 'coding'>('mcq');
   const [adminSelectedExamMCQs, setAdminSelectedExamMCQs] = useState<MCQQuestion[]>([]);
   const [adminSelectedExamCodings, setAdminSelectedExamCodings] = useState<CodingQuestion[]>([]);
+  const [adminSelectedExamSections, setAdminSelectedExamSections] = useState<any[]>([]);
+  const [selectedSectionIdForMcq, setSelectedSectionIdForMcq] = useState<string>('');
+  const [selectedSectionIdForCoding, setSelectedSectionIdForCoding] = useState<string>('');
+  const [sectionForm, setSectionForm] = useState({
+    name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true
+  });
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [adminSelectedExamResults, setAdminSelectedExamResults] = useState<any[]>([]);
   const [selectedExamIdForResults, setSelectedExamIdForResults] = useState<string | null>(null);
   const [selectedExamNameForResults, setSelectedExamNameForResults] = useState<string>('');
@@ -269,7 +279,6 @@ export default function App() {
   const [mcqForm, setMcqForm] = useState({
     question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A', marks: 1, difficulty: 'medium'
   });
-  // MCQ bulk import
   const [mcqCsvInput, setMcqCsvInput] = useState('');
   const [selectedMcqFileName, setSelectedMcqFileName] = useState<string | null>(null);
 
@@ -1258,9 +1267,123 @@ export default function App() {
         const data = await res.json();
         setAdminSelectedExamMCQs(data.mcqQuestions || []);
         setAdminSelectedExamCodings(data.codingQuestions || []);
+        const fetchedSections = data.sections || [];
+        setAdminSelectedExamSections(fetchedSections);
+        
+        // Auto-select first MCQ section
+        const mcqSec = fetchedSections.find((s: any) => s.section_type === 'mcq');
+        if (mcqSec) setSelectedSectionIdForMcq(mcqSec.id);
+        else setSelectedSectionIdForMcq('');
+        
+        // Auto-select first Coding section
+        const codingSec = fetchedSections.find((s: any) => s.section_type === 'coding');
+        if (codingSec) setSelectedSectionIdForCoding(codingSec.id);
+        else setSelectedSectionIdForCoding('');
       }
     } catch (err) {
       console.error("Error loading questions for admin", err);
+    }
+  };
+
+  const createSection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedExamIdForQuestions) return;
+    try {
+      const res = await fetch(`/api/exams/${selectedExamIdForQuestions}/sections`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: sectionForm.name,
+          description: sectionForm.description,
+          sectionType: sectionForm.sectionType,
+          durationMinutes: sectionForm.durationMinutes ? parseInt(sectionForm.durationMinutes) : null,
+          randomizeQuestions: sectionForm.randomizeQuestions,
+          isMandatory: sectionForm.isMandatory
+        })
+      });
+      if (res.ok) {
+        showToast('Section created successfully');
+        setIsSectionModalOpen(false);
+        setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true });
+        loadAdminExamQuestions(selectedExamIdForQuestions);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error creating section', 'error');
+    }
+  };
+
+  const updateSection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSectionId || !selectedExamIdForQuestions) return;
+    try {
+      const res = await fetch(`/api/sections/${editingSectionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: sectionForm.name,
+          description: sectionForm.description,
+          durationMinutes: sectionForm.durationMinutes ? parseInt(sectionForm.durationMinutes) : null,
+          randomizeQuestions: sectionForm.randomizeQuestions,
+          isMandatory: sectionForm.isMandatory
+        })
+      });
+      if (res.ok) {
+        showToast('Section updated successfully');
+        setEditingSectionId(null);
+        setIsSectionModalOpen(false);
+        setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true });
+        loadAdminExamQuestions(selectedExamIdForQuestions);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error updating section', 'error');
+    }
+  };
+
+  const deleteSection = async (sectionId: string) => {
+    if (!confirm('Are you sure you want to delete this section? All questions in it will be unassigned.')) return;
+    try {
+      const res = await fetch(`/api/sections/${sectionId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('Section deleted successfully');
+        if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error deleting section', 'error');
+    }
+  };
+
+  const moveSection = async (sectionId: string, direction: 'up' | 'down') => {
+    if (!selectedExamIdForQuestions) return;
+    const index = adminSelectedExamSections.findIndex(s => s.id === sectionId);
+    if (index === -1) return;
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === adminSelectedExamSections.length - 1) return;
+
+    const newSections = [...adminSelectedExamSections];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const temp = newSections[index];
+    newSections[index] = newSections[targetIndex];
+    newSections[targetIndex] = temp;
+
+    const sectionIds = newSections.map(s => s.id);
+    try {
+      const res = await fetch(`/api/exams/${selectedExamIdForQuestions}/sections/reorder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ sectionIds })
+      });
+      if (res.ok) {
+        setAdminSelectedExamSections(newSections);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error reordering sections', 'error');
     }
   };
 
@@ -2091,7 +2214,7 @@ export default function App() {
       const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/mcq`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(mcqForm)
+        body: JSON.stringify({ ...mcqForm, sectionId: selectedSectionIdForMcq })
       });
       if (res.ok) {
         showToast('MCQ Question added');
@@ -2110,7 +2233,8 @@ export default function App() {
         option_d: mcqForm.optionD,
         correct_answer: mcqForm.correctAnswer,
         marks: mcqForm.marks,
-        difficulty: mcqForm.difficulty
+        difficulty: mcqForm.difficulty,
+        section_id: selectedSectionIdForMcq
       };
       setAdminSelectedExamMCQs(prev => [...prev, mockMcq]);
       setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A', marks: 1, difficulty: 'medium' });
@@ -2125,7 +2249,7 @@ export default function App() {
       const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/mcq/import`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ csvContent: mcqCsvInput })
+        body: JSON.stringify({ csvContent: mcqCsvInput, sectionId: selectedSectionIdForMcq })
       });
       if (res.ok) {
         showToast('MCQ Questions imported successfully!');
@@ -2151,7 +2275,8 @@ export default function App() {
           option_d: parts[4] || 'D',
           correct_answer: parts[5] || 'A',
           marks: parseInt(parts[6]) || 1,
-          difficulty: parts[7] || 'medium'
+          difficulty: parts[7] || 'medium',
+          section_id: selectedSectionIdForMcq
         };
       });
       setAdminSelectedExamMCQs(prev => [...prev, ...imported]);
@@ -2164,7 +2289,7 @@ export default function App() {
   const addCodingQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedExamIdForQuestions) return;
-    const data = { ...codingForm, testCases: codingTestCases };
+    const data = { ...codingForm, testCases: codingTestCases, sectionId: selectedSectionIdForCoding };
     try {
       const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/coding`, {
         method: 'POST',
@@ -2189,7 +2314,8 @@ export default function App() {
         language: codingForm.language,
         starter_code: codingForm.starterCode,
         time_limit: codingForm.timeLimit,
-        memory_limit: codingForm.memoryLimit
+        memory_limit: codingForm.memoryLimit,
+        section_id: selectedSectionIdForCoding
       };
       setAdminSelectedExamCodings(prev => [...prev, mockCoding]);
       showToast('Coding question added successfully (Simulated)');
@@ -5990,6 +6116,16 @@ export default function App() {
             </div>
             
             <div className="flex gap-4">
+              <button
+                onClick={() => {
+                  setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true });
+                  setEditingSectionId(null);
+                  setIsSectionModalOpen(true);
+                }}
+                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl text-xs flex items-center gap-1.5 transition-all shadow-md shadow-indigo-500/10 h-fit self-center"
+              >
+                <Layers className="h-4 w-4" /> Manage Sections
+              </button>
               <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-950 rounded-2xl text-center min-w-[100px]">
                 <div className="text-lg font-black text-indigo-600 dark:text-indigo-400">{adminSelectedExamMCQs.length}</div>
                 <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">Total MCQs</div>
@@ -6028,16 +6164,34 @@ export default function App() {
                   </div>
 
                   <form onSubmit={addMcqQuestion} className="space-y-4">
-                    <div>
-                      <label className="text-xs font-bold text-muted-foreground">Question Statement</label>
-                      <textarea 
-                        value={mcqForm.question} 
-                        onChange={e => setMcqForm({...mcqForm, question: e.target.value})} 
-                        placeholder="What is the output of print(type(1/2)) in Python 3?" 
-                        rows={3} 
-                        className="w-full p-3.5 mt-1 border rounded-xl text-xs bg-transparent focus:outline-indigo-500 text-slate-900 dark:text-white" 
-                        required 
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground">Target MCQ Section</label>
+                        <select 
+                          value={selectedSectionIdForMcq} 
+                          onChange={e => setSelectedSectionIdForMcq(e.target.value)} 
+                          className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
+                          required
+                        >
+                          {adminSelectedExamSections.filter(s => s.section_type === 'mcq').map(s => (
+                            <option key={s.id} value={s.id}>{s.name} ({s.is_mandatory ? 'Mandatory' : 'Optional'})</option>
+                          ))}
+                          {adminSelectedExamSections.filter(s => s.section_type === 'mcq').length === 0 && (
+                            <option value="">No MCQ Sections - Click 'Manage Sections' to create one</option>
+                          )}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground">Question Statement</label>
+                        <textarea 
+                          value={mcqForm.question} 
+                          onChange={e => setMcqForm({...mcqForm, question: e.target.value})} 
+                          placeholder="What is the output of print(type(1/2)) in Python 3?" 
+                          rows={1} 
+                          className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent focus:outline-indigo-500 text-slate-900 dark:text-white" 
+                          required 
+                        />
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -6267,7 +6421,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <label className="text-xs font-bold text-muted-foreground">Challenge Title</label>
                           <input 
@@ -6304,6 +6458,22 @@ export default function App() {
                             <option value="Java">Java</option>
                             <option value="C++">C++</option>
                             <option value="JavaScript">JavaScript</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs font-bold text-muted-foreground">Target Coding Section</label>
+                          <select 
+                            value={selectedSectionIdForCoding} 
+                            onChange={e => setSelectedSectionIdForCoding(e.target.value)} 
+                            className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                            required
+                          >
+                            {adminSelectedExamSections.filter(s => s.section_type === 'coding').map(s => (
+                              <option key={s.id} value={s.id}>{s.name} ({s.is_mandatory ? 'Mandatory' : 'Optional'})</option>
+                            ))}
+                            {adminSelectedExamSections.filter(s => s.section_type === 'coding').length === 0 && (
+                              <option value="">No Coding Sections - Click 'Manage Sections' to create one</option>
+                            )}
                           </select>
                         </div>
                       </div>
@@ -6455,106 +6625,179 @@ export default function App() {
               </div>
 
               <div className="space-y-6 max-h-[680px] overflow-y-auto pr-1">
-                {adminSelectedExamMCQs.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center border-b border-slate-200/40 dark:border-slate-800/40 pb-2">
-                      <h4 className="font-extrabold text-xs text-indigo-700 dark:text-indigo-400 uppercase tracking-widest">MCQ List ({adminSelectedExamMCQs.length})</h4>
-                    </div>
-                    <div className="space-y-3">
-                      {adminSelectedExamMCQs.map((q, idx) => (
-                        <div key={q.id || idx} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-xs text-left shadow-sm group relative">
-                          <div className="font-bold text-slate-800 dark:text-slate-100 pr-6">{idx + 1}. {q.question}</div>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2.5 text-[11px] text-muted-foreground border-t border-slate-200/20 dark:border-slate-800/20 pt-2">
-                            <div>A: {q.option_a || (q as any).optionA}</div>
-                            <div>B: {q.option_b || (q as any).optionB}</div>
-                            <div>C: {q.option_c || (q as any).optionC}</div>
-                            <div>D: {q.option_d || (q as any).optionD}</div>
-                          </div>
-                          
-                          <div className="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-slate-200/20 dark:border-slate-800/20">
-                            <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[9px]">Correct: {q.correct_answer || (q as any).correctAnswer}</span>
-                            <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[9px]">{q.marks} Marks</span>
-                            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[9px] capitalize">{q.difficulty}</span>
-                            
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (confirm('Are you sure you want to delete this MCQ question?')) {
-                                  setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
-                                  setAdminExams(prev => prev.map(ex => ex.id === selectedExamIdForQuestions ? { ...ex, mcq_count: Math.max(0, (ex.mcq_count || 1) - 1) } : ex));
-                                  showToast('MCQ Question deleted (Simulated)');
-                                }
-                              }}
-                              className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-rose-500 hover:text-rose-600 hover:scale-105 transition-all p-1"
-                              title="Delete Question"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                {adminSelectedExamSections.map((sect, sectIdx) => {
+                  const sectMcqs = adminSelectedExamMCQs.filter(q => q.section_id === sect.id);
+                  const sectCodings = adminSelectedExamCodings.filter(q => q.section_id === sect.id);
+                  
+                  return (
+                    <div key={sect.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 space-y-3">
+                      <div className="flex justify-between items-start border-b border-slate-200/40 dark:border-slate-800/40 pb-2">
+                        <div>
+                          <h4 className="font-extrabold text-xs text-indigo-700 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                            Section {sectIdx + 1}: {sect.name}
+                            <span className={`px-1.5 py-0.5 rounded-[4px] text-[8px] uppercase tracking-wider font-extrabold ${sect.section_type === 'mcq' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
+                              {sect.section_type}
+                            </span>
+                          </h4>
+                          {sect.description && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{sect.description}</p>
+                          )}
+                          <div className="text-[9px] text-muted-foreground flex gap-x-2 mt-1">
+                            <span>⏱ {sect.duration_minutes ? `${sect.duration_minutes}m` : 'inherit'}</span>
+                            <span>• {sect.is_mandatory ? 'Mandatory' : 'Optional'}</span>
+                            <span>• {sect.randomize_questions ? 'Randomized' : 'Sequential'}</span>
+                            <span>• {sect.section_type === 'mcq' ? sectMcqs.length : sectCodings.length} Questions</span>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                      </div>
 
-                {adminSelectedExamCodings.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center border-b border-slate-200/40 dark:border-slate-800/40 pb-2">
-                      <h4 className="font-extrabold text-xs text-indigo-700 dark:text-indigo-400 uppercase tracking-widest">Coding List ({adminSelectedExamCodings.length})</h4>
-                    </div>
-                    <div className="space-y-3">
-                      {adminSelectedExamCodings.map((q, idx) => (
-                        <div key={q.id || idx} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-xs text-left shadow-sm group relative">
-                          <div className="font-bold text-slate-800 dark:text-slate-100 pr-6">{idx + 1}. {q.title} ({q.language})</div>
-                          <div className="mt-2 text-[11px] text-muted-foreground whitespace-pre-wrap font-mono line-clamp-3 bg-white dark:bg-slate-950 p-2.5 rounded-xl border border-slate-200/40 dark:border-slate-800/40">{q.description}</div>
-                          
-                          {(q as any).testCases && (q as any).testCases.length > 0 && (
-                            <div className="mt-3 space-y-2">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Evaluation Test Cases</span>
-                              <div className="space-y-1.5 max-h-[150px] overflow-y-auto pr-1">
-                                {(q as any).testCases.map((tc: any, tcIdx: number) => (
-                                  <div key={tc.id || tcIdx} className="p-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200/30 dark:border-slate-800/30 text-[10px] flex items-center justify-between font-mono">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-slate-400">In:</span>
-                                      <span className="font-bold text-slate-800 dark:text-slate-200">{tc.input}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-slate-400">Out:</span>
-                                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{tc.expected_output || tc.expectedOutput}</span>
-                                    </div>
-                                    <span className={`px-1.5 py-0.5 rounded text-[8px] uppercase font-bold tracking-wider ${tc.is_hidden || tc.isHidden ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'}`}>
-                                      {tc.is_hidden || tc.isHidden ? 'Hidden' : 'Visible'}
-                                    </span>
-                                  </div>
-                                ))}
+                      {sect.section_type === 'mcq' ? (
+                        <div className="space-y-3">
+                          {sectMcqs.map((q, idx) => (
+                            <div key={q.id || idx} className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs text-left shadow-sm group relative">
+                              <div className="font-bold text-slate-800 dark:text-slate-100 pr-6">{idx + 1}. {q.question}</div>
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2.5 text-[11px] text-muted-foreground border-t border-slate-200/20 dark:border-slate-800/20 pt-2">
+                                <div>A: {q.option_a || (q as any).optionA}</div>
+                                <div>B: {q.option_b || (q as any).optionB}</div>
+                                <div>C: {q.option_c || (q as any).optionC}</div>
+                                <div>D: {q.option_d || (q as any).optionD}</div>
+                              </div>
+                              
+                              <div className="flex flex-wrap items-center gap-2 mt-3 pt-2 border-t border-slate-200/20 dark:border-slate-800/20">
+                                <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[9px]">Correct: {q.correct_answer || (q as any).correctAnswer}</span>
+                                <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[9px]">{q.marks} Marks</span>
+                                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-850 text-slate-600 dark:text-slate-400 font-bold text-[9px] capitalize">{q.difficulty}</span>
+                                
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (confirm('Are you sure you want to delete this MCQ question?')) {
+                                      try {
+                                        const delRes = await fetch(`/api/mcq/${q.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+                                        if (delRes.ok) {
+                                          setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
+                                          showToast('MCQ Question deleted');
+                                        }
+                                      } catch (err) {
+                                        setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
+                                        showToast('MCQ Question deleted (Simulated)');
+                                      }
+                                    }
+                                  }}
+                                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-rose-500 hover:text-rose-600 hover:scale-105 transition-all p-1"
+                                  title="Delete Question"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
                               </div>
                             </div>
+                          ))}
+                          {sectMcqs.length === 0 && (
+                            <p className="text-[11px] text-muted-foreground italic text-center py-2">No MCQ questions added to this section.</p>
                           )}
-                          
-                          <div className="flex flex-wrap items-center gap-2 mt-3 pt-2.5 border-t border-slate-200/20 dark:border-slate-800/20">
-                            <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[9px]">{q.marks} Marks</span>
-                            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[9px] capitalize">{q.difficulty}</span>
-                            
-                            <button
-                              type="button"
-                              onClick={() => {
-                                  if (confirm('Are you sure you want to delete this coding question?')) {
-                                    setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
-                                    setAdminExams(prev => prev.map(ex => ex.id === selectedExamIdForQuestions ? { ...ex, coding_count: Math.max(0, (ex.coding_count || 1) - 1) } : ex));
-                                    showToast('Coding Question deleted (Simulated)');
-                                  }
-                              }}
-                              className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-rose-500 hover:text-rose-600 hover:scale-105 transition-all p-1"
-                              title="Delete Question"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
                         </div>
-                      ))}
+                      ) : (
+                        <div className="space-y-3">
+                          {sectCodings.map((q, idx) => (
+                            <div key={q.id || idx} className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs text-left shadow-sm group relative">
+                              <div className="font-bold text-slate-800 dark:text-slate-100 pr-6">{idx + 1}. {q.title} ({q.language})</div>
+                              <div className="mt-2 text-[11px] text-muted-foreground whitespace-pre-wrap font-mono line-clamp-2 bg-slate-50 dark:bg-slate-900 p-2 rounded-lg border border-slate-200/40 dark:border-slate-800/40">{q.description}</div>
+                              
+                              <div className="flex flex-wrap items-center gap-2 mt-3 pt-2 border-t border-slate-200/20 dark:border-slate-800/20">
+                                <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[9px]">{q.marks} Marks</span>
+                                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-850 text-slate-600 dark:text-slate-400 font-bold text-[9px] capitalize">{q.difficulty}</span>
+                                
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (confirm('Are you sure you want to delete this coding question?')) {
+                                      try {
+                                        const delRes = await fetch(`/api/coding/${q.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+                                        if (delRes.ok) {
+                                          setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
+                                          showToast('Coding Question deleted');
+                                        }
+                                      } catch (err) {
+                                        setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
+                                        showToast('Coding Question deleted (Simulated)');
+                                      }
+                                    }
+                                  }}
+                                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-rose-500 hover:text-rose-600 hover:scale-105 transition-all p-1"
+                                  title="Delete Question"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          {sectCodings.length === 0 && (
+                            <p className="text-[11px] text-muted-foreground italic text-center py-2">No coding questions added to this section.</p>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
+                  );
+                })}
+
+                {/* Fallback for unassigned questions */}
+                {(() => {
+                  const unassignedMcqs = adminSelectedExamMCQs.filter(q => !q.section_id || !adminSelectedExamSections.some(s => s.id === q.section_id));
+                  const unassignedCodings = adminSelectedExamCodings.filter(q => !q.section_id || !adminSelectedExamSections.some(s => s.id === q.section_id));
+                  
+                  if (unassignedMcqs.length === 0 && unassignedCodings.length === 0) return null;
+
+                  return (
+                    <div className="p-4 rounded-2xl border border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/20 dark:bg-amber-950/10 space-y-3">
+                      <div>
+                        <h4 className="font-extrabold text-xs text-amber-700 dark:text-amber-400 uppercase tracking-widest">Unassigned Questions</h4>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">These questions are not linked to any section and should be deleted or reassigned.</p>
+                      </div>
+                      
+                      {unassignedMcqs.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-[10px] font-bold text-amber-600 uppercase">MCQ List</div>
+                          {unassignedMcqs.map((q, idx) => (
+                            <div key={q.id || idx} className="p-3 bg-white dark:bg-slate-900 border rounded-xl text-xs flex justify-between items-center">
+                              <span className="font-bold text-slate-800 dark:text-slate-100 truncate flex-1">{idx + 1}. {q.question}</span>
+                              <button
+                                onClick={async () => {
+                                  if (confirm('Delete unassigned question?')) {
+                                    setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
+                                  }
+                                }}
+                                className="text-rose-500 hover:underline text-[10px] font-bold ml-2"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {unassignedCodings.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="text-[10px] font-bold text-amber-600 uppercase">Coding List</div>
+                          {unassignedCodings.map((q, idx) => (
+                            <div key={q.id || idx} className="p-3 bg-white dark:bg-slate-900 border rounded-xl text-xs flex justify-between items-center">
+                              <span className="font-bold text-slate-800 dark:text-slate-100 truncate flex-1">{idx + 1}. {q.title}</span>
+                              <button
+                                onClick={async () => {
+                                  if (confirm('Delete unassigned question?')) {
+                                    setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
+                                  }
+                                }}
+                                className="text-rose-500 hover:underline text-[10px] font-bold ml-2"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {adminSelectedExamMCQs.length === 0 && adminSelectedExamCodings.length === 0 && (
                   <div className="text-center py-12 text-muted-foreground text-xs italic bg-slate-50 dark:bg-slate-900/30 rounded-3xl border border-dashed border-slate-200 dark:border-slate-850">
@@ -6564,6 +6807,199 @@ export default function App() {
               </div>
             </div>
           </div>
+
+          {/* Section Management Modal */}
+          {isSectionModalOpen && (
+            <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-white dark:bg-slate-950 border border-slate-200/50 dark:border-slate-800/50 rounded-3xl w-full max-w-3xl shadow-2xl p-6 md:p-8 flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-start border-b border-slate-200/40 dark:border-slate-800/40 pb-4">
+                  <div>
+                    <h3 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                      <Layers className="h-5 w-5 text-indigo-600" />
+                      Manage Exam Sections
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">Configure, reorder, or edit sections for this exam.</p>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsSectionModalOpen(false)}
+                    className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 text-muted-foreground hover:text-foreground transition-all"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                  {/* Left: Section Form */}
+                  <div className="space-y-4 bg-slate-50 dark:bg-slate-900/40 p-5 rounded-2xl border border-slate-200/50 dark:border-slate-800/50">
+                    <h4 className="font-extrabold text-xs text-indigo-700 dark:text-indigo-400 uppercase tracking-widest">
+                      {editingSectionId ? 'Edit Section' : 'Create Section'}
+                    </h4>
+                    <form onSubmit={editingSectionId ? updateSection : createSection} className="space-y-4">
+                      <div>
+                        <label className="text-[11px] font-bold text-muted-foreground block">Section Name</label>
+                        <input 
+                          type="text" 
+                          value={sectionForm.name} 
+                          onChange={e => setSectionForm({...sectionForm, name: e.target.value})} 
+                          placeholder="e.g. MCQ Aptitude" 
+                          className="w-full p-2.5 mt-1 border rounded-xl text-xs bg-white dark:bg-slate-905 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" 
+                          required 
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-muted-foreground block">Description (Optional)</label>
+                        <textarea 
+                          value={sectionForm.description} 
+                          onChange={e => setSectionForm({...sectionForm, description: e.target.value})} 
+                          placeholder="Brief instructions for this section..." 
+                          rows={2} 
+                          className="w-full p-2.5 mt-1 border rounded-xl text-xs bg-white dark:bg-slate-905 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" 
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-muted-foreground block">Section Type</label>
+                        <select 
+                          value={sectionForm.sectionType} 
+                          onChange={e => setSectionForm({...sectionForm, sectionType: e.target.value})} 
+                          className="w-full p-2.5 mt-1 border rounded-xl text-xs bg-white dark:bg-slate-905 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                          disabled={!!editingSectionId}
+                          required
+                        >
+                          <option value="mcq">MCQ Section</option>
+                          <option value="coding">Coding Section</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-muted-foreground block">Duration (Mins, Optional)</label>
+                        <input 
+                          type="number" 
+                          value={sectionForm.durationMinutes} 
+                          onChange={e => setSectionForm({...sectionForm, durationMinutes: e.target.value})} 
+                          placeholder="Inherits overall exam duration if blank" 
+                          className="w-full p-2.5 mt-1 border rounded-xl text-xs bg-white dark:bg-slate-905 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" 
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-2 pt-2 border-t border-slate-200/50 dark:border-slate-800/50">
+                        <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={sectionForm.randomizeQuestions} 
+                            onChange={e => setSectionForm({...sectionForm, randomizeQuestions: e.target.checked})} 
+                            className="rounded text-indigo-600 focus:ring-indigo-500" 
+                          />
+                          Randomize questions order for student
+                        </label>
+                        <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={sectionForm.isMandatory} 
+                            onChange={e => setSectionForm({...sectionForm, isMandatory: e.target.checked})} 
+                            className="rounded text-indigo-600 focus:ring-indigo-500" 
+                          />
+                          Mandatory Section
+                        </label>
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        {editingSectionId && (
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              setEditingSectionId(null);
+                              setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true });
+                            }}
+                            className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                        <button type="submit" className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs">
+                          {editingSectionId ? 'Save Changes' : 'Create Section'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* Right: Sections List */}
+                  <div className="space-y-4">
+                    <h4 className="font-extrabold text-xs text-indigo-700 dark:text-indigo-400 uppercase tracking-widest">
+                      Existing Sections ({adminSelectedExamSections.length})
+                    </h4>
+                    <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+                      {adminSelectedExamSections.map((sect, idx) => (
+                        <div key={sect.id} className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between text-xs">
+                          <div>
+                            <div className="font-bold text-slate-800 dark:text-white flex items-center gap-1.5 font-mono">
+                              {sect.name}
+                              <span className={`px-1.5 py-0.5 rounded-[4px] text-[8px] uppercase tracking-wider font-extrabold ${sect.section_type === 'mcq' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
+                                {sect.section_type}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2">
+                              {sect.duration_minutes ? <span>⏱ {sect.duration_minutes}m</span> : <span>⏱ inherit</span>}
+                              <span>{sect.is_mandatory ? 'Mandatory' : 'Optional'}</span>
+                              <span>{sect.randomize_questions ? 'Randomized' : 'Sequential'}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <button 
+                              onClick={() => moveSection(sect.id, 'up')} 
+                              disabled={idx === 0}
+                              className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 disabled:opacity-40"
+                            >
+                              ▲
+                            </button>
+                            <button 
+                              onClick={() => moveSection(sect.id, 'down')} 
+                              disabled={idx === adminSelectedExamSections.length - 1}
+                              className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 disabled:opacity-40"
+                            >
+                              ▼
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setEditingSectionId(sect.id);
+                                setSectionForm({
+                                  name: sect.name,
+                                  description: sect.description || '',
+                                  sectionType: sect.section_type,
+                                  durationMinutes: sect.duration_minutes ? String(sect.duration_minutes) : '',
+                                  randomizeQuestions: sect.randomize_questions || false,
+                                  isMandatory: sect.is_mandatory || false
+                                });
+                              }}
+                              className="p-1 text-amber-600 hover:underline"
+                              title="Edit"
+                            >
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => deleteSection(sect.id)}
+                              className="p-1 text-rose-600 hover:underline"
+                              title="Delete"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {adminSelectedExamSections.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground text-xs italic bg-slate-50 dark:bg-slate-900/30 border border-dashed rounded-xl">
+                          No sections configured.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       )}
 
