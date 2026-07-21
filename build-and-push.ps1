@@ -76,7 +76,7 @@ foreach ($service in $Services) {
     Write-Host " Processing Service: $service" -ForegroundColor Blue
     Write-Host "----------------------------------------------------------------------" -ForegroundColor Blue
 
-    $serviceDir = "./$service"
+    $serviceDir = "./services/$service"
     $dockerfile = "$serviceDir/Dockerfile"
     $imageName = if ($DockerRegistry) { "${DockerRegistry}/clahan-${service}:${Tag}" } else { "${DockerUser}/clahan-${service}:${Tag}" }
 

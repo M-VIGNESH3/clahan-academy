@@ -32,12 +32,12 @@ services:
       retries: 5
 
   auth-service:
-    build: ./auth-service
+    build: ./services/auth-service
     container_name: clahan-auth-service
     ports:
       - "4001:4001"
     env_file:
-      - ./auth-service/.env
+      - ./services/auth-service/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,12 +45,12 @@ services:
         condition: service_healthy
 
   admin-service:
-    build: ./admin-service
+    build: ./services/admin-service
     container_name: clahan-admin-service
     ports:
       - "4002:4002"
     env_file:
-      - ./admin-service/.env
+      - ./services/admin-service/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -58,23 +58,23 @@ services:
         condition: service_healthy
 
   student-service:
-    build: ./student-service
+    build: ./services/student-service
     container_name: clahan-student-service
     ports:
       - "4003:4003"
     env_file:
-      - ./student-service/.env
+      - ./services/student-service/.env
     depends_on:
       postgres:
         condition: service_healthy
 
   exam-service:
-    build: ./exam-service
+    build: ./services/exam-service
     container_name: clahan-exam-service
     ports:
       - "4004:4004"
     env_file:
-      - ./exam-service/.env
+      - ./services/exam-service/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,12 +84,12 @@ services:
         condition: service_started
 
   proctoring-service:
-    build: ./proctoring-service
+    build: ./services/proctoring-service
     container_name: clahan-proctoring-service
     ports:
       - "4005:4005"
     env_file:
-      - ./proctoring-service/.env
+      - ./services/proctoring-service/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -99,23 +99,23 @@ services:
         condition: service_started
 
   notification-service:
-    build: ./notification-service
+    build: ./services/notification-service
     container_name: clahan-notification-service
     ports:
       - "4006:4006"
     env_file:
-      - ./notification-service/.env
+      - ./services/notification-service/.env
     depends_on:
       redis:
         condition: service_healthy
 
   ai-service:
-    build: ./ai-service
+    build: ./services/ai-service
     container_name: clahan-ai-service
     ports:
       - "8000:8000"
     env_file:
-      - ./ai-service/.env
+      - ./services/ai-service/.env
 
   ollama-service:
     image: ollama/ollama:latest
@@ -127,7 +127,7 @@ services:
 
   frontend-service:
     build:
-      context: ./frontend-service
+      context: ./services/frontend-service
       dockerfile: Dockerfile
     container_name: clahan-frontend-service
     ports:

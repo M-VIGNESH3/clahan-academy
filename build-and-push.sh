@@ -83,7 +83,7 @@ for service in "${SERVICES[@]}"; do
   echo -e "${BLUE}${BOLD}----------------------------------------------------------------------${NC}"
 
   # Set paths
-  SERVICE_DIR="./${service}"
+  SERVICE_DIR="./services/${service}"
   DOCKERFILE="${SERVICE_DIR}/Dockerfile"
   if [ -n "$DOCKER_REGISTRY" ]; then
     IMAGE_NAME="${DOCKER_REGISTRY}/clahan-${service}:${TAG}"

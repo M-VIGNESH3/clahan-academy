@@ -16,15 +16,15 @@ echo "Initializing environment files from examples..."
 
 # Loop and copy env files if they do not exist
 for service in "${services[@]}"; do
-  if [ -f "$service/.env.example" ]; then
-    if [ ! -f "$service/.env" ]; then
-      echo "Copying $service/.env.example to $service/.env"
-      cp "$service/.env.example" "$service/.env"
+  if [ -f "services/$service/.env.example" ]; then
+    if [ ! -f "services/$service/.env" ]; then
+      echo "Copying services/$service/.env.example to services/$service/.env"
+      cp "services/$service/.env.example" "services/$service/.env"
     else
-      echo "$service/.env already exists. Skipping."
+      echo "services/$service/.env already exists. Skipping."
     fi
   else
-    echo "Warning: $service/.env.example not found."
+    echo "Warning: services/$service/.env.example not found."
   fi
 done
 
