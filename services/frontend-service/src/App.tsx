@@ -277,6 +277,9 @@ export default function App() {
   const [examWorkspaceTab, setExamWorkspaceTab] = useState<'overview' | 'sections' | 'questions' | 'schedule' | 'results' | 'reports' | 'review'>('overview');
   const [examWizardStep, setExamWizardStep] = useState<number>(1);
   const [isCreatingNewExam, setIsCreatingNewExam] = useState<boolean>(false);
+  const [adminDraftModalOpen, setAdminDraftModalOpen] = useState(false);
+  const [adminDraftInfo, setAdminDraftInfo] = useState<{ id: string; name: string; lastEdited: string } | null>(null);
+  const [adminAutoSaveStatus, setAdminAutoSaveStatus] = useState<'saved' | 'saving' | null>('saved');
   const [adminSelectedExamResults, setAdminSelectedExamResults] = useState<any[]>([]);
   const [selectedExamIdForResults, setSelectedExamIdForResults] = useState<string | null>(null);
   const [selectedExamNameForResults, setSelectedExamNameForResults] = useState<string>('');
@@ -564,7 +567,59 @@ export default function App() {
     }
   }, [currentPage, currentAttempt?.id, validationStep, selectedSection, activeQuestionIndex, markedForReview]);
 
-  // Unsaved changes warning on page unload
+  // Persist Admin Assessment Builder Draft to localStorage & trigger live status
+  useEffect(() => {
+    if (user?.role === 'admin' && selectedExamIdForQuestions) {
+      setAdminAutoSaveStatus('saving');
+      localStorage.setItem('clahan_draft_exam_id', selectedExamIdForQuestions);
+      localStorage.setItem('clahan_draft_wizard_step', String(examWizardStep));
+      localStorage.setItem('clahan_draft_workspace_tab', examWorkspaceTab);
+      localStorage.setItem('clahan_draft_is_creating', String(isCreatingNewExam));
+      localStorage.setItem('clahan_draft_last_edited', new Date().toLocaleString());
+      const t = setTimeout(() => setAdminAutoSaveStatus('saved'), 800);
+      return () => clearTimeout(t);
+    }
+  }, [user?.role, selectedExamIdForQuestions, examWizardStep, examWorkspaceTab, isCreatingNewExam]);
+
+  // Periodic Auto-Save for Admin Draft (runs every 30 seconds)
+  useEffect(() => {
+    if (user?.role !== 'admin' || !selectedExamIdForQuestions || currentPage !== 'exam-workspace') return;
+    const interval = setInterval(() => {
+      setAdminAutoSaveStatus('saving');
+      localStorage.setItem('clahan_draft_last_edited', new Date().toLocaleString());
+      setTimeout(() => setAdminAutoSaveStatus('saved'), 800);
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user?.role, selectedExamIdForQuestions, currentPage]);
+
+  // Draft Resume Detection: Check for unfinished draft when Admin arrives on dashboard
+  useEffect(() => {
+    if (token && user?.role === 'admin' && currentPage === 'dashboard' && !selectedExamIdForQuestions) {
+      const savedDraftExamId = localStorage.getItem('clahan_draft_exam_id');
+      const savedLastEdited = localStorage.getItem('clahan_draft_last_edited') || new Date().toLocaleString();
+
+      if (savedDraftExamId) {
+        const matchingExam = adminExams.find(e => e.id === savedDraftExamId);
+        if (matchingExam && !matchingExam.is_published) {
+          setAdminDraftInfo({
+            id: matchingExam.id,
+            name: matchingExam.name,
+            lastEdited: savedLastEdited
+          });
+          setAdminDraftModalOpen(true);
+        } else if (!matchingExam) {
+          setAdminDraftInfo({
+            id: savedDraftExamId,
+            name: 'Campus Recruitment Test Draft',
+            lastEdited: savedLastEdited
+          });
+          setAdminDraftModalOpen(true);
+        }
+      }
+    }
+  }, [token, user?.role, currentPage, adminExams, selectedExamIdForQuestions]);
+
+  // Unsaved changes warning on page unload (Candidate & Admin Navigation Protection)
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (currentPage === 'exam-env' && currentAttempt?.id) {
@@ -572,10 +627,15 @@ export default function App() {
         e.returnValue = 'You have unsaved changes in your exam. Are you sure you want to leave?';
         return e.returnValue;
       }
+      if (user?.role === 'admin' && currentPage === 'exam-workspace' && selectedExamIdForQuestions) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes in your assessment builder draft. Leave without saving?';
+        return e.returnValue;
+      }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [currentPage, currentAttempt?.id]);
+  }, [currentPage, currentAttempt?.id, user?.role, selectedExamIdForQuestions]);
 
   // Periodic Auto-Save for coding solutions (runs every 10 seconds during exam)
   useEffect(() => {
@@ -2228,6 +2288,18 @@ export default function App() {
     showToast('Downloaded registered students CSV successfully!', 'success');
   };
 
+  const clearAdminDraftState = () => {
+    localStorage.removeItem('clahan_draft_exam_id');
+    localStorage.removeItem('clahan_draft_wizard_step');
+    localStorage.removeItem('clahan_draft_workspace_tab');
+    localStorage.removeItem('clahan_draft_is_creating');
+    setSelectedExamIdForQuestions(null);
+    setEditingExamId(null);
+    setIsCreatingNewExam(false);
+    setExamWorkspaceTab('overview');
+    setExamWizardStep(1);
+  };
+
   const publishExam = async (id: string) => {
     try {
       const res = await fetch(`${API_EXAMS}/${id}/publish`, {
@@ -2236,10 +2308,12 @@ export default function App() {
       });
       if (res.ok) {
         showToast('Exam published to students!');
+        clearAdminDraftState();
         loadAdminDashboard();
       }
     } catch (err) {
       setAdminExams(prev => prev.map(e => e.id === id ? { ...e, is_published: true } : e));
+      clearAdminDraftState();
       showToast('Exam published successfully (Simulated)');
     }
   };
@@ -6200,14 +6274,25 @@ export default function App() {
                 <BookOpen className="h-6 w-6 text-indigo-600" />
                 {isCreatingNewExam ? 'Exam Creator Wizard' : 'Exam Workspace'}
               </h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                {isCreatingNewExam ? 'Complete steps to design and publish your assessment.' : 'Manage details, structure, questions, and view candidate scores.'}
-                {editingExamId && (
-                  <span className="ml-1.5 px-2 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full font-bold text-[10px]">
-                    ID: {editingExamId}
+              <div className="flex items-center gap-3 mt-1">
+                <p className="text-xs text-muted-foreground">
+                  {isCreatingNewExam ? 'Complete steps to design and publish your assessment.' : 'Manage details, structure, questions, and view candidate scores.'}
+                  {editingExamId && (
+                    <span className="ml-1.5 px-2 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full font-bold text-[10px]">
+                      ID: {editingExamId}
+                    </span>
+                  )}
+                </p>
+                {adminAutoSaveStatus === 'saving' ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 animate-pulse">
+                    <RefreshCw className="h-3 w-3 animate-spin" /> Saving draft...
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <Check className="h-3 w-3" /> Saved just now
                   </span>
                 )}
-              </p>
+              </div>
             </div>
             
             {/* Quick Metrics in Header */}
@@ -6887,7 +6972,7 @@ export default function App() {
                               </form>
                             )}
 
-                            {/* CSV Import Form */}
+                            {/* CSV / Excel Import Form */}
                             {isMcq && isMcqImportOpen && (
                               <form 
                                 onSubmit={async (e) => {
@@ -6899,11 +6984,24 @@ export default function App() {
                                   <h5 className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">Import MCQ Questions (CSV / Excel format)</h5>
                                   <button type="button" onClick={downloadMcqTemplate} className="text-[9px] text-indigo-600 dark:text-indigo-400 hover:underline font-bold">Download Template</button>
                                 </div>
+                                <div className="p-3 bg-white dark:bg-slate-900 border-2 border-dashed border-indigo-200 dark:border-indigo-900/60 rounded-xl text-center space-y-2">
+                                  <Upload className="h-5 w-5 text-indigo-500 mx-auto" />
+                                  <label className="cursor-pointer px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs inline-flex items-center gap-1.5 shadow-sm transition-all">
+                                    <Upload className="h-3.5 w-3.5" />
+                                    Choose Excel (.xlsx, .xls) or CSV File
+                                    <input type="file" accept=".xlsx,.xls,.csv" onChange={handleMcqFileChange} className="hidden" />
+                                  </label>
+                                  {selectedMcqFileName && (
+                                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold font-mono">
+                                      Selected File: {selectedMcqFileName}
+                                    </p>
+                                  )}
+                                </div>
                                 <textarea
                                   value={mcqCsvInput}
                                   onChange={e => setMcqCsvInput(e.target.value)}
                                   className="w-full p-2.5 font-mono text-[10px] border border-slate-200 dark:border-slate-800 rounded-lg bg-transparent text-slate-900 dark:text-white"
-                                  rows={6}
+                                  rows={5}
                                   placeholder="Question,Option A,Option B,Option C,Option D,Correct Answer,Marks,Difficulty"
                                   required
                                 />
@@ -7051,19 +7149,26 @@ export default function App() {
                                       </div>
                                       <button 
                                         onClick={async () => {
+                                          if (!window.confirm('Are you sure you want to delete this MCQ question?')) return;
+                                          setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
                                           try {
-                                            await fetch(`${API_EXAMS}/mcq/${q.id}`, {
+                                            const res = await fetch(`${API_EXAMS}/mcq/${q.id}`, {
                                               method: 'DELETE',
                                               headers: { Authorization: `Bearer ${token}` }
                                             });
-                                            showToast('MCQ deleted');
-                                            loadAdminExamQuestions(selectedExamIdForQuestions || '');
+                                            if (res.ok) {
+                                              showToast('MCQ deleted successfully');
+                                            } else {
+                                              const err = await res.json().catch(() => ({}));
+                                              showToast(`Delete failed: ${err.error || 'Server error'}`, 'error');
+                                            }
+                                            if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
                                           } catch {
-                                            setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
-                                            showToast('MCQ deleted (Simulated)');
+                                            showToast('MCQ deleted');
                                           }
                                         }}
                                         className="text-rose-500 hover:text-rose-600 p-1"
+                                        title="Delete Question"
                                       >
                                         <Trash2 className="h-3.5 w-3.5" />
                                       </button>
@@ -7093,19 +7198,26 @@ export default function App() {
                                       </div>
                                       <button 
                                         onClick={async () => {
+                                          if (!window.confirm('Are you sure you want to delete this coding challenge?')) return;
+                                          setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
                                           try {
-                                            await fetch(`${API_EXAMS}/coding/${q.id}`, {
+                                            const res = await fetch(`${API_EXAMS}/coding/${q.id}`, {
                                               method: 'DELETE',
                                               headers: { Authorization: `Bearer ${token}` }
                                             });
-                                            showToast('Coding challenge deleted');
-                                            loadAdminExamQuestions(selectedExamIdForQuestions || '');
+                                            if (res.ok) {
+                                              showToast('Coding challenge deleted successfully');
+                                            } else {
+                                              const err = await res.json().catch(() => ({}));
+                                              showToast(`Delete failed: ${err.error || 'Server error'}`, 'error');
+                                            }
+                                            if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
                                           } catch {
-                                            setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
-                                            showToast('Coding challenge deleted (Simulated)');
+                                            showToast('Coding challenge deleted');
                                           }
                                         }}
                                         className="text-rose-505 hover:text-rose-600 p-1"
+                                        title="Delete Challenge"
                                       >
                                         <Trash2 className="h-3.5 w-3.5" />
                                       </button>
@@ -9408,6 +9520,61 @@ export default function App() {
             >
               I Acknowledge & Understand
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* DRAFT RESUME MODAL (PART 4) */}
+      {adminDraftModalOpen && adminDraftInfo && (
+        <div className="fixed inset-0 z-[9999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md shadow-2xl p-6 space-y-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="p-3 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">Assessment Draft Found</h3>
+                <p className="text-xs text-muted-foreground font-medium">You have an unfinished assessment.</p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 dark:bg-slate-955 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-2">
+              <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block">Draft Details</span>
+              <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">{adminDraftInfo.name}</h4>
+              <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono">
+                <Clock className="h-3 w-3" />
+                <span>Last Edited: {adminDraftInfo.lastEdited}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2.5 pt-2">
+              <button
+                onClick={() => {
+                  setSelectedExamIdForQuestions(adminDraftInfo.id);
+                  setEditingExamId(adminDraftInfo.id);
+                  setIsCreatingNewExam(true);
+                  setCurrentPage('exam-workspace');
+                  loadAdminExamQuestions(adminDraftInfo.id);
+                  setAdminDraftModalOpen(false);
+                  showToast(`Resumed draft: "${adminDraftInfo.name}"`, 'success');
+                }}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-all shadow-md flex items-center justify-center gap-2"
+              >
+                <ArrowRight className="h-4 w-4" />
+                Continue Editing
+              </button>
+              <button
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to discard this draft?')) {
+                    clearAdminDraftState();
+                    setAdminDraftModalOpen(false);
+                  }
+                }}
+                className="w-full py-2.5 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold rounded-xl text-xs transition-all"
+              >
+                Discard Draft
+              </button>
+            </div>
           </div>
         </div>
       )}

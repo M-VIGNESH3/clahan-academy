@@ -832,7 +832,7 @@ app.post(['/api/exams/:id/sections/reorder', '/api/assessments/:id/sections/reor
 });
 
 // Delete MCQ Question
-app.delete(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId'], authenticate, requireRole('admin'), async (req, res) => {
+app.delete(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'], authenticate, requireRole('admin'), async (req, res) => {
   try {
     const mcqId = req.params.mcqId || req.params.id;
     await query('DELETE FROM mcq_questions WHERE id = $1', [mcqId]);
@@ -843,7 +843,7 @@ app.delete(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId'], authenticate, requi
 });
 
 // Delete Coding Question
-app.delete(['/api/exams/:id/coding/:codingId', '/api/coding/:codingId'], authenticate, requireRole('admin'), async (req, res) => {
+app.delete(['/api/exams/:id/coding/:codingId', '/api/coding/:codingId', '/api/exams/coding/:codingId'], authenticate, requireRole('admin'), async (req, res) => {
   try {
     const codingId = req.params.codingId || req.params.id;
     await query('DELETE FROM coding_test_cases WHERE question_id = $1', [codingId]);
