@@ -1263,7 +1263,8 @@ export default function App() {
     }
   };
 
-  const loadAdminExamQuestions = async (examId: string) => {
+  const loadAdminExamQuestions = async (examId?: string | null) => {
+    if (!examId) return;
     try {
       const res = await fetch(`${API_EXAMS}/${examId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -7012,7 +7013,7 @@ export default function App() {
                                               headers: { Authorization: `Bearer ${token}` }
                                             });
                                             showToast('MCQ deleted');
-                                            loadAdminExamQuestions(selectedExamIdForQuestions);
+                                            loadAdminExamQuestions(selectedExamIdForQuestions || '');
                                           } catch {
                                             setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
                                             showToast('MCQ deleted (Simulated)');
@@ -7054,7 +7055,7 @@ export default function App() {
                                               headers: { Authorization: `Bearer ${token}` }
                                             });
                                             showToast('Coding challenge deleted');
-                                            loadAdminExamQuestions(selectedExamIdForQuestions);
+                                            loadAdminExamQuestions(selectedExamIdForQuestions || '');
                                           } catch {
                                             setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
                                             showToast('Coding challenge deleted (Simulated)');
@@ -7103,7 +7104,7 @@ export default function App() {
                                         body: JSON.stringify({ sectionId })
                                       });
                                       showToast('Question assigned to section');
-                                      loadAdminExamQuestions(selectedExamIdForQuestions);
+                                      loadAdminExamQuestions(selectedExamIdForQuestions || '');
                                     } catch {
                                       setAdminSelectedExamMCQs(prev => prev.map(item => item.id === q.id ? { ...item, section_id: sectionId } : item));
                                       showToast('Question assigned (Simulated)');
@@ -7132,7 +7133,7 @@ export default function App() {
                                         body: JSON.stringify({ sectionId })
                                       });
                                       showToast('Question assigned to section');
-                                      loadAdminExamQuestions(selectedExamIdForQuestions);
+                                      loadAdminExamQuestions(selectedExamIdForQuestions || '');
                                     } catch {
                                       setAdminSelectedExamCodings(prev => prev.map(item => item.id === q.id ? { ...item, section_id: sectionId } : item));
                                       showToast('Question assigned (Simulated)');
