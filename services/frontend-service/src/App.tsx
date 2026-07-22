@@ -8311,11 +8311,6 @@ export default function App() {
                           </div>
                         </div>
                       )}
-                    </div>
-                  );
-                })()}
-
-
 
                     {/* Drag Handle 1: Between Question Panel and Code Editor */}
                     {!isDescriptionCollapsed && !isFullscreenQuestion && !isFullscreenEditor && (
