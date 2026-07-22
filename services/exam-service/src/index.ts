@@ -906,6 +906,86 @@ app.post(['/api/exams/:id/sections/reorder', '/api/assessments/:id/sections/reor
   }
 });
 
+// Update MCQ Question
+app.put(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'], authenticate, requireRole('admin'), async (req, res) => {
+  try {
+    const mcqId = req.params.mcqId || req.params.id;
+    const { question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty, contentBlocks, images, optionAImage, optionBImage, optionCImage, optionDImage } = req.body;
+    const result = await query(
+      `UPDATE mcq_questions
+       SET question = COALESCE($1, question),
+           option_a = COALESCE($2, option_a),
+           option_b = COALESCE($3, option_b),
+           option_c = COALESCE($4, option_c),
+           option_d = COALESCE($5, option_d),
+           correct_answer = COALESCE($6, correct_answer),
+           marks = COALESCE($7, marks),
+           difficulty = COALESCE($8, difficulty),
+           content_blocks = COALESCE($9, content_blocks),
+           images = COALESCE($10, images),
+           option_a_image = COALESCE($11, option_a_image),
+           option_b_image = COALESCE($12, option_b_image),
+           option_c_image = COALESCE($13, option_c_image),
+           option_d_image = COALESCE($14, option_d_image)
+       WHERE id = $15 RETURNING *`,
+      [
+        question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty,
+        contentBlocks ? JSON.stringify(contentBlocks) : null,
+        images ? JSON.stringify(images) : null,
+        optionAImage || '', optionBImage || '', optionCImage || '', optionDImage || '',
+        mcqId
+      ]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'MCQ question not found' });
+    res.json(result.rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update Coding Question
+app.put(['/api/exams/:id/coding/:codingId', '/api/coding/:codingId', '/api/exams/coding/:codingId'], authenticate, requireRole('admin'), async (req, res) => {
+  try {
+    const codingId = req.params.codingId || req.params.id;
+    const { title, description, difficulty, marks, language, starterCode, timeLimit, memoryLimit, contentBlocks, images, testCases } = req.body;
+    const result = await query(
+      `UPDATE coding_questions
+       SET title = COALESCE($1, title),
+           description = COALESCE($2, description),
+           difficulty = COALESCE($3, difficulty),
+           marks = COALESCE($4, marks),
+           language = COALESCE($5, language),
+           starter_code = COALESCE($6, starter_code),
+           time_limit = COALESCE($7, time_limit),
+           memory_limit = COALESCE($8, memory_limit),
+           content_blocks = COALESCE($9, content_blocks),
+           images = COALESCE($10, images)
+       WHERE id = $11 RETURNING *`,
+      [
+        title, description, difficulty, marks, language, starterCode, timeLimit, memoryLimit,
+        contentBlocks ? JSON.stringify(contentBlocks) : null,
+        images ? JSON.stringify(images) : null,
+        codingId
+      ]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Coding question not found' });
+
+    if (Array.isArray(testCases)) {
+      await query('DELETE FROM coding_test_cases WHERE question_id = $1', [codingId]);
+      for (const tc of testCases) {
+        await query(
+          'INSERT INTO coding_test_cases (question_id, input, expected_output, is_hidden) VALUES ($1, $2, $3, $4)',
+          [codingId, tc.input || '', tc.expected_output || tc.expectedOutput || '', tc.isHidden === true]
+        );
+      }
+    }
+
+    res.json(result.rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Delete MCQ Question
 app.delete(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'], authenticate, requireRole('admin'), async (req, res) => {
   try {

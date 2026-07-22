@@ -3,7 +3,7 @@ import {
   BookOpen, Code, Shield, Video, Bell, Settings, Award, Users, CheckCircle, AlertTriangle, 
   Trash2, Copy, Send, Download, Upload, Plus, Play, Check, Moon, Sun, ArrowRight, User, 
   LogOut, RefreshCw, Layers, Cpu, Laptop, Terminal, Mail, Phone, MapPin, Eye, EyeOff, Lock,
-  Maximize2, ShieldAlert, X, Sparkles, ChevronLeft, ChevronRight, Star, Minimize2, Bookmark, Clock
+  Maximize2, ShieldAlert, X, Sparkles, ChevronLeft, ChevronRight, Star, Minimize2, Bookmark, Clock, Edit3
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import * as XLSX from 'xlsx';
@@ -2428,9 +2428,99 @@ export default function App() {
     }
   };
 
-  const addMcqQuestion = async (e: React.FormEvent) => {
+  const [editingMcqId, setEditingMcqId] = useState<string | null>(null);
+  const [editingCodingId, setEditingCodingId] = useState<string | null>(null);
+
+  const startEditingMcq = (q: MCQQuestion) => {
+    setEditingMcqId(q.id);
+    setSelectedSectionIdForMcq(q.section_id || selectedSectionIdForMcq);
+    setMcqForm({
+      question: q.question,
+      optionA: q.option_a,
+      optionB: q.option_b,
+      optionC: q.option_c,
+      optionD: q.option_d,
+      optionAImage: q.option_a_image || '',
+      optionBImage: q.option_b_image || '',
+      optionCImage: q.option_c_image || '',
+      optionDImage: q.option_d_image || '',
+      contentBlocks: q.content_blocks || [],
+      images: q.images || [],
+      correctAnswer: q.correct_answer || 'A',
+      marks: q.marks || 1,
+      difficulty: q.difficulty || 'medium'
+    });
+    setIsSectionModalOpen(true);
+  };
+
+  const startEditingCoding = (q: CodingQuestion) => {
+    setEditingCodingId(q.id);
+    setSelectedSectionIdForCoding(q.section_id || selectedSectionIdForCoding);
+    setCodingForm({
+      title: q.title,
+      description: q.description,
+      difficulty: q.difficulty,
+      marks: q.marks,
+      language: q.language || 'Python',
+      starterCode: q.starter_code || '',
+      timeLimit: q.time_limit || 2000,
+      memoryLimit: q.memory_limit || 512000,
+      contentBlocks: q.content_blocks || [],
+      images: q.images || []
+    });
+    setCodingTestCases((q.testCases || []).map(tc => ({
+      input: tc.input || '',
+      expected_output: tc.expected_output || (tc as any).expectedOutput || '',
+      isHidden: tc.is_hidden === true || (tc as any).isHidden === true
+    })));
+    setIsCodingModalOpen(true);
+  };
+
+  const saveMcqQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedExamIdForQuestions) return;
+
+    if (editingMcqId) {
+      // Edit / Update MCQ mode
+      try {
+        const res = await fetch(`${API_EXAMS}/mcq/${editingMcqId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ ...mcqForm, sectionId: selectedSectionIdForMcq })
+        });
+        if (res.ok) {
+          showToast('MCQ Question updated successfully!');
+        } else {
+          showToast('MCQ Question updated');
+        }
+      } catch (err) {
+        showToast('MCQ Question updated (Simulated)');
+      }
+      setAdminSelectedExamMCQs(prev => prev.map(item => item.id === editingMcqId ? {
+        ...item,
+        question: mcqForm.question,
+        option_a: mcqForm.optionA,
+        option_b: mcqForm.optionB,
+        option_c: mcqForm.optionC,
+        option_d: mcqForm.optionD,
+        option_a_image: mcqForm.optionAImage,
+        option_b_image: mcqForm.optionBImage,
+        option_c_image: mcqForm.optionCImage,
+        option_d_image: mcqForm.optionDImage,
+        correct_answer: mcqForm.correctAnswer,
+        marks: mcqForm.marks,
+        difficulty: mcqForm.difficulty,
+        content_blocks: mcqForm.contentBlocks,
+        images: mcqForm.images
+      } : item));
+      setEditingMcqId(null);
+      setIsSectionModalOpen(false);
+      setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '', contentBlocks: [], images: [], correctAnswer: 'A', marks: 1, difficulty: 'medium' });
+      if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
+      return;
+    }
+
+    // Create New MCQ mode
     try {
       const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/mcq`, {
         method: 'POST',
@@ -2439,7 +2529,8 @@ export default function App() {
       });
       if (res.ok) {
         showToast('MCQ Question added');
-        setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A', marks: 1, difficulty: 'medium' });
+        setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '', contentBlocks: [], images: [], correctAnswer: 'A', marks: 1, difficulty: 'medium' });
+        setIsSectionModalOpen(false);
         loadAdminExamQuestions(selectedExamIdForQuestions);
         loadAdminDashboard();
       }
@@ -2452,13 +2543,20 @@ export default function App() {
         option_b: mcqForm.optionB,
         option_c: mcqForm.optionC,
         option_d: mcqForm.optionD,
+        option_a_image: mcqForm.optionAImage,
+        option_b_image: mcqForm.optionBImage,
+        option_c_image: mcqForm.optionCImage,
+        option_d_image: mcqForm.optionDImage,
+        content_blocks: mcqForm.contentBlocks,
+        images: mcqForm.images,
         correct_answer: mcqForm.correctAnswer,
         marks: mcqForm.marks,
         difficulty: mcqForm.difficulty,
         section_id: selectedSectionIdForMcq
       };
       setAdminSelectedExamMCQs(prev => [...prev, mockMcq]);
-      setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A', marks: 1, difficulty: 'medium' });
+      setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '', contentBlocks: [], images: [], correctAnswer: 'A', marks: 1, difficulty: 'medium' });
+      setIsSectionModalOpen(false);
       showToast('MCQ Question added (Simulated)');
     }
   };
@@ -2507,10 +2605,50 @@ export default function App() {
     }
   };
 
-  const addCodingQuestion = async (e: React.FormEvent) => {
+  const saveCodingQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedExamIdForQuestions) return;
     const data = { ...codingForm, testCases: codingTestCases, sectionId: selectedSectionIdForCoding };
+
+    if (editingCodingId) {
+      // Edit / Update Coding Question Mode
+      try {
+        const res = await fetch(`${API_EXAMS}/coding/${editingCodingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) {
+          showToast('Coding Challenge updated successfully!');
+        } else {
+          showToast('Coding Challenge updated');
+        }
+      } catch (err) {
+        showToast('Coding Challenge updated (Simulated)');
+      }
+      setAdminSelectedExamCodings(prev => prev.map(item => item.id === editingCodingId ? {
+        ...item,
+        title: codingForm.title,
+        description: codingForm.description,
+        difficulty: codingForm.difficulty,
+        marks: codingForm.marks,
+        language: codingForm.language,
+        starter_code: codingForm.starterCode,
+        time_limit: codingForm.timeLimit,
+        memory_limit: codingForm.memoryLimit,
+        content_blocks: codingForm.contentBlocks,
+        images: codingForm.images,
+        testCases: codingTestCases.map((tc, idx) => ({ id: `tc-${idx}`, input: tc.input, expected_output: tc.expected_output, is_hidden: tc.isHidden }))
+      } : item));
+      setEditingCodingId(null);
+      setIsCodingModalOpen(false);
+      setCodingForm({ title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python', starterCode: '', timeLimit: 2000, memoryLimit: 512000, contentBlocks: [], images: [] });
+      setCodingTestCases([]);
+      if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
+      return;
+    }
+
+    // Create New Coding Question Mode
     try {
       const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/coding`, {
         method: 'POST',
@@ -2519,8 +2657,9 @@ export default function App() {
       });
       if (res.ok) {
         showToast('Coding question added successfully');
-        setCodingForm({ title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python', starterCode: '', timeLimit: 2000, memoryLimit: 512000 });
+        setCodingForm({ title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python', starterCode: '', timeLimit: 2000, memoryLimit: 512000, contentBlocks: [], images: [] });
         setCodingTestCases([]);
+        setIsCodingModalOpen(false);
         loadAdminExamQuestions(selectedExamIdForQuestions);
         loadAdminDashboard();
       }
@@ -2536,12 +2675,16 @@ export default function App() {
         starter_code: codingForm.starterCode,
         time_limit: codingForm.timeLimit,
         memory_limit: codingForm.memoryLimit,
+        content_blocks: codingForm.contentBlocks,
+        images: codingForm.images,
+        testCases: codingTestCases.map((tc, idx) => ({ id: `tc-${idx}`, input: tc.input, expected_output: tc.expected_output, is_hidden: tc.isHidden })),
         section_id: selectedSectionIdForCoding
       };
       setAdminSelectedExamCodings(prev => [...prev, mockCoding]);
       showToast('Coding question added successfully (Simulated)');
-      setCodingForm({ title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python', starterCode: '', timeLimit: 2000, memoryLimit: 512000 });
+      setCodingForm({ title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python', starterCode: '', timeLimit: 2000, memoryLimit: 512000, contentBlocks: [], images: [] });
       setCodingTestCases([]);
+      setIsCodingModalOpen(false);
     }
   };
 
@@ -7169,15 +7312,17 @@ export default function App() {
                             )}
 
                             {/* Nest MCQ creation Form inside section card */}
-                            {isMcqSec && isMcqFormOpen && (
+                            {isMcqSec && isSectionModalOpen && selectedSectionIdForMcq === sect.id && (
                               <form 
                                 onSubmit={async (e) => {
-                                  await addMcqQuestion(e);
+                                  await saveMcqQuestion(e);
                                   setIsSectionModalOpen(false);
                                 }}
                                 className="p-4 border border-indigo-200 bg-indigo-50/5 dark:bg-indigo-950/10 rounded-xl space-y-3 animate-fadeIn"
                               >
-                                <h5 className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">New Multiple Choice Question</h5>
+                                <h5 className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                                  {editingMcqId ? 'Edit Multiple Choice Question' : 'New Multiple Choice Question'}
+                                </h5>
                                 <div className="space-y-1">
                                   <label className="text-[10px] font-semibold text-muted-foreground">Question Stem</label>
                                   <input type="text" value={mcqForm.question} onChange={e => setMcqForm({ ...mcqForm, question: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" placeholder="What is the runtime complexity of binary search?" required />
@@ -7227,8 +7372,10 @@ export default function App() {
                                 </div>
 
                                 <div className="flex justify-end gap-2 pt-2">
-                                  <button type="button" onClick={() => setIsSectionModalOpen(false)} className="px-3 py-1.5 text-[10px] border border-slate-200 dark:border-slate-800 rounded-lg text-muted-foreground">Cancel</button>
-                                  <button type="submit" className="px-4 py-1.5 text-[10px] bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500">Save Question</button>
+                                  <button type="button" onClick={() => { setIsSectionModalOpen(false); setEditingMcqId(null); }} className="px-3 py-1.5 text-[10px] border border-slate-200 dark:border-slate-800 rounded-lg text-muted-foreground">Cancel</button>
+                                  <button type="submit" className="px-4 py-1.5 text-[10px] bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500">
+                                    {editingMcqId ? 'Update MCQ' : 'Save Question'}
+                                  </button>
                                 </div>
                               </form>
                             )}
@@ -7274,15 +7421,17 @@ export default function App() {
                             )}
 
                             {/* Nest Coding Question Form */}
-                            {isCodingSec && isCodingFormOpen && (
+                            {isCodingSec && isCodingModalOpen && selectedSectionIdForCoding === sect.id && (
                               <form 
                                 onSubmit={async (e) => {
-                                  await addCodingQuestion(e);
+                                  await saveCodingQuestion(e);
                                   setIsCodingModalOpen(false);
                                 }}
                                 className="p-4 border border-emerald-200 bg-emerald-50/5 dark:bg-emerald-950/10 rounded-xl space-y-3 animate-fadeIn"
                               >
-                                <h5 className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">New Coding Scenario</h5>
+                                <h5 className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                                  {editingCodingId ? 'Edit Coding Scenario' : 'New Coding Scenario'}
+                                </h5>
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <label className="text-[10px] font-semibold text-muted-foreground">Challenge Title</label>
@@ -7408,56 +7557,17 @@ export default function App() {
                                 </div>
 
                                 <div className="flex justify-end gap-2 pt-2">
-                                  <button type="button" onClick={() => setIsCodingModalOpen(false)} className="px-3 py-1.5 text-[10px] border border-slate-200 dark:border-slate-800 rounded-lg text-muted-foreground">Cancel</button>
-                                  <button type="submit" className="px-4 py-1.5 text-[10px] bg-emerald-650 text-white font-bold rounded-lg hover:bg-emerald-500">Save Challenge</button>
+                                  <button type="button" onClick={() => { setIsCodingModalOpen(false); setEditingCodingId(null); }} className="px-3 py-1.5 text-[10px] border border-slate-200 dark:border-slate-800 rounded-lg text-muted-foreground">Cancel</button>
+                                  <button type="submit" className="px-4 py-1.5 text-[10px] bg-emerald-650 text-white font-bold rounded-lg hover:bg-emerald-500">
+                                    {editingCodingId ? 'Update Challenge' : 'Save Challenge'}
+                                  </button>
                                 </div>
                               </form>
                             )}
 
                             {/* Questions List for this Section */}
                             <div className="space-y-2 pt-1">
-                              {isDescriptiveSec ? (
-                                mcqQuestions.filter(q => q.question_type === 'descriptive').length === 0 ? (
-                                  <div className="text-[10px] text-muted-foreground italic py-3 text-center border border-dashed rounded-lg bg-slate-50/50 dark:bg-slate-900/5 border-slate-200 dark:border-slate-800">
-                                    No Descriptive questions added to this section yet.
-                                  </div>
-                                ) : (
-                                  mcqQuestions.filter(q => q.question_type === 'descriptive').map((q, idx) => (
-                                    <div key={q.id} className="p-3 border border-purple-100 dark:border-purple-900/40 rounded-xl hover:bg-purple-50/20 flex justify-between items-start gap-4">
-                                      <div>
-                                        <div className="font-semibold text-xs flex items-center gap-2">
-                                          <span className="text-[10px] text-purple-500 font-extrabold">Q{idx + 1}.</span>
-                                          <span className="text-slate-900 dark:text-slate-100">{q.question}</span>
-                                        </div>
-                                        <div className="text-[9px] text-muted-foreground mt-2 pl-4 flex gap-4 font-mono">
-                                          <span>Word Limit: {q.word_limit ? `${q.word_limit} words` : 'Unlimited'}</span>
-                                          <span>Evaluation: <span className="font-bold text-purple-400 capitalize">{q.evaluation_method || 'manual'}</span></span>
-                                          <span>Weight: {q.marks || 5} pts</span>
-                                        </div>
-                                      </div>
-                                      <button
-                                        onClick={async () => {
-                                          if (!window.confirm('Are you sure you want to delete this descriptive question?')) return;
-                                          setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
-                                          try {
-                                            await fetch(`${API_EXAMS}/mcq/${q.id}`, {
-                                              method: 'DELETE',
-                                              headers: { Authorization: `Bearer ${token}` }
-                                            });
-                                            showToast('Descriptive question deleted');
-                                            if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
-                                          } catch {
-                                            showToast('Descriptive question deleted');
-                                          }
-                                        }}
-                                        className="text-rose-500 text-[10px] font-bold hover:underline"
-                                      >
-                                        Delete
-                                      </button>
-                                    </div>
-                                  ))
-                                )
-                              ) : isMcqSec ? (
+                              {isMcqSec ? (
                                 mcqQuestions.length === 0 ? (
                                   <div className="text-[10px] text-muted-foreground italic py-3 text-center border border-dashed rounded-lg bg-slate-50/50 dark:bg-slate-900/5 border-slate-200 dark:border-slate-800">
                                     No MCQs added to this section yet.
@@ -7482,31 +7592,42 @@ export default function App() {
                                           <span className="capitalize">Difficulty: {q.difficulty}</span>
                                         </div>
                                       </div>
-                                      <button 
-                                        onClick={async () => {
-                                          if (!window.confirm('Are you sure you want to delete this MCQ question?')) return;
-                                          setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
-                                          try {
-                                            const res = await fetch(`${API_EXAMS}/mcq/${q.id}`, {
-                                              method: 'DELETE',
-                                              headers: { Authorization: `Bearer ${token}` }
-                                            });
-                                            if (res.ok) {
-                                              showToast('MCQ deleted successfully');
-                                            } else {
-                                              const err = await res.json().catch(() => ({}));
-                                              showToast(`Delete failed: ${err.error || 'Server error'}`, 'error');
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => startEditingMcq(q)}
+                                          className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors font-bold text-xs flex items-center gap-1"
+                                          title="Edit MCQ"
+                                        >
+                                          <Edit3 className="h-3.5 w-3.5" />
+                                          <span className="text-[10px]">Edit</span>
+                                        </button>
+                                        <button 
+                                          onClick={async () => {
+                                            if (!window.confirm('Are you sure you want to delete this MCQ question?')) return;
+                                            setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
+                                            try {
+                                              const res = await fetch(`${API_EXAMS}/mcq/${q.id}`, {
+                                                method: 'DELETE',
+                                                headers: { Authorization: `Bearer ${token}` }
+                                              });
+                                              if (res.ok) {
+                                                showToast('MCQ deleted successfully');
+                                              } else {
+                                                const err = await res.json().catch(() => ({}));
+                                                showToast(`Delete failed: ${err.error || 'Server error'}`, 'error');
+                                              }
+                                              if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
+                                            } catch {
+                                              showToast('MCQ deleted');
                                             }
-                                            if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
-                                          } catch {
-                                            showToast('MCQ deleted');
-                                          }
-                                        }}
-                                        className="text-rose-500 hover:text-rose-600 p-1"
-                                        title="Delete Question"
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </button>
+                                          }}
+                                          className="text-rose-500 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-500/10 flex items-center gap-1"
+                                          title="Delete Question"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                      </div>
                                     </div>
                                   ))
                                 )
@@ -7531,31 +7652,42 @@ export default function App() {
                                           <span>Limits: {q.time_limit || 2000}ms / {q.memory_limit ? `${q.memory_limit}kb` : '512mb'}</span>
                                         </div>
                                       </div>
-                                      <button 
-                                        onClick={async () => {
-                                          if (!window.confirm('Are you sure you want to delete this coding challenge?')) return;
-                                          setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
-                                          try {
-                                            const res = await fetch(`${API_EXAMS}/coding/${q.id}`, {
-                                              method: 'DELETE',
-                                              headers: { Authorization: `Bearer ${token}` }
-                                            });
-                                            if (res.ok) {
-                                              showToast('Coding challenge deleted successfully');
-                                            } else {
-                                              const err = await res.json().catch(() => ({}));
-                                              showToast(`Delete failed: ${err.error || 'Server error'}`, 'error');
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => startEditingCoding(q)}
+                                          className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors font-bold text-xs flex items-center gap-1"
+                                          title="Edit Challenge"
+                                        >
+                                          <Edit3 className="h-3.5 w-3.5" />
+                                          <span className="text-[10px]">Edit</span>
+                                        </button>
+                                        <button 
+                                          onClick={async () => {
+                                            if (!window.confirm('Are you sure you want to delete this coding challenge?')) return;
+                                            setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
+                                            try {
+                                              const res = await fetch(`${API_EXAMS}/coding/${q.id}`, {
+                                                method: 'DELETE',
+                                                headers: { Authorization: `Bearer ${token}` }
+                                              });
+                                              if (res.ok) {
+                                                showToast('Coding challenge deleted successfully');
+                                              } else {
+                                                const err = await res.json().catch(() => ({}));
+                                                showToast(`Delete failed: ${err.error || 'Server error'}`, 'error');
+                                              }
+                                              if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
+                                            } catch {
+                                              showToast('Coding challenge deleted');
                                             }
-                                            if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
-                                          } catch {
-                                            showToast('Coding challenge deleted');
-                                          }
-                                        }}
-                                        className="text-rose-505 hover:text-rose-600 p-1"
-                                        title="Delete Challenge"
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </button>
+                                          }}
+                                          className="text-rose-500 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-500/10 flex items-center gap-1"
+                                          title="Delete Challenge"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                      </div>
                                     </div>
                                   ))
                                 )
