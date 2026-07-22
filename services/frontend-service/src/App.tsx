@@ -35,6 +35,8 @@ interface Exam {
   coding_cutoff_percentage?: number; codingCutoffPercentage?: number;
   mcq_cutoff_marks?: number; mcqCutoffMarks?: number;
   coding_cutoff_marks?: number; codingCutoffMarks?: number;
+  navigation_mode?: 'free' | 'locked' | 'sequential' | 'sequential_locked';
+  navigationMode?: 'free' | 'locked' | 'sequential' | 'sequential_locked';
 }
 interface MCQQuestion {
   id: string; question: string; option_a: string; option_b: string; option_c: string; option_d: string;
@@ -243,6 +245,7 @@ export default function App() {
     codingCutoffPercentage?: number;
     mcqCutoffMarks?: number;
     codingCutoffMarks?: number;
+    navigationMode?: 'free' | 'locked' | 'sequential' | 'sequential_locked';
   }>({
     name: '', description: '', examType: 'mcq',
     durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
@@ -253,7 +256,8 @@ export default function App() {
     mcqCutoffPercentage: 50,
     codingCutoffPercentage: 50,
     mcqCutoffMarks: 0,
-    codingCutoffMarks: 0
+    codingCutoffMarks: 0,
+    navigationMode: 'free'
   });
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [terminationModal, setTerminationModal] = useState<{ attemptId: string; studentName: string } | null>(null);
@@ -319,6 +323,9 @@ export default function App() {
   const [sectionTimeLeft, setSectionTimeLeft] = useState<number | null>(null);
   const [selectedSection, setSelectedSection] = useState<'mcq' | 'coding'>('mcq');
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+  const [sectionQuestionIndices, setSectionQuestionIndices] = useState<Record<string, number>>({});
+  const [visitedQuestions, setVisitedQuestions] = useState<Record<string, boolean>>({});
+  const [completedSections, setCompletedSections] = useState<Record<string, boolean>>({});
   const [mcqAnswers, setMcqAnswers] = useState<Record<string, string>>({}); // { questionId: selectedOption }
   const [codingSolutions, setCodingSolutions] = useState<Record<string, { code: string; language: string }>>({}); // { questionId: { code, lang } }
   const [markedForReview, setMarkedForReview] = useState<Record<string, boolean>>({});
@@ -2117,7 +2124,8 @@ export default function App() {
       mcqCutoffPercentage: ex.mcq_cutoff_percentage !== undefined ? Number(ex.mcq_cutoff_percentage) : (ex.mcqCutoffPercentage !== undefined ? Number(ex.mcqCutoffPercentage) : 50),
       codingCutoffPercentage: ex.coding_cutoff_percentage !== undefined ? Number(ex.coding_cutoff_percentage) : (ex.codingCutoffPercentage !== undefined ? Number(ex.codingCutoffPercentage) : 50),
       mcqCutoffMarks: ex.mcq_cutoff_marks !== undefined ? Number(ex.mcq_cutoff_marks) : (ex.mcqCutoffMarks !== undefined ? Number(ex.mcqCutoffMarks) : 0),
-      codingCutoffMarks: ex.coding_cutoff_marks !== undefined ? Number(ex.coding_cutoff_marks) : (ex.codingCutoffMarks !== undefined ? Number(ex.codingCutoffMarks) : 0)
+      codingCutoffMarks: ex.coding_cutoff_marks !== undefined ? Number(ex.coding_cutoff_marks) : (ex.codingCutoffMarks !== undefined ? Number(ex.codingCutoffMarks) : 0),
+      navigationMode: ex.navigation_mode || ex.navigationMode || 'free'
     });
     if (ex.college_id) {
       fetchDepartments(ex.college_id);
@@ -6450,6 +6458,38 @@ export default function App() {
                     <textarea value={examForm.description} onChange={e => setExamForm({...examForm, description: e.target.value})} placeholder="Provide exam guidelines, candidate instructions, and general scope..." rows={3} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent mt-1 focus:outline-indigo-500 text-slate-900 dark:text-white" />
                   </div>
 
+                  <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+                    <label className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">Candidate Section Navigation Rule</label>
+                    <p className="text-[11px] text-muted-foreground">Configure how candidates navigate between assessment sections during their proctored attempt.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                      {[
+                        { mode: 'free', title: 'Option A: Free Navigation', desc: 'Candidate can freely switch between any section until overall time expires.' },
+                        { mode: 'locked', title: 'Option B: Locked Navigation', desc: 'Candidate cannot revisit completed sections once submitted.' },
+                        { mode: 'sequential', title: 'Option C: Sequential Navigation', desc: 'Must complete sections in order. Cannot jump ahead, but may return to previous sections.' },
+                        { mode: 'sequential_locked', title: 'Option D: Sequential Locked', desc: 'Must complete sections in order. Completing a section auto-locks it forever.' }
+                      ].map(opt => (
+                        <label key={opt.mode} className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-3 ${
+                          examForm.navigationMode === opt.mode
+                            ? 'bg-indigo-600/10 border-indigo-500 text-slate-900 dark:text-white shadow-sm ring-1 ring-indigo-500/30 font-bold'
+                            : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-indigo-300'
+                        }`}>
+                          <input
+                            type="radio"
+                            name="navigationMode"
+                            value={opt.mode}
+                            checked={examForm.navigationMode === opt.mode}
+                            onChange={() => setExamForm({ ...examForm, navigationMode: opt.mode as any })}
+                            className="mt-0.5 h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <div>
+                            <span className="font-extrabold block text-xs">{opt.title}</span>
+                            <span className="text-[10px] text-muted-foreground font-normal leading-relaxed block mt-0.5">{opt.desc}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-2 p-1">
                     <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-200 select-none">
                       <input 
@@ -8053,8 +8093,13 @@ export default function App() {
                     {/* Dynamic Section Switcher */}
                     {!isSidebarCollapsed ? (
                       <div className="p-3 space-y-1.5 border-b border-white/5 bg-slate-950/20">
-                        <div className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider mb-2 px-1">
-                          Sections ({studentExamSections.length})
+                        <div className="flex items-center justify-between px-1 mb-2">
+                          <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">
+                            Sections ({studentExamSections.length})
+                          </span>
+                          <span className="text-[8px] font-bold text-indigo-400 uppercase">
+                            {currentExam?.navigation_mode || 'Free'}
+                          </span>
                         </div>
                         {studentExamSections.map((sect, idx) => {
                           const isCurrent = sect.id === activeSectionId;
@@ -8062,36 +8107,46 @@ export default function App() {
                           const sCodings = examCodings.filter(q => q.section_id === sect.id || (!q.section_id && idx === 0));
                           const sTotal = sMcqs.length + sCodings.length;
                           
-                          const currentSecIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
+                          const navMode = currentExam?.navigation_mode || 'free';
+                          const isLocked = completedSections[sect.id] === true || (
+                            (navMode === 'locked' || navMode === 'sequential_locked') && 
+                            studentExamSections.findIndex(s => s.id === activeSectionId) > idx
+                          );
+
                           let statusLabel = 'Pending';
                           if (isCurrent) statusLabel = 'Current';
-                          else if (idx < currentSecIdx) statusLabel = 'Completed';
+                          else if (isLocked) statusLabel = 'Locked';
 
                           return (
                             <button
                               key={sect.id || idx}
                               onClick={() => {
-                                if (!isExamLocked) {
-                                  setActiveSectionId(sect.id);
-                                  setActiveQuestionIndex(0);
-                                  if (sect.duration_minutes) {
-                                    setSectionTimeLeft(parseInt(sect.duration_minutes) * 60);
-                                  } else {
-                                    setSectionTimeLeft(null);
-                                  }
+                                if (isExamLocked || isLocked) return;
+                                if (activeSectionId) {
+                                  setSectionQuestionIndices(prev => ({ ...prev, [activeSectionId]: activeQuestionIndex }));
+                                }
+                                setActiveSectionId(sect.id);
+                                const savedIndex = sectionQuestionIndices[sect.id] || 0;
+                                setActiveQuestionIndex(savedIndex);
+                                if (sect.duration_minutes) {
+                                  setSectionTimeLeft(parseInt(sect.duration_minutes) * 60);
+                                } else {
+                                  setSectionTimeLeft(null);
                                 }
                               }}
-                              disabled={isExamLocked}
+                              disabled={isExamLocked || isLocked}
                               className={`w-full py-2.5 px-3 text-left rounded-xl transition-all border flex flex-col gap-1 ${
                                 isCurrent 
                                   ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 font-bold shadow-sm' 
-                                  : 'bg-slate-950/40 border-white/5 text-slate-400 hover:bg-slate-850 hover:text-white'
-                              } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  : isLocked
+                                    ? 'bg-slate-950/20 border-white/5 text-slate-600 opacity-60 cursor-not-allowed'
+                                    : 'bg-slate-950/40 border-white/5 text-slate-400 hover:bg-slate-850 hover:text-white'
+                              }`}
                             >
                               <div className="flex justify-between items-center text-xs">
                                 <span className="font-extrabold truncate max-w-[130px]">{sect.name}</span>
                                 <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${
-                                  isCurrent ? 'bg-indigo-500 text-white' : statusLabel === 'Completed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'
+                                  isCurrent ? 'bg-indigo-500 text-white' : isLocked ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-400'
                                 }`}>
                                   {statusLabel}
                                 </span>
@@ -8112,15 +8167,13 @@ export default function App() {
                             <button 
                               key={sect.id || idx}
                               onClick={() => {
-                                if (!isExamLocked) {
-                                  setActiveSectionId(sect.id);
-                                  setActiveQuestionIndex(0);
-                                  if (sect.duration_minutes) {
-                                    setSectionTimeLeft(parseInt(sect.duration_minutes) * 60);
-                                  } else {
-                                    setSectionTimeLeft(null);
-                                  }
+                                if (isExamLocked) return;
+                                if (activeSectionId) {
+                                  setSectionQuestionIndices(prev => ({ ...prev, [activeSectionId]: activeQuestionIndex }));
                                 }
+                                setActiveSectionId(sect.id);
+                                const savedIndex = sectionQuestionIndices[sect.id] || 0;
+                                setActiveQuestionIndex(savedIndex);
                               }}
                               disabled={isExamLocked}
                               className={`p-2 rounded-lg border transition-all ${isCurrent ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400 font-bold' : 'border-transparent text-slate-400 hover:bg-slate-800'}`}
@@ -8147,8 +8200,8 @@ export default function App() {
                         <div className="flex-1 overflow-y-auto p-3.5 space-y-4">
                           {!isSidebarCollapsed && (
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Question Grid</span>
-                              <span className="text-[9px] font-bold text-indigo-400">
+                              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Question Palette</span>
+                              <span className="text-[9px] font-bold text-indigo-400 font-mono">
                                 {currentSectionQuestions.length > 0 ? activeQuestionIndex + 1 : 0} / {currentSectionQuestions.length}
                               </span>
                             </div>
@@ -8158,17 +8211,20 @@ export default function App() {
                               const q = item.data;
                               const isAnswered = item.kind === 'mcq' ? !!mcqAnswers[q.id] : (codingSolutions[q.id]?.code?.length || 0) > 5;
                               const isMarked = markedForReview[q.id];
+                              const isVisited = visitedQuestions[q.id];
                               const isActive = activeQuestionIndex === idx;
 
                               let bgClass = '';
                               if (isActive) {
-                                bgClass = 'bg-blue-600 text-white border-blue-500 font-extrabold scale-105';
+                                bgClass = 'bg-blue-600 text-white border-blue-400 font-extrabold ring-2 ring-blue-500/40 scale-105 shadow-md z-10';
                               } else if (isMarked) {
-                                bgClass = 'bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold';
+                                bgClass = 'bg-amber-500/20 text-amber-400 border-amber-500/40 font-bold';
                               } else if (isAnswered) {
-                                bgClass = 'bg-emerald-600/20 text-emerald-400 border-emerald-500/25';
+                                bgClass = 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 font-bold';
+                              } else if (isVisited) {
+                                bgClass = 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30 font-semibold';
                               } else {
-                                bgClass = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+                                bgClass = 'bg-slate-950/40 text-slate-400 border-white/5';
                               }
 
                               return (
@@ -8178,10 +8234,11 @@ export default function App() {
                                     if (isExamLocked) return;
                                     saveCurrentCodeImmediately();
                                     setActiveQuestionIndex(idx);
+                                    setVisitedQuestions(prev => ({ ...prev, [q.id]: true }));
                                   }}
                                   disabled={isExamLocked}
-                                  className={`h-9 w-9 flex items-center justify-center rounded-lg text-xs transition-all border shadow-inner ${bgClass} ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                  title={`Go to Question ${idx + 1} ${isMarked ? '(Marked for Review)' : isAnswered ? '(Answered)' : '(Not Answered)'}`}
+                                  className={`h-9 w-9 flex items-center justify-center rounded-lg text-xs transition-all border ${bgClass} ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  title={`Go to Q${idx + 1} (${isMarked ? 'Flagged' : isAnswered ? 'Answered' : isVisited ? 'Visited' : 'Not Visited'})`}
                                 >
                                   {idx + 1}
                                 </button>
@@ -8189,24 +8246,28 @@ export default function App() {
                             })}
                           </div>
 
-                          {/* Legend details */}
+                          {/* Palette Legend */}
                           {!isSidebarCollapsed && (
-                            <div className="pt-4 border-t border-white/5 space-y-2 text-[10px] font-semibold text-slate-400">
+                            <div className="pt-4 border-t border-white/10 space-y-2 text-[10px] font-semibold text-slate-400">
                               <div className="flex items-center gap-2">
-                                <span className="h-3 w-3 rounded bg-blue-600 border border-blue-500"></span>
+                                <span className="h-3 w-3 rounded bg-blue-600 border border-blue-400 ring-1 ring-blue-400"></span>
                                 <span>Current</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className="h-3 w-3 rounded bg-emerald-600/20 border border-emerald-500/25"></span>
+                                <span className="h-3 w-3 rounded bg-emerald-500/20 border border-emerald-500/30"></span>
                                 <span>Answered</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className="h-3 w-3 rounded bg-amber-500/20 border border-amber-500/30"></span>
-                                <span>Marked for Review</span>
+                                <span className="h-3 w-3 rounded bg-amber-500/20 border border-amber-500/40"></span>
+                                <span>Flagged for Review</span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className="h-3 w-3 rounded bg-rose-500/10 border border-rose-500/20"></span>
-                                <span>Not Answered</span>
+                                <span className="h-3 w-3 rounded bg-indigo-500/10 border border-indigo-500/30"></span>
+                                <span>Visited (Unanswered)</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="h-3 w-3 rounded bg-slate-950/40 border border-white/5"></span>
+                                <span>Not Visited</span>
                               </div>
                             </div>
                           )}
@@ -8252,19 +8313,32 @@ export default function App() {
                   if (currentItem.kind === 'mcq') {
                     const currentMcq = currentItem.data;
                     return (
-                      <div className="flex-1 flex flex-col bg-slate-950 p-8 overflow-y-auto">
-                        <div className="max-w-3xl mx-auto w-full space-y-8 bg-slate-900 border border-white/10 rounded-2xl p-8 shadow-2xl">
-                          <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                            <div>
-                              <span className="text-xs text-indigo-400 font-extrabold uppercase tracking-wider">Question {activeQuestionIndex + 1} of {currentSectionQuestions.length}</span>
-                              <span className="ml-3 text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20 font-bold uppercase tracking-wider">{currentMcq.difficulty}</span>
+                      <div className="flex-1 flex flex-col bg-slate-950 p-4 md:p-6 overflow-y-auto w-full">
+                        <div className="w-full space-y-6 bg-slate-900 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
+                          <div className="flex flex-wrap justify-between items-center border-b border-white/10 pb-4 gap-4">
+                            <div className="flex items-center gap-3">
+                              <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 font-extrabold text-xs rounded-lg border border-indigo-500/20 uppercase tracking-wider">
+                                Question {activeQuestionIndex + 1} of {currentSectionQuestions.length}
+                              </span>
+                              <span className="px-2.5 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs font-bold uppercase tracking-wider border border-white/5">
+                                Difficulty: {currentMcq.difficulty}
+                              </span>
+                              <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg text-xs font-bold uppercase tracking-wider border border-emerald-500/20">
+                                MCQ Format
+                              </span>
                             </div>
-                            <span className="text-xs text-slate-400 font-bold">Marks: {currentMcq.marks} pts</span>
+                            <div className="text-xs text-slate-300 font-bold bg-slate-950 px-3 py-1.5 rounded-lg border border-white/5">
+                              Weight: <span className="text-emerald-400 font-extrabold">{currentMcq.marks || 1} Pt</span>
+                            </div>
                           </div>
                           
-                          <h3 className="text-lg font-bold text-white leading-relaxed">{currentMcq.question}</h3>
+                          {/* Question Text */}
+                          <div className="text-base md:text-lg font-semibold text-white leading-relaxed whitespace-pre-wrap">
+                            {currentMcq.question}
+                          </div>
 
-                          <div className="space-y-3.5">
+                          {/* Options Full Width */}
+                          <div className="grid grid-cols-1 gap-3 pt-2">
                             {['A', 'B', 'C', 'D'].map(opt => {
                               const optionKey = `option_${opt.toLowerCase()}` as keyof MCQQuestion;
                               const optionText = currentMcq[optionKey] as string;
@@ -8274,32 +8348,32 @@ export default function App() {
                                   key={opt}
                                   onClick={() => { if (!isExamLocked) saveMcqChoice(currentMcq.id, opt); }}
                                   disabled={isExamLocked}
-                                  className={`w-full text-left p-4 rounded-xl text-xs font-semibold transition-all border flex items-center gap-4 ${
+                                  className={`w-full text-left p-4 md:p-4.5 rounded-xl text-xs md:text-sm font-medium transition-all border flex items-center gap-4 ${
                                     isSelected 
-                                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/15' 
-                                      : 'bg-slate-955 border-white/5 text-slate-300 hover:border-white/15 hover:bg-slate-850'
+                                      ? 'bg-indigo-600/30 border-indigo-500 text-white shadow-lg shadow-indigo-600/15 ring-2 ring-indigo-500/40' 
+                                      : 'bg-slate-955 border-white/5 text-slate-300 hover:border-white/20 hover:bg-slate-850'
                                   } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
-                                  <span className={`h-6 w-6 rounded-lg flex items-center justify-center border font-bold text-[10px] transition-colors ${
-                                    isSelected ? 'bg-white text-indigo-600 border-transparent' : 'bg-slate-900 border-white/10 text-slate-400'
+                                  <span className={`h-7 w-7 rounded-lg flex items-center justify-center border font-bold text-xs transition-colors flex-shrink-0 ${
+                                    isSelected ? 'bg-indigo-500 text-white border-transparent' : 'bg-slate-900 border-white/10 text-slate-400'
                                   }`}>
                                     {opt}
                                   </span>
-                                  {optionText}
+                                  <span className="flex-1 leading-snug">{optionText}</span>
                                 </button>
                               );
                             })}
                           </div>
 
-                          {/* Navigation buttons */}
-                          <div className="flex justify-between items-center mt-8 border-t border-white/10 pt-5">
-                            <div className="flex gap-2">
+                          {/* Action Bar */}
+                          <div className="flex flex-wrap justify-between items-center mt-8 border-t border-white/10 pt-5 gap-4">
+                            <div className="flex items-center gap-3">
                               <button
                                 onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.max(0, p - 1)); }}
-                                className="px-4 py-2 border border-white/10 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                                className="px-5 py-2.5 border border-white/10 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent flex items-center gap-2"
                                 disabled={isExamLocked || activeQuestionIndex === 0}
                               >
-                                Previous
+                                &larr; Previous Question
                               </button>
                               <button
                                 onClick={() => {
@@ -8307,34 +8381,36 @@ export default function App() {
                                   setMarkedForReview(prev => ({ ...prev, [currentMcq.id]: !prev[currentMcq.id] }));
                                 }}
                                 disabled={isExamLocked}
-                                className={`px-4 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-colors ${
+                                className={`px-5 py-2.5 rounded-xl text-xs font-bold border flex items-center gap-2 transition-colors ${
                                   markedForReview[currentMcq.id]
                                     ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
                                     : 'border-white/10 text-slate-300 hover:bg-slate-800'
                                 }`}
                               >
-                                <Bookmark className="h-3.5 w-3.5" />
-                                {markedForReview[currentMcq.id] ? 'Flagged' : 'Mark for Review'}
+                                <Bookmark className="h-4 w-4" />
+                                {markedForReview[currentMcq.id] ? 'Flagged for Review' : 'Mark for Review'}
                               </button>
                             </div>
 
-                            {mcqAnswers[currentMcq.id] && (
+                            <div className="flex items-center gap-3">
+                              {mcqAnswers[currentMcq.id] && (
+                                <button
+                                  onClick={() => { if (!isExamLocked) clearMcqChoice(currentMcq.id); }}
+                                  disabled={isExamLocked}
+                                  className="px-4 py-2.5 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 rounded-xl text-xs font-bold border border-rose-500/20 transition-all"
+                                >
+                                  Clear Response
+                                </button>
+                              )}
+                              
                               <button
-                                onClick={() => { if (!isExamLocked) clearMcqChoice(currentMcq.id); }}
-                                disabled={isExamLocked}
-                                className="px-4 py-2 bg-rose-500/10 text-rose-450 hover:bg-rose-500/20 rounded-xl text-xs font-bold border border-rose-500/20 transition-all"
+                                onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.min(currentSectionQuestions.length - 1, p + 1)); }}
+                                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs transition-all shadow-md shadow-indigo-600/20 flex items-center gap-2 disabled:opacity-30 disabled:hover:bg-indigo-600"
+                                disabled={isExamLocked || activeQuestionIndex === currentSectionQuestions.length - 1}
                               >
-                                Clear Response
+                                Next Question &rarr;
                               </button>
-                            )}
-                            
-                            <button
-                              onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.min(currentSectionQuestions.length - 1, p + 1)); }}
-                              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-colors disabled:opacity-30 disabled:hover:bg-indigo-600"
-                              disabled={isExamLocked || activeQuestionIndex === currentSectionQuestions.length - 1}
-                            >
-                              Next Question
-                            </button>
+                            </div>
                           </div>
                         </div>
                       </div>
