@@ -2768,7 +2768,8 @@ export default function App() {
       if (res.ok) {
         const attempt = await res.json();
         setCurrentAttempt(attempt);
-        loadAttemptQuestions(attempt.id);
+        await loadAttemptQuestions(attempt.id);
+        setValidationStep('active');
       } else {
         const data = await res.json();
         showToast(data.error || 'Failed to start exam attempt', 'error');
@@ -2891,7 +2892,6 @@ export default function App() {
           console.warn('Failed to restore workspace settings:', e);
         }
 
-        setValidationStep('active');
         setTimeLeft((examObj?.duration_minutes || 60) * 60);
         setTabWarnings(0);
         setProctorLogs([]);
@@ -7326,49 +7326,82 @@ export default function App() {
                                 </div>
 
                                 {/* Coding Test Cases list */}
-                                <div className="space-y-2">
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-[10px] font-bold text-muted-foreground">Standard IO Test Cases</span>
+                                <div className="space-y-3">
+                                  <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-1.5">
+                                    <div>
+                                      <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200">Standard IO Test Cases (Supports Multiline STDIN & STDOUT)</span>
+                                      <p className="text-[9px] text-muted-foreground">Preserves all line breaks, matrices, JSON, and whitespace formatting.</p>
+                                    </div>
                                     <button 
                                       type="button" 
                                       onClick={() => setCodingTestCases([...codingTestCases, { input: '', expected_output: '', isHidden: false }])}
-                                      className="text-[9px] text-emerald-600 font-bold hover:underline"
+                                      className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-extrabold rounded-lg shadow-sm"
                                     >
                                       + Add Test Case
                                     </button>
                                   </div>
                                   {codingTestCases.map((tc, tcIdx) => (
-                                    <div key={tcIdx} className="grid grid-cols-12 gap-2 items-center bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-                                      <div className="col-span-5">
-                                        <input type="text" value={tc.input} onChange={e => {
-                                          const next = [...codingTestCases];
-                                          next[tcIdx].input = e.target.value;
-                                          setCodingTestCases(next);
-                                        }} placeholder="STDIN Input" className="w-full p-1.5 border border-slate-200 dark:border-slate-800 rounded text-[10px] bg-transparent text-slate-900 dark:text-white" required />
+                                    <div key={tcIdx} className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2 shadow-sm">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-bold font-mono text-indigo-500">Case #{tcIdx + 1} {tc.isHidden ? '(Hidden Test Case)' : '(Visible Test Case)'}</span>
+                                        <div className="flex items-center gap-3">
+                                          <label className="text-[10px] flex items-center gap-1.5 cursor-pointer text-slate-700 dark:text-slate-300 font-bold">
+                                            <input 
+                                              type="checkbox" 
+                                              checked={tc.isHidden} 
+                                              onChange={e => {
+                                                const next = [...codingTestCases];
+                                                next[tcIdx].isHidden = e.target.checked;
+                                                setCodingTestCases(next);
+                                              }} 
+                                              className="h-3.5 w-3.5 rounded text-emerald-600 focus:ring-emerald-500" 
+                                            />
+                                            Hidden Evaluation Case
+                                          </label>
+                                          <button 
+                                            type="button" 
+                                            onClick={() => setCodingTestCases(codingTestCases.filter((_, idx) => idx !== tcIdx))}
+                                            className="text-rose-500 hover:text-rose-600 font-extrabold text-xs px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900"
+                                          >
+                                            Remove
+                                          </button>
+                                        </div>
                                       </div>
-                                      <div className="col-span-5">
-                                        <input type="text" value={tc.expected_output} onChange={e => {
-                                          const next = [...codingTestCases];
-                                          next[tcIdx].expected_output = e.target.value;
-                                          setCodingTestCases(next);
-                                        }} placeholder="Expected STDOUT" className="w-full p-1.5 border border-slate-200 dark:border-slate-800 rounded text-[10px] bg-transparent text-slate-900 dark:text-white" required />
-                                      </div>
-                                      <div className="col-span-2 flex items-center justify-between gap-1">
-                                        <label className="text-[8px] flex items-center gap-0.5 cursor-pointer text-slate-700 dark:text-slate-300">
-                                          <input type="checkbox" checked={tc.isHidden} onChange={e => {
-                                            const next = [...codingTestCases];
-                                            next[tcIdx].isHidden = e.target.checked;
-                                            setCodingTestCases(next);
-                                          }} className="h-3 w-3 rounded text-emerald-600" />
-                                          Hidden
-                                        </label>
-                                        <button 
-                                          type="button" 
-                                          onClick={() => setCodingTestCases(codingTestCases.filter((_, idx) => idx !== tcIdx))}
-                                          className="text-rose-505 hover:text-rose-600 font-bold text-[10px]"
-                                        >
-                                          x
-                                        </button>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                          <label className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground block mb-1">
+                                            STDIN Input (Multiline / Matrix / Strings)
+                                          </label>
+                                          <textarea
+                                            value={tc.input}
+                                            onChange={e => {
+                                              const next = [...codingTestCases];
+                                              next[tcIdx].input = e.target.value;
+                                              setCodingTestCases(next);
+                                            }}
+                                            placeholder={'5\n1 2 3 4 5'}
+                                            rows={3}
+                                            className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 resize-y focus:ring-1 focus:ring-indigo-500"
+                                            required
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground block mb-1">
+                                            Expected STDOUT (Multiline / Whitespace-Exact)
+                                          </label>
+                                          <textarea
+                                            value={tc.expected_output}
+                                            onChange={e => {
+                                              const next = [...codingTestCases];
+                                              next[tcIdx].expected_output = e.target.value;
+                                              setCodingTestCases(next);
+                                            }}
+                                            placeholder={'15'}
+                                            rows={3}
+                                            className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-mono bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 resize-y focus:ring-1 focus:ring-indigo-500"
+                                            required
+                                          />
+                                        </div>
                                       </div>
                                     </div>
                                   ))}

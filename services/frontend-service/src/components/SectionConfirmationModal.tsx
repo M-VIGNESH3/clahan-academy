@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Clock, CheckCircle, HelpCircle, Lock, ArrowRight, X } from 'lucide-react';
+import { AlertTriangle, Clock, CheckCircle, HelpCircle, Lock, ArrowRight, X, Bookmark } from 'lucide-react';
 
 interface SectionConfirmationModalProps {
   isOpen: boolean;
@@ -7,6 +7,7 @@ interface SectionConfirmationModalProps {
   timeRemainingStr: string; // "08:42" or "No time limit"
   answeredCount: number;
   unansweredCount: number;
+  markedForReviewCount?: number;
   totalCount: number;
   navigationMode: 'free' | 'locked' | 'sequential' | 'sequential_locked' | string;
   isLastSection: boolean;
@@ -20,6 +21,7 @@ export const SectionConfirmationModal: React.FC<SectionConfirmationModalProps> =
   timeRemainingStr,
   answeredCount,
   unansweredCount,
+  markedForReviewCount = 0,
   totalCount,
   navigationMode,
   isLastSection,
@@ -56,31 +58,40 @@ export const SectionConfirmationModal: React.FC<SectionConfirmationModalProps> =
         </div>
 
         {/* Section Metrics Grid */}
-        <div className="grid grid-cols-3 gap-3 bg-slate-950/60 p-4 rounded-2xl border border-white/5 font-mono text-center">
+        <div className="grid grid-cols-4 gap-2 bg-slate-950/60 p-4 rounded-2xl border border-white/5 font-mono text-center">
           <div className="space-y-1">
-            <span className="text-[9px] uppercase font-bold text-slate-400 flex items-center justify-center gap-1">
-              <Clock className="h-3 w-3 text-indigo-400" /> Time Remaining
+            <span className="text-[8px] uppercase font-bold text-slate-400 flex items-center justify-center gap-1">
+              <Clock className="h-3 w-3 text-indigo-400" /> Time
             </span>
-            <span className="text-sm font-extrabold text-white block">
+            <span className="text-xs font-extrabold text-white block">
               {timeRemainingStr}
             </span>
           </div>
 
-          <div className="space-y-1 border-x border-white/5">
-            <span className="text-[9px] uppercase font-bold text-slate-400 flex items-center justify-center gap-1">
+          <div className="space-y-1 border-l border-white/5">
+            <span className="text-[8px] uppercase font-bold text-slate-400 flex items-center justify-center gap-1">
               <CheckCircle className="h-3 w-3 text-emerald-400" /> Answered
             </span>
-            <span className="text-sm font-extrabold text-emerald-400 block">
+            <span className="text-xs font-extrabold text-emerald-400 block">
               {answeredCount} / {totalCount}
             </span>
           </div>
 
-          <div className="space-y-1">
-            <span className="text-[9px] uppercase font-bold text-slate-400 flex items-center justify-center gap-1">
+          <div className="space-y-1 border-l border-white/5">
+            <span className="text-[8px] uppercase font-bold text-slate-400 flex items-center justify-center gap-1">
               <HelpCircle className="h-3 w-3 text-rose-400" /> Unanswered
             </span>
-            <span className="text-sm font-extrabold text-rose-400 block">
+            <span className="text-xs font-extrabold text-rose-400 block">
               {unansweredCount}
+            </span>
+          </div>
+
+          <div className="space-y-1 border-l border-white/5">
+            <span className="text-[8px] uppercase font-bold text-slate-400 flex items-center justify-center gap-1">
+              <Bookmark className="h-3 w-3 text-amber-400" /> Flagged
+            </span>
+            <span className="text-xs font-extrabold text-amber-400 block">
+              {markedForReviewCount}
             </span>
           </div>
         </div>
@@ -91,22 +102,19 @@ export const SectionConfirmationModal: React.FC<SectionConfirmationModalProps> =
             <Lock className="h-3.5 w-3.5" />
             {isLockedMode ? 'Irreversible Action Notice' : 'Section Completion Review'}
           </div>
-          {isLockedMode ? (
-            <ul className="space-y-1.5 list-disc list-inside text-[11px] text-slate-300">
+          <ul className="space-y-1.5 list-disc list-inside text-[11px] text-slate-300">
+            {isLockedMode ? (
               <li>Once you leave this section you <strong className="text-rose-400">WILL NOT</strong> be able to return.</li>
-              <li>Your answers for <strong className="text-white">{sectionName}</strong> will be permanently saved and locked.</li>
-              <li>The section timer for this section will stop.</li>
-              <li>{isLastSection ? 'Your final assessment will be ready for submission.' : 'Your next section will begin immediately.'}</li>
-            </ul>
-          ) : (
-            <p className="text-[11px] leading-relaxed">
-              You can revisit this section later before the overall exam timer ends. Please review your answers before continuing.
-            </p>
-          )}
+            ) : (
+              <li>You can revisit this section before the overall exam timer expires.</li>
+            )}
+            <li>Your answers for <strong className="text-white">{sectionName}</strong> will be submitted.</li>
+            <li>{isLastSection ? 'Your final assessment will be ready for submission.' : 'The next section will begin immediately.'}</li>
+          </ul>
         </div>
 
         <p className="text-xs font-semibold text-slate-400 text-center">
-          Please review your answers before continuing.
+          Mode: <span className="uppercase text-indigo-400 font-bold">{navigationMode.replace('_', ' ')}</span>. Please review your answers before continuing.
         </p>
 
         {/* Action Buttons */}
