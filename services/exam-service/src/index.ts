@@ -43,6 +43,19 @@ pool.query(`ALTER TABLE exams ADD COLUMN IF NOT EXISTS navigation_mode VARCHAR(5
   console.log('DB Column navigation_mode addition log:', err.message);
 });
 
+pool.query(`
+  ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS content_blocks JSONB DEFAULT '[]'::jsonb;
+  ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'::jsonb;
+  ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS option_a_image TEXT DEFAULT '';
+  ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS option_b_image TEXT DEFAULT '';
+  ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS option_c_image TEXT DEFAULT '';
+  ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS option_d_image TEXT DEFAULT '';
+  ALTER TABLE coding_questions ADD COLUMN IF NOT EXISTS content_blocks JSONB DEFAULT '[]'::jsonb;
+  ALTER TABLE coding_questions ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'::jsonb;
+`).catch(err => {
+  console.log('DB Column rich questions addition log:', err.message);
+});
+
 async function validateAttemptNotExpired(attemptId: string) {
   const attemptResult = await query(
     `SELECT ea.created_at, ea.status, e.duration_minutes 
@@ -645,7 +658,7 @@ app.post('/api/exams/:id/mcq/import', authenticate, requireRole('admin'), async 
 app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty } = req.body;
+    const { question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty, contentBlocks, images, optionAImage, optionBImage, optionCImage, optionDImage } = req.body;
     if (!question || !optionA || !optionB || !optionC || !optionD || !correctAnswer) {
       return res.status(400).json({ error: 'Required MCQ fields missing' });
     }
@@ -665,9 +678,13 @@ app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, r
     }
 
     const result = await query(
-      `INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-      [id, finalSectionId, question, optionA, optionB, optionC, optionD, correctAnswer, marks || 1, difficulty || 'medium']
+      `INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty, content_blocks, images, option_a_image, option_b_image, option_c_image, option_d_image)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13, $14, $15, $16) RETURNING *`,
+      [
+        id, finalSectionId, question, optionA, optionB, optionC, optionD, correctAnswer, marks || 1, difficulty || 'medium',
+        JSON.stringify(contentBlocks || []), JSON.stringify(images || []),
+        optionAImage || '', optionBImage || '', optionCImage || '', optionDImage || ''
+      ]
     );
 
     res.status(201).json(result.rows[0]);
@@ -681,7 +698,7 @@ app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, r
 app.post('/api/exams/:id/coding', authenticate, requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, difficulty, marks, language, timeLimit, memoryLimit, starterCode, testCases } = req.body;
+    const { title, description, difficulty, marks, language, timeLimit, memoryLimit, starterCode, testCases, contentBlocks, images } = req.body;
     if (!title || !description || !language) {
       return res.status(400).json({ error: 'Title, description and language are required' });
     }
@@ -701,9 +718,12 @@ app.post('/api/exams/:id/coding', authenticate, requireRole('admin'), async (req
     }
 
     const cqResult = await query(
-      `INSERT INTO coding_questions (exam_id, section_id, title, description, difficulty, marks, language, time_limit, memory_limit, starter_code)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-      [id, finalSectionId, title, description, difficulty || 'medium', marks || 10, language, timeLimit || 2000, memoryLimit || 512000, starterCode || '']
+      `INSERT INTO coding_questions (exam_id, section_id, title, description, difficulty, marks, language, time_limit, memory_limit, starter_code, content_blocks, images)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb) RETURNING *`,
+      [
+        id, finalSectionId, title, description, difficulty || 'medium', marks || 10, language, timeLimit || 2000, memoryLimit || 512000, starterCode || '',
+        JSON.stringify(contentBlocks || []), JSON.stringify(images || [])
+      ]
     );
     const cq = cqResult.rows[0];
 

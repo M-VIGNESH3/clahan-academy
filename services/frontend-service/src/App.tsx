@@ -9,6 +9,15 @@ import { io, Socket } from 'socket.io-client';
 import * as XLSX from 'xlsx';
 import Editor from '@monaco-editor/react';
 
+// Custom Modular Components
+import { GenericQuestion, ContentBlock } from './types/richQuestion';
+import { ImageViewerModal } from './components/ImageViewerModal';
+import { RichContentRenderer } from './components/RichContentRenderer';
+import { SectionConfirmationModal } from './components/SectionConfirmationModal';
+import { QuestionFooter } from './components/QuestionFooter';
+import { RichTextEditor } from './components/RichTextEditor';
+import { QuestionPreview } from './components/QuestionPreview';
+
 // Core Types
 interface College { id: string; name: string; }
 interface Department { id: string; college_id: string; name: string; }
@@ -40,11 +49,14 @@ interface Exam {
 }
 interface MCQQuestion {
   id: string; question: string; option_a: string; option_b: string; option_c: string; option_d: string;
+  option_a_image?: string; option_b_image?: string; option_c_image?: string; option_d_image?: string;
+  content_blocks?: ContentBlock[]; images?: string[];
   correct_answer?: string; marks: number; difficulty: string;
   section_id?: string;
 }
 interface CodingQuestion {
   id: string; title: string; description: string; difficulty: string; marks: number;
+  content_blocks?: ContentBlock[]; images?: string[];
   language: string; starter_code: string; time_limit: number; memory_limit: number;
   testCases?: Array<{ id: string; input: string; expected_output: string; is_hidden: boolean }>;
   section_id?: string;
@@ -63,6 +75,13 @@ interface Attempt {
 const getLocalDatetimeString = () => {
   const tzoffset = (new Date()).getTimezoneOffset() * 60000;
   return (new Date(Date.now() - tzoffset)).toISOString().slice(0, 16);
+};
+
+const formatTime = (seconds: number | null | undefined): string => {
+  if (seconds === null || seconds === undefined || isNaN(seconds)) return '00:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
 const STARTER_TEMPLATES: Record<string, string> = {
@@ -287,18 +306,36 @@ export default function App() {
   const [adminSelectedExamResults, setAdminSelectedExamResults] = useState<any[]>([]);
   const [selectedExamIdForResults, setSelectedExamIdForResults] = useState<string | null>(null);
   const [selectedExamNameForResults, setSelectedExamNameForResults] = useState<string>('');
+  // Lightbox & Section Confirmation states
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; alt?: string } | null>(null);
+  const [isSectionConfirmModalOpen, setIsSectionConfirmModalOpen] = useState(false);
+  const [pendingTargetSectionId, setPendingTargetSectionId] = useState<string | null>(null);
+
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
-  const [mcqForm, setMcqForm] = useState({
-    question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A', marks: 1, difficulty: 'medium'
+  const [mcqForm, setMcqForm] = useState<{
+    question: string; optionA: string; optionB: string; optionC: string; optionD: string;
+    optionAImage?: string; optionBImage?: string; optionCImage?: string; optionDImage?: string;
+    contentBlocks?: ContentBlock[]; images?: string[];
+    correctAnswer: string; marks: number; difficulty: string;
+  }>({
+    question: '', optionA: '', optionB: '', optionC: '', optionD: '',
+    optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '',
+    contentBlocks: [], images: [],
+    correctAnswer: 'A', marks: 1, difficulty: 'medium'
   });
   const [mcqCsvInput, setMcqCsvInput] = useState('');
   const [selectedMcqFileName, setSelectedMcqFileName] = useState<string | null>(null);
 
   // Manual Coding Question Configuration
   const [isCodingModalOpen, setIsCodingModalOpen] = useState(false);
-  const [codingForm, setCodingForm] = useState({
+  const [codingForm, setCodingForm] = useState<{
+    title: string; description: string; difficulty: string; marks: number; language: string;
+    starterCode: string; timeLimit: number; memoryLimit: number;
+    contentBlocks?: ContentBlock[]; images?: string[];
+  }>({
     title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python',
-    starterCode: 'def solve():\n    # Write your code here\n    pass', timeLimit: 2000, memoryLimit: 512000
+    starterCode: 'def solve():\n    # Write your code here\n    pass', timeLimit: 2000, memoryLimit: 512000,
+    contentBlocks: [], images: []
   });
   const [codingTestCases, setCodingTestCases] = useState<Array<{ input: string; expected_output: string; isHidden: boolean }>>([
     { input: '5\n', expected_output: '10\n', isHidden: false }
@@ -8332,16 +8369,21 @@ export default function App() {
                             </div>
                           </div>
                           
-                          {/* Question Text */}
-                          <div className="text-base md:text-lg font-semibold text-white leading-relaxed whitespace-pre-wrap">
-                            {currentMcq.question}
-                          </div>
+                          {/* Question Text with Rich Content Renderer */}
+                          <RichContentRenderer 
+                            blocks={currentMcq.content_blocks} 
+                            rawText={currentMcq.question} 
+                            legacyImages={currentMcq.images} 
+                            onImageClick={(url, alt) => setLightboxImage({ url, alt })} 
+                          />
 
-                          {/* Options Full Width */}
+                          {/* Options Full Width (Text + Image support) */}
                           <div className="grid grid-cols-1 gap-3 pt-2">
                             {['A', 'B', 'C', 'D'].map(opt => {
                               const optionKey = `option_${opt.toLowerCase()}` as keyof MCQQuestion;
+                              const imageKey = `option_${opt.toLowerCase()}_image` as keyof MCQQuestion;
                               const optionText = currentMcq[optionKey] as string;
+                              const optionImg = currentMcq[imageKey] as string;
                               const isSelected = mcqAnswers[currentMcq.id] === opt;
                               return (
                                 <button
@@ -8359,7 +8401,21 @@ export default function App() {
                                   }`}>
                                     {opt}
                                   </span>
-                                  <span className="flex-1 leading-snug">{optionText}</span>
+                                  <div className="flex-1 space-y-2">
+                                    {optionText && <span className="block leading-snug">{optionText}</span>}
+                                    {optionImg && (
+                                      <img 
+                                        src={optionImg} 
+                                        alt={`Option ${opt} Diagram`} 
+                                        loading="lazy"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setLightboxImage({ url: optionImg, alt: `Option ${opt} Diagram` });
+                                        }}
+                                        className="max-h-36 object-contain rounded-lg border border-white/10 hover:scale-[1.02] transition-transform" 
+                                      />
+                                    )}
+                                  </div>
                                 </button>
                               );
                             })}
@@ -8462,9 +8518,12 @@ export default function App() {
                               </div>
                             </div>
 
-                            <div className="text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap">
-                              {currentCoding.description}
-                            </div>
+                            <RichContentRenderer
+                              blocks={currentCoding.content_blocks}
+                              rawText={currentCoding.description}
+                              legacyImages={currentCoding.images}
+                              onImageClick={(url, alt) => setLightboxImage({ url, alt })}
+                            />
 
                             <div className="p-3 bg-slate-950/60 rounded-xl border border-white/5 space-y-2 text-[10px] font-mono shadow-inner">
                               <div className="font-bold text-slate-400 uppercase tracking-widest text-[8px]">Constraints & Limits</div>
@@ -9081,79 +9140,112 @@ export default function App() {
               </div>
 
               {/* SECTION NAVIGATION BAR */}
-              <footer className="flex-shrink-0 bg-slate-900 border-t border-white/10 px-6 py-3.5 flex items-center justify-between z-30 relative">
-                {(() => {
-                  const curSecIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
-                  const activeSecMcqs = examMCQs.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
-                  const activeSecCodings = examCodings.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
-                  const currentSectionQuestions = [
-                    ...activeSecMcqs.map(q => ({ kind: 'mcq' as const, data: q })),
-                    ...activeSecCodings.map(q => ({ kind: 'coding' as const, data: q }))
-                  ];
+              {(() => {
+                const curSecIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
+                const activeSecMcqs = examMCQs.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
+                const activeSecCodings = examCodings.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
+                const currentSectionQuestions = [
+                  ...activeSecMcqs.map(q => ({ kind: 'mcq' as const, data: q })),
+                  ...activeSecCodings.map(q => ({ kind: 'coding' as const, data: q }))
+                ];
 
-                  const isFirstSection = curSecIdx === 0 || curSecIdx === -1;
-                  const isLastSection = curSecIdx === studentExamSections.length - 1 || curSecIdx === -1;
+                const secAnswered = currentSectionQuestions.filter(item => 
+                  item.kind === 'mcq' ? !!mcqAnswers[item.data.id] : (codingSolutions[item.data.id]?.code?.length || 0) > 5
+                ).length;
+                const secUnanswered = currentSectionQuestions.length - secAnswered;
 
-                  return (
-                    <>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            if (isExamLocked) return;
-                            saveCurrentCodeImmediately();
-                            if (activeQuestionIndex > 0) {
-                              setActiveQuestionIndex(p => p - 1);
-                            } else if (!isFirstSection) {
-                              const prevSec = studentExamSections[curSecIdx - 1];
-                              setActiveSectionId(prevSec.id);
-                              const prevSecMcqs = examMCQs.filter(q => q.section_id === prevSec.id || (!q.section_id && (curSecIdx - 1 === 0)));
-                              const prevSecCodings = examCodings.filter(q => q.section_id === prevSec.id || (!q.section_id && (curSecIdx - 1 === 0)));
-                              const prevTotal = prevSecMcqs.length + prevSecCodings.length;
-                              setActiveQuestionIndex(Math.max(0, prevTotal - 1));
-                              if (prevSec.duration_minutes) {
-                                setSectionTimeLeft(parseInt(prevSec.duration_minutes) * 60);
-                              } else {
-                                setSectionTimeLeft(null);
-                              }
-                            }
-                          }}
-                          className="px-4 py-2 border border-white/10 rounded-xl text-xs font-bold text-slate-355 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-                          disabled={isExamLocked || (activeQuestionIndex === 0 && isFirstSection)}
-                        >
-                          Previous Question
-                        </button>
-                      </div>
+                const activeSecObj = studentExamSections.find(s => s.id === activeSectionId);
+                const navMode = currentExam?.navigation_mode || 'free';
+                const isLastSec = curSecIdx === studentExamSections.length - 1;
 
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            if (isExamLocked) return;
-                            saveCurrentCodeImmediately();
-                            if (activeQuestionIndex < currentSectionQuestions.length - 1) {
-                              setActiveQuestionIndex(p => p + 1);
-                            } else if (!isLastSection) {
-                              const nextSec = studentExamSections[curSecIdx + 1];
-                              setActiveSectionId(nextSec.id);
-                              setActiveQuestionIndex(0);
-                              if (nextSec.duration_minutes) {
-                                setSectionTimeLeft(parseInt(nextSec.duration_minutes) * 60);
-                              } else {
-                                setSectionTimeLeft(null);
-                              }
-                            } else {
-                              showToast("All section questions reviewed! Please click 'Submit Exam' above when ready.", "info");
-                            }
-                          }}
-                          disabled={isExamLocked}
-                          className="px-5 py-2 bg-indigo-600 hover:bg-indigo-550 text-white font-bold rounded-xl text-xs transition-colors disabled:opacity-30"
-                        >
-                          Next Question
-                        </button>
-                      </div>
-                    </>
-                  );
-                })()}
-              </footer>
+                const secTimeStr = sectionTimeLeft !== null ? `${Math.floor(sectionTimeLeft / 60).toString().padStart(2, '0')}:${(sectionTimeLeft % 60).toString().padStart(2, '0')}` : null;
+                const overallTimeStr = formatTime(timeLeft || 0);
+
+                return (
+                  <>
+                    <QuestionFooter
+                      currentSectionTimerStr={secTimeStr}
+                      overallTimerStr={overallTimeStr}
+                      activeQuestionIndex={activeQuestionIndex}
+                      totalSectionQuestions={currentSectionQuestions.length}
+                      answeredCount={secAnswered}
+                      unansweredCount={secUnanswered}
+                      isFirstQuestion={activeQuestionIndex === 0}
+                      isLastQuestion={activeQuestionIndex === currentSectionQuestions.length - 1}
+                      isExamLocked={isExamLocked}
+                      navigationMode={navMode}
+                      onPrevious={() => {
+                        saveCurrentCodeImmediately();
+                        setActiveQuestionIndex(p => Math.max(0, p - 1));
+                      }}
+                      onNext={() => {
+                        saveCurrentCodeImmediately();
+                        setActiveQuestionIndex(p => Math.min(currentSectionQuestions.length - 1, p + 1));
+                      }}
+                      onSubmitSection={() => {
+                        saveCurrentCodeImmediately();
+                        if (navMode === 'free') {
+                          setCompletedSections(prev => ({ ...prev, [activeSectionId]: true }));
+                          if (curSecIdx >= 0 && curSecIdx < studentExamSections.length - 1) {
+                            const nextSec = studentExamSections[curSecIdx + 1];
+                            setActiveSectionId(nextSec.id);
+                            setActiveQuestionIndex(0);
+                          }
+                        } else {
+                          const nextSec = studentExamSections[curSecIdx + 1];
+                          setPendingTargetSectionId(nextSec ? nextSec.id : activeSectionId);
+                          setIsSectionConfirmModalOpen(true);
+                        }
+                      }}
+                    />
+
+                    <SectionConfirmationModal
+                      isOpen={isSectionConfirmModalOpen}
+                      sectionName={activeSecObj?.name || 'Current Section'}
+                      timeRemainingStr={secTimeStr || 'No Section Time Limit'}
+                      answeredCount={secAnswered}
+                      unansweredCount={secUnanswered}
+                      totalCount={currentSectionQuestions.length}
+                      navigationMode={navMode}
+                      isLastSection={isLastSec}
+                      onCancel={() => {
+                        setIsSectionConfirmModalOpen(false);
+                        setPendingTargetSectionId(null);
+                      }}
+                      onConfirm={() => {
+                        // Save states before section submission
+                        saveCurrentCodeImmediately();
+                        if (activeSectionId) {
+                          setSectionQuestionIndices(prev => ({ ...prev, [activeSectionId]: activeQuestionIndex }));
+                        }
+                        if (navMode === 'locked' || navMode === 'sequential_locked') {
+                          setCompletedSections(prev => ({ ...prev, [activeSectionId]: true }));
+                        }
+
+                        const targetId = pendingTargetSectionId || (curSecIdx >= 0 && curSecIdx < studentExamSections.length - 1 ? studentExamSections[curSecIdx + 1].id : activeSectionId);
+                        if (targetId && targetId !== activeSectionId) {
+                          setActiveSectionId(targetId);
+                          const targetSec = studentExamSections.find(s => s.id === targetId);
+                          setActiveQuestionIndex(sectionQuestionIndices[targetId] || 0);
+                          if (targetSec?.duration_minutes) {
+                            setSectionTimeLeft(parseInt(targetSec.duration_minutes) * 60);
+                          } else {
+                            setSectionTimeLeft(null);
+                          }
+                        }
+                        setIsSectionConfirmModalOpen(false);
+                        setPendingTargetSectionId(null);
+                      }}
+                    />
+
+                    <ImageViewerModal
+                      src={lightboxImage?.url || null}
+                      alt={lightboxImage?.alt}
+                      onClose={() => setLightboxImage(null)}
+                    />
+                  </>
+                );
+              })()}
 
               {isExamLocked && (
                 <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
