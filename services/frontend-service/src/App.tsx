@@ -53,6 +53,16 @@ interface MCQQuestion {
   content_blocks?: ContentBlock[]; images?: string[];
   correct_answer?: string; marks: number; difficulty: string;
   section_id?: string;
+  question_type?: string;
+  word_limit?: number;
+  evaluation_method?: string;
+  title?: string;
+  description?: string;
+  language?: string;
+  starter_code?: string;
+  time_limit?: number;
+  memory_limit?: number;
+  testCases?: any[];
 }
 interface CodingQuestion {
   id: string; title: string; description: string; difficulty: string; marks: number;
@@ -312,6 +322,25 @@ export default function App() {
   const [pendingTargetSectionId, setPendingTargetSectionId] = useState<string | null>(null);
 
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [isDescriptiveModalOpen, setIsDescriptiveModalOpen] = useState(false);
+  const [descriptiveForm, setDescriptiveForm] = useState<{
+    question: string;
+    marks: number;
+    difficulty: string;
+    wordLimit: number;
+    evaluationMethod: 'manual' | 'ai';
+    contentBlocks?: ContentBlock[];
+    images?: string[];
+  }>({
+    question: '',
+    marks: 5,
+    difficulty: 'medium',
+    wordLimit: 250,
+    evaluationMethod: 'manual',
+    contentBlocks: [],
+    images: []
+  });
+
   const [mcqForm, setMcqForm] = useState<{
     question: string; optionA: string; optionB: string; optionC: string; optionD: string;
     optionAImage?: string; optionBImage?: string; optionCImage?: string; optionDImage?: string;
@@ -364,6 +393,7 @@ export default function App() {
   const [visitedQuestions, setVisitedQuestions] = useState<Record<string, boolean>>({});
   const [completedSections, setCompletedSections] = useState<Record<string, boolean>>({});
   const [mcqAnswers, setMcqAnswers] = useState<Record<string, string>>({}); // { questionId: selectedOption }
+  const [descriptiveAnswers, setDescriptiveAnswers] = useState<Record<string, string>>({});
   const [codingSolutions, setCodingSolutions] = useState<Record<string, { code: string; language: string }>>({}); // { questionId: { code, lang } }
   const [markedForReview, setMarkedForReview] = useState<Record<string, boolean>>({});
 
@@ -2512,6 +2542,43 @@ export default function App() {
       showToast('Coding question added successfully (Simulated)');
       setCodingForm({ title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python', starterCode: '', timeLimit: 2000, memoryLimit: 512000 });
       setCodingTestCases([]);
+    }
+  };
+
+  const addDescriptiveQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedExamIdForQuestions) return;
+    try {
+      const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/descriptive`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ...descriptiveForm, sectionId: selectedSectionIdForMcq })
+      });
+      if (res.ok) {
+        showToast('Descriptive question added successfully');
+        setDescriptiveForm({ question: '', marks: 5, difficulty: 'medium', wordLimit: 250, evaluationMethod: 'manual', contentBlocks: [], images: [] });
+        setIsDescriptiveModalOpen(false);
+        loadAdminExamQuestions(selectedExamIdForQuestions);
+        loadAdminDashboard();
+      }
+    } catch (err) {
+      const mockDesc: MCQQuestion = {
+        id: `mock-d-${Date.now()}`,
+        question: descriptiveForm.question,
+        question_type: 'descriptive',
+        option_a: '', option_b: '', option_c: '', option_d: '',
+        marks: descriptiveForm.marks,
+        difficulty: descriptiveForm.difficulty,
+        word_limit: descriptiveForm.wordLimit,
+        evaluation_method: descriptiveForm.evaluationMethod,
+        content_blocks: descriptiveForm.contentBlocks,
+        images: descriptiveForm.images,
+        section_id: selectedSectionIdForMcq
+      };
+      setAdminSelectedExamMCQs(prev => [...prev, mockDesc]);
+      showToast('Descriptive question added (Simulated)');
+      setDescriptiveForm({ question: '', marks: 5, difficulty: 'medium', wordLimit: 250, evaluationMethod: 'manual', contentBlocks: [], images: [] });
+      setIsDescriptiveModalOpen(false);
     }
   };
 
@@ -6920,15 +6987,19 @@ export default function App() {
                   ) : (
                     <div className="space-y-8">
                       {adminSelectedExamSections.map((sect) => {
-                        const isMcq = sect.section_type !== 'coding';
+                        const secType = sect.section_type || 'mcq';
+                        const isCodingSec = secType === 'coding';
+                        const isDescriptiveSec = secType === 'descriptive';
+                        const isMcqSec = !isCodingSec && !isDescriptiveSec;
+
                         const mcqQuestions = adminSelectedExamMCQs.filter(q => q.section_id === sect.id);
                         const codingQuestions = adminSelectedExamCodings.filter(q => q.section_id === sect.id);
-                        const totalQuestions = isMcq ? mcqQuestions.length : codingQuestions.length;
+                        const totalQuestions = isCodingSec ? codingQuestions.length : mcqQuestions.length;
 
                         // Check if forms are open for this section
-                        const isMcqFormOpen = selectedSectionIdForMcq === sect.id && isSectionModalOpen;
-                        const isMcqImportOpen = selectedSectionIdForMcq === sect.id && mcqCsvInput.length > 0;
-                        const isCodingFormOpen = selectedSectionIdForCoding === sect.id && isCodingModalOpen;
+                        const isMcqFormOpen = selectedSectionIdForMcq === sect.id && isSectionModalOpen && isMcqSec;
+                        const isDescriptiveFormOpen = selectedSectionIdForMcq === sect.id && isDescriptiveModalOpen && isDescriptiveSec;
+                        const isCodingFormOpen = selectedSectionIdForCoding === sect.id && isCodingModalOpen && isCodingSec;
 
                         return (
                           <div key={sect.id} className="p-6 border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950 rounded-2xl shadow-sm space-y-4">
@@ -6944,7 +7015,18 @@ export default function App() {
                               </div>
                               
                               <div className="flex gap-2">
-                                {isMcq ? (
+                                {isDescriptiveSec ? (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedSectionIdForMcq(sect.id);
+                                      setDescriptiveForm({ question: '', marks: 5, difficulty: 'medium', wordLimit: 250, evaluationMethod: 'manual', contentBlocks: [], images: [] });
+                                      setIsDescriptiveModalOpen(true);
+                                    }}
+                                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm"
+                                  >
+                                    <Plus className="h-3 w-3" /> Add Descriptive Question
+                                  </button>
+                                ) : isMcqSec ? (
                                   <>
                                     <button
                                       onClick={() => {
@@ -6984,8 +7066,110 @@ export default function App() {
                               </div>
                             </div>
 
+                            {/* Descriptive Question Creation Form */}
+                            {isDescriptiveSec && isDescriptiveFormOpen && (
+                              <form
+                                onSubmit={async (e) => {
+                                  await addDescriptiveQuestion(e);
+                                }}
+                                className="p-5 border border-purple-200 dark:border-purple-900/60 bg-purple-50/5 dark:bg-purple-950/10 rounded-2xl space-y-4 animate-fadeIn"
+                              >
+                                <div className="flex justify-between items-center border-b border-purple-200/40 dark:border-purple-900/40 pb-2">
+                                  <h5 className="text-xs font-extrabold text-purple-600 dark:text-purple-400">New Descriptive Question</h5>
+                                  <button 
+                                    type="button" 
+                                    onClick={() => setIsDescriptiveModalOpen(false)}
+                                    className="text-[10px] font-bold text-slate-400 hover:text-slate-200"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-semibold text-muted-foreground">Question Prompt / Problem Statement</label>
+                                  <textarea
+                                    value={descriptiveForm.question}
+                                    onChange={e => setDescriptiveForm({ ...descriptiveForm, question: e.target.value })}
+                                    rows={4}
+                                    className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent text-slate-900 dark:text-white focus:outline-none focus:border-purple-500"
+                                    placeholder="Explain the differences between processes and threads in operating systems..."
+                                    required
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <label className="text-[10px] font-semibold text-muted-foreground">Rich Content Blocks (Optional Images / Code / Math)</label>
+                                  <RichTextEditor
+                                    contentBlocks={descriptiveForm.contentBlocks || []}
+                                    onChange={blocks => setDescriptiveForm({ ...descriptiveForm, contentBlocks: blocks })}
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Word Limit (0 for unlimited)</label>
+                                    <input
+                                      type="number"
+                                      value={descriptiveForm.wordLimit}
+                                      onChange={e => setDescriptiveForm({ ...descriptiveForm, wordLimit: parseInt(e.target.value) || 0 })}
+                                      className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent text-slate-900 dark:text-white"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Evaluation Method</label>
+                                    <select
+                                      value={descriptiveForm.evaluationMethod}
+                                      onChange={e => setDescriptiveForm({ ...descriptiveForm, evaluationMethod: e.target.value as 'manual' | 'ai' })}
+                                      className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-slate-900 text-white"
+                                    >
+                                      <option value="manual">Manual Evaluator Review</option>
+                                      <option value="ai">AI Auto-Grader (Future)</option>
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Marks</label>
+                                    <input
+                                      type="number"
+                                      value={descriptiveForm.marks}
+                                      onChange={e => setDescriptiveForm({ ...descriptiveForm, marks: parseInt(e.target.value) || 1 })}
+                                      className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent text-slate-900 dark:text-white"
+                                      required
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Difficulty</label>
+                                    <select
+                                      value={descriptiveForm.difficulty}
+                                      onChange={e => setDescriptiveForm({ ...descriptiveForm, difficulty: e.target.value })}
+                                      className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-slate-900 text-white"
+                                    >
+                                      <option value="easy">Easy</option>
+                                      <option value="medium">Medium</option>
+                                      <option value="hard">Hard</option>
+                                    </select>
+                                  </div>
+                                </div>
+
+                                <div className="flex justify-end gap-2 pt-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setIsDescriptiveModalOpen(false)}
+                                    className="px-4 py-2 border rounded-xl text-xs font-bold text-slate-400 hover:bg-slate-800"
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="submit"
+                                    className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs rounded-xl shadow-md"
+                                  >
+                                    Save Descriptive Question
+                                  </button>
+                                </div>
+                              </form>
+                            )}
+
                             {/* Nest MCQ creation Form inside section card */}
-                            {isMcq && isMcqFormOpen && (
+                            {isMcqSec && isMcqFormOpen && (
                               <form 
                                 onSubmit={async (e) => {
                                   await addMcqQuestion(e);
@@ -7050,7 +7234,7 @@ export default function App() {
                             )}
 
                             {/* CSV / Excel Import Form */}
-                            {isMcq && isMcqImportOpen && (
+                            {isMcqSec && (selectedSectionIdForMcq === sect.id && mcqCsvInput.length > 0) && (
                               <form 
                                 onSubmit={async (e) => {
                                   await importMcqCsv(e);
@@ -7090,7 +7274,7 @@ export default function App() {
                             )}
 
                             {/* Nest Coding Question Form */}
-                            {!isMcq && isCodingFormOpen && (
+                            {isCodingSec && isCodingFormOpen && (
                               <form 
                                 onSubmit={async (e) => {
                                   await addCodingQuestion(e);
@@ -7199,7 +7383,48 @@ export default function App() {
 
                             {/* Questions List for this Section */}
                             <div className="space-y-2 pt-1">
-                              {isMcq ? (
+                              {isDescriptiveSec ? (
+                                mcqQuestions.filter(q => q.question_type === 'descriptive').length === 0 ? (
+                                  <div className="text-[10px] text-muted-foreground italic py-3 text-center border border-dashed rounded-lg bg-slate-50/50 dark:bg-slate-900/5 border-slate-200 dark:border-slate-800">
+                                    No Descriptive questions added to this section yet.
+                                  </div>
+                                ) : (
+                                  mcqQuestions.filter(q => q.question_type === 'descriptive').map((q, idx) => (
+                                    <div key={q.id} className="p-3 border border-purple-100 dark:border-purple-900/40 rounded-xl hover:bg-purple-50/20 flex justify-between items-start gap-4">
+                                      <div>
+                                        <div className="font-semibold text-xs flex items-center gap-2">
+                                          <span className="text-[10px] text-purple-500 font-extrabold">Q{idx + 1}.</span>
+                                          <span className="text-slate-900 dark:text-slate-100">{q.question}</span>
+                                        </div>
+                                        <div className="text-[9px] text-muted-foreground mt-2 pl-4 flex gap-4 font-mono">
+                                          <span>Word Limit: {q.word_limit ? `${q.word_limit} words` : 'Unlimited'}</span>
+                                          <span>Evaluation: <span className="font-bold text-purple-400 capitalize">{q.evaluation_method || 'manual'}</span></span>
+                                          <span>Weight: {q.marks || 5} pts</span>
+                                        </div>
+                                      </div>
+                                      <button
+                                        onClick={async () => {
+                                          if (!window.confirm('Are you sure you want to delete this descriptive question?')) return;
+                                          setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
+                                          try {
+                                            await fetch(`${API_EXAMS}/mcq/${q.id}`, {
+                                              method: 'DELETE',
+                                              headers: { Authorization: `Bearer ${token}` }
+                                            });
+                                            showToast('Descriptive question deleted');
+                                            if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
+                                          } catch {
+                                            showToast('Descriptive question deleted');
+                                          }
+                                        }}
+                                        className="text-rose-500 text-[10px] font-bold hover:underline"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  ))
+                                )
+                              ) : isMcqSec ? (
                                 mcqQuestions.length === 0 ? (
                                   <div className="text-[10px] text-muted-foreground italic py-3 text-center border border-dashed rounded-lg bg-slate-50/50 dark:bg-slate-900/5 border-slate-200 dark:border-slate-800">
                                     No MCQs added to this section yet.
@@ -8138,90 +8363,134 @@ export default function App() {
                             {currentExam?.navigation_mode || 'Free'}
                           </span>
                         </div>
-                        {studentExamSections.map((sect, idx) => {
-                          const isCurrent = sect.id === activeSectionId;
-                          const sMcqs = examMCQs.filter(q => q.section_id === sect.id || (!q.section_id && idx === 0));
-                          const sCodings = examCodings.filter(q => q.section_id === sect.id || (!q.section_id && idx === 0));
-                          const sTotal = sMcqs.length + sCodings.length;
-                          
-                          const navMode = currentExam?.navigation_mode || 'free';
-                          const isLocked = completedSections[sect.id] === true || (
-                            (navMode === 'locked' || navMode === 'sequential_locked') && 
-                            studentExamSections.findIndex(s => s.id === activeSectionId) > idx
-                          );
+                          {/* Centralized Section Switch Request Functions */}
+                          {(() => {
+                            const requestSectionSwitch = (targetSectionId: string) => {
+                              if (isExamLocked || !targetSectionId || targetSectionId === activeSectionId) return;
 
-                          let statusLabel = 'Pending';
-                          if (isCurrent) statusLabel = 'Current';
-                          else if (isLocked) statusLabel = 'Locked';
+                              const targetIdx = studentExamSections.findIndex(s => s.id === targetSectionId);
+                              const currentIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
+                              const navMode = currentExam?.navigation_mode || 'free';
 
-                          return (
-                            <button
-                              key={sect.id || idx}
-                              onClick={() => {
-                                if (isExamLocked || isLocked) return;
+                              // Check lock status
+                              const isTargetLocked = completedSections[targetSectionId] === true || (
+                                (navMode === 'locked' || navMode === 'sequential_locked') && currentIdx > targetIdx
+                              );
+                              if (isTargetLocked) return;
+
+                              // Check sequential rule
+                              if ((navMode === 'sequential' || navMode === 'sequential_locked') && targetIdx > currentIdx + 1) {
+                                showToast("Sequential navigation: You cannot skip future sections. Please complete sections in order.", "warning");
+                                return;
+                              }
+
+                              // Free Navigation Mode: Bypass modal
+                              if (navMode === 'free') {
                                 if (activeSectionId) {
                                   setSectionQuestionIndices(prev => ({ ...prev, [activeSectionId]: activeQuestionIndex }));
                                 }
-                                setActiveSectionId(sect.id);
-                                const savedIndex = sectionQuestionIndices[sect.id] || 0;
-                                setActiveQuestionIndex(savedIndex);
-                                if (sect.duration_minutes) {
-                                  setSectionTimeLeft(parseInt(sect.duration_minutes) * 60);
+                                saveCurrentCodeImmediately();
+                                setActiveSectionId(targetSectionId);
+                                const targetSec = studentExamSections.find(s => s.id === targetSectionId);
+                                setActiveQuestionIndex(sectionQuestionIndices[targetSectionId] || 0);
+                                if (targetSec?.duration_minutes) {
+                                  setSectionTimeLeft(parseInt(targetSec.duration_minutes) * 60);
                                 } else {
                                   setSectionTimeLeft(null);
                                 }
-                              }}
-                              disabled={isExamLocked || isLocked}
-                              className={`w-full py-2.5 px-3 text-left rounded-xl transition-all border flex flex-col gap-1 ${
-                                isCurrent 
-                                  ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 font-bold shadow-sm' 
-                                  : isLocked
-                                    ? 'bg-slate-950/20 border-white/5 text-slate-600 opacity-60 cursor-not-allowed'
-                                    : 'bg-slate-950/40 border-white/5 text-slate-400 hover:bg-slate-850 hover:text-white'
-                              }`}
-                            >
-                              <div className="flex justify-between items-center text-xs">
-                                <span className="font-extrabold truncate max-w-[130px]">{sect.name}</span>
-                                <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${
-                                  isCurrent ? 'bg-indigo-500 text-white' : isLocked ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-400'
-                                }`}>
-                                  {statusLabel}
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
-                                <span>{sTotal} Questions</span>
-                                <span>{sect.duration_minutes ? `${sect.duration_minutes} Mins` : 'Overall Timer'}</span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-3 py-4 border-b border-white/5">
-                        {studentExamSections.map((sect, idx) => {
-                          const isCurrent = sect.id === activeSectionId;
-                          return (
-                            <button 
-                              key={sect.id || idx}
-                              onClick={() => {
-                                if (isExamLocked) return;
-                                if (activeSectionId) {
-                                  setSectionQuestionIndices(prev => ({ ...prev, [activeSectionId]: activeQuestionIndex }));
-                                }
-                                setActiveSectionId(sect.id);
-                                const savedIndex = sectionQuestionIndices[sect.id] || 0;
-                                setActiveQuestionIndex(savedIndex);
-                              }}
-                              disabled={isExamLocked}
-                              className={`p-2 rounded-lg border transition-all ${isCurrent ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400 font-bold' : 'border-transparent text-slate-400 hover:bg-slate-800'}`}
-                              title={`${sect.name} (${sect.section_type || 'General'})`}
-                            >
-                              {sect.section_type === 'coding' ? <Code className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
+                                return;
+                              }
+
+                              // Non-free modes: Open confirmation dialog
+                              saveCurrentCodeImmediately();
+                              setPendingTargetSectionId(targetSectionId);
+                              setIsSectionConfirmModalOpen(true);
+                            };
+
+                            return studentExamSections.map((sect, idx) => {
+                              const isCurrent = sect.id === activeSectionId;
+                              const sMcqs = examMCQs.filter(q => q.section_id === sect.id || (!q.section_id && idx === 0));
+                              const sCodings = examCodings.filter(q => q.section_id === sect.id || (!q.section_id && idx === 0));
+                              const sTotal = sMcqs.length + sCodings.length;
+                              
+                              const navMode = currentExam?.navigation_mode || 'free';
+                              const isLocked = completedSections[sect.id] === true || (
+                                (navMode === 'locked' || navMode === 'sequential_locked') && 
+                                studentExamSections.findIndex(s => s.id === activeSectionId) > idx
+                              );
+
+                              let statusLabel = 'Pending';
+                              if (isCurrent) statusLabel = 'Current';
+                              else if (isLocked) statusLabel = 'Locked';
+
+                              return (
+                                <button
+                                  key={sect.id || idx}
+                                  onClick={() => requestSectionSwitch(sect.id)}
+                                  disabled={isExamLocked || isLocked}
+                                  className={`w-full py-2.5 px-3 text-left rounded-xl transition-all border flex flex-col gap-1 ${
+                                    isCurrent 
+                                      ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 font-bold shadow-sm' 
+                                      : isLocked
+                                        ? 'bg-slate-950/20 border-white/5 text-slate-600 opacity-60 cursor-not-allowed'
+                                        : 'bg-slate-950/40 border-white/5 text-slate-400 hover:bg-slate-850 hover:text-white'
+                                  }`}
+                                >
+                                  <div className="flex justify-between items-center text-xs">
+                                    <span className="font-extrabold truncate max-w-[130px]">{sect.name}</span>
+                                    <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${
+                                      isCurrent ? 'bg-indigo-500 text-white' : isLocked ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-400'
+                                    }`}>
+                                      {statusLabel}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
+                                    <span>{sTotal} Questions</span>
+                                    <span>{sect.duration_minutes ? `${sect.duration_minutes} Mins` : 'Overall Timer'}</span>
+                                  </div>
+                                </button>
+                              );
+                            });
+                          })()}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-3 py-4 border-b border-white/5">
+                          {studentExamSections.map((sect, idx) => {
+                            const isCurrent = sect.id === activeSectionId;
+                            const navMode = currentExam?.navigation_mode || 'free';
+                            const currentIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
+                            const isLocked = completedSections[sect.id] === true || (
+                              (navMode === 'locked' || navMode === 'sequential_locked') && currentIdx > idx
+                            );
+
+                            return (
+                              <button 
+                                key={sect.id || idx}
+                                onClick={() => {
+                                  if (isExamLocked || isLocked) return;
+                                  if (navMode === 'free') {
+                                    if (activeSectionId) {
+                                      setSectionQuestionIndices(prev => ({ ...prev, [activeSectionId]: activeQuestionIndex }));
+                                    }
+                                    saveCurrentCodeImmediately();
+                                    setActiveSectionId(sect.id);
+                                    setActiveQuestionIndex(sectionQuestionIndices[sect.id] || 0);
+                                  } else {
+                                    saveCurrentCodeImmediately();
+                                    setPendingTargetSectionId(sect.id);
+                                    setIsSectionConfirmModalOpen(true);
+                                  }
+                                }}
+                                disabled={isExamLocked || isLocked}
+                                className={`p-2 rounded-lg border transition-all ${isCurrent ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400 font-bold' : 'border-transparent text-slate-400 hover:bg-slate-800'} ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                title={`${sect.name} (${sect.section_type || 'General'})`}
+                              >
+                                {sect.section_type === 'coding' ? <Code className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
 
                     {/* Question Grid */}
                     {(() => {
@@ -8229,7 +8498,10 @@ export default function App() {
                       const activeSecMcqs = examMCQs.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
                       const activeSecCodings = examCodings.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
                       const currentSectionQuestions = [
-                        ...activeSecMcqs.map(q => ({ kind: 'mcq' as const, data: q })),
+                        ...activeSecMcqs.map(q => ({
+                          kind: q.question_type === 'descriptive' ? ('descriptive' as const) : ('mcq' as const),
+                          data: q
+                        })),
                         ...activeSecCodings.map(q => ({ kind: 'coding' as const, data: q }))
                       ];
 
@@ -8246,7 +8518,11 @@ export default function App() {
                           <div className={`grid ${isSidebarCollapsed ? 'grid-cols-1 gap-3 justify-items-center' : 'grid-cols-4 gap-2'}`}>
                             {currentSectionQuestions.map((item, idx) => {
                               const q = item.data;
-                              const isAnswered = item.kind === 'mcq' ? !!mcqAnswers[q.id] : (codingSolutions[q.id]?.code?.length || 0) > 5;
+                              const isAnswered = item.kind === 'mcq' 
+                                ? !!mcqAnswers[q.id] 
+                                : item.kind === 'descriptive'
+                                  ? (descriptiveAnswers[q.id]?.trim()?.length || 0) > 0
+                                  : (codingSolutions[q.id]?.code?.length || 0) > 5;
                               const isMarked = markedForReview[q.id];
                               const isVisited = visitedQuestions[q.id];
                               const isActive = activeQuestionIndex === idx;
@@ -8331,7 +8607,10 @@ export default function App() {
                   const activeSecMcqs = examMCQs.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
                   const activeSecCodings = examCodings.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
                   const currentSectionQuestions = [
-                    ...activeSecMcqs.map(q => ({ kind: 'mcq' as const, data: q })),
+                    ...activeSecMcqs.map(q => ({
+                      kind: q.question_type === 'descriptive' ? ('descriptive' as const) : ('mcq' as const),
+                      data: q
+                    })),
                     ...activeSecCodings.map(q => ({ kind: 'coding' as const, data: q }))
                   ];
 
@@ -8343,6 +8622,103 @@ export default function App() {
                         <BookOpen className="h-12 w-12 text-slate-700 mb-3 animate-pulse" />
                         <h4 className="font-extrabold text-base text-slate-300">No Questions Found</h4>
                         <p className="text-xs text-slate-500 mt-1">There are no questions assigned to this section yet.</p>
+                      </div>
+                    );
+                  }
+
+                  if (currentItem.kind === 'descriptive') {
+                    const currentDesc = currentItem.data;
+                    const currentAns = descriptiveAnswers[currentDesc.id] || '';
+                    const wordCount = currentAns.trim() ? currentAns.trim().split(/\s+/).length : 0;
+                    const wordLimit = currentDesc.word_limit || 0;
+
+                    return (
+                      <div className="flex-1 flex flex-col bg-slate-950 p-4 md:p-6 overflow-y-auto w-full">
+                        <div className="w-full space-y-6 bg-slate-900 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
+                          <div className="flex flex-wrap justify-between items-center border-b border-white/10 pb-4 gap-4">
+                            <div className="flex items-center gap-3">
+                              <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 font-extrabold text-xs rounded-lg border border-indigo-500/20 uppercase tracking-wider">
+                                Question {activeQuestionIndex + 1} of {currentSectionQuestions.length}
+                              </span>
+                              <span className="px-2.5 py-1 bg-purple-500/10 text-purple-400 rounded-lg text-xs font-bold uppercase tracking-wider border border-purple-500/20">
+                                Descriptive Format
+                              </span>
+                            </div>
+                            <div className="text-xs text-slate-300 font-bold bg-slate-950 px-3 py-1.5 rounded-lg border border-white/5 font-mono">
+                              Weight: <span className="text-emerald-400 font-extrabold">{currentDesc.marks || 5} Pts</span>
+                            </div>
+                          </div>
+
+                          {/* Question Statement with Rich Content Renderer */}
+                          <RichContentRenderer 
+                            blocks={currentDesc.content_blocks} 
+                            rawText={currentDesc.question || currentDesc.description} 
+                            legacyImages={currentDesc.images} 
+                            onImageClick={(url, alt) => setLightboxImage({ url, alt })} 
+                          />
+
+                          {/* Candidate Response Area */}
+                          <div className="space-y-2 pt-2 border-t border-white/5">
+                            <div className="flex items-center justify-between">
+                              <label className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">
+                                Your Written Response
+                              </label>
+                              <span className={`text-xs font-mono font-bold ${wordLimit > 0 && wordCount > wordLimit ? 'text-rose-400' : 'text-slate-400'}`}>
+                                Word Count: {wordCount} {wordLimit > 0 ? `/ Max ${wordLimit}` : ''}
+                              </span>
+                            </div>
+                            <textarea
+                              value={currentAns}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setDescriptiveAnswers(prev => {
+                                  const next = { ...prev, [currentDesc.id]: val };
+                                  if (currentAttempt?.id) {
+                                    localStorage.setItem(`clahan_descriptive_ans_${currentAttempt.id}`, JSON.stringify(next));
+                                  }
+                                  return next;
+                                });
+                              }}
+                              disabled={isExamLocked}
+                              rows={8}
+                              placeholder="Type your descriptive response here..."
+                              className="w-full bg-slate-955 border border-white/10 rounded-xl p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-sans leading-relaxed resize-y"
+                            />
+                          </div>
+
+                          {/* Action Controls */}
+                          <div className="flex flex-wrap justify-between items-center mt-6 border-t border-white/10 pt-4 gap-4">
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.max(0, p - 1)); }}
+                                disabled={isExamLocked || activeQuestionIndex === 0}
+                                className="px-5 py-2.5 border border-white/10 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 disabled:opacity-30"
+                              >
+                                &larr; Previous Question
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (isExamLocked) return;
+                                  setMarkedForReview(prev => ({ ...prev, [currentDesc.id]: !prev[currentDesc.id] }));
+                                }}
+                                disabled={isExamLocked}
+                                className={`px-5 py-2.5 rounded-xl text-xs font-bold border ${
+                                  markedForReview[currentDesc.id] ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'border-white/10 text-slate-300 hover:bg-slate-800'
+                                }`}
+                              >
+                                {markedForReview[currentDesc.id] ? 'Flagged for Review' : 'Mark for Review'}
+                              </button>
+                            </div>
+
+                            <button
+                              onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.min(currentSectionQuestions.length - 1, p + 1)); }}
+                              disabled={isExamLocked || activeQuestionIndex === currentSectionQuestions.length - 1}
+                              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs disabled:opacity-30"
+                            >
+                              Next Question &rarr;
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     );
                   }
@@ -8701,14 +9077,14 @@ export default function App() {
                         <button
                           onClick={() => {
                             const qId = currentCoding.id;
-                            const lang = codingSolutions[qId]?.language || currentCoding.language;
+                            const lang = codingSolutions[qId]?.language || currentCoding.language || 'Python';
                             setCodingSolutions(prev => ({
                               ...prev,
                               [qId]: { code: getCustomTemplate(currentCoding, lang), language: lang }
                             }));
                             showToast('Reset editor to starter template.', 'info');
                           }}
-                          className="text-[9px] text-slate-500 hover:text-indigo-405 font-semibold transition-all px-2 py-0.5 rounded border border-white/5 hover:border-indigo-500/30 bg-slate-950"
+                          className="text-[9px] text-slate-500 hover:text-indigo-405 font-semibold transition-all px-2 py-0.5 rounded border border-white/5 hover:border-indigo-500/30 bg-slate-955"
                         >
                           Reset Starter Code
                         </button>
@@ -8778,11 +9154,12 @@ export default function App() {
                           }}
                           onChange={(value) => {
                             const qId = currentCoding.id;
+                            const currentLang = codingSolutions[qId]?.language || currentCoding.language || 'Python';
                             const updatedSolutions = {
                               ...codingSolutions,
                               [qId]: { 
                                 code: value || '', 
-                                language: codingSolutions[qId]?.language || currentCoding.language 
+                                language: currentLang 
                               }
                             };
                             setCodingSolutions(updatedSolutions);

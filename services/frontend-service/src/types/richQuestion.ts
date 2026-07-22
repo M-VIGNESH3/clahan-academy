@@ -31,13 +31,16 @@ export interface GenericQuestion {
   id: string;
   exam_id?: string;
   section_id?: string;
+  question_type?: 'mcq' | 'coding' | 'descriptive' | string;
   title?: string; // for coding title or question summary
-  question?: string; // for MCQ question text
-  description?: string; // for coding description
+  question?: string; // for MCQ / Descriptive question text
+  description?: string; // for coding / descriptive problem statement
   content_blocks?: ContentBlock[];
   images?: string[];
   difficulty?: 'easy' | 'medium' | 'hard' | string;
   marks?: number;
+  word_limit?: number;
+  evaluation_method?: 'manual' | 'ai' | string;
   
   // MCQ specific
   option_a?: string;

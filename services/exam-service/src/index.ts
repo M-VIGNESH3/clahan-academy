@@ -44,6 +44,9 @@ pool.query(`ALTER TABLE exams ADD COLUMN IF NOT EXISTS navigation_mode VARCHAR(5
 });
 
 pool.query(`
+  ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS question_type VARCHAR(50) DEFAULT 'mcq';
+  ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS word_limit INT DEFAULT 0;
+  ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS evaluation_method VARCHAR(50) DEFAULT 'manual';
   ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS content_blocks JSONB DEFAULT '[]'::jsonb;
   ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'::jsonb;
   ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS option_a_image TEXT DEFAULT '';
@@ -658,38 +661,85 @@ app.post('/api/exams/:id/mcq/import', authenticate, requireRole('admin'), async 
 app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty, contentBlocks, images, optionAImage, optionBImage, optionCImage, optionDImage } = req.body;
-    if (!question || !optionA || !optionB || !optionC || !optionD || !correctAnswer) {
+    const { question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty, contentBlocks, images, optionAImage, optionBImage, optionCImage, optionDImage, questionType, wordLimit, evaluationMethod } = req.body;
+    
+    const qType = questionType || 'mcq';
+    if (qType === 'mcq' && (!question || !optionA || !optionB || !optionC || !optionD || !correctAnswer)) {
       return res.status(400).json({ error: 'Required MCQ fields missing' });
+    }
+    if (qType === 'descriptive' && !question) {
+      return res.status(400).json({ error: 'Question statement is required for descriptive question' });
     }
 
     let finalSectionId = req.body.sectionId || req.body.section_id;
     if (!finalSectionId) {
-      const mcqSections = await query("SELECT id FROM sections WHERE exam_id = $1 AND section_type = 'mcq' ORDER BY sort_order ASC LIMIT 1", [id]);
-      if (mcqSections.rows.length > 0) {
-        finalSectionId = mcqSections.rows[0].id;
+      const targetType = qType === 'descriptive' ? 'descriptive' : 'mcq';
+      const sections = await query("SELECT id FROM sections WHERE exam_id = $1 AND section_type = $2 ORDER BY sort_order ASC LIMIT 1", [id, targetType]);
+      if (sections.rows.length > 0) {
+        finalSectionId = sections.rows[0].id;
       } else {
         const newSect = await query(`
           INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
-          VALUES ($1, 'MCQ Section', 'mcq', FALSE, TRUE, 0) RETURNING id
-        `, [id]);
+          VALUES ($1, $2, $3, FALSE, TRUE, 0) RETURNING id
+        `, [id, qType === 'descriptive' ? 'Descriptive Section' : 'MCQ Section', targetType]);
         finalSectionId = newSect.rows[0].id;
       }
     }
 
     const result = await query(
-      `INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty, content_blocks, images, option_a_image, option_b_image, option_c_image, option_d_image)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13, $14, $15, $16) RETURNING *`,
+      `INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty, content_blocks, images, option_a_image, option_b_image, option_c_image, option_d_image, question_type, word_limit, evaluation_method)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
       [
-        id, finalSectionId, question, optionA, optionB, optionC, optionD, correctAnswer, marks || 1, difficulty || 'medium',
+        id, finalSectionId, question, optionA || '', optionB || '', optionC || '', optionD || '', correctAnswer || '', marks || 1, difficulty || 'medium',
         JSON.stringify(contentBlocks || []), JSON.stringify(images || []),
-        optionAImage || '', optionBImage || '', optionCImage || '', optionDImage || ''
+        optionAImage || '', optionBImage || '', optionCImage || '', optionDImage || '',
+        qType, wordLimit || 0, evaluationMethod || 'manual'
       ]
     );
 
     res.status(201).json(result.rows[0]);
   } catch (err: any) {
     console.error("Error in POST /api/exams/:id/mcq:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Add Descriptive Question manually
+app.post('/api/exams/:id/descriptive', authenticate, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { question, marks, difficulty, contentBlocks, images, wordLimit, evaluationMethod } = req.body;
+    if (!question) {
+      return res.status(400).json({ error: 'Question text is required' });
+    }
+
+    let finalSectionId = req.body.sectionId || req.body.section_id;
+    if (!finalSectionId) {
+      const descSections = await query("SELECT id FROM sections WHERE exam_id = $1 AND section_type = 'descriptive' ORDER BY sort_order ASC LIMIT 1", [id]);
+      if (descSections.rows.length > 0) {
+        finalSectionId = descSections.rows[0].id;
+      } else {
+        const newSect = await query(`
+          INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
+          VALUES ($1, 'Descriptive Section', 'descriptive', FALSE, TRUE, 0) RETURNING id
+        `, [id]);
+        finalSectionId = newSect.rows[0].id;
+      }
+    }
+
+    const result = await query(
+      `INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty, content_blocks, images, question_type, word_limit, evaluation_method)
+       VALUES ($1, $2, $3, '', '', '', '', '', $4, $5, $6::jsonb, $7::jsonb, 'descriptive', $8, $9) RETURNING *`,
+      [
+        id, finalSectionId, question, marks || 5, difficulty || 'medium',
+        JSON.stringify(contentBlocks || []), JSON.stringify(images || []),
+        wordLimit || 0, evaluationMethod || 'manual'
+      ]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (err: any) {
+    console.error("Error in POST /api/exams/:id/descriptive:", err);
     res.status(500).json({ error: err.message });
   }
 });
