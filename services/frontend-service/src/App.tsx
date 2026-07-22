@@ -152,7 +152,7 @@ export default function App() {
   const [activeExams, setActiveExams] = useState<Exam[]>([]);
   const [completedAttempts, setCompletedAttempts] = useState<Attempt[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'students' | 'training' | 'exams' | 'placement' | 'companies' | 'reports' | 'settings'>('metrics');
+  const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'colleges' | 'students' | 'trainers' | 'training' | 'exams' | 'placement' | 'companies' | 'reports' | 'settings' | 'live'>('metrics');
   const [adminTrainers, setAdminTrainers] = useState<any[]>([]);
   const [studentTrainers, setStudentTrainers] = useState<any[]>([]);
   const [trainerForm, setTrainerForm] = useState({
