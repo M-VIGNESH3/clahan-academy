@@ -8893,59 +8893,82 @@ export default function App() {
                       </div>
                     </div>
                   </div>
-                )}
+                })()}
               </div>
 
               {/* SECTION NAVIGATION BAR */}
               <footer className="flex-shrink-0 bg-slate-900 border-t border-white/10 px-6 py-3.5 flex items-center justify-between z-30 relative">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      if (isExamLocked) return;
-                      saveCurrentCodeImmediately();
-                      if (selectedSection === 'coding' && activeQuestionIndex === 0) {
-                        if (examMCQs.length > 0) {
-                          setSelectedSection('mcq');
-                          setActiveQuestionIndex(examMCQs.length - 1);
-                        }
-                      } else {
-                        setActiveQuestionIndex(p => Math.max(0, p - 1));
-                      }
-                    }}
-                    className="px-4 py-2 border border-white/10 rounded-xl text-xs font-bold text-slate-355 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-                    disabled={
-                      isExamLocked ||
-                      (selectedSection === 'mcq' && activeQuestionIndex === 0) ||
-                      (selectedSection === 'coding' && activeQuestionIndex === 0 && examMCQs.length === 0)
-                    }
-                  >
-                    Previous Question
-                  </button>
-                </div>
+                {(() => {
+                  const curSecIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
+                  const activeSecMcqs = examMCQs.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
+                  const activeSecCodings = examCodings.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
+                  const currentSectionQuestions = [
+                    ...activeSecMcqs.map(q => ({ kind: 'mcq' as const, data: q })),
+                    ...activeSecCodings.map(q => ({ kind: 'coding' as const, data: q }))
+                  ];
 
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      if (isExamLocked) return;
-                      saveCurrentCodeImmediately();
-                      const totalQs = selectedSection === 'mcq' ? examMCQs.length : examCodings.length;
-                      if (activeQuestionIndex === totalQs - 1) {
-                        if (selectedSection === 'mcq' && examCodings.length > 0) {
-                          setSelectedSection('coding');
-                          setActiveQuestionIndex(0);
-                        } else {
-                          showToast("All questions processed! Please review and click Submit Exam above.");
-                        }
-                      } else {
-                        setActiveQuestionIndex(p => p + 1);
-                      }
-                    }}
-                    disabled={isExamLocked}
-                    className="px-5 py-2 bg-indigo-600 hover:bg-indigo-550 text-white font-bold rounded-xl text-xs transition-colors disabled:opacity-30"
-                  >
-                    Next Question
-                  </button>
-                </div>
+                  const isFirstSection = curSecIdx === 0 || curSecIdx === -1;
+                  const isLastSection = curSecIdx === studentExamSections.length - 1 || curSecIdx === -1;
+
+                  return (
+                    <>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            if (isExamLocked) return;
+                            saveCurrentCodeImmediately();
+                            if (activeQuestionIndex > 0) {
+                              setActiveQuestionIndex(p => p - 1);
+                            } else if (!isFirstSection) {
+                              const prevSec = studentExamSections[curSecIdx - 1];
+                              setActiveSectionId(prevSec.id);
+                              const prevSecMcqs = examMCQs.filter(q => q.section_id === prevSec.id || (!q.section_id && (curSecIdx - 1 === 0)));
+                              const prevSecCodings = examCodings.filter(q => q.section_id === prevSec.id || (!q.section_id && (curSecIdx - 1 === 0)));
+                              const prevTotal = prevSecMcqs.length + prevSecCodings.length;
+                              setActiveQuestionIndex(Math.max(0, prevTotal - 1));
+                              if (prevSec.duration_minutes) {
+                                setSectionTimeLeft(parseInt(prevSec.duration_minutes) * 60);
+                              } else {
+                                setSectionTimeLeft(null);
+                              }
+                            }
+                          }}
+                          className="px-4 py-2 border border-white/10 rounded-xl text-xs font-bold text-slate-355 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                          disabled={isExamLocked || (activeQuestionIndex === 0 && isFirstSection)}
+                        >
+                          Previous Question
+                        </button>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            if (isExamLocked) return;
+                            saveCurrentCodeImmediately();
+                            if (activeQuestionIndex < currentSectionQuestions.length - 1) {
+                              setActiveQuestionIndex(p => p + 1);
+                            } else if (!isLastSection) {
+                              const nextSec = studentExamSections[curSecIdx + 1];
+                              setActiveSectionId(nextSec.id);
+                              setActiveQuestionIndex(0);
+                              if (nextSec.duration_minutes) {
+                                setSectionTimeLeft(parseInt(nextSec.duration_minutes) * 60);
+                              } else {
+                                setSectionTimeLeft(null);
+                              }
+                            } else {
+                              showToast("All section questions reviewed! Please click 'Submit Exam' above when ready.", "info");
+                            }
+                          }}
+                          disabled={isExamLocked}
+                          className="px-5 py-2 bg-indigo-600 hover:bg-indigo-550 text-white font-bold rounded-xl text-xs transition-colors disabled:opacity-30"
+                        >
+                          Next Question
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
               </footer>
 
               {isExamLocked && (
