@@ -6286,78 +6286,6 @@ export default function App() {
                     </label>
                   </div>
 
-                  <div className="space-y-3 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
-                    <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 select-none">
-                      <input 
-                        type="checkbox" 
-                        checked={examForm.enableSectionCutoff === true} 
-                        onChange={e => setExamForm({...examForm, enableSectionCutoff: e.target.checked})} 
-                        className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-slate-900" 
-                      />
-                      Enable Section-wise Cutoffs (configure separate MCQ and Coding pass criteria)
-                    </label>
-
-                    {examForm.enableSectionCutoff && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-800/60 transition-all duration-300 ease-in-out">
-                        {examForm.examType !== 'coding' && (
-                          <div className="space-y-2 p-3 rounded-lg bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800/80">
-                            <h4 className="text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">MCQ Section</h4>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <label className="text-[10px] font-semibold text-muted-foreground">Passing Percentage (%)</label>
-                                <input 
-                                  type="number" 
-                                  value={examForm.mcqCutoffPercentage !== undefined ? examForm.mcqCutoffPercentage : 50} 
-                                  onChange={e => setExamForm({...examForm, mcqCutoffPercentage: parseFloat(e.target.value) || 0})} 
-                                  className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" 
-                                  min={0} 
-                                  max={100}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[10px] font-semibold text-muted-foreground">Passing Marks (or 0 for %)</label>
-                                <input 
-                                  type="number" 
-                                  value={examForm.mcqCutoffMarks !== undefined ? examForm.mcqCutoffMarks : 0} 
-                                  onChange={e => setExamForm({...examForm, mcqCutoffMarks: parseFloat(e.target.value) || 0})} 
-                                  className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" 
-                                  min={0}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {examForm.examType !== 'mcq' && (
-                          <div className="space-y-2 p-3 rounded-lg bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800/80">
-                            <h4 className="text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Coding Section</h4>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <label className="text-[10px] font-semibold text-muted-foreground">Passing Percentage (%)</label>
-                                <input 
-                                  type="number" 
-                                  value={examForm.codingCutoffPercentage !== undefined ? examForm.codingCutoffPercentage : 50} 
-                                  onChange={e => setExamForm({...examForm, codingCutoffPercentage: parseFloat(e.target.value) || 0})} 
-                                  className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" 
-                                  min={0} 
-                                  max={100}
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[10px] font-semibold text-muted-foreground">Passing Marks (or 0 for %)</label>
-                                <input 
-                                  type="number" 
-                                  value={examForm.codingCutoffMarks !== undefined ? examForm.codingCutoffMarks : 0} 
-                                  onChange={e => setExamForm({...examForm, codingCutoffMarks: parseFloat(e.target.value) || 0})} 
-                                  className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" 
-                                  min={0}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
 
                   <div className="pt-4 flex justify-between items-center">
@@ -6442,8 +6370,11 @@ export default function App() {
                             onChange={e => setSectionForm({ ...sectionForm, sectionType: e.target.value })} 
                             className="w-full p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
                           >
-                            <option value="mcq">MCQ Only</option>
-                            <option value="coding">Coding challenges only</option>
+                            <option value="mcq">MCQ (Multiple Choice Questions)</option>
+                            <option value="coding">Coding (Programming Challenges)</option>
+                            <option value="descriptive">Descriptive (Written Response)</option>
+                            <option value="communication">Communication (Verbal / Listening)</option>
+                            <option value="practical">Practical (Lab / Exercise)</option>
                           </select>
                         </div>
                         <div>
@@ -6660,8 +6591,20 @@ export default function App() {
                     ))}
 
                     {adminSelectedExamSections.length === 0 && (
-                      <div className="text-center py-10 text-muted-foreground text-xs italic bg-slate-50 dark:bg-slate-900/20 border border-dashed rounded-2xl border-slate-200 dark:border-slate-800">
-                        No sections configured yet. Click "Add Section" to establish the test structure.
+                      <div className="text-center py-12 space-y-4 bg-slate-50/50 dark:bg-slate-900/20 border-2 border-dashed rounded-2xl border-slate-200 dark:border-slate-800">
+                        <div className="text-sm font-extrabold text-slate-700 dark:text-slate-300">No sections created.</div>
+                        <p className="text-xs text-muted-foreground max-w-sm mx-auto">Create generic sections for Aptitude, Reasoning, Coding, Communication, or custom domains.</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
+                            setEditingSectionId(null);
+                            setIsSectionModalOpen(true);
+                          }}
+                          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs inline-flex items-center gap-1.5 shadow-md shadow-indigo-500/10"
+                        >
+                          <Plus className="h-4 w-4" /> Add Section
+                        </button>
                       </div>
                     )}
                   </div>
@@ -6712,7 +6655,7 @@ export default function App() {
                   ) : (
                     <div className="space-y-8">
                       {adminSelectedExamSections.map((sect) => {
-                        const isMcq = sect.section_type === 'mcq';
+                        const isMcq = sect.section_type !== 'coding';
                         const mcqQuestions = adminSelectedExamMCQs.filter(q => q.section_id === sect.id);
                         const codingQuestions = adminSelectedExamCodings.filter(q => q.section_id === sect.id);
                         const totalQuestions = isMcq ? mcqQuestions.length : codingQuestions.length;
@@ -6726,10 +6669,8 @@ export default function App() {
                           <div key={sect.id} className="p-6 border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950 rounded-2xl shadow-sm space-y-4">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 pb-3 border-b border-slate-200/50 dark:border-slate-800/50">
                               <div>
-                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                                  isMcq ? 'bg-indigo-100 text-indigo-600' : 'bg-emerald-100 text-emerald-600'
-                                }`}>
-                                  {isMcq ? 'MCQ Section' : 'Coding Section'}
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                                  {sect.section_type || 'generic'}
                                 </span>
                                 <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 mt-1">{sect.name}</h4>
                                 <p className="text-[10px] text-muted-foreground mt-0.5">

@@ -285,20 +285,6 @@ app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
       ]
     );
 
-    const examId = result.rows[0].id;
-    if (examType === 'mcq' || examType === 'both' || examType === 'aptitude' || examType === 'reasoning' || examType === 'crt') {
-      await query(`
-        INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
-        VALUES ($1, 'MCQ Section', 'mcq', FALSE, TRUE, 0)
-      `, [examId]);
-    }
-    if (examType === 'coding' || examType === 'both' || examType === 'technical' || examType === 'corporate_test') {
-      await query(`
-        INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
-        VALUES ($1, 'Coding Section', 'coding', FALSE, TRUE, 1)
-      `, [examId]);
-    }
-
     res.status(201).json(result.rows[0]);
   } catch (err: any) {
     console.error("Error in POST /api/exams:", err);
