@@ -6286,8 +6286,6 @@ export default function App() {
                     </label>
                   </div>
 
-                  </div>
-
                   <div className="pt-4 flex justify-between items-center">
                     <button
                       type="button"
