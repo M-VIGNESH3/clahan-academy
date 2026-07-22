@@ -17,6 +17,11 @@ import { SectionConfirmationModal } from './components/SectionConfirmationModal'
 import { QuestionFooter } from './components/QuestionFooter';
 import { RichTextEditor } from './components/RichTextEditor';
 import { QuestionPreview } from './components/QuestionPreview';
+import { AssessmentInstructions } from './components/AssessmentInstructions';
+import { QuestionInlineEditor } from './components/QuestionInlineEditor';
+import { AssessmentTimingSettings } from './components/AssessmentTimingSettings';
+import { SubmissionPolicySettings } from './components/SubmissionPolicySettings';
+import { NavigationRuleSettings } from './components/NavigationRuleSettings';
 
 // Core Types
 interface College { id: string; name: string; }
@@ -278,6 +283,7 @@ export default function App() {
     codingCutoffMarks?: number;
     navigationMode?: 'free' | 'locked' | 'sequential' | 'sequential_locked';
     submissionMode?: 'manual' | 'auto';
+    timingMode?: 'overall' | 'section';
   }>({
     name: '', description: '', examType: 'mcq',
     durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
@@ -290,7 +296,8 @@ export default function App() {
     mcqCutoffMarks: 0,
     codingCutoffMarks: 0,
     navigationMode: 'free',
-    submissionMode: 'manual'
+    submissionMode: 'manual',
+    timingMode: 'overall'
   });
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [terminationModal, setTerminationModal] = useState<{ attemptId: string; studentName: string } | null>(null);
@@ -6709,75 +6716,26 @@ export default function App() {
                     <textarea value={examForm.description} onChange={e => setExamForm({...examForm, description: e.target.value})} placeholder="Provide exam guidelines, candidate instructions, and general scope..." rows={3} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent mt-1 focus:outline-indigo-500 text-slate-900 dark:text-white" />
                   </div>
 
-                  <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
-                    <label className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">Candidate Section Navigation Rule</label>
-                    <p className="text-[11px] text-muted-foreground">Configure how candidates navigate between assessment sections during their proctored attempt.</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                      {[
-                        { mode: 'free', title: 'Option A: Free Navigation', desc: 'Candidate can freely switch between any section until overall time expires.' },
-                        { mode: 'locked', title: 'Option B: Locked Navigation', desc: 'Candidate cannot revisit completed sections once submitted.' },
-                        { mode: 'sequential', title: 'Option C: Sequential Navigation', desc: 'Must complete sections in order. Cannot jump ahead, but may return to previous sections.' },
-                        { mode: 'sequential_locked', title: 'Option D: Sequential Locked', desc: 'Must complete sections in order. Completing a section auto-locks it forever.' }
-                      ].map(opt => (
-                        <label key={opt.mode} className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-3 ${
-                          examForm.navigationMode === opt.mode
-                            ? 'bg-indigo-600/10 border-indigo-500 text-slate-900 dark:text-white shadow-sm ring-1 ring-indigo-500/30 font-bold'
-                            : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-indigo-300'
-                        }`}>
-                          <input
-                            type="radio"
-                            name="navigationMode"
-                            value={opt.mode}
-                            checked={examForm.navigationMode === opt.mode}
-                            onChange={() => setExamForm({ ...examForm, navigationMode: opt.mode as any })}
-                            className="mt-0.5 h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <div>
-                            <span className="font-extrabold block text-xs">{opt.title}</span>
-                            <span className="text-[10px] text-muted-foreground font-normal leading-relaxed block mt-0.5">{opt.desc}</span>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Modular Timing Engine Settings */}
+                  <AssessmentTimingSettings
+                    timingMode={examForm.timingMode || 'overall'}
+                    totalDurationMinutes={examForm.durationMinutes}
+                    sections={adminSelectedExamSections}
+                    onTimingModeChange={mode => setExamForm({ ...examForm, timingMode: mode })}
+                    onTotalDurationChange={mins => setExamForm({ ...examForm, durationMinutes: mins })}
+                  />
 
-                  <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
-                    <label className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">Assessment Submission Policy</label>
-                    <p className="text-[11px] text-muted-foreground">Configure how candidate answers are submitted and reviewed at assessment completion.</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                      {[
-                        { 
-                          mode: 'manual', 
-                          title: 'Manual Submission', 
-                          desc: 'Candidates may review and modify answers before submitting. Submit button is visible. Timer expiry automatically submits saved answers.' 
-                        },
-                        { 
-                          mode: 'auto', 
-                          title: 'Automatic Submission', 
-                          desc: 'Candidates cannot submit early. Answers become locked & read-only after completing all sections. Automatic submission occurs when timer expires.' 
-                        }
-                      ].map(opt => (
-                        <label key={opt.mode} className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-3 ${
-                          (examForm.submissionMode || 'manual') === opt.mode
-                            ? 'bg-indigo-600/10 border-indigo-500 text-slate-900 dark:text-white shadow-sm ring-1 ring-indigo-500/30 font-bold'
-                            : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-indigo-300'
-                        }`}>
-                          <input
-                            type="radio"
-                            name="submissionMode"
-                            value={opt.mode}
-                            checked={(examForm.submissionMode || 'manual') === opt.mode}
-                            onChange={() => setExamForm({ ...examForm, submissionMode: opt.mode as any })}
-                            className="mt-0.5 h-4 w-4 text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <div>
-                            <span className="font-extrabold block text-xs">{opt.title}</span>
-                            <span className="text-[10px] text-muted-foreground font-normal leading-relaxed block mt-0.5">{opt.desc}</span>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Modular Navigation Rules Settings */}
+                  <NavigationRuleSettings
+                    value={examForm.navigationMode || 'free'}
+                    onChange={mode => setExamForm({ ...examForm, navigationMode: mode })}
+                  />
+
+                  {/* Modular Submission Policy Settings */}
+                  <SubmissionPolicySettings
+                    value={examForm.submissionMode || 'manual'}
+                    onChange={mode => setExamForm({ ...examForm, submissionMode: mode })}
+                  />
 
                   <div className="flex items-center gap-2 p-1">
                     <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-200 select-none">
@@ -7613,61 +7571,94 @@ export default function App() {
                                   </div>
                                 ) : (
                                   mcqQuestions.map((q, idx) => (
-                                    <div key={q.id} className="p-3 border border-slate-100 dark:border-slate-850 rounded-xl hover:bg-slate-50/50 dark:hover:bg-slate-900/20 flex justify-between items-start gap-4">
-                                      <div>
-                                        <div className="font-semibold text-xs flex items-center gap-2">
-                                          <span className="text-[10px] text-indigo-500 dark:text-indigo-400 font-extrabold">Q{idx + 1}.</span>
-                                          <span className="text-slate-900 dark:text-slate-100">{q.question}</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-2 text-[10px] text-muted-foreground pl-4">
-                                          <div className={q.correct_answer === 'A' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>A: {q.option_a}</div>
-                                          <div className={q.correct_answer === 'B' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>B: {q.option_b}</div>
-                                          <div className={q.correct_answer === 'C' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>C: {q.option_c}</div>
-                                          <div className={q.correct_answer === 'D' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>D: {q.option_d}</div>
-                                        </div>
-                                        <div className="text-[9px] text-muted-foreground mt-2 pl-4 flex gap-4">
-                                          <span>Correct Answer: <span className="font-bold text-indigo-600 dark:text-indigo-400">{q.correct_answer}</span></span>
-                                          <span>Weight: {q.marks || 1} pts</span>
-                                          <span className="capitalize">Difficulty: {q.difficulty}</span>
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <button
-                                          type="button"
-                                          onClick={() => startEditingMcq(q)}
-                                          className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors font-bold text-xs flex items-center gap-1"
-                                          title="Edit MCQ"
-                                        >
-                                          <Edit3 className="h-3.5 w-3.5" />
-                                          <span className="text-[10px]">Edit</span>
-                                        </button>
-                                        <button 
-                                          onClick={async () => {
-                                            if (!window.confirm('Are you sure you want to delete this MCQ question?')) return;
-                                            setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
-                                            try {
-                                              const res = await fetch(`${API_EXAMS}/mcq/${q.id}`, {
-                                                method: 'DELETE',
-                                                headers: { Authorization: `Bearer ${token}` }
-                                              });
-                                              if (res.ok) {
-                                                showToast('MCQ deleted successfully');
-                                              } else {
-                                                const err = await res.json().catch(() => ({}));
-                                                showToast(`Delete failed: ${err.error || 'Server error'}`, 'error');
-                                              }
-                                              if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
-                                            } catch {
-                                              showToast('MCQ deleted');
+                                    editingMcqId === q.id ? (
+                                      <QuestionInlineEditor
+                                        key={q.id}
+                                        type="mcq"
+                                        initialData={q}
+                                        onSave={async (updated) => {
+                                          try {
+                                            const res = await fetch(`${API_EXAMS}/mcq/${q.id}`, {
+                                              method: 'PUT',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                                Authorization: `Bearer ${token}`
+                                              },
+                                              body: JSON.stringify(updated)
+                                            });
+                                            if (res.ok) {
+                                              showToast('MCQ updated successfully');
+                                              setAdminSelectedExamMCQs(prev => prev.map(m => m.id === q.id ? { ...m, ...updated } : m));
+                                              setEditingMcqId(null);
+                                            } else {
+                                              const errData = await res.json().catch(() => ({}));
+                                              showToast(`Update failed: ${errData.error || 'Server error'}`, 'error');
                                             }
-                                          }}
-                                          className="text-rose-500 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-500/10 flex items-center gap-1"
-                                          title="Delete Question"
-                                        >
-                                          <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
+                                          } catch {
+                                            setAdminSelectedExamMCQs(prev => prev.map(m => m.id === q.id ? { ...m, ...updated } : m));
+                                            showToast('MCQ updated (Simulated)');
+                                            setEditingMcqId(null);
+                                          }
+                                        }}
+                                        onCancel={() => setEditingMcqId(null)}
+                                      />
+                                    ) : (
+                                      <div key={q.id} className="p-3 border border-slate-100 dark:border-slate-850 rounded-xl hover:bg-slate-50/50 dark:hover:bg-slate-900/20 flex justify-between items-start gap-4">
+                                        <div>
+                                          <div className="font-semibold text-xs flex items-center gap-2">
+                                            <span className="text-[10px] text-indigo-500 dark:text-indigo-400 font-extrabold">Q{idx + 1}.</span>
+                                            <span className="text-slate-900 dark:text-slate-100">{q.question}</span>
+                                          </div>
+                                          <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-2 text-[10px] text-muted-foreground pl-4">
+                                            <div className={q.correct_answer === 'A' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>A: {q.option_a}</div>
+                                            <div className={q.correct_answer === 'B' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>B: {q.option_b}</div>
+                                            <div className={q.correct_answer === 'C' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>C: {q.option_c}</div>
+                                            <div className={q.correct_answer === 'D' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>D: {q.option_d}</div>
+                                          </div>
+                                          <div className="text-[9px] text-muted-foreground mt-2 pl-4 flex gap-4">
+                                            <span>Correct Answer: <span className="font-bold text-indigo-600 dark:text-indigo-400">{q.correct_answer}</span></span>
+                                            <span>Weight: {q.marks || 1} pts</span>
+                                            <span className="capitalize">Difficulty: {q.difficulty}</span>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => setEditingMcqId(q.id)}
+                                            className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors font-bold text-xs flex items-center gap-1"
+                                            title="Edit MCQ"
+                                          >
+                                            <Edit3 className="h-3.5 w-3.5" />
+                                            <span className="text-[10px]">Edit</span>
+                                          </button>
+                                          <button 
+                                            onClick={async () => {
+                                              if (!window.confirm('Are you sure you want to delete this MCQ question?')) return;
+                                              setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
+                                              try {
+                                                const res = await fetch(`${API_EXAMS}/mcq/${q.id}`, {
+                                                  method: 'DELETE',
+                                                  headers: { Authorization: `Bearer ${token}` }
+                                                });
+                                                if (res.ok) {
+                                                  showToast('MCQ deleted successfully');
+                                                } else {
+                                                  const err = await res.json().catch(() => ({}));
+                                                  showToast(`Delete failed: ${err.error || 'Server error'}`, 'error');
+                                                }
+                                                if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
+                                              } catch {
+                                                showToast('MCQ deleted');
+                                              }
+                                            }}
+                                            className="text-rose-500 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-500/10 flex items-center gap-1"
+                                            title="Delete Question"
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </button>
+                                        </div>
                                       </div>
-                                    </div>
+                                    )
                                   ))
                                 )
                               ) : (
@@ -7677,57 +7668,90 @@ export default function App() {
                                   </div>
                                 ) : (
                                   codingQuestions.map((q, idx) => (
-                                    <div key={q.id} className="p-3 border border-slate-100 dark:border-slate-850 rounded-xl hover:bg-slate-50/50 dark:hover:bg-slate-900/20 flex justify-between items-start gap-4">
-                                      <div>
-                                        <div className="font-semibold text-xs flex items-center gap-2">
-                                          <span className="text-[10px] text-emerald-500 dark:text-emerald-400 font-extrabold">C{idx + 1}.</span>
-                                          <span className="text-slate-900 dark:text-slate-100">{q.title}</span>
-                                          <span className="text-[9px] px-1.5 py-0.2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full font-bold uppercase">{q.language}</span>
-                                        </div>
-                                        <p className="text-[10px] text-muted-foreground mt-1 pl-4 truncate max-w-xl">{q.description}</p>
-                                        <div className="text-[9px] text-muted-foreground mt-2 pl-4 flex gap-4">
-                                          <span>Weight: {q.marks || 10} pts</span>
-                                          <span className="capitalize">Difficulty: {q.difficulty}</span>
-                                          <span>Limits: {q.time_limit || 2000}ms / {q.memory_limit ? `${q.memory_limit}kb` : '512mb'}</span>
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <button
-                                          type="button"
-                                          onClick={() => startEditingCoding(q)}
-                                          className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors font-bold text-xs flex items-center gap-1"
-                                          title="Edit Challenge"
-                                        >
-                                          <Edit3 className="h-3.5 w-3.5" />
-                                          <span className="text-[10px]">Edit</span>
-                                        </button>
-                                        <button 
-                                          onClick={async () => {
-                                            if (!window.confirm('Are you sure you want to delete this coding challenge?')) return;
-                                            setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
-                                            try {
-                                              const res = await fetch(`${API_EXAMS}/coding/${q.id}`, {
-                                                method: 'DELETE',
-                                                headers: { Authorization: `Bearer ${token}` }
-                                              });
-                                              if (res.ok) {
-                                                showToast('Coding challenge deleted successfully');
-                                              } else {
-                                                const err = await res.json().catch(() => ({}));
-                                                showToast(`Delete failed: ${err.error || 'Server error'}`, 'error');
-                                              }
-                                              if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
-                                            } catch {
-                                              showToast('Coding challenge deleted');
+                                    editingCodingId === q.id ? (
+                                      <QuestionInlineEditor
+                                        key={q.id}
+                                        type="coding"
+                                        initialData={q}
+                                        onSave={async (updated) => {
+                                          try {
+                                            const res = await fetch(`${API_EXAMS}/coding/${q.id}`, {
+                                              method: 'PUT',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                                Authorization: `Bearer ${token}`
+                                              },
+                                              body: JSON.stringify(updated)
+                                            });
+                                            if (res.ok) {
+                                              showToast('Coding challenge updated successfully');
+                                              setAdminSelectedExamCodings(prev => prev.map(c => c.id === q.id ? { ...c, ...updated } : c));
+                                              setEditingCodingId(null);
+                                            } else {
+                                              const errData = await res.json().catch(() => ({}));
+                                              showToast(`Update failed: ${errData.error || 'Server error'}`, 'error');
                                             }
-                                          }}
-                                          className="text-rose-500 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-500/10 flex items-center gap-1"
-                                          title="Delete Challenge"
-                                        >
-                                          <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
+                                          } catch {
+                                            setAdminSelectedExamCodings(prev => prev.map(c => c.id === q.id ? { ...c, ...updated } : c));
+                                            showToast('Coding challenge updated (Simulated)');
+                                            setEditingCodingId(null);
+                                          }
+                                        }}
+                                        onCancel={() => setEditingCodingId(null)}
+                                      />
+                                    ) : (
+                                      <div key={q.id} className="p-3 border border-slate-100 dark:border-slate-850 rounded-xl hover:bg-slate-50/50 dark:hover:bg-slate-900/20 flex justify-between items-start gap-4">
+                                        <div>
+                                          <div className="font-semibold text-xs flex items-center gap-2">
+                                            <span className="text-[10px] text-emerald-500 dark:text-emerald-400 font-extrabold">C{idx + 1}.</span>
+                                            <span className="text-slate-900 dark:text-slate-100">{q.title}</span>
+                                            <span className="text-[9px] px-1.5 py-0.2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full font-bold uppercase">{q.language}</span>
+                                          </div>
+                                          <p className="text-[10px] text-muted-foreground mt-1 pl-4 truncate max-w-xl">{q.description}</p>
+                                          <div className="text-[9px] text-muted-foreground mt-2 pl-4 flex gap-4">
+                                            <span>Weight: {q.marks || 10} pts</span>
+                                            <span className="capitalize">Difficulty: {q.difficulty}</span>
+                                            <span>Limits: {q.time_limit || 2000}ms / {q.memory_limit ? `${q.memory_limit}kb` : '512mb'}</span>
+                                          </div>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => setEditingCodingId(q.id)}
+                                            className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors font-bold text-xs flex items-center gap-1"
+                                            title="Edit Challenge"
+                                          >
+                                            <Edit3 className="h-3.5 w-3.5" />
+                                            <span className="text-[10px]">Edit</span>
+                                          </button>
+                                          <button 
+                                            onClick={async () => {
+                                              if (!window.confirm('Are you sure you want to delete this coding challenge?')) return;
+                                              setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
+                                              try {
+                                                const res = await fetch(`${API_EXAMS}/coding/${q.id}`, {
+                                                  method: 'DELETE',
+                                                  headers: { Authorization: `Bearer ${token}` }
+                                                });
+                                                if (res.ok) {
+                                                  showToast('Coding challenge deleted successfully');
+                                                } else {
+                                                  const err = await res.json().catch(() => ({}));
+                                                  showToast(`Delete failed: ${err.error || 'Server error'}`, 'error');
+                                                }
+                                                if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
+                                              } catch {
+                                                showToast('Coding challenge deleted');
+                                              }
+                                            }}
+                                            className="text-rose-500 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-500/10 flex items-center gap-1"
+                                            title="Delete Challenge"
+                                          >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                          </button>
+                                        </div>
                                       </div>
-                                    </div>
+                                    )
                                   ))
                                 )
                               )}
@@ -8245,81 +8269,12 @@ export default function App() {
       {currentPage === 'exam-env' && currentExam && (
         <main className="fixed inset-0 z-50 bg-slate-900 text-white overflow-y-auto p-4 md:p-8 flex flex-col justify-between">
           {validationStep === 'instructions' && (
-            <div className="max-w-3xl mx-auto my-auto p-8 rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl space-y-6">
-              <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-                <Shield className="h-8 w-8 text-indigo-400 animate-pulse" />
-                <div>
-                  <h2 className="text-xl font-extrabold">{currentExam.name}</h2>
-                  <p className="text-xs text-indigo-300 mt-0.5">Secure AI-Proctored Assessment Environment</p>
-                </div>
-              </div>
-
-              {/* Dynamic Instructions Grid */}
-              <div className="text-xs text-slate-300 space-y-5 leading-relaxed max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-                
-                {/* 1. General & Summary */}
-                <div className="p-4 rounded-2xl bg-indigo-950/20 border border-indigo-800/40 space-y-2">
-                  <h4 className="font-extrabold text-xs text-indigo-300 uppercase tracking-wider">Assessment Overview</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px] font-mono">
-                    <div><span className="text-slate-500 block">Duration:</span><strong className="text-white">{currentExam.duration_minutes} Mins</strong></div>
-                    <div><span className="text-slate-500 block">Sections:</span><strong className="text-white">{studentExamSections.length || 1} Sections</strong></div>
-                    <div><span className="text-slate-500 block">Allowed Attempts:</span><strong className="text-white">{currentExam.allowed_attempts || 1} Attempt</strong></div>
-                    <div><span className="text-slate-500 block">Cutoff Required:</span><strong className="text-white">{currentExam.cutoff_percentage}% Score</strong></div>
-                  </div>
-                </div>
-
-                {/* 2. Navigation Rules */}
-                <div className="space-y-1.5">
-                  <h4 className="font-bold text-white flex items-center gap-1.5 text-xs">
-                    <span className="h-2 w-2 rounded-full bg-indigo-400"></span> Navigation Rules
-                  </h4>
-                  <p className="text-xs text-slate-400 pl-3.5">
-                    {currentExam.navigation_mode === 'free' || currentExam.navigationMode === 'free'
-                      ? 'Free Navigation: You can freely switch between any assessment section until the overall timer expires.'
-                      : currentExam.navigation_mode === 'locked' || currentExam.navigationMode === 'locked'
-                        ? 'Locked Navigation: Once a section is completed/submitted, you cannot return to modify its answers.'
-                        : currentExam.navigation_mode === 'sequential_locked' || currentExam.navigationMode === 'sequential_locked'
-                          ? 'Sequential Locked Navigation: Sections must be completed in order. Submitting a section permanently locks it.'
-                          : 'Sequential Navigation: Sections must be attempted in configured order.'}
-                  </p>
-                </div>
-
-                {/* 3. Submission Rules */}
-                <div className="space-y-1.5">
-                  <h4 className="font-bold text-white flex items-center gap-1.5 text-xs">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400"></span> Submission Policy
-                  </h4>
-                  <p className="text-xs text-slate-400 pl-3.5">
-                    {(currentExam.submission_mode || currentExam.submissionMode) === 'auto'
-                      ? 'Automatic Submission: Early submission is disabled. Once all sections are completed, your answers become read-only and will submit automatically when the timer expires.'
-                      : 'Manual Submission: You may review and edit answers before submitting manually. If the timer expires, saved answers submit automatically.'}
-                  </p>
-                </div>
-
-                {/* 4. AI Proctoring & System Rules */}
-                <div className="space-y-1.5">
-                  <h4 className="font-bold text-white flex items-center gap-1.5 text-xs">
-                    <span className="h-2 w-2 rounded-full bg-amber-400"></span> AI Proctoring & Security Restrictions
-                  </h4>
-                  <ul className="space-y-1.5 list-disc list-inside text-xs text-slate-400 pl-3.5">
-                    <li>
-                      {currentExam.enable_face_detection !== false && currentExam.enableFaceDetection !== false
-                        ? 'AI Face Detection Active: Camera & Microphone must remain enabled. Your face confidence is continuously monitored.'
-                        : 'Webcam & Microphone verification active throughout the attempt.'}
-                    </li>
-                    <li>Fullscreen Requirement: You must remain in browser Fullscreen mode throughout the test.</li>
-                    <li>Tab Switch Warning Policy: Maximum 2 tab switch warnings permitted before immediate security termination.</li>
-                  </ul>
-                </div>
-              </div>
-
-              <button
-                onClick={requestHardwarePermissions}
-                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-2xl shadow-lg transition-all text-sm uppercase tracking-wide flex items-center justify-center gap-2"
-              >
-                Validate Hardware & Permissions &rarr;
-              </button>
-            </div>
+            <AssessmentInstructions
+              exam={currentExam}
+              sectionsCount={studentExamSections.length}
+              totalQuestionsCount={examMCQs.length + examCodings.length}
+              onProceed={requestHardwarePermissions}
+            />
           )}
 
           {validationStep === 'validation' && (
