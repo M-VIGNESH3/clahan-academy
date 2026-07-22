@@ -8856,15 +8856,15 @@ export default function App() {
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
                                   <span className="text-slate-500 uppercase tracking-wider block text-[8px]">Language Profile:</span>
-                                  <span className="text-slate-202 font-bold">{codingSolutions[examCodings[activeQuestionIndex].id]?.language || examCodings[activeQuestionIndex].language}</span>
+                                  <span className="text-slate-202 font-bold">{codingSolutions[currentCoding.id]?.language || currentCoding.language}</span>
                                 </div>
                                 <div>
                                   <span className="text-slate-505 uppercase tracking-wider block text-[8px]">Time Metric (Max Limit):</span>
-                                  <span className="text-slate-202 font-bold">{examCodings[activeQuestionIndex].time_limit || 2} seconds</span>
+                                  <span className="text-slate-202 font-bold">{currentCoding.time_limit || 2} seconds</span>
                                 </div>
                                 <div>
                                   <span className="text-slate-505 uppercase tracking-wider block text-[8px]">Memory Metric (Max Limit):</span>
-                                  <span className="text-slate-202 font-bold">{examCodings[activeQuestionIndex].memory_limit || 256} MB</span>
+                                  <span className="text-slate-202 font-bold">{currentCoding.memory_limit || 256} MB</span>
                                 </div>
                                 <div>
                                   <span className="text-slate-505 uppercase tracking-wider block text-[8px]">Attempt Status:</span>
@@ -8892,7 +8892,7 @@ export default function App() {
 
                       </div>
                     </div>
-                  </div>
+                  );
                 })()}
               </div>
 
