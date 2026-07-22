@@ -152,7 +152,7 @@ export default function App() {
   const [activeExams, setActiveExams] = useState<Exam[]>([]);
   const [completedAttempts, setCompletedAttempts] = useState<Attempt[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
-  const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'colleges' | 'students' | 'trainers' | 'exams' | 'live' | 'settings'>('metrics');
+  const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'students' | 'training' | 'exams' | 'placement' | 'companies' | 'reports' | 'settings'>('metrics');
   const [adminTrainers, setAdminTrainers] = useState<any[]>([]);
   const [studentTrainers, setStudentTrainers] = useState<any[]>([]);
   const [trainerForm, setTrainerForm] = useState({
@@ -1920,19 +1920,21 @@ export default function App() {
       });
       if (res.ok) {
         showToast('Exam configuration updated successfully!');
-        setEditingExamId(null);
-        setExamForm({
-          name: '', description: '', examType: 'mcq' as 'mcq' | 'coding' | 'both',
-          durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
-          windowOpenMinutes: 10,
-          collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year',
-          enableFaceDetection: true,
-          enableSectionCutoff: false,
-          mcqCutoffPercentage: 50,
-          codingCutoffPercentage: 50,
-          mcqCutoffMarks: 0,
-          codingCutoffMarks: 0
-        });
+        if (!isCreatingNewExam) {
+          setEditingExamId(null);
+          setExamForm({
+            name: '', description: '', examType: 'mcq' as any,
+            durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
+            windowOpenMinutes: 10,
+            collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year',
+            enableFaceDetection: true,
+            enableSectionCutoff: false,
+            mcqCutoffPercentage: 50,
+            codingCutoffPercentage: 50,
+            mcqCutoffMarks: 0,
+            codingCutoffMarks: 0
+          });
+        }
         loadAdminDashboard();
       }
     } catch (err) {
@@ -1958,19 +1960,21 @@ export default function App() {
         mcq_cutoff_marks: examForm.mcqCutoffMarks || 0,
         coding_cutoff_marks: examForm.codingCutoffMarks || 0
       } : e));
-      setEditingExamId(null);
-      setExamForm({
-        name: '', description: '', examType: 'mcq' as 'mcq' | 'coding' | 'both',
-        durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
-        windowOpenMinutes: 10,
-        collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year',
-        enableFaceDetection: true,
-        enableSectionCutoff: false,
-        mcqCutoffPercentage: 50,
-        codingCutoffPercentage: 50,
-        mcqCutoffMarks: 0,
-        codingCutoffMarks: 0
-      });
+      if (!isCreatingNewExam) {
+        setEditingExamId(null);
+        setExamForm({
+          name: '', description: '', examType: 'mcq' as any,
+          durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
+          windowOpenMinutes: 10,
+          collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year',
+          enableFaceDetection: true,
+          enableSectionCutoff: false,
+          mcqCutoffPercentage: 50,
+          codingCutoffPercentage: 50,
+          mcqCutoffMarks: 0,
+          codingCutoffMarks: 0
+        });
+      }
       showToast('Exam configuration updated successfully (Simulated)');
     }
   };
@@ -4526,13 +4530,14 @@ export default function App() {
                 <span className="text-xs text-muted-foreground uppercase font-black tracking-widest">Admin Control Center</span>
               </div>
               {[
-                { id: 'metrics', label: 'Metrics & Analytics', icon: Award },
-                { id: 'colleges', label: 'Colleges & Departments', icon: Layers },
-                { id: 'students', label: 'Student Management', icon: Users },
-                { id: 'trainers', label: 'Trainer Management', icon: User },
-                { id: 'exams', label: 'Exam Configuration', icon: BookOpen },
-                { id: 'live', label: 'Live Exam Proctor', icon: Video },
-                { id: 'settings', label: 'System Settings', icon: Settings }
+                { id: 'metrics', label: 'Dashboard', icon: Award },
+                { id: 'students', label: 'Students', icon: Users },
+                { id: 'training', label: 'Training', icon: BookOpen },
+                { id: 'exams', label: 'Assessments', icon: Layers },
+                { id: 'placement', label: 'Placement', icon: Laptop },
+                { id: 'companies', label: 'Companies', icon: Sparkles },
+                { id: 'reports', label: 'Reports', icon: Download },
+                { id: 'settings', label: 'Settings', icon: Settings }
               ].map(item => {
                 const Icon = item.icon;
                 return (
@@ -5884,6 +5889,197 @@ export default function App() {
                 </div>
               )}
 
+              {activeAdminTab === 'training' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center bg-white dark:bg-slate-950 p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+                    <div>
+                      <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100">Training & Skill Development Tracks</h3>
+                      <p className="text-xs text-muted-foreground mt-1">Manage skill development programs, course tracks, and trainer allocations.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {[
+                      { title: 'Quantitative Aptitude Masterclass', category: 'Aptitude', modules: 12, duration: '24 Hours', level: 'Intermediate', recommendedFor: 'Weak Aptitude Scores' },
+                      { title: 'Data Structures & Algorithms in Python/C++', category: 'Coding', modules: 20, duration: '40 Hours', level: 'Advanced', recommendedFor: 'Coding Gaps' },
+                      { title: 'Corporate Verbal & Logical Reasoning', category: 'Reasoning', modules: 8, duration: '16 Hours', level: 'Beginner', recommendedFor: 'CRT Preparation' },
+                      { title: 'Full Stack Engineering Core', category: 'Technical', modules: 15, duration: '30 Hours', level: 'Advanced', recommendedFor: 'Technical Skills' },
+                      { title: 'Corporate Interview Readiness & Etiquette', category: 'Communication', modules: 6, duration: '10 Hours', level: 'All Levels', recommendedFor: 'Mock Interview Prep' }
+                    ].map((track, idx) => (
+                      <div key={idx} className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-3">
+                        <div className="flex justify-between items-start">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                            {track.category}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-500">{track.level}</span>
+                        </div>
+                        <h4 className="font-extrabold text-base text-slate-900 dark:text-white">{track.title}</h4>
+                        <div className="flex gap-4 text-xs text-muted-foreground">
+                          <span>{track.modules} Modules</span>
+                          <span>Duration: {track.duration}</span>
+                        </div>
+                        <div className="pt-2 text-[11px] text-indigo-600 dark:text-indigo-400 font-bold border-t border-slate-100 dark:border-slate-900">
+                          Recommended For: {track.recommendedFor}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeAdminTab === 'placement' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center bg-white dark:bg-slate-950 p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+                    <div>
+                      <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100">Corporate Placement Drives</h3>
+                      <p className="text-xs text-muted-foreground mt-1">Track upcoming company hiring drives, eligibility cutoffs, and candidates.</p>
+                    </div>
+                  </div>
+
+                  <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left">
+                        <thead>
+                          <tr className="border-b text-muted-foreground uppercase tracking-wider font-semibold">
+                            <th className="py-3 px-2">Company Drive</th>
+                            <th>Role Target</th>
+                            <th>Package (LPA)</th>
+                            <th>Cutoff Score</th>
+                            <th>Drive Date</th>
+                            <th>Eligible Candidates</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            { companyName: 'TCS Digital', role: 'System Engineer', package: '7.5 LPA', cutoffScore: '70%', driveDate: '2026-08-15', eligibleCount: 145, status: 'Active' },
+                            { companyName: 'Infosys Specialist', role: 'Power Programmer', package: '9.0 LPA', cutoffScore: '75%', driveDate: '2026-08-20', eligibleCount: 98, status: 'Upcoming' },
+                            { companyName: 'Wipro Turbo', role: 'Project Engineer', package: '6.5 LPA', cutoffScore: '65%', driveDate: '2026-08-25', eligibleCount: 180, status: 'Upcoming' },
+                            { companyName: 'Accenture Advanced', role: 'Application Associate', package: '5.4 LPA', cutoffScore: '60%', driveDate: '2026-09-01', eligibleCount: 210, status: 'Upcoming' }
+                          ].map((drive, idx) => (
+                            <tr key={idx} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
+                              <td className="py-3.5 px-2 font-extrabold text-slate-800 dark:text-slate-200">{drive.companyName}</td>
+                              <td className="font-semibold">{drive.role}</td>
+                              <td className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">{drive.package}</td>
+                              <td className="font-bold">{drive.cutoffScore}</td>
+                              <td>{drive.driveDate}</td>
+                              <td className="font-bold text-indigo-600 dark:text-indigo-400">{drive.eligibleCount} Students</td>
+                              <td>
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                  {drive.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeAdminTab === 'companies' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center bg-white dark:bg-slate-950 p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+                    <div>
+                      <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100">Partner Companies & Corporate Clients</h3>
+                      <p className="text-xs text-muted-foreground mt-1">Manage corporate accounts and hiring partners.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {[
+                      { name: 'TCS', industry: 'IT & Software', location: 'Pan India', activeDrives: 2, totalHired: 120 },
+                      { name: 'Infosys', industry: 'IT Services', location: 'Bangalore / Hyderabad', activeDrives: 1, totalHired: 95 },
+                      { name: 'Wipro', industry: 'Technology', location: 'Pan India', activeDrives: 1, totalHired: 80 },
+                      { name: 'Cognizant', industry: 'IT & Consulting', location: 'Chennai / Pune', activeDrives: 1, totalHired: 110 }
+                    ].map((comp, idx) => (
+                      <div key={idx} className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-3">
+                        <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center font-black text-indigo-600 text-lg">
+                          {comp.name.charAt(0)}
+                        </div>
+                        <h4 className="font-extrabold text-base text-slate-900 dark:text-white">{comp.name}</h4>
+                        <div className="text-xs text-muted-foreground">{comp.industry}</div>
+                        <div className="text-xs font-semibold">{comp.location}</div>
+                        <div className="pt-3 border-t border-slate-100 dark:border-slate-900 flex justify-between text-xs font-bold">
+                          <span className="text-indigo-600 dark:text-indigo-400">{comp.activeDrives} Active Drives</span>
+                          <span className="text-emerald-600 dark:text-emerald-400">{comp.totalHired} Hired</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeAdminTab === 'reports' && (
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center bg-white dark:bg-slate-950 p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+                    <div>
+                      <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100">Reports & Skill Identification Engine</h3>
+                      <p className="text-xs text-muted-foreground mt-1">Generate comprehensive skill breakdowns, weak area diagnostics, and training recommendations.</p>
+                    </div>
+                  </div>
+
+                  {/* Skill Identification Card */}
+                  <div className="p-6 rounded-2xl border-2 border-indigo-500/20 bg-indigo-50/5 dark:bg-indigo-950/10 shadow-sm space-y-6">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">Rule-Based Skill Identification Report</span>
+                        <h4 className="text-xl font-black text-slate-900 dark:text-white mt-1">Candidate Skill Identification Matrix</h4>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+                      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Aptitude</span>
+                        <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">78%</p>
+                      </div>
+                      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Coding</span>
+                        <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">68%</p>
+                      </div>
+                      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Communication</span>
+                        <p className="text-2xl font-black text-violet-600 dark:text-violet-400 mt-1">70%</p>
+                      </div>
+                      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Technical</span>
+                        <p className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">82%</p>
+                      </div>
+                      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border-2 border-indigo-500">
+                        <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">Overall Score</span>
+                        <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">74.5%</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <h5 className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider">Identified Weak Areas</h5>
+                        <ul className="text-xs space-y-1.5 text-slate-700 dark:text-slate-300">
+                          <li className="flex items-center gap-1.5">• Data Structures & Edge Cases</li>
+                          <li className="flex items-center gap-1.5">• Verbal Communication & Etiquette</li>
+                        </ul>
+                      </div>
+                      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <h5 className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Strong Areas</h5>
+                        <ul className="text-xs space-y-1.5 text-slate-700 dark:text-slate-300">
+                          <li className="flex items-center gap-1.5">• Quantitative Aptitude</li>
+                          <li className="flex items-center gap-1.5">• Technical & System Architecture</li>
+                          <li className="flex items-center gap-1.5">• Logical Reasoning</li>
+                        </ul>
+                      </div>
+                      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                        <h5 className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Recommended Training</h5>
+                        <ul className="text-xs space-y-1.5 text-slate-700 dark:text-slate-300 font-semibold">
+                          <li className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">→ Data Structures & Algorithms</li>
+                          <li className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">→ Corporate Interview Readiness</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         </main>
@@ -6039,9 +6235,15 @@ export default function App() {
                     <div>
                       <label className="text-xs font-semibold text-muted-foreground">Exam Type</label>
                       <select value={examForm.examType} onChange={e => setExamForm({...examForm, examType: e.target.value as any})} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
+                        <option value="crt">CRT (Campus Recruitment Training)</option>
+                        <option value="aptitude">Aptitude Assessment</option>
+                        <option value="reasoning">Reasoning & Logic</option>
+                        <option value="technical">Technical Evaluation</option>
+                        <option value="coding">Coding Challenge</option>
+                        <option value="mock_interview">Mock Interview</option>
+                        <option value="corporate_test">Corporate Test</option>
+                        <option value="both">MCQ + Coding (Combined)</option>
                         <option value="mcq">MCQ Only</option>
-                        <option value="coding">Coding Only</option>
-                        <option value="both">MCQ + Coding</option>
                       </select>
                     </div>
                   </div>

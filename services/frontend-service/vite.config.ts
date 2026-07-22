@@ -19,7 +19,19 @@ export default defineConfig({
         target: 'http://localhost:4003',
         changeOrigin: true,
       },
+      '/api/students': {
+        target: 'http://localhost:4003',
+        changeOrigin: true,
+      },
       '/api/exams': {
+        target: 'http://localhost:4004',
+        changeOrigin: true,
+      },
+      '/api/assessments': {
+        target: 'http://localhost:4004',
+        changeOrigin: true,
+      },
+      '/api/sections': {
         target: 'http://localhost:4004',
         changeOrigin: true,
       },
@@ -34,6 +46,22 @@ export default defineConfig({
       },
       '/api/notifications': {
         target: 'http://localhost:4006',
+        changeOrigin: true,
+      },
+      '/api/trainings': {
+        target: 'http://localhost:4007',
+        changeOrigin: true,
+      },
+      '/api/placements': {
+        target: 'http://localhost:4008',
+        changeOrigin: true,
+      },
+      '/api/companies': {
+        target: 'http://localhost:4008',
+        changeOrigin: true,
+      },
+      '/api/reports': {
+        target: 'http://localhost:4009',
         changeOrigin: true,
       },
     }

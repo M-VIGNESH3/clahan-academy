@@ -252,19 +252,26 @@ app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res)
 app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
   try {
     const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId, enableFaceDetection, enableSectionCutoff, mcqCutoffPercentage, codingCutoffPercentage, mcqCutoffMarks, codingCutoffMarks } = req.body;
-    if (!name || !examType || !durationMinutes || !scheduleDate || !collegeId) {
-      return res.status(400).json({ error: 'Missing required parameters' });
+    if (!name || !examType || !durationMinutes) {
+      return res.status(400).json({ error: 'Missing required parameters: name, examType, durationMinutes' });
     }
 
-    if (!batchId) {
-      if ((!departmentId && (!departmentIds || departmentIds.length === 0)) || !year) {
-        return res.status(400).json({ error: 'When scheduling without a batch, department and year are required' });
-      }
-    }
+    const finalScheduleDate = scheduleDate ? new Date(scheduleDate).toISOString() : new Date().toISOString();
+    const finalCollegeId = collegeId || null;
 
-    const finalDeptId = batchId ? null : (departmentId || (departmentIds && departmentIds[0]) || null);
-    const finalDeptIds = batchId ? [] : (departmentIds || (departmentId ? [departmentId] : []));
-    const finalYear = batchId ? null : year;
+    let finalDeptId = null;
+    let finalDeptIds: string[] = [];
+    let finalYear = null;
+
+    if (finalCollegeId && !batchId) {
+      finalDeptId = departmentId || (departmentIds && departmentIds[0]) || null;
+      finalDeptIds = departmentIds || (departmentId ? [departmentId] : []);
+      finalYear = year || null;
+    } else if (batchId) {
+      finalDeptId = null;
+      finalDeptIds = [];
+      finalYear = null;
+    }
 
     const result = await query(
       `INSERT INTO exams (
@@ -273,19 +280,19 @@ app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
         enable_section_cutoff, mcq_cutoff_percentage, coding_cutoff_percentage, mcq_cutoff_marks, coding_cutoff_marks
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::uuid[], $11, $12, $13, FALSE, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
       [
-        name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, trainerId || null, enableFaceDetection !== false,
+        name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, finalScheduleDate, finalCollegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, trainerId || null, enableFaceDetection !== false,
         enableSectionCutoff === true, mcqCutoffPercentage !== undefined && mcqCutoffPercentage !== null ? mcqCutoffPercentage : 50.00, codingCutoffPercentage !== undefined && codingCutoffPercentage !== null ? codingCutoffPercentage : 50.00, mcqCutoffMarks !== undefined && mcqCutoffMarks !== null ? mcqCutoffMarks : 0.00, codingCutoffMarks !== undefined && codingCutoffMarks !== null ? codingCutoffMarks : 0.00
       ]
     );
 
     const examId = result.rows[0].id;
-    if (examType === 'mcq' || examType === 'both') {
+    if (examType === 'mcq' || examType === 'both' || examType === 'aptitude' || examType === 'reasoning' || examType === 'crt') {
       await query(`
         INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
         VALUES ($1, 'MCQ Section', 'mcq', FALSE, TRUE, 0)
       `, [examId]);
     }
-    if (examType === 'coding' || examType === 'both') {
+    if (examType === 'coding' || examType === 'both' || examType === 'technical' || examType === 'corporate_test') {
       await query(`
         INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
         VALUES ($1, 'Coding Section', 'coding', FALSE, TRUE, 1)
@@ -351,19 +358,26 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
 app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) => {
   try {
     const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId, enableFaceDetection, enableSectionCutoff, mcqCutoffPercentage, codingCutoffPercentage, mcqCutoffMarks, codingCutoffMarks } = req.body;
-    if (!name || !examType || !durationMinutes || !scheduleDate || !collegeId) {
-      return res.status(400).json({ error: 'Missing required parameters' });
+    if (!name || !examType || !durationMinutes) {
+      return res.status(400).json({ error: 'Missing required parameters: name, examType, durationMinutes' });
     }
 
-    if (!batchId) {
-      if ((!departmentId && (!departmentIds || departmentIds.length === 0)) || !year) {
-        return res.status(400).json({ error: 'When scheduling without a batch, department and year are required' });
-      }
-    }
+    const finalScheduleDate = scheduleDate ? new Date(scheduleDate).toISOString() : new Date().toISOString();
+    const finalCollegeId = collegeId || null;
 
-    const finalDeptId = batchId ? null : (departmentId || (departmentIds && departmentIds[0]) || null);
-    const finalDeptIds = batchId ? [] : (departmentIds || (departmentId ? [departmentId] : []));
-    const finalYear = batchId ? null : year;
+    let finalDeptId = null;
+    let finalDeptIds: string[] = [];
+    let finalYear = null;
+
+    if (finalCollegeId && !batchId) {
+      finalDeptId = departmentId || (departmentIds && departmentIds[0]) || null;
+      finalDeptIds = departmentIds || (departmentId ? [departmentId] : []);
+      finalYear = year || null;
+    } else if (batchId) {
+      finalDeptId = null;
+      finalDeptIds = [];
+      finalYear = null;
+    }
 
     const result = await query(
       `UPDATE exams 
@@ -373,7 +387,7 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
            enable_section_cutoff = $16, mcq_cutoff_percentage = $17, coding_cutoff_percentage = $18, mcq_cutoff_marks = $19, coding_cutoff_marks = $20
        WHERE id = $21 RETURNING *`,
       [
-        name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, trainerId || null, enableFaceDetection !== false,
+        name, description, examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, finalScheduleDate, finalCollegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, trainerId || null, enableFaceDetection !== false,
         enableSectionCutoff === true, mcqCutoffPercentage !== undefined && mcqCutoffPercentage !== null ? mcqCutoffPercentage : 50.00, codingCutoffPercentage !== undefined && codingCutoffPercentage !== null ? codingCutoffPercentage : 50.00, mcqCutoffMarks !== undefined && mcqCutoffMarks !== null ? mcqCutoffMarks : 0.00, codingCutoffMarks !== undefined && codingCutoffMarks !== null ? codingCutoffMarks : 0.00,
         req.params.id
       ]
@@ -736,6 +750,119 @@ app.get('/api/exams/:id/results', authenticate, requireRole('admin'), async (req
       [id]
     );
     res.json(attempts.rows);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- SECTION MANAGEMENT API ---
+
+// Create Section
+app.post(['/api/exams/:id/sections', '/api/assessments/:id/sections'], authenticate, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, sectionType, durationMinutes, randomizeQuestions, isMandatory, enableCutoff, cutoffPercentage, cutoffMarks } = req.body;
+    if (!name || !sectionType) {
+      return res.status(400).json({ error: 'Section name and sectionType are required' });
+    }
+
+    const orderResult = await query('SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order FROM sections WHERE exam_id = $1', [id]);
+    const sortOrder = orderResult.rows[0].next_order;
+
+    const result = await query(
+      `INSERT INTO sections (exam_id, name, description, section_type, duration_minutes, randomize_questions, is_mandatory, sort_order, enable_cutoff, cutoff_percentage, cutoff_marks)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [
+        id, name, description || '', sectionType, durationMinutes || null,
+        randomizeQuestions === true, isMandatory !== false, sortOrder,
+        enableCutoff === true, cutoffPercentage || null, cutoffMarks || null
+      ]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (err: any) {
+    console.error("Error in POST /api/exams/:id/sections:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update Section
+app.put(['/api/sections/:id', '/api/exams/sections/:id'], authenticate, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, durationMinutes, randomizeQuestions, isMandatory, enableCutoff, cutoffPercentage, cutoffMarks } = req.body;
+
+    const result = await query(
+      `UPDATE sections
+       SET name = COALESCE($1, name),
+           description = COALESCE($2, description),
+           duration_minutes = $3,
+           randomize_questions = COALESCE($4, randomize_questions),
+           is_mandatory = COALESCE($5, is_mandatory),
+           enable_cutoff = COALESCE($6, enable_cutoff),
+           cutoff_percentage = $7,
+           cutoff_marks = $8
+       WHERE id = $9 RETURNING *`,
+      [name, description, durationMinutes || null, randomizeQuestions, isMandatory, enableCutoff, cutoffPercentage || null, cutoffMarks || null, id]
+    );
+
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Section not found' });
+    res.json(result.rows[0]);
+  } catch (err: any) {
+    console.error("Error in PUT /api/sections/:id:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete Section
+app.delete(['/api/sections/:id', '/api/exams/sections/:id'], authenticate, requireRole('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    await query('UPDATE mcq_questions SET section_id = NULL WHERE section_id = $1', [id]);
+    await query('UPDATE coding_questions SET section_id = NULL WHERE section_id = $1', [id]);
+    const result = await query('DELETE FROM sections WHERE id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Section not found' });
+    res.json({ message: 'Section deleted successfully' });
+  } catch (err: any) {
+    console.error("Error in DELETE /api/sections/:id:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Reorder Sections
+app.post(['/api/exams/:id/sections/reorder', '/api/assessments/:id/sections/reorder'], authenticate, requireRole('admin'), async (req, res) => {
+  try {
+    const { sectionIds } = req.body;
+    if (!Array.isArray(sectionIds)) return res.status(400).json({ error: 'sectionIds array is required' });
+
+    for (let index = 0; index < sectionIds.length; index++) {
+      await query('UPDATE sections SET sort_order = $1 WHERE id = $2', [index, sectionIds[index]]);
+    }
+    res.json({ message: 'Sections reordered successfully' });
+  } catch (err: any) {
+    console.error("Error in section reorder:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete MCQ Question
+app.delete(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId'], authenticate, requireRole('admin'), async (req, res) => {
+  try {
+    const mcqId = req.params.mcqId || req.params.id;
+    await query('DELETE FROM mcq_questions WHERE id = $1', [mcqId]);
+    res.json({ message: 'MCQ question deleted successfully' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete Coding Question
+app.delete(['/api/exams/:id/coding/:codingId', '/api/coding/:codingId'], authenticate, requireRole('admin'), async (req, res) => {
+  try {
+    const codingId = req.params.codingId || req.params.id;
+    await query('DELETE FROM coding_test_cases WHERE question_id = $1', [codingId]);
+    await query('DELETE FROM coding_questions WHERE id = $1', [codingId]);
+    res.json({ message: 'Coding question deleted successfully' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

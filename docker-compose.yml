@@ -109,6 +109,33 @@ services:
       redis:
         condition: service_healthy
 
+  training-service:
+    build: ./services/training-service
+    container_name: clahan-training-service
+    ports:
+      - "4007:4007"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  placement-service:
+    build: ./services/placement-service
+    container_name: clahan-placement-service
+    ports:
+      - "4008:4008"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  report-service:
+    build: ./services/report-service
+    container_name: clahan-report-service
+    ports:
+      - "4009:4009"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   ai-service:
     build: ./services/ai-service
     container_name: clahan-ai-service
@@ -138,6 +165,9 @@ services:
       - student-service
       - exam-service
       - proctoring-service
+      - training-service
+      - placement-service
+      - report-service
 
   # --- JUDGE0 COMPILATION STACK ---
   judge0-db:
