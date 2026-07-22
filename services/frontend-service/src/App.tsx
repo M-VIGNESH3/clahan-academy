@@ -569,7 +569,7 @@ export default function App() {
 
   // Persist Admin Assessment Builder Draft to localStorage & trigger live status
   useEffect(() => {
-    if (user?.role === 'admin' && selectedExamIdForQuestions) {
+    if (currentUser?.role === 'admin' && selectedExamIdForQuestions) {
       setAdminAutoSaveStatus('saving');
       localStorage.setItem('clahan_draft_exam_id', selectedExamIdForQuestions);
       localStorage.setItem('clahan_draft_wizard_step', String(examWizardStep));
@@ -579,22 +579,22 @@ export default function App() {
       const t = setTimeout(() => setAdminAutoSaveStatus('saved'), 800);
       return () => clearTimeout(t);
     }
-  }, [user?.role, selectedExamIdForQuestions, examWizardStep, examWorkspaceTab, isCreatingNewExam]);
+  }, [currentUser?.role, selectedExamIdForQuestions, examWizardStep, examWorkspaceTab, isCreatingNewExam]);
 
   // Periodic Auto-Save for Admin Draft (runs every 30 seconds)
   useEffect(() => {
-    if (user?.role !== 'admin' || !selectedExamIdForQuestions || currentPage !== 'exam-workspace') return;
+    if (currentUser?.role !== 'admin' || !selectedExamIdForQuestions || currentPage !== 'exam-workspace') return;
     const interval = setInterval(() => {
       setAdminAutoSaveStatus('saving');
       localStorage.setItem('clahan_draft_last_edited', new Date().toLocaleString());
       setTimeout(() => setAdminAutoSaveStatus('saved'), 800);
     }, 30000);
     return () => clearInterval(interval);
-  }, [user?.role, selectedExamIdForQuestions, currentPage]);
+  }, [currentUser?.role, selectedExamIdForQuestions, currentPage]);
 
   // Draft Resume Detection: Check for unfinished draft when Admin arrives on dashboard
   useEffect(() => {
-    if (token && user?.role === 'admin' && currentPage === 'dashboard' && !selectedExamIdForQuestions) {
+    if (token && currentUser?.role === 'admin' && currentPage === 'admin-dash' && !selectedExamIdForQuestions) {
       const savedDraftExamId = localStorage.getItem('clahan_draft_exam_id');
       const savedLastEdited = localStorage.getItem('clahan_draft_last_edited') || new Date().toLocaleString();
 
@@ -617,7 +617,7 @@ export default function App() {
         }
       }
     }
-  }, [token, user?.role, currentPage, adminExams, selectedExamIdForQuestions]);
+  }, [token, currentUser?.role, currentPage, adminExams, selectedExamIdForQuestions]);
 
   // Unsaved changes warning on page unload (Candidate & Admin Navigation Protection)
   useEffect(() => {
@@ -627,7 +627,7 @@ export default function App() {
         e.returnValue = 'You have unsaved changes in your exam. Are you sure you want to leave?';
         return e.returnValue;
       }
-      if (user?.role === 'admin' && currentPage === 'exam-workspace' && selectedExamIdForQuestions) {
+      if (currentUser?.role === 'admin' && currentPage === 'exam-workspace' && selectedExamIdForQuestions) {
         e.preventDefault();
         e.returnValue = 'You have unsaved changes in your assessment builder draft. Leave without saving?';
         return e.returnValue;
@@ -635,7 +635,7 @@ export default function App() {
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [currentPage, currentAttempt?.id, user?.role, selectedExamIdForQuestions]);
+  }, [currentPage, currentAttempt?.id, currentUser?.role, selectedExamIdForQuestions]);
 
   // Periodic Auto-Save for coding solutions (runs every 10 seconds during exam)
   useEffect(() => {
