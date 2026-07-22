@@ -8405,10 +8405,10 @@ export default function App() {
                           {/* Compiler Language Selection */}
                           <div className="flex items-center gap-1 bg-slate-955 p-1 rounded-lg border border-white/5">
                             <select
-                              value={codingSolutions[examCodings[activeQuestionIndex].id]?.language || examCodings[activeQuestionIndex].language}
+                              value={codingSolutions[currentCoding.id]?.language || currentCoding.language}
                               onChange={e => {
                                 const newLang = e.target.value;
-                                const qId = examCodings[activeQuestionIndex].id;
+                                const qId = currentCoding.id;
                                 const currentVal = codingSolutions[qId];
                                 const currentCode = currentVal?.code || '';
 
@@ -8417,12 +8417,12 @@ export default function App() {
                                   currentCode.includes('import java.util.*;') ||
                                   currentCode.includes('#include <iostream>') ||
                                   currentCode.includes('const fs = require') ||
-                                  currentCode === examCodings[activeQuestionIndex].starter_code;
+                                  currentCode === currentCoding.starter_code;
 
                                 const updatedSolutions = {
                                   ...codingSolutions,
                                   [qId]: { 
-                                    code: isTemplateOrEmpty ? getCustomTemplate(examCodings[activeQuestionIndex], newLang) : currentCode, 
+                                    code: isTemplateOrEmpty ? getCustomTemplate(currentCoding, newLang) : currentCode, 
                                     language: newLang 
                                   }
                                 };
@@ -8458,11 +8458,11 @@ export default function App() {
                         
                         <button
                           onClick={() => {
-                            const qId = examCodings[activeQuestionIndex].id;
-                            const lang = codingSolutions[qId]?.language || examCodings[activeQuestionIndex].language;
+                            const qId = currentCoding.id;
+                            const lang = codingSolutions[qId]?.language || currentCoding.language;
                             setCodingSolutions(prev => ({
                               ...prev,
-                              [qId]: { code: getCustomTemplate(examCodings[activeQuestionIndex], lang), language: lang }
+                              [qId]: { code: getCustomTemplate(currentCoding, lang), language: lang }
                             }));
                             showToast('Reset editor to starter template.', 'info');
                           }}
@@ -8477,12 +8477,12 @@ export default function App() {
                         <Editor
                           height="100%"
                           language={(() => {
-                            const rawLang = codingSolutions[examCodings[activeQuestionIndex].id]?.language || examCodings[activeQuestionIndex].language || 'python';
+                            const rawLang = codingSolutions[currentCoding.id]?.language || currentCoding.language || 'python';
                             const l = rawLang.toLowerCase();
                             if (l === 'c++' || l === 'cpp') return 'cpp';
                             return l;
                           })()}
-                          value={codingSolutions[examCodings[activeQuestionIndex].id]?.code || ''}
+                          value={codingSolutions[currentCoding.id]?.code || ''}
                           theme={editorTheme}
                           beforeMount={(monaco) => {
                             monaco.editor.defineTheme('vs-dark-custom', {
@@ -8535,12 +8535,12 @@ export default function App() {
                             });
                           }}
                           onChange={(value) => {
-                            const qId = examCodings[activeQuestionIndex].id;
+                            const qId = currentCoding.id;
                             const updatedSolutions = {
                               ...codingSolutions,
                               [qId]: { 
                                 code: value || '', 
-                                language: codingSolutions[qId]?.language || examCodings[activeQuestionIndex].language 
+                                language: codingSolutions[qId]?.language || currentCoding.language 
                               }
                             };
                             setCodingSolutions(updatedSolutions);
@@ -8571,23 +8571,23 @@ export default function App() {
                         <button
                           onClick={() => {
                             if (isExamLocked) return;
-                            const qId = examCodings[activeQuestionIndex].id;
+                            const qId = currentCoding.id;
                             setMarkedForReview(prev => ({ ...prev, [qId]: !prev[qId] }));
                           }}
                           disabled={isExamLocked}
                           className={`px-3 py-1.5 rounded-lg text-xs font-semibold border flex items-center gap-1.5 transition-colors ${
-                            markedForReview[examCodings[activeQuestionIndex].id]
+                            markedForReview[currentCoding.id]
                               ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
                               : 'border-white/5 text-slate-400 hover:bg-slate-800'
                           } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <Bookmark className="h-3.5 w-3.5" />
-                          {markedForReview[examCodings[activeQuestionIndex].id] ? 'Flagged' : 'Mark for Review'}
+                          {markedForReview[currentCoding.id] ? 'Flagged' : 'Mark for Review'}
                         </button>
 
                         <div className="flex gap-2">
                           <button
-                            onClick={() => { if (!isExamLocked) runCodeSample(examCodings[activeQuestionIndex].id); }}
+                            onClick={() => { if (!isExamLocked) runCodeSample(currentCoding.id); }}
                             className="px-4 py-2 bg-slate-955 hover:bg-slate-800 border border-white/10 rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 text-slate-350 transition-colors"
                             disabled={isExamLocked || isRunningCode}
                           >
@@ -8596,7 +8596,7 @@ export default function App() {
                           </button>
                           
                           <button
-                            onClick={() => { if (!isExamLocked) submitCodingSolution(examCodings[activeQuestionIndex].id); }}
+                            onClick={() => { if (!isExamLocked) submitCodingSolution(currentCoding.id); }}
                             disabled={isExamLocked}
                             className={`px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/30 text-white rounded-xl text-xs font-bold transition-all shadow-md ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
