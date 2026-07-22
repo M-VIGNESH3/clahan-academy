@@ -311,6 +311,9 @@ export default function App() {
   // Ongoing Exam IDE State
   const [examMCQs, setExamMCQs] = useState<MCQQuestion[]>([]);
   const [examCodings, setExamCodings] = useState<CodingQuestion[]>([]);
+  const [studentExamSections, setStudentExamSections] = useState<any[]>([]);
+  const [activeSectionId, setActiveSectionId] = useState<string>('');
+  const [sectionTimeLeft, setSectionTimeLeft] = useState<number | null>(null);
   const [selectedSection, setSelectedSection] = useState<'mcq' | 'coding'>('mcq');
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [mcqAnswers, setMcqAnswers] = useState<Record<string, string>>({}); // { questionId: selectedOption }
@@ -2589,6 +2592,33 @@ export default function App() {
     }
   };
 
+  const switchToNextSection = () => {
+    setStudentExamSections(prevSections => {
+      setActiveSectionId(prevActiveId => {
+        const currentIdx = prevSections.findIndex((s: any) => s.id === prevActiveId);
+        if (currentIdx !== -1 && currentIdx < prevSections.length - 1) {
+          const nextSec = prevSections[currentIdx + 1];
+          showToast(`Time expired for section "${prevSections[currentIdx].name}". Moving to "${nextSec.name}".`, 'info');
+          setActiveQuestionIndex(0);
+          if (nextSec.duration_minutes) {
+            setSectionTimeLeft(parseInt(nextSec.duration_minutes) * 60);
+          } else {
+            setSectionTimeLeft(null);
+          }
+          return nextSec.id;
+        } else {
+          showToast('All section durations completed. Submitting assessment...', 'info');
+          (async () => {
+            await saveCurrentCodeImmediately();
+            await submitEntireExam(true);
+          })();
+          return prevActiveId;
+        }
+      });
+      return prevSections;
+    });
+  };
+
   const loadAttemptQuestions = async (attemptId: string) => {
     try {
       const res = await fetch(`${API_EXAMS}/student/attempts/${attemptId}`, {
@@ -2596,24 +2626,45 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
-        setExamMCQs(data.mcqQuestions);
-        setExamCodings(data.codingQuestions);
+        setExamMCQs(data.mcqQuestions || []);
+        setExamCodings(data.codingQuestions || []);
         if (data.exam) {
           setCurrentExam(data.exam);
         }
         
+        let sectionsList: any[] = data.sections || [];
+        if (sectionsList.length === 0) {
+          sectionsList = [{
+            id: 'default-section',
+            name: 'General Assessment',
+            section_type: 'general',
+            duration_minutes: null,
+            sort_order: 0
+          }];
+        }
+        setStudentExamSections(sectionsList);
+        const firstSecId = sectionsList[0]?.id || '';
+        setActiveSectionId(firstSecId);
+        setActiveQuestionIndex(0);
+
+        if (sectionsList[0]?.duration_minutes) {
+          setSectionTimeLeft(parseInt(sectionsList[0].duration_minutes) * 60);
+        } else {
+          setSectionTimeLeft(null);
+        }
+
         // Initialize default answers
         const mcqAns: Record<string, string> = {};
-        data.responses.mcqs.forEach((r: any) => {
+        (data.responses?.mcqs || []).forEach((r: any) => {
           mcqAns[r.question_id] = r.selected_option;
         });
         setMcqAnswers(mcqAns);
 
         const codSol: Record<string, { code: string; language: string }> = {};
-        data.codingQuestions.forEach((q: any) => {
+        (data.codingQuestions || []).forEach((q: any) => {
           codSol[q.id] = { code: q.starter_code || '', language: q.language || 'Python' };
         });
-        data.responses.codings.forEach((r: any) => {
+        (data.responses?.codings || []).forEach((r: any) => {
           codSol[r.question_id] = { code: r.code, language: r.language };
         });
 
@@ -2635,21 +2686,12 @@ export default function App() {
         setCodingSolutions(codSol);
 
         const examObj = data.exam || currentExam;
-        let defaultSection: 'mcq' | 'coding' = 'mcq';
-        if (data.mcqQuestions && data.mcqQuestions.length > 0) {
-          defaultSection = 'mcq';
-        } else if (data.codingQuestions && data.codingQuestions.length > 0) {
-          defaultSection = 'coding';
-        } else if (examObj?.exam_type === 'coding') {
-          defaultSection = 'coding';
-        }
-        setSelectedSection(defaultSection);
 
         // Restore active section, active index, and marked questions if available
         try {
-          const cachedSection = localStorage.getItem(`clahan_active_section_${attemptId}`);
-          if (cachedSection === 'mcq' || cachedSection === 'coding') {
-            setSelectedSection(cachedSection);
+          const cachedSecId = localStorage.getItem(`clahan_active_section_${attemptId}`);
+          if (cachedSecId && sectionsList.some((s: any) => s.id === cachedSecId)) {
+            setActiveSectionId(cachedSecId);
           }
           const cachedIndex = localStorage.getItem(`clahan_active_index_${attemptId}`);
           if (cachedIndex) {
@@ -2687,7 +2729,6 @@ export default function App() {
         if (prev <= 1) {
           clearInterval(timerRef.current);
           setIsExamLocked(true);
-          // Auto-save coding questions and submit the exam
           (async () => {
             await saveCurrentCodeImmediately();
             await submitEntireExam(true);
@@ -2695,6 +2736,17 @@ export default function App() {
           return 0;
         }
         return prev - 1;
+      });
+
+      setSectionTimeLeft(prevSec => {
+        if (prevSec !== null && prevSec !== undefined) {
+          if (prevSec <= 1) {
+            switchToNextSection();
+            return null;
+          }
+          return prevSec - 1;
+        }
+        return null;
       });
     }, 1000);
   };
@@ -7662,7 +7714,14 @@ export default function App() {
                   <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   <div>
                     <h3 className="font-extrabold text-sm tracking-tight text-white uppercase">{currentExam?.name || 'Clahan Assessment'}</h3>
-                    <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">Section: {selectedSection === 'mcq' ? 'Multiple Choice Questions' : 'Coding Challenge'}</p>
+                    <p className="text-[10px] text-indigo-300 font-semibold tracking-wider uppercase flex items-center gap-2">
+                      <span>Section: {studentExamSections.find(s => s.id === activeSectionId)?.name || 'General Section'}</span>
+                      {sectionTimeLeft !== null && (
+                        <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded border border-amber-500/30 font-bold">
+                          Section Timer: {Math.floor(sectionTimeLeft / 60)}:{(sectionTimeLeft % 60).toString().padStart(2, '0')}
+                        </span>
+                      )}
+                    </p>
                   </div>
                 </div>
 
@@ -7879,131 +7938,169 @@ export default function App() {
                     </div>
 
                     {/* Section Switcher */}
+                    {/* Dynamic Section Switcher */}
                     {!isSidebarCollapsed ? (
                       <div className="p-3 space-y-1.5 border-b border-white/5 bg-slate-950/20">
-                        {(currentExam?.exam_type !== 'coding' || examMCQs.length > 0) && (
-                          <button
-                            onClick={() => { if (!isExamLocked) { setSelectedSection('mcq'); setActiveQuestionIndex(0); } }}
-                            disabled={isExamLocked}
-                            className={`w-full py-2 px-2.5 text-left rounded-lg transition-all border flex items-center justify-between ${
-                              selectedSection === 'mcq' 
-                                ? 'bg-indigo-600/20 text-indigo-405 border-indigo-500/30 font-bold' 
-                                : 'bg-slate-905 border-white/5 text-slate-400 hover:bg-slate-800 text-xs'
-                            } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          >
-                            <span className="text-xs font-semibold flex items-center gap-1.5">
-                              <BookOpen className="h-3.5 w-3.5" />
-                              Section A: MCQs
-                            </span>
-                          </button>
-                        )}
-                        {(currentExam?.exam_type !== 'mcq' || examCodings.length > 0) && (
-                          <button
-                            onClick={() => { if (!isExamLocked) { setSelectedSection('coding'); setActiveQuestionIndex(0); } }}
-                            disabled={isExamLocked}
-                            className={`w-full py-2 px-2.5 text-left rounded-lg transition-all border flex items-center justify-between ${
-                              selectedSection === 'coding' 
-                                ? 'bg-indigo-600/20 text-indigo-405 border-indigo-500/30 font-bold' 
-                                : 'bg-slate-905 border-white/5 text-slate-400 hover:bg-slate-800 text-xs'
-                            } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          >
-                            <span className="text-xs font-semibold flex items-center gap-1.5">
-                              <Code className="h-3.5 w-3.5" />
-                              Section B: Coding
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-3 py-4 border-b border-white/5">
-                        {(currentExam?.exam_type !== 'coding' || examMCQs.length > 0) && (
-                          <button 
-                            onClick={() => { if (!isExamLocked) { setSelectedSection('mcq'); setActiveQuestionIndex(0); } }}
-                            disabled={isExamLocked}
-                            className={`p-2 rounded-lg border transition-all ${selectedSection === 'mcq' ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' : 'border-transparent text-slate-400 hover:bg-slate-800'} ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            title="Switch to MCQ section"
-                          >
-                            <BookOpen className="h-4 w-4" />
-                          </button>
-                        )}
-                        {(currentExam?.exam_type !== 'mcq' || examCodings.length > 0) && (
-                          <button 
-                            onClick={() => { if (!isExamLocked) { setSelectedSection('coding'); setActiveQuestionIndex(0); } }}
-                            disabled={isExamLocked}
-                            className={`p-2 rounded-lg border transition-all ${selectedSection === 'coding' ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400' : 'border-transparent text-slate-400 hover:bg-slate-800'} ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            title="Switch to Coding section"
-                          >
-                            <Code className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Question Grid */}
-                    <div className="flex-1 overflow-y-auto p-3.5 space-y-4">
-                      {!isSidebarCollapsed && (
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Question Grid</span>
-                          <span className="text-[9px] font-bold text-indigo-400">{activeQuestionIndex + 1} / {(selectedSection === 'mcq' ? examMCQs : examCodings).length}</span>
+                        <div className="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider mb-2 px-1">
+                          Sections ({studentExamSections.length})
                         </div>
-                      )}
-                      <div className={`grid ${isSidebarCollapsed ? 'grid-cols-1 gap-3 justify-items-center' : 'grid-cols-4 gap-2'}`}>
-                        {(selectedSection === 'mcq' ? examMCQs : examCodings).map((q, idx) => {
-                          const isAnswered = selectedSection === 'mcq' ? !!mcqAnswers[q.id] : (codingSolutions[q.id]?.code?.length || 0) > 5;
-                          const isMarked = markedForReview[q.id];
-                          const isActive = activeQuestionIndex === idx;
-
-                          let bgClass = '';
-                          if (isActive) {
-                            bgClass = 'bg-blue-600 text-white border-blue-500 font-extrabold scale-105';
-                          } else if (isMarked) {
-                            bgClass = 'bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold';
-                          } else if (isAnswered) {
-                            bgClass = 'bg-emerald-600/20 text-emerald-400 border-emerald-500/25';
-                          } else {
-                            bgClass = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-                          }
+                        {studentExamSections.map((sect, idx) => {
+                          const isCurrent = sect.id === activeSectionId;
+                          const sMcqs = examMCQs.filter(q => q.section_id === sect.id || (!q.section_id && idx === 0));
+                          const sCodings = examCodings.filter(q => q.section_id === sect.id || (!q.section_id && idx === 0));
+                          const sTotal = sMcqs.length + sCodings.length;
+                          
+                          const currentSecIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
+                          let statusLabel = 'Pending';
+                          if (isCurrent) statusLabel = 'Current';
+                          else if (idx < currentSecIdx) statusLabel = 'Completed';
 
                           return (
                             <button
-                              key={q.id}
+                              key={sect.id || idx}
                               onClick={() => {
-                                if (isExamLocked) return;
-                                saveCurrentCodeImmediately();
-                                setActiveQuestionIndex(idx);
+                                if (!isExamLocked) {
+                                  setActiveSectionId(sect.id);
+                                  setActiveQuestionIndex(0);
+                                  if (sect.duration_minutes) {
+                                    setSectionTimeLeft(parseInt(sect.duration_minutes) * 60);
+                                  } else {
+                                    setSectionTimeLeft(null);
+                                  }
+                                }
                               }}
                               disabled={isExamLocked}
-                              className={`h-9 w-9 flex items-center justify-center rounded-lg text-xs transition-all border shadow-inner ${bgClass} ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                              title={`Go to Question ${idx + 1} ${isMarked ? '(Marked for Review)' : isAnswered ? '(Answered)' : '(Not Answered)'}`}
+                              className={`w-full py-2.5 px-3 text-left rounded-xl transition-all border flex flex-col gap-1 ${
+                                isCurrent 
+                                  ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 font-bold shadow-sm' 
+                                  : 'bg-slate-950/40 border-white/5 text-slate-400 hover:bg-slate-850 hover:text-white'
+                              } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
-                              {idx + 1}
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="font-extrabold truncate max-w-[130px]">{sect.name}</span>
+                                <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${
+                                  isCurrent ? 'bg-indigo-500 text-white' : statusLabel === 'Completed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'
+                                }`}>
+                                  {statusLabel}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
+                                <span>{sTotal} Questions</span>
+                                <span>{sect.duration_minutes ? `${sect.duration_minutes} Mins` : 'Overall Timer'}</span>
+                              </div>
                             </button>
                           );
                         })}
                       </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-3 py-4 border-b border-white/5">
+                        {studentExamSections.map((sect, idx) => {
+                          const isCurrent = sect.id === activeSectionId;
+                          return (
+                            <button 
+                              key={sect.id || idx}
+                              onClick={() => {
+                                if (!isExamLocked) {
+                                  setActiveSectionId(sect.id);
+                                  setActiveQuestionIndex(0);
+                                  if (sect.duration_minutes) {
+                                    setSectionTimeLeft(parseInt(sect.duration_minutes) * 60);
+                                  } else {
+                                    setSectionTimeLeft(null);
+                                  }
+                                }
+                              }}
+                              disabled={isExamLocked}
+                              className={`p-2 rounded-lg border transition-all ${isCurrent ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400 font-bold' : 'border-transparent text-slate-400 hover:bg-slate-800'}`}
+                              title={`${sect.name} (${sect.section_type || 'General'})`}
+                            >
+                              {sect.section_type === 'coding' ? <Code className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
 
-                      {/* Legend details */}
-                      {!isSidebarCollapsed && (
-                        <div className="pt-4 border-t border-white/5 space-y-2 text-[10px] font-semibold text-slate-400">
-                          <div className="flex items-center gap-2">
-                            <span className="h-3 w-3 rounded bg-blue-600 border border-blue-500"></span>
-                            <span>Current</span>
+                    {/* Question Grid */}
+                    {(() => {
+                      const curSecIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
+                      const activeSecMcqs = examMCQs.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
+                      const activeSecCodings = examCodings.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
+                      const currentSectionQuestions = [
+                        ...activeSecMcqs.map(q => ({ kind: 'mcq' as const, data: q })),
+                        ...activeSecCodings.map(q => ({ kind: 'coding' as const, data: q }))
+                      ];
+
+                      return (
+                        <div className="flex-1 overflow-y-auto p-3.5 space-y-4">
+                          {!isSidebarCollapsed && (
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Question Grid</span>
+                              <span className="text-[9px] font-bold text-indigo-400">
+                                {currentSectionQuestions.length > 0 ? activeQuestionIndex + 1 : 0} / {currentSectionQuestions.length}
+                              </span>
+                            </div>
+                          )}
+                          <div className={`grid ${isSidebarCollapsed ? 'grid-cols-1 gap-3 justify-items-center' : 'grid-cols-4 gap-2'}`}>
+                            {currentSectionQuestions.map((item, idx) => {
+                              const q = item.data;
+                              const isAnswered = item.kind === 'mcq' ? !!mcqAnswers[q.id] : (codingSolutions[q.id]?.code?.length || 0) > 5;
+                              const isMarked = markedForReview[q.id];
+                              const isActive = activeQuestionIndex === idx;
+
+                              let bgClass = '';
+                              if (isActive) {
+                                bgClass = 'bg-blue-600 text-white border-blue-500 font-extrabold scale-105';
+                              } else if (isMarked) {
+                                bgClass = 'bg-amber-500/20 text-amber-400 border-amber-500/30 font-bold';
+                              } else if (isAnswered) {
+                                bgClass = 'bg-emerald-600/20 text-emerald-400 border-emerald-500/25';
+                              } else {
+                                bgClass = 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+                              }
+
+                              return (
+                                <button
+                                  key={q.id || idx}
+                                  onClick={() => {
+                                    if (isExamLocked) return;
+                                    saveCurrentCodeImmediately();
+                                    setActiveQuestionIndex(idx);
+                                  }}
+                                  disabled={isExamLocked}
+                                  className={`h-9 w-9 flex items-center justify-center rounded-lg text-xs transition-all border shadow-inner ${bgClass} ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  title={`Go to Question ${idx + 1} ${isMarked ? '(Marked for Review)' : isAnswered ? '(Answered)' : '(Not Answered)'}`}
+                                >
+                                  {idx + 1}
+                                </button>
+                              );
+                            })}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="h-3 w-3 rounded bg-emerald-600/20 border border-emerald-500/25"></span>
-                            <span>Answered</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="h-3 w-3 rounded bg-amber-500/20 border border-amber-500/30"></span>
-                            <span>Marked for Review</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="h-3 w-3 rounded bg-rose-500/10 border border-rose-500/20"></span>
-                            <span>Not Answered</span>
-                          </div>
+
+                          {/* Legend details */}
+                          {!isSidebarCollapsed && (
+                            <div className="pt-4 border-t border-white/5 space-y-2 text-[10px] font-semibold text-slate-400">
+                              <div className="flex items-center gap-2">
+                                <span className="h-3 w-3 rounded bg-blue-600 border border-blue-500"></span>
+                                <span>Current</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="h-3 w-3 rounded bg-emerald-600/20 border border-emerald-500/25"></span>
+                                <span>Answered</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="h-3 w-3 rounded bg-amber-500/20 border border-amber-500/30"></span>
+                                <span>Marked for Review</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="h-3 w-3 rounded bg-rose-500/10 border border-rose-500/20"></span>
+                                <span>Not Answered</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      );
+                    })()}
 
                     {/* Bottom status - Proctor Logs */}
                     {!isSidebarCollapsed && (
@@ -8018,214 +8115,207 @@ export default function App() {
                   </div>
                 </aside>
 
-                {/* MCQ WORKSPACE VIEW */}
-                {selectedSection === 'mcq' && examMCQs[activeQuestionIndex] && (
-                  <div className="flex-1 flex flex-col bg-slate-950 p-8 overflow-y-auto">
-                    <div className="max-w-3xl mx-auto w-full space-y-8 bg-slate-900 border border-white/10 rounded-2xl p-8 shadow-2xl">
-                      <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                        <div>
-                          <span className="text-xs text-indigo-400 font-extrabold uppercase tracking-wider">Question {activeQuestionIndex + 1} of {examMCQs.length}</span>
-                          <span className="ml-3 text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20 font-bold uppercase tracking-wider">{examMCQs[activeQuestionIndex].difficulty}</span>
-                        </div>
-                        <span className="text-xs text-slate-400 font-bold">Marks: {examMCQs[activeQuestionIndex].marks} pts</span>
+                {/* DYNAMIC QUESTION WORKSPACE VIEW */}
+                {(() => {
+                  const curSecIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
+                  const activeSecMcqs = examMCQs.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
+                  const activeSecCodings = examCodings.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
+                  const currentSectionQuestions = [
+                    ...activeSecMcqs.map(q => ({ kind: 'mcq' as const, data: q })),
+                    ...activeSecCodings.map(q => ({ kind: 'coding' as const, data: q }))
+                  ];
+
+                  const currentItem = currentSectionQuestions[activeQuestionIndex];
+
+                  if (!currentItem) {
+                    return (
+                      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-950 text-slate-400">
+                        <BookOpen className="h-12 w-12 text-slate-700 mb-3 animate-pulse" />
+                        <h4 className="font-extrabold text-base text-slate-300">No Questions Found</h4>
+                        <p className="text-xs text-slate-500 mt-1">There are no questions assigned to this section yet.</p>
                       </div>
-                      
-                      <h3 className="text-lg font-bold text-white leading-relaxed">{examMCQs[activeQuestionIndex].question}</h3>
+                    );
+                  }
 
-                      <div className="space-y-3.5">
-                        {['A', 'B', 'C', 'D'].map(opt => {
-                          const optionKey = `option_${opt.toLowerCase()}` as keyof MCQQuestion;
-                          const optionText = examMCQs[activeQuestionIndex][optionKey] as string;
-                          const isSelected = mcqAnswers[examMCQs[activeQuestionIndex].id] === opt;
-                          return (
-                            <button
-                              key={opt}
-                              onClick={() => { if (!isExamLocked) saveMcqChoice(examMCQs[activeQuestionIndex].id, opt); }}
-                              disabled={isExamLocked}
-                              className={`w-full text-left p-4 rounded-xl text-xs font-semibold transition-all border flex items-center gap-4 ${
-                                isSelected 
-                                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/15' 
-                                  : 'bg-slate-955 border-white/5 text-slate-300 hover:border-white/15 hover:bg-slate-850'
-                              } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            >
-                              <span className={`h-6 w-6 rounded-lg flex items-center justify-center border font-bold text-[10px] transition-colors ${
-                                isSelected ? 'bg-white text-indigo-600 border-transparent' : 'bg-slate-900 border-white/10 text-slate-400'
-                              }`}>
-                                {opt}
-                              </span>
-                              {optionText}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Navigation buttons */}
-                      <div className="flex justify-between items-center mt-8 border-t border-white/10 pt-5">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.max(0, p - 1)); }}
-                            className="px-4 py-2 border border-white/10 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-                            disabled={isExamLocked || activeQuestionIndex === 0}
-                          >
-                            Previous
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (isExamLocked) return;
-                              const qId = examMCQs[activeQuestionIndex].id;
-                              setMarkedForReview(prev => ({ ...prev, [qId]: !prev[qId] }));
-                            }}
-                            disabled={isExamLocked}
-                            className={`px-4 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-colors ${
-                              markedForReview[examMCQs[activeQuestionIndex].id]
-                                ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
-                                : 'border-white/10 text-slate-300 hover:bg-slate-800'
-                            }`}
-                          >
-                            <Bookmark className="h-3.5 w-3.5" />
-                            {markedForReview[examMCQs[activeQuestionIndex].id] ? 'Flagged' : 'Mark for Review'}
-                          </button>
-                        </div>
-
-                        {mcqAnswers[examMCQs[activeQuestionIndex].id] && (
-                          <button
-                            onClick={() => { if (!isExamLocked) clearMcqChoice(examMCQs[activeQuestionIndex].id); }}
-                            disabled={isExamLocked}
-                            className="px-4 py-2 bg-rose-500/10 text-rose-450 hover:bg-rose-500/20 rounded-xl text-xs font-bold border border-rose-500/20 transition-all"
-                          >
-                            Clear Response
-                          </button>
-                        )}
-                        
-                        <button
-                          onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.min(examMCQs.length - 1, p + 1)); }}
-                          className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-colors disabled:opacity-30 disabled:hover:bg-indigo-600"
-                          disabled={isExamLocked || activeQuestionIndex === examMCQs.length - 1}
-                        >
-                          Next Question
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* CODING SECTION WORKSPACE VIEW */}
-                {selectedSection === 'coding' && examCodings[activeQuestionIndex] && (
-                  <div className="flex-1 flex flex-row overflow-hidden items-stretch w-full">
-                    
-                    {/* 2. CENTER LEFT: RESIZABLE QUESTION PANEL */}
-                    {!isDescriptionCollapsed && (
-                      <div 
-                        style={{ width: isFullscreenQuestion ? '100%' : `${questionWidth}px` }} 
-                        className={`flex-shrink-0 flex flex-col bg-slate-900 border-r border-white/10 overflow-hidden relative transition-all duration-100 ${
-                          isFullscreenQuestion ? 'fixed inset-0 z-50 bg-slate-950 p-6' : ''
-                        }`}
-                      >
-                        {/* Header controls */}
-                        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-slate-950/80 border-b border-white/5 sticky top-0 z-10">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                            <BookOpen className="h-3.5 w-3.5 text-indigo-400" />
-                            Problem Statement
-                          </span>
+                  if (currentItem.kind === 'mcq') {
+                    const currentMcq = currentItem.data;
+                    return (
+                      <div className="flex-1 flex flex-col bg-slate-950 p-8 overflow-y-auto">
+                        <div className="max-w-3xl mx-auto w-full space-y-8 bg-slate-900 border border-white/10 rounded-2xl p-8 shadow-2xl">
+                          <div className="flex justify-between items-center border-b border-white/5 pb-4">
+                            <div>
+                              <span className="text-xs text-indigo-400 font-extrabold uppercase tracking-wider">Question {activeQuestionIndex + 1} of {currentSectionQuestions.length}</span>
+                              <span className="ml-3 text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20 font-bold uppercase tracking-wider">{currentMcq.difficulty}</span>
+                            </div>
+                            <span className="text-xs text-slate-400 font-bold">Marks: {currentMcq.marks} pts</span>
+                          </div>
                           
-                          <div className="flex items-center gap-2">
-                            {/* Width Presets */}
-                            {!isFullscreenQuestion && (
-                              <div className="flex items-center gap-1 bg-slate-950/60 p-0.5 rounded-lg border border-white/5 mr-2">
+                          <h3 className="text-lg font-bold text-white leading-relaxed">{currentMcq.question}</h3>
+
+                          <div className="space-y-3.5">
+                            {['A', 'B', 'C', 'D'].map(opt => {
+                              const optionKey = `option_${opt.toLowerCase()}` as keyof MCQQuestion;
+                              const optionText = currentMcq[optionKey] as string;
+                              const isSelected = mcqAnswers[currentMcq.id] === opt;
+                              return (
                                 <button
-                                  onClick={() => setWidthPercent(0.25)}
-                                  className="px-2 py-0.5 text-[9px] font-bold rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
-                                  title="Set width to 25%"
+                                  key={opt}
+                                  onClick={() => { if (!isExamLocked) saveMcqChoice(currentMcq.id, opt); }}
+                                  disabled={isExamLocked}
+                                  className={`w-full text-left p-4 rounded-xl text-xs font-semibold transition-all border flex items-center gap-4 ${
+                                    isSelected 
+                                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-600/15' 
+                                      : 'bg-slate-955 border-white/5 text-slate-300 hover:border-white/15 hover:bg-slate-850'
+                                  } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
-                                  25%
+                                  <span className={`h-6 w-6 rounded-lg flex items-center justify-center border font-bold text-[10px] transition-colors ${
+                                    isSelected ? 'bg-white text-indigo-600 border-transparent' : 'bg-slate-900 border-white/10 text-slate-400'
+                                  }`}>
+                                    {opt}
+                                  </span>
+                                  {optionText}
                                 </button>
-                                <button
-                                  onClick={() => setWidthPercent(0.40)}
-                                  className="px-2 py-0.5 text-[9px] font-bold rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
-                                  title="Set width to 40%"
-                                >
-                                  40%
-                                </button>
-                                <button
-                                  onClick={() => setWidthPercent(0.50)}
-                                  className="px-2 py-0.5 text-[9px] font-bold rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
-                                  title="Set width to 50%"
-                                >
-                                  50%
-                                </button>
-                              </div>
-                            )}
-                            {/* Fullscreen Button */}
-                            <button
-                              onClick={() => setIsFullscreenQuestion(!isFullscreenQuestion)}
-                              className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors"
-                              title={isFullscreenQuestion ? "Exit Fullscreen" : "Fullscreen description"}
-                            >
-                              {isFullscreenQuestion ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-                            </button>
-                            {/* Collapse Button */}
-                            {!isFullscreenQuestion && (
+                              );
+                            })}
+                          </div>
+
+                          {/* Navigation buttons */}
+                          <div className="flex justify-between items-center mt-8 border-t border-white/10 pt-5">
+                            <div className="flex gap-2">
                               <button
-                                onClick={() => setIsDescriptionCollapsed(true)}
-                                className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors"
-                                title="Collapse panel"
+                                onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.max(0, p - 1)); }}
+                                className="px-4 py-2 border border-white/10 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                                disabled={isExamLocked || activeQuestionIndex === 0}
                               >
-                                <X className="h-3.5 w-3.5" />
+                                Previous
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (isExamLocked) return;
+                                  setMarkedForReview(prev => ({ ...prev, [currentMcq.id]: !prev[currentMcq.id] }));
+                                }}
+                                disabled={isExamLocked}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-colors ${
+                                  markedForReview[currentMcq.id]
+                                    ? 'bg-amber-500/20 border-amber-500/30 text-amber-400'
+                                    : 'border-white/10 text-slate-300 hover:bg-slate-800'
+                                }`}
+                              >
+                                <Bookmark className="h-3.5 w-3.5" />
+                                {markedForReview[currentMcq.id] ? 'Flagged' : 'Mark for Review'}
+                              </button>
+                            </div>
+
+                            {mcqAnswers[currentMcq.id] && (
+                              <button
+                                onClick={() => { if (!isExamLocked) clearMcqChoice(currentMcq.id); }}
+                                disabled={isExamLocked}
+                                className="px-4 py-2 bg-rose-500/10 text-rose-450 hover:bg-rose-500/20 rounded-xl text-xs font-bold border border-rose-500/20 transition-all"
+                              >
+                                Clear Response
                               </button>
                             )}
+                            
+                            <button
+                              onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.min(currentSectionQuestions.length - 1, p + 1)); }}
+                              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-colors disabled:opacity-30 disabled:hover:bg-indigo-600"
+                              disabled={isExamLocked || activeQuestionIndex === currentSectionQuestions.length - 1}
+                            >
+                              Next Question
+                            </button>
                           </div>
-                        </div>
-
-                        {/* Question Content Body */}
-                        <div className="flex-1 overflow-y-auto p-5 space-y-5">
-                          <div>
-                            <h2 className="text-base font-extrabold text-white">{examCodings[activeQuestionIndex].title}</h2>
-                            <div className="flex items-center gap-2 mt-2 text-[9px] font-bold">
-                              <span className="bg-slate-950 px-2 py-0.5 border border-white/5 rounded text-indigo-400 uppercase">{examCodings[activeQuestionIndex].difficulty}</span>
-                              <span className="bg-slate-950 px-2 py-0.5 border border-white/5 rounded text-slate-400">{examCodings[activeQuestionIndex].marks} pts</span>
-                            </div>
-                          </div>
-
-                          <div className="text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap">
-                            {examCodings[activeQuestionIndex].description}
-                          </div>
-
-                          {/* Constraints Card */}
-                          <div className="p-3 bg-slate-950/60 rounded-xl border border-white/5 space-y-2 text-[10px] font-mono shadow-inner">
-                            <div className="font-bold text-slate-400 uppercase tracking-widest text-[8px]">Constraints & Limits</div>
-                            <div className="grid grid-cols-2 gap-2 text-slate-300 text-[9px]">
-                              <div>Time Limit: <span className="text-indigo-400 font-bold">{examCodings[activeQuestionIndex].time_limit || 2} seconds</span></div>
-                              <div>Memory Limit: <span className="text-indigo-400 font-bold">{examCodings[activeQuestionIndex].memory_limit || 256} MB</span></div>
-                            </div>
-                          </div>
-
-                          {/* Render Sample Test Cases */}
-                          {examCodings[activeQuestionIndex].testCases && examCodings[activeQuestionIndex].testCases.length > 0 && (
-                            <div className="space-y-3.5 pt-4 border-t border-white/5">
-                              <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest font-black block">Sample Cases</span>
-                              
-                              <div className="space-y-3.5">
-                                {examCodings[activeQuestionIndex].testCases.map((tc: any, tcIdx: number) => (
-                                  <div key={tc.id || tcIdx} className="p-3 bg-slate-950/80 rounded-xl border border-white/5 space-y-2 text-[10px] font-mono shadow-inner">
-                                    <div className="font-bold text-slate-400">Sample Test Case #{tcIdx + 1}</div>
-                                    <div className="space-y-2">
-                                      <div>
-                                        <div className="text-[8px] text-slate-500 uppercase tracking-wider mb-0.5">Input:</div>
-                                        <pre className="bg-slate-900 p-2 rounded text-slate-350 overflow-x-auto whitespace-pre-wrap max-h-[80px]">{tc.input}</pre>
-                                      </div>
-                                      <div>
-                                        <div className="text-[8px] text-slate-500 uppercase tracking-wider mb-0.5">Expected Output:</div>
-                                        <pre className="bg-slate-900 p-2 rounded text-slate-350 overflow-x-auto whitespace-pre-wrap max-h-[80px]">{tc.expected_output}</pre>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
                         </div>
                       </div>
-                    )}
+                    );
+                  }
+
+                  const currentCoding = currentItem.data;
+                  return (
+                    <div className="flex-1 flex flex-row overflow-hidden items-stretch w-full">
+                      {/* Resizable Question Panel & Coding Workspace */}
+                      {!isDescriptionCollapsed && (
+                        <div 
+                          style={{ width: isFullscreenQuestion ? '100%' : `${questionWidth}px` }} 
+                          className={`flex-shrink-0 flex flex-col bg-slate-900 border-r border-white/10 overflow-hidden relative transition-all duration-100 ${
+                            isFullscreenQuestion ? 'fixed inset-0 z-50 bg-slate-950 p-6' : ''
+                          }`}
+                        >
+                          <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-slate-950/80 border-b border-white/5 sticky top-0 z-10">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                              <BookOpen className="h-3.5 w-3.5 text-indigo-400" />
+                              Problem Statement
+                            </span>
+                            
+                            <div className="flex items-center gap-2">
+                              {!isFullscreenQuestion && (
+                                <div className="flex items-center gap-1 bg-slate-950/60 p-0.5 rounded-lg border border-white/5 mr-2">
+                                  <button onClick={() => setWidthPercent(0.25)} className="px-2 py-0.5 text-[9px] font-bold rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-all">25%</button>
+                                  <button onClick={() => setWidthPercent(0.40)} className="px-2 py-0.5 text-[9px] font-bold rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-all">40%</button>
+                                  <button onClick={() => setWidthPercent(0.50)} className="px-2 py-0.5 text-[9px] font-bold rounded hover:bg-slate-800 text-slate-400 hover:text-white transition-all">50%</button>
+                                </div>
+                              )}
+                              <button onClick={() => setIsFullscreenQuestion(!isFullscreenQuestion)} className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors">
+                                {isFullscreenQuestion ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                              </button>
+                              {!isFullscreenQuestion && (
+                                <button onClick={() => setIsDescriptionCollapsed(true)} className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors">
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                            <div>
+                              <h2 className="text-base font-extrabold text-white">{currentCoding.title}</h2>
+                              <div className="flex items-center gap-2 mt-2 text-[9px] font-bold">
+                                <span className="bg-slate-950 px-2 py-0.5 border border-white/5 rounded text-indigo-400 uppercase">{currentCoding.difficulty}</span>
+                                <span className="bg-slate-950 px-2 py-0.5 border border-white/5 rounded text-slate-400">{currentCoding.marks} pts</span>
+                              </div>
+                            </div>
+
+                            <div className="text-xs text-slate-300 leading-relaxed font-mono whitespace-pre-wrap">
+                              {currentCoding.description}
+                            </div>
+
+                            <div className="p-3 bg-slate-950/60 rounded-xl border border-white/5 space-y-2 text-[10px] font-mono shadow-inner">
+                              <div className="font-bold text-slate-400 uppercase tracking-widest text-[8px]">Constraints & Limits</div>
+                              <div className="grid grid-cols-2 gap-2 text-slate-300 text-[9px]">
+                                <div>Time Limit: <span className="text-indigo-400 font-bold">{currentCoding.time_limit || 2} seconds</span></div>
+                                <div>Memory Limit: <span className="text-indigo-400 font-bold">{currentCoding.memory_limit || 256} MB</span></div>
+                              </div>
+                            </div>
+
+                            {currentCoding.testCases && currentCoding.testCases.length > 0 && (
+                              <div className="space-y-3.5 pt-4 border-t border-white/5">
+                                <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest font-black block">Sample Cases</span>
+                                <div className="space-y-3.5">
+                                  {currentCoding.testCases.map((tc: any, tcIdx: number) => (
+                                    <div key={tc.id || tcIdx} className="p-3 bg-slate-950/80 rounded-xl border border-white/5 space-y-2 text-[10px] font-mono shadow-inner">
+                                      <div className="font-bold text-slate-400">Sample Test Case #{tcIdx + 1}</div>
+                                      <div className="space-y-2">
+                                        <div>
+                                          <div className="text-[8px] text-slate-500 uppercase tracking-wider mb-0.5">Input:</div>
+                                          <pre className="bg-slate-900 p-2 rounded text-slate-350 overflow-x-auto whitespace-pre-wrap max-h-[80px]">{tc.input}</pre>
+                                        </div>
+                                        <div>
+                                          <div className="text-[8px] text-slate-500 uppercase tracking-wider mb-0.5">Expected Output:</div>
+                                          <pre className="bg-slate-900 p-2 rounded text-slate-350 overflow-x-auto whitespace-pre-wrap max-h-[80px]">{tc.expected_output}</pre>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+
 
                     {/* Drag Handle 1: Between Question Panel and Code Editor */}
                     {!isDescriptionCollapsed && !isFullscreenQuestion && !isFullscreenEditor && (
