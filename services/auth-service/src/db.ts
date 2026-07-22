@@ -183,6 +183,9 @@ export async function initDb() {
         randomize_questions BOOLEAN DEFAULT FALSE,
         is_mandatory BOOLEAN DEFAULT TRUE,
         sort_order INTEGER DEFAULT 0,
+        enable_cutoff BOOLEAN DEFAULT FALSE,
+        cutoff_percentage DECIMAL(5, 2) DEFAULT NULL,
+        cutoff_marks DECIMAL(5, 2) DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -344,10 +347,13 @@ export async function initDb() {
       );
     `);
 
-    // Ensure section_id columns exist
+    // Ensure section_id columns and section cutoff columns exist
     await client.query(`
       ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS section_id UUID REFERENCES sections(id) ON DELETE SET NULL;
       ALTER TABLE coding_questions ADD COLUMN IF NOT EXISTS section_id UUID REFERENCES sections(id) ON DELETE SET NULL;
+      ALTER TABLE sections ADD COLUMN IF NOT EXISTS enable_cutoff BOOLEAN DEFAULT FALSE;
+      ALTER TABLE sections ADD COLUMN IF NOT EXISTS cutoff_percentage DECIMAL(5, 2) DEFAULT NULL;
+      ALTER TABLE sections ADD COLUMN IF NOT EXISTS cutoff_marks DECIMAL(5, 2) DEFAULT NULL;
     `);
 
     // Run data migration for older exams that do not have sections configured

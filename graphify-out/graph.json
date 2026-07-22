@@ -65,42 +65,6 @@
       "norm_label": "copy-env-examples.sh script"
     },
     {
-      "label": "fix_errors.py",
-      "file_type": "code",
-      "source_file": ".gemini/antigravity/brain/f6905565-85a3-4a79-acd3-cd90d6fab191/scratch/fix_errors.py",
-      "source_location": "L1",
-      "id": "gemini_antigravity_brain_f6905565_85a3_4a79_acd3_cd90d6fab191_scratch_fix_errors_py",
-      "community": 77,
-      "norm_label": "fix_errors.py"
-    },
-    {
-      "label": "replace_editor.py",
-      "file_type": "code",
-      "source_file": ".gemini/antigravity/brain/f6905565-85a3-4a79-acd3-cd90d6fab191/scratch/replace_editor.py",
-      "source_location": "L1",
-      "id": "gemini_antigravity_brain_f6905565_85a3_4a79_acd3_cd90d6fab191_scratch_replace_editor_py",
-      "community": 78,
-      "norm_label": "replace_editor.py"
-    },
-    {
-      "label": "search_sections.py",
-      "file_type": "code",
-      "source_file": ".gemini/antigravity/brain/f6905565-85a3-4a79-acd3-cd90d6fab191/scratch/search_sections.py",
-      "source_location": "L1",
-      "id": "gemini_antigravity_brain_f6905565_85a3_4a79_acd3_cd90d6fab191_scratch_search_sections_py",
-      "community": 79,
-      "norm_label": "search_sections.py"
-    },
-    {
-      "label": "search_starter_code.py",
-      "file_type": "code",
-      "source_file": ".gemini/antigravity/brain/f6905565-85a3-4a79-acd3-cd90d6fab191/scratch/search_starter_code.py",
-      "source_location": "L1",
-      "id": "gemini_antigravity_brain_f6905565_85a3_4a79_acd3_cd90d6fab191_scratch_search_starter_code_py",
-      "community": 80,
-      "norm_label": "search_starter_code.py"
-    },
-    {
       "label": "host.json",
       "file_type": "code",
       "source_file": "functions/host.json",
@@ -2844,10 +2808,28 @@
       "norm_label": "testcaseresults"
     },
     {
+      "label": "mcqRespMap",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1532",
+      "id": "src_index_mcqrespmap",
+      "community": 7,
+      "norm_label": "mcqrespmap"
+    },
+    {
+      "label": "codingRespMap",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1535",
+      "id": "src_index_codingrespmap",
+      "community": 7,
+      "norm_label": "codingrespmap"
+    },
+    {
       "label": "mcqScore",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1523",
+      "source_location": "L1540",
       "id": "src_index_mcqscore",
       "community": 7,
       "norm_label": "mcqscore"
@@ -2856,7 +2838,7 @@
       "label": "codingScore",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1527",
+      "source_location": "L1543",
       "id": "src_index_codingscore",
       "community": 7,
       "norm_label": "codingscore"
@@ -2865,7 +2847,7 @@
       "label": "mcqMax",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1539",
+      "source_location": "L1549",
       "id": "src_index_mcqmax",
       "community": 7,
       "norm_label": "mcqmax"
@@ -2874,16 +2856,43 @@
       "label": "codingMax",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1540",
+      "source_location": "L1550",
       "id": "src_index_codingmax",
       "community": 7,
       "norm_label": "codingmax"
     },
     {
+      "label": "failedSectionReasons",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1557",
+      "id": "src_index_failedsectionreasons",
+      "community": 7,
+      "norm_label": "failedsectionreasons"
+    },
+    {
+      "label": "sMcqs",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1563",
+      "id": "src_index_smcqs",
+      "community": 7,
+      "norm_label": "smcqs"
+    },
+    {
+      "label": "sCodings",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1564",
+      "id": "src_index_scodings",
+      "community": 7,
+      "norm_label": "scodings"
+    },
+    {
       "label": "scheduleDate",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1779",
+      "source_location": "L1821",
       "id": "src_index_scheduledate",
       "community": 7,
       "norm_label": "scheduledate"
@@ -2892,10 +2901,37 @@
       "label": "examEndTime",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1782",
+      "source_location": "L1824",
       "id": "src_index_examendtime",
       "community": 7,
       "norm_label": "examendtime"
+    },
+    {
+      "label": "userMcqMap",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1864",
+      "id": "src_index_usermcqmap",
+      "community": 7,
+      "norm_label": "usermcqmap"
+    },
+    {
+      "label": "userCodingMap",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1867",
+      "id": "src_index_usercodingmap",
+      "community": 7,
+      "norm_label": "usercodingmap"
+    },
+    {
+      "label": "sectionResults",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1870",
+      "id": "src_index_sectionresults",
+      "community": 7,
+      "norm_label": "sectionresults"
     },
     {
       "label": "package.json",
@@ -12788,6 +12824,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1535",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_codingrespmap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
       "source_location": "L1385",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -12858,6 +12904,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1557",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_failedsectionreasons",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
       "source_location": "L910",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -12903,6 +12959,16 @@
       "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
       "target": "src_index_mcqmax"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1532",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_mcqrespmap",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -12998,6 +13064,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1564",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_scodings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
       "source_location": "L1353",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -13028,6 +13104,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1870",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_sectionresults",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
       "source_location": "L916",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -13048,11 +13134,41 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1563",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_smcqs",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
       "source_location": "L1117",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
       "target": "src_index_testcaseresults"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1867",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_usercodingmap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1864",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_usermcqmap",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -20644,5 +20760,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "caa00e7443e23bd9298d93b927378478b10bf2e0"
+  "built_at_commit": "c9c38ffc11c859356aea15e9ebaaa43fa6e4ba81"
 }

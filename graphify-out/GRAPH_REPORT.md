@@ -1,16 +1,16 @@
-# Graph Report - clahan academy  (2026-07-21)
+# Graph Report - clahan academy  (2026-07-22)
 
 ## Corpus Check
-- 60 files · ~120,148 words
+- 56 files · ~115,508 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1075 nodes · 1078 edges · 81 communities (74 shown, 7 thin omitted)
+- 1079 nodes · 1086 edges · 77 communities (70 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `caa00e74`
+- Built from commit: `c9c38ffc`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -103,7 +103,7 @@
 ## Surprising Connections (you probably didn't know these)
 - None detected - all connections are within the same source files.
 
-## Communities (81 total, 7 thin omitted)
+## Communities (77 total, 7 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
@@ -135,7 +135,7 @@ Nodes (24): dependencies, bullmq, cors, dotenv, express, helmet, nodemailer, red
 
 ### Community 7 - "Community 7"
 Cohesion: 0.04
-Nodes (39): app, AuthenticatedRequest, dataRows, limiter, lines, notificationPayloads, notificationQueue, parsed (+31 more)
+Nodes (47): app, AuthenticatedRequest, dataRows, limiter, lines, notificationPayloads, notificationQueue, parsed (+39 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.11
@@ -366,7 +366,7 @@ Cohesion: 0.67
 Nodes (3): query(), now, validateAttemptNotExpired()
 
 ## Knowledge Gaps
-- **662 isolated node(s):** `build-and-push.sh script`, `copy-env-examples.sh script`, `version`, `isEnabled`, `excludedTypes` (+657 more)
+- **670 isolated node(s):** `build-and-push.sh script`, `copy-env-examples.sh script`, `version`, `isEnabled`, `excludedTypes` (+665 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -374,11 +374,11 @@ Nodes (3): query(), now, validateAttemptNotExpired()
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Clahan Academy V2 — Complete System Documentation & Architecture Guide` connect `Community 35` to `Community 36`?**
-  _High betweenness centrality (0.002) - this node is a cross-community bridge._
+  _High betweenness centrality (0.003) - this node is a cross-community bridge._
 - **Why does `⚡ 6. Detailed API Reference` connect `Community 36` to `Community 35`?**
   _High betweenness centrality (0.002) - this node is a cross-community bridge._
 - **What connects `build-and-push.sh script`, `copy-env-examples.sh script`, `version` to the rest of the system?**
-  _663 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _671 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**

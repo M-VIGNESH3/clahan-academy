@@ -430,9 +430,9 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
     const sectionIdMap: { [oldId: string]: string } = {};
     for (const s of sections.rows) {
       const newSect = await query(
-        `INSERT INTO sections (exam_id, name, description, section_type, duration_minutes, randomize_questions, is_mandatory, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-        [newExamId, s.name, s.description || '', s.section_type, s.duration_minutes, s.randomize_questions === true, s.is_mandatory !== false, s.sort_order]
+        `INSERT INTO sections (exam_id, name, description, section_type, duration_minutes, randomize_questions, is_mandatory, sort_order, enable_cutoff, cutoff_percentage, cutoff_marks)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+        [newExamId, s.name, s.description || '', s.section_type, s.duration_minutes, s.randomize_questions === true, s.is_mandatory !== false, s.sort_order, s.enable_cutoff === true, s.cutoff_percentage || null, s.cutoff_marks || null]
       );
       sectionIdMap[s.id] = newSect.rows[0].id;
     }
@@ -1518,82 +1518,124 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
       console.error('ERROR during auto-evaluating draft coding answers:', evalErr);
     }
 
-    // Compute MCQ scores
+    // Fetch sections for section-wise evaluation
+    const sectionsRes = await query('SELECT * FROM sections WHERE exam_id = $1 ORDER BY sort_order ASC', [examId]);
+    const sectionsList = sectionsRes.rows;
+
+    // Fetch questions and responses to calculate section-level breakdown
+    const allMcqs = await query('SELECT id, section_id, marks FROM mcq_questions WHERE exam_id = $1', [examId]);
+    const allCodings = await query('SELECT id, section_id, marks FROM coding_questions WHERE exam_id = $1', [examId]);
+
+    const userMcqResp = await query('SELECT question_id, marks_obtained FROM mcq_responses WHERE attempt_id = $1', [attemptId]);
+    const userCodingResp = await query('SELECT question_id, marks_obtained FROM coding_responses WHERE attempt_id = $1', [attemptId]);
+
+    const mcqRespMap = new Map<string, number>();
+    for (const r of userMcqResp.rows) mcqRespMap.set(r.question_id, parseInt(r.marks_obtained) || 0);
+
+    const codingRespMap = new Map<string, number>();
+    for (const r of userCodingResp.rows) codingRespMap.set(r.question_id, parseInt(r.marks_obtained) || 0);
+
+    // Compute Overall Scores
     const mcqsScoreRes = await query('SELECT COALESCE(SUM(marks_obtained), 0) as sum FROM mcq_responses WHERE attempt_id = $1', [attemptId]);
     const mcqScore = parseInt(mcqsScoreRes.rows[0].sum);
 
-    // Compute Coding scores
     const codingScoreRes = await query('SELECT COALESCE(SUM(marks_obtained), 0) as sum FROM coding_responses WHERE attempt_id = $1', [attemptId]);
     const codingScore = parseInt(codingScoreRes.rows[0].sum);
 
     const totalScore = mcqScore + codingScore;
 
-    // Find max score possible
     const mcqMaxRes = await query('SELECT COALESCE(SUM(marks), 0) as sum FROM mcq_questions WHERE exam_id = $1', [examId]);
     const codingMaxRes = await query('SELECT COALESCE(SUM(marks), 0) as sum FROM coding_questions WHERE exam_id = $1', [examId]);
-    const maxScorePossible = parseInt(mcqMaxRes.rows[0].sum) + parseInt(codingMaxRes.rows[0].sum);
-
-    const percentage = maxScorePossible > 0 ? (totalScore / maxScorePossible) * 100 : 0.0;
-    const overallPassedByScore = percentage >= exam.cutoff_percentage;
-
     const mcqMax = parseInt(mcqMaxRes.rows[0].sum);
     const codingMax = parseInt(codingMaxRes.rows[0].sum);
+    const maxScorePossible = mcqMax + codingMax;
 
+    const percentage = maxScorePossible > 0 ? (totalScore / maxScorePossible) * 100 : 0.0;
+    const overallPassedByScore = percentage >= (exam.cutoff_percentage || 50);
+
+    let allSectionsPassed = true;
+    let failedSectionReasons: string[] = [];
     let mcqSectionPassed = true;
-    let mcqPercentage = 0;
-    if (mcqMax > 0) {
-      mcqPercentage = (mcqScore / mcqMax) * 100;
-      if (exam.enable_section_cutoff) {
+    let codingSectionPassed = true;
+
+    if (sectionsList.length > 0) {
+      for (const s of sectionsList) {
+        const sMcqs = allMcqs.rows.filter((q: any) => q.section_id === s.id);
+        const sCodings = allCodings.rows.filter((q: any) => q.section_id === s.id);
+
+        const sMaxMarks = sMcqs.reduce((acc: number, q: any) => acc + (q.marks || 1), 0) +
+                          sCodings.reduce((acc: number, q: any) => acc + (q.marks || 10), 0);
+
+        const sObtainedMarks = sMcqs.reduce((acc: number, q: any) => acc + (mcqRespMap.get(q.id) || 0), 0) +
+                              sCodings.reduce((acc: number, q: any) => acc + (codingRespMap.get(q.id) || 0), 0);
+
+        const sPct = sMaxMarks > 0 ? (sObtainedMarks / sMaxMarks) * 100 : 0.0;
+
+        let sPassed = true;
+        if (s.enable_cutoff) {
+          if (s.cutoff_marks !== null && s.cutoff_marks !== undefined && parseFloat(s.cutoff_marks) > 0) {
+            sPassed = sObtainedMarks >= parseFloat(s.cutoff_marks);
+          } else if (s.cutoff_percentage !== null && s.cutoff_percentage !== undefined) {
+            sPassed = sPct >= parseFloat(s.cutoff_percentage);
+          }
+        } else if (exam.enable_section_cutoff) {
+          if (s.section_type === 'mcq' && mcqMax > 0) {
+            if (exam.mcq_cutoff_marks !== null && parseFloat(exam.mcq_cutoff_marks) > 0) {
+              sPassed = mcqScore >= parseFloat(exam.mcq_cutoff_marks);
+            } else {
+              sPassed = (mcqScore / mcqMax) * 100 >= parseFloat(exam.mcq_cutoff_percentage || '50');
+            }
+          } else if (s.section_type === 'coding' && codingMax > 0) {
+            if (exam.coding_cutoff_marks !== null && parseFloat(exam.coding_cutoff_marks) > 0) {
+              sPassed = codingScore >= parseFloat(exam.coding_cutoff_marks);
+            } else {
+              sPassed = (codingScore / codingMax) * 100 >= parseFloat(exam.coding_cutoff_percentage || '50');
+            }
+          }
+        }
+
+        if (s.section_type === 'mcq') mcqSectionPassed = mcqSectionPassed && sPassed;
+        if (s.section_type === 'coding') codingSectionPassed = codingSectionPassed && sPassed;
+
+        if (!sPassed && (s.is_mandatory !== false || s.enable_cutoff || exam.enable_section_cutoff)) {
+          allSectionsPassed = false;
+          failedSectionReasons.push(`${s.name} section cutoff not cleared`);
+        }
+      }
+    } else if (exam.enable_section_cutoff) {
+      if (mcqMax > 0) {
         if (exam.mcq_cutoff_marks !== null && parseFloat(exam.mcq_cutoff_marks) > 0) {
           mcqSectionPassed = mcqScore >= parseFloat(exam.mcq_cutoff_marks);
         } else {
-          mcqSectionPassed = mcqPercentage >= parseFloat(exam.mcq_cutoff_percentage || '50.00');
+          mcqSectionPassed = (mcqScore / mcqMax) * 100 >= parseFloat(exam.mcq_cutoff_percentage || '50');
+        }
+        if (!mcqSectionPassed) {
+          allSectionsPassed = false;
+          failedSectionReasons.push('MCQ section cutoff not cleared');
         }
       }
-    }
-
-    let codingSectionPassed = true;
-    let codingPercentage = 0;
-    if (codingMax > 0) {
-      codingPercentage = (codingScore / codingMax) * 100;
-      if (exam.enable_section_cutoff) {
+      if (codingMax > 0) {
         if (exam.coding_cutoff_marks !== null && parseFloat(exam.coding_cutoff_marks) > 0) {
           codingSectionPassed = codingScore >= parseFloat(exam.coding_cutoff_marks);
         } else {
-          codingSectionPassed = codingPercentage >= parseFloat(exam.coding_cutoff_percentage || '50.00');
+          codingSectionPassed = (codingScore / codingMax) * 100 >= parseFloat(exam.coding_cutoff_percentage || '50');
+        }
+        if (!codingSectionPassed) {
+          allSectionsPassed = false;
+          failedSectionReasons.push('Coding section cutoff not cleared');
         }
       }
     }
 
-    let finalPassed = overallPassedByScore;
+    let finalPassed = overallPassedByScore && allSectionsPassed;
     let failureReason = '';
-
-    if (exam.enable_section_cutoff) {
-      if (!mcqSectionPassed) {
-        finalPassed = false;
-        failureReason = 'MCQ section cutoff not cleared';
-      }
-      if (!codingSectionPassed) {
-        finalPassed = false;
-        if (failureReason) {
-          failureReason += ' and Coding section cutoff not cleared';
-        } else {
-          failureReason = 'Coding section cutoff not cleared';
-        }
-      }
-      if (overallPassedByScore && !finalPassed) {
-        // Did not clear section cutoff(s) but met overall percentage
-      } else if (!overallPassedByScore) {
-        if (failureReason) {
-          failureReason += ' and overall cutoff not cleared';
-        } else {
-          failureReason = 'Overall cutoff not cleared';
-        }
-      }
-    } else {
+    if (!allSectionsPassed) {
+      failureReason = failedSectionReasons.join(' and ');
       if (!overallPassedByScore) {
-        failureReason = 'Overall cutoff not cleared';
+        failureReason += ' and overall cutoff not cleared';
       }
+    } else if (!overallPassedByScore) {
+      failureReason = 'Overall cutoff not cleared';
     }
 
     // Log result calculation details and score breakdown
@@ -1814,13 +1856,76 @@ app.get('/api/exams/student/attempts/:attemptId/result', authenticate, async (re
       [attemptId]
     );
 
+    // Compute section-wise results breakdown
+    const sectionsRes = await query('SELECT * FROM sections WHERE exam_id = $1 ORDER BY sort_order ASC', [attempt.exam_id]);
+    const allMcqQs = await query('SELECT id, section_id, marks FROM mcq_questions WHERE exam_id = $1', [attempt.exam_id]);
+    const allCodingQs = await query('SELECT id, section_id, marks FROM coding_questions WHERE exam_id = $1', [attempt.exam_id]);
+
+    const userMcqMap = new Map<string, number>();
+    for (const r of mcqResponses.rows) userMcqMap.set(r.question_id, parseInt(r.marks_obtained) || 0);
+
+    const userCodingMap = new Map<string, number>();
+    for (const r of codingResponses.rows) userCodingMap.set(r.question_id, parseInt(r.marks_obtained) || 0);
+
+    const sectionResults = sectionsRes.rows.map((s: any) => {
+      const sMcqs = allMcqQs.rows.filter((q: any) => q.section_id === s.id);
+      const sCodings = allCodingQs.rows.filter((q: any) => q.section_id === s.id);
+
+      const maxMarks = sMcqs.reduce((acc: number, q: any) => acc + (parseInt(q.marks) || 1), 0) +
+                       sCodings.reduce((acc: number, q: any) => acc + (parseInt(q.marks) || 10), 0);
+
+      const obtainedMarks = sMcqs.reduce((acc: number, q: any) => acc + (userMcqMap.get(q.id) || 0), 0) +
+                            sCodings.reduce((acc: number, q: any) => acc + (userCodingMap.get(q.id) || 0), 0);
+
+      const pct = maxMarks > 0 ? (obtainedMarks / maxMarks) * 100 : 0.0;
+
+      let passed = true;
+      if (s.enable_cutoff) {
+        if (s.cutoff_marks !== null && s.cutoff_marks !== undefined && parseFloat(s.cutoff_marks) > 0) {
+          passed = obtainedMarks >= parseFloat(s.cutoff_marks);
+        } else if (s.cutoff_percentage !== null && s.cutoff_percentage !== undefined) {
+          passed = pct >= parseFloat(s.cutoff_percentage);
+        }
+      } else if (attempt.enable_section_cutoff) {
+        if (s.section_type === 'mcq' && attempt.max_mcq > 0) {
+          if (attempt.mcq_cutoff_marks > 0) {
+            passed = attempt.mcq_score >= parseFloat(attempt.mcq_cutoff_marks);
+          } else {
+            passed = (attempt.mcq_score / attempt.max_mcq) * 100 >= parseFloat(attempt.mcq_cutoff_percentage || '50');
+          }
+        } else if (s.section_type === 'coding' && attempt.max_coding > 0) {
+          if (attempt.coding_cutoff_marks > 0) {
+            passed = attempt.coding_score >= parseFloat(attempt.coding_cutoff_marks);
+          } else {
+            passed = (attempt.coding_score / attempt.max_coding) * 100 >= parseFloat(attempt.coding_cutoff_percentage || '50');
+          }
+        }
+      }
+
+      return {
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        section_type: s.section_type,
+        is_mandatory: s.is_mandatory !== false,
+        enable_cutoff: s.enable_cutoff === true,
+        cutoff_percentage: s.cutoff_percentage !== null ? parseFloat(s.cutoff_percentage) : null,
+        cutoff_marks: s.cutoff_marks !== null ? parseFloat(s.cutoff_marks) : null,
+        maxMarks,
+        obtainedMarks,
+        percentage: parseFloat(pct.toFixed(2)),
+        passed
+      };
+    });
+
     res.json({
       attempt: {
         ...attempt,
         maxScore
       },
       mcqResponses: mcqResponses.rows,
-      codingResponses: codingResponses.rows
+      codingResponses: codingResponses.rows,
+      sectionResults
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -1864,14 +1969,18 @@ app.get('/api/exams/:examId/sections', authenticate, async (req, res) => {
 app.post('/api/exams/:examId/sections', authenticate, requireRole('admin'), async (req, res) => {
   try {
     const { examId } = req.params;
-    const { name, description, sectionType, durationMinutes, randomizeQuestions, isMandatory, sortOrder } = req.body;
+    const { name, description, sectionType, durationMinutes, randomizeQuestions, isMandatory, sortOrder, enableCutoff, cutoffPercentage, cutoffMarks } = req.body;
     if (!name || !sectionType) {
       return res.status(400).json({ error: 'Section Name and Section Type are required' });
     }
+    const isCutoffEnabled = enableCutoff === true;
+    const finalPct = isCutoffEnabled && cutoffPercentage !== undefined && cutoffPercentage !== null && cutoffPercentage !== '' ? parseFloat(cutoffPercentage) : null;
+    const finalMarks = isCutoffEnabled && cutoffMarks !== undefined && cutoffMarks !== null && cutoffMarks !== '' ? parseFloat(cutoffMarks) : null;
+
     const result = await query(
-      `INSERT INTO sections (exam_id, name, description, section_type, duration_minutes, randomize_questions, is_mandatory, sort_order)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-      [examId, name, description || '', sectionType, durationMinutes || null, randomizeQuestions === true, isMandatory !== false, sortOrder || 0]
+      `INSERT INTO sections (exam_id, name, description, section_type, duration_minutes, randomize_questions, is_mandatory, sort_order, enable_cutoff, cutoff_percentage, cutoff_marks)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      [examId, name, description || '', sectionType, durationMinutes || null, randomizeQuestions === true, isMandatory !== false, sortOrder || 0, isCutoffEnabled, finalPct, finalMarks]
     );
     res.status(201).json(result.rows[0]);
   } catch (err: any) {
@@ -1882,15 +1991,20 @@ app.post('/api/exams/:examId/sections', authenticate, requireRole('admin'), asyn
 app.put('/api/sections/:id', authenticate, requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, durationMinutes, randomizeQuestions, isMandatory, sortOrder } = req.body;
+    const { name, description, durationMinutes, randomizeQuestions, isMandatory, sortOrder, enableCutoff, cutoffPercentage, cutoffMarks } = req.body;
     if (!name) {
       return res.status(400).json({ error: 'Section Name is required' });
     }
+    const isCutoffEnabled = enableCutoff === true;
+    const finalPct = isCutoffEnabled && cutoffPercentage !== undefined && cutoffPercentage !== null && cutoffPercentage !== '' ? parseFloat(cutoffPercentage) : null;
+    const finalMarks = isCutoffEnabled && cutoffMarks !== undefined && cutoffMarks !== null && cutoffMarks !== '' ? parseFloat(cutoffMarks) : null;
+
     const result = await query(
       `UPDATE sections 
-       SET name = $1, description = $2, duration_minutes = $3, randomize_questions = $4, is_mandatory = $5, sort_order = $6
-       WHERE id = $7 RETURNING *`,
-      [name, description || '', durationMinutes || null, randomizeQuestions === true, isMandatory !== false, sortOrder || 0, id]
+       SET name = $1, description = $2, duration_minutes = $3, randomize_questions = $4, is_mandatory = $5, sort_order = $6,
+           enable_cutoff = $7, cutoff_percentage = $8, cutoff_marks = $9
+       WHERE id = $10 RETURNING *`,
+      [name, description || '', durationMinutes || null, randomizeQuestions === true, isMandatory !== false, sortOrder || 0, isCutoffEnabled, finalPct, finalMarks, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Section not found' });
     res.json(result.rows[0]);

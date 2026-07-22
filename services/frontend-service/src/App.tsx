@@ -268,8 +268,10 @@ export default function App() {
   const [selectedSectionIdForMcq, setSelectedSectionIdForMcq] = useState<string>('');
   const [selectedSectionIdForCoding, setSelectedSectionIdForCoding] = useState<string>('');
   const [sectionForm, setSectionForm] = useState({
-    name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true
+    name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true,
+    enableCutoff: false, cutoffMode: 'percentage' as 'percentage' | 'marks', cutoffPercentage: '', cutoffMarks: ''
   });
+  const [isEvaluationRulesOpen, setIsEvaluationRulesOpen] = useState(true);
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [examWorkspaceTab, setExamWorkspaceTab] = useState<'overview' | 'sections' | 'questions' | 'schedule' | 'results' | 'reports' | 'review'>('overview');
@@ -1301,13 +1303,16 @@ export default function App() {
           sectionType: sectionForm.sectionType,
           durationMinutes: sectionForm.durationMinutes ? parseInt(sectionForm.durationMinutes) : null,
           randomizeQuestions: sectionForm.randomizeQuestions,
-          isMandatory: sectionForm.isMandatory
+          isMandatory: sectionForm.isMandatory,
+          enableCutoff: sectionForm.enableCutoff,
+          cutoffPercentage: sectionForm.cutoffMode === 'percentage' ? sectionForm.cutoffPercentage : null,
+          cutoffMarks: sectionForm.cutoffMode === 'marks' ? sectionForm.cutoffMarks : null
         })
       });
       if (res.ok) {
         showToast('Section created successfully');
         setIsSectionModalOpen(false);
-        setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true });
+        setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
         loadAdminExamQuestions(selectedExamIdForQuestions);
       }
     } catch (err) {
@@ -1328,14 +1333,17 @@ export default function App() {
           description: sectionForm.description,
           durationMinutes: sectionForm.durationMinutes ? parseInt(sectionForm.durationMinutes) : null,
           randomizeQuestions: sectionForm.randomizeQuestions,
-          isMandatory: sectionForm.isMandatory
+          isMandatory: sectionForm.isMandatory,
+          enableCutoff: sectionForm.enableCutoff,
+          cutoffPercentage: sectionForm.cutoffMode === 'percentage' ? sectionForm.cutoffPercentage : null,
+          cutoffMarks: sectionForm.cutoffMode === 'marks' ? sectionForm.cutoffMarks : null
         })
       });
       if (res.ok) {
         showToast('Section updated successfully');
         setEditingSectionId(null);
         setIsSectionModalOpen(false);
-        setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true });
+        setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
         loadAdminExamQuestions(selectedExamIdForQuestions);
       }
     } catch (err) {
@@ -6184,7 +6192,7 @@ export default function App() {
                     {!isSectionModalOpen && (
                       <button
                         onClick={() => {
-                          setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true });
+                          setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
                           setEditingSectionId(null);
                           setIsSectionModalOpen(true);
                         }}
@@ -6279,6 +6287,81 @@ export default function App() {
                         </label>
                       </div>
 
+                      {/* Evaluation Rules Collapsible Panel */}
+                      <div className="p-4 rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-white/60 dark:bg-slate-900/60 space-y-3">
+                        <div 
+                          className="flex justify-between items-center cursor-pointer select-none"
+                          onClick={() => setIsEvaluationRulesOpen(!isEvaluationRulesOpen)}
+                        >
+                          <h5 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                            Evaluation Rules
+                          </h5>
+                          <span className="text-[10px] text-muted-foreground font-semibold">
+                            {isEvaluationRulesOpen ? '▲ Hide Rules' : '▼ Configure Cutoffs'}
+                          </span>
+                        </div>
+
+                        {isEvaluationRulesOpen && (
+                          <div className="space-y-3 pt-2 border-t border-slate-200/60 dark:border-slate-800/60 animate-fadeIn">
+                            <label className="flex items-center gap-2 cursor-pointer text-xs font-bold select-none text-slate-800 dark:text-slate-200">
+                              <input 
+                                type="checkbox" 
+                                checked={sectionForm.enableCutoff} 
+                                onChange={e => setSectionForm({ ...sectionForm, enableCutoff: e.target.checked })} 
+                                className="h-4 w-4 text-indigo-600 rounded border-slate-300 dark:border-slate-700 bg-transparent" 
+                              />
+                              Enable Section Cutoff
+                            </label>
+
+                            {sectionForm.enableCutoff && (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                                <div className="space-y-1.5">
+                                  <label className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase text-slate-700 dark:text-slate-300 cursor-pointer">
+                                    <input 
+                                      type="radio" 
+                                      name="cutoffMode" 
+                                      checked={sectionForm.cutoffMode === 'percentage'} 
+                                      onChange={() => setSectionForm({ ...sectionForm, cutoffMode: 'percentage', cutoffMarks: '' })} 
+                                    />
+                                    Passing Percentage (%)
+                                  </label>
+                                  <input 
+                                    type="number" 
+                                    disabled={sectionForm.cutoffMode !== 'percentage'} 
+                                    value={sectionForm.cutoffPercentage} 
+                                    onChange={e => setSectionForm({ ...sectionForm, cutoffPercentage: e.target.value, cutoffMarks: '' })} 
+                                    placeholder="e.g. 40" 
+                                    className="w-full p-2 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white border-slate-200 dark:border-slate-800 disabled:opacity-30" 
+                                    min={0} 
+                                    max={100} 
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <label className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase text-slate-700 dark:text-slate-300 cursor-pointer">
+                                    <input 
+                                      type="radio" 
+                                      name="cutoffMode" 
+                                      checked={sectionForm.cutoffMode === 'marks'} 
+                                      onChange={() => setSectionForm({ ...sectionForm, cutoffMode: 'marks', cutoffPercentage: '' })} 
+                                    />
+                                    Passing Marks
+                                  </label>
+                                  <input 
+                                    type="number" 
+                                    disabled={sectionForm.cutoffMode !== 'marks'} 
+                                    value={sectionForm.cutoffMarks} 
+                                    onChange={e => setSectionForm({ ...sectionForm, cutoffMarks: e.target.value, cutoffPercentage: '' })} 
+                                    placeholder="e.g. 8" 
+                                    className="w-full p-2 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white border-slate-200 dark:border-slate-800 disabled:opacity-30" 
+                                    min={0} 
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="flex gap-2 justify-end pt-2">
                         <button 
                           type="button" 
@@ -6311,6 +6394,11 @@ export default function App() {
                             </span>
                             {sect.is_mandatory && <span className="px-2 py-0.5 rounded-full text-[9px] bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 font-bold">Mandatory</span>}
                             {sect.randomize_questions && <span className="px-2 py-0.5 rounded-full text-[9px] bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold">Randomized</span>}
+                            {sect.enable_cutoff && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800">
+                                Cutoff: {sect.cutoff_marks !== null && sect.cutoff_marks !== undefined ? `${sect.cutoff_marks} Marks` : `${sect.cutoff_percentage}%`}
+                              </span>
+                            )}
                           </div>
                           {sect.description && <p className="text-[10px] text-muted-foreground max-w-xl">{sect.description}</p>}
                           <div className="text-[10px] text-muted-foreground flex gap-3">
@@ -6345,7 +6433,11 @@ export default function App() {
                                 sectionType: sect.section_type,
                                 durationMinutes: sect.duration_minutes ? String(sect.duration_minutes) : '',
                                 randomizeQuestions: sect.randomize_questions || false,
-                                isMandatory: sect.is_mandatory !== false
+                                isMandatory: sect.is_mandatory !== false,
+                                enableCutoff: sect.enable_cutoff === true,
+                                cutoffMode: sect.cutoff_marks !== null && sect.cutoff_marks !== undefined ? 'marks' : 'percentage',
+                                cutoffPercentage: sect.cutoff_percentage !== null && sect.cutoff_percentage !== undefined ? String(sect.cutoff_percentage) : '',
+                                cutoffMarks: sect.cutoff_marks !== null && sect.cutoff_marks !== undefined ? String(sect.cutoff_marks) : ''
                               });
                               setEditingSectionId(sect.id);
                               setIsSectionModalOpen(true);
@@ -8649,60 +8741,72 @@ export default function App() {
               </div>
             </div>
 
-            {/* Section-wise Cutoffs Summary Card */}
-            {detailedResult.attempt.enable_section_cutoff && (
+            {/* Section-wise Cutoffs Performance Summary Card */}
+            {(detailedResult.sectionResults?.length > 0 || detailedResult.attempt.enable_section_cutoff) && (
               <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 space-y-4">
                 <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
                   <CheckCircle className="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />
                   Section-wise Cutoffs Performance
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* MCQ Section Cutoff Status */}
-                  {detailedResult.attempt.max_mcq > 0 && (
-                    <div className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 flex justify-between items-center">
-                      <div>
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">MCQ Section</span>
-                        <span className="text-sm font-black text-slate-800 dark:text-white mt-1 block">
-                          {detailedResult.attempt.mcq_score} / {detailedResult.attempt.max_mcq} pts
-                        </span>
-                        <span className="text-[10px] text-muted-foreground block mt-0.5 font-mono">
-                          Required: {detailedResult.attempt.mcq_cutoff_marks > 0 
-                            ? `${detailedResult.attempt.mcq_cutoff_marks} marks` 
-                            : `${detailedResult.attempt.mcq_cutoff_percentage}%`}
-                        </span>
-                      </div>
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider uppercase ${
-                        detailedResult.attempt.mcq_passed 
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 border border-emerald-500/30' 
-                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-450 border border-rose-500/30'
-                      }`}>
-                        {detailedResult.attempt.mcq_passed ? 'PASSED' : 'FAILED'}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Coding Section Cutoff Status */}
-                  {detailedResult.attempt.max_coding > 0 && (
-                    <div className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 flex justify-between items-center">
-                      <div>
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Coding Section</span>
-                        <span className="text-sm font-black text-slate-800 dark:text-white mt-1 block">
-                          {detailedResult.attempt.coding_score} / {detailedResult.attempt.max_coding} pts
-                        </span>
-                        <span className="text-[10px] text-muted-foreground block mt-0.5 font-mono">
-                          Required: {detailedResult.attempt.coding_cutoff_marks > 0 
-                            ? `${detailedResult.attempt.coding_cutoff_marks} marks` 
-                            : `${detailedResult.attempt.coding_cutoff_percentage}%`}
+                  {detailedResult.sectionResults && detailedResult.sectionResults.length > 0 ? (
+                    detailedResult.sectionResults.map((sec: any) => (
+                      <div key={sec.id} className="p-4 rounded-xl bg-white dark:bg-slate-955 border border-slate-100 dark:border-slate-800/80 flex justify-between items-center shadow-sm">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{sec.name}</span>
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400">
+                              {sec.section_type}
+                            </span>
+                            {sec.is_mandatory && <span className="px-1.5 py-0.2 rounded text-[8px] bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 font-bold">Mandatory</span>}
+                          </div>
+                          <div className="text-sm font-black text-slate-800 dark:text-white">
+                            {sec.obtainedMarks} / {sec.maxMarks} pts <span className="text-xs font-semibold text-muted-foreground font-mono">({sec.percentage}%)</span>
+                          </div>
+                          {sec.enable_cutoff && (
+                            <span className="text-[10px] text-muted-foreground block font-mono">
+                              Required Cutoff: {sec.cutoff_marks !== null && sec.cutoff_marks !== undefined ? `${sec.cutoff_marks} marks` : `${sec.cutoff_percentage}%`}
+                            </span>
+                          )}
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black tracking-wider uppercase ${
+                          sec.passed 
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 border border-emerald-500/30' 
+                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-450 border border-rose-500/30'
+                        }`}>
+                          {sec.passed ? 'PASS' : 'FAIL'}
                         </span>
                       </div>
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider uppercase ${
-                        detailedResult.attempt.coding_passed 
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-450 border border-emerald-500/30' 
-                          : 'bg-rose-500/10 text-rose-600 dark:text-rose-450 border border-rose-500/30'
-                      }`}>
-                        {detailedResult.attempt.coding_passed ? 'PASSED' : 'FAILED'}
-                      </span>
-                    </div>
+                    ))
+                  ) : (
+                    <>
+                      {detailedResult.attempt.max_mcq > 0 && (
+                        <div className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 flex justify-between items-center">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">MCQ Section</span>
+                            <span className="text-sm font-black text-slate-800 dark:text-white mt-1 block">
+                              {detailedResult.attempt.mcq_score} / {detailedResult.attempt.max_mcq} pts
+                            </span>
+                          </div>
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${detailedResult.attempt.mcq_passed ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}>
+                            {detailedResult.attempt.mcq_passed ? 'PASS' : 'FAIL'}
+                          </span>
+                        </div>
+                      )}
+                      {detailedResult.attempt.max_coding > 0 && (
+                        <div className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 flex justify-between items-center">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Coding Section</span>
+                            <span className="text-sm font-black text-slate-800 dark:text-white mt-1 block">
+                              {detailedResult.attempt.coding_score} / {detailedResult.attempt.max_coding} pts
+                            </span>
+                          </div>
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${detailedResult.attempt.coding_passed ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}>
+                            {detailedResult.attempt.coding_passed ? 'PASS' : 'FAIL'}
+                          </span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
