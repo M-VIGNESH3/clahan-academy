@@ -8245,28 +8245,79 @@ export default function App() {
       {currentPage === 'exam-env' && currentExam && (
         <main className="fixed inset-0 z-50 bg-slate-900 text-white overflow-y-auto p-4 md:p-8 flex flex-col justify-between">
           {validationStep === 'instructions' && (
-            <div className="max-w-2xl mx-auto my-auto p-8 rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl space-y-6">
+            <div className="max-w-3xl mx-auto my-auto p-8 rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl space-y-6">
               <div className="flex items-center gap-3 border-b border-white/10 pb-4">
                 <Shield className="h-8 w-8 text-indigo-400 animate-pulse" />
                 <div>
                   <h2 className="text-xl font-extrabold">{currentExam.name}</h2>
-                  <p className="text-xs text-indigo-300 mt-0.5">Secure AI-Proctoring Environment</p>
+                  <p className="text-xs text-indigo-300 mt-0.5">Secure AI-Proctored Assessment Environment</p>
                 </div>
               </div>
-              <div className="text-sm text-slate-300 space-y-3 leading-relaxed">
-                <p className="font-bold text-white">Before starting the exam, please review the rules carefully:</p>
-                <ul className="space-y-2 list-disc list-inside text-xs">
-                  <li><strong>Camera & Mic Access:</strong> Webcam and microphone must remain enabled throughout the test.</li>
-                  <li><strong>Tab lock:</strong> Do not navigate away or switch tabs. Doing so twice terminates the attempt.</li>
-                  <li><strong>Object detection:</strong> Do not use books, cell phones, or study notes. AI monitors your frame.</li>
-                  <li><strong>Fullscreen restriction:</strong> Leaving fullscreen triggers an immediate fraud warning.</li>
-                </ul>
+
+              {/* Dynamic Instructions Grid */}
+              <div className="text-xs text-slate-300 space-y-5 leading-relaxed max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                
+                {/* 1. General & Summary */}
+                <div className="p-4 rounded-2xl bg-indigo-950/20 border border-indigo-800/40 space-y-2">
+                  <h4 className="font-extrabold text-xs text-indigo-300 uppercase tracking-wider">Assessment Overview</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px] font-mono">
+                    <div><span className="text-slate-500 block">Duration:</span><strong className="text-white">{currentExam.duration_minutes} Mins</strong></div>
+                    <div><span className="text-slate-500 block">Sections:</span><strong className="text-white">{studentExamSections.length || 1} Sections</strong></div>
+                    <div><span className="text-slate-500 block">Allowed Attempts:</span><strong className="text-white">{currentExam.allowed_attempts || 1} Attempt</strong></div>
+                    <div><span className="text-slate-500 block">Cutoff Required:</span><strong className="text-white">{currentExam.cutoff_percentage}% Score</strong></div>
+                  </div>
+                </div>
+
+                {/* 2. Navigation Rules */}
+                <div className="space-y-1.5">
+                  <h4 className="font-bold text-white flex items-center gap-1.5 text-xs">
+                    <span className="h-2 w-2 rounded-full bg-indigo-400"></span> Navigation Rules
+                  </h4>
+                  <p className="text-xs text-slate-400 pl-3.5">
+                    {currentExam.navigation_mode === 'free' || currentExam.navigationMode === 'free'
+                      ? 'Free Navigation: You can freely switch between any assessment section until the overall timer expires.'
+                      : currentExam.navigation_mode === 'locked' || currentExam.navigationMode === 'locked'
+                        ? 'Locked Navigation: Once a section is completed/submitted, you cannot return to modify its answers.'
+                        : currentExam.navigation_mode === 'sequential_locked' || currentExam.navigationMode === 'sequential_locked'
+                          ? 'Sequential Locked Navigation: Sections must be completed in order. Submitting a section permanently locks it.'
+                          : 'Sequential Navigation: Sections must be attempted in configured order.'}
+                  </p>
+                </div>
+
+                {/* 3. Submission Rules */}
+                <div className="space-y-1.5">
+                  <h4 className="font-bold text-white flex items-center gap-1.5 text-xs">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400"></span> Submission Policy
+                  </h4>
+                  <p className="text-xs text-slate-400 pl-3.5">
+                    {(currentExam.submission_mode || currentExam.submissionMode) === 'auto'
+                      ? 'Automatic Submission: Early submission is disabled. Once all sections are completed, your answers become read-only and will submit automatically when the timer expires.'
+                      : 'Manual Submission: You may review and edit answers before submitting manually. If the timer expires, saved answers submit automatically.'}
+                  </p>
+                </div>
+
+                {/* 4. AI Proctoring & System Rules */}
+                <div className="space-y-1.5">
+                  <h4 className="font-bold text-white flex items-center gap-1.5 text-xs">
+                    <span className="h-2 w-2 rounded-full bg-amber-400"></span> AI Proctoring & Security Restrictions
+                  </h4>
+                  <ul className="space-y-1.5 list-disc list-inside text-xs text-slate-400 pl-3.5">
+                    <li>
+                      {currentExam.enable_face_detection !== false && currentExam.enableFaceDetection !== false
+                        ? 'AI Face Detection Active: Camera & Microphone must remain enabled. Your face confidence is continuously monitored.'
+                        : 'Webcam & Microphone verification active throughout the attempt.'}
+                    </li>
+                    <li>Fullscreen Requirement: You must remain in browser Fullscreen mode throughout the test.</li>
+                    <li>Tab Switch Warning Policy: Maximum 2 tab switch warnings permitted before immediate security termination.</li>
+                  </ul>
+                </div>
               </div>
+
               <button
                 onClick={requestHardwarePermissions}
-                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-2xl shadow-lg transition-all text-sm uppercase tracking-wide"
+                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-2xl shadow-lg transition-all text-sm uppercase tracking-wide flex items-center justify-center gap-2"
               >
-                Validate Hardware & Permissions
+                Validate Hardware & Permissions &rarr;
               </button>
             </div>
           )}
