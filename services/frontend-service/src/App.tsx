@@ -225,7 +225,7 @@ export default function App() {
   const [examForm, setExamForm] = useState<{
     name: string;
     description: string;
-    examType: 'mcq' | 'coding' | 'both';
+    examType: string;
     durationMinutes: number;
     cutoffPercentage: number;
     allowedAttempts: number;
