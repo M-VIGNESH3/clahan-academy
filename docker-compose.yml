@@ -114,6 +114,8 @@ services:
     container_name: clahan-training-service
     ports:
       - "4007:4007"
+    env_file:
+      - ./services/training-service/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -123,6 +125,8 @@ services:
     container_name: clahan-placement-service
     ports:
       - "4008:4008"
+    env_file:
+      - ./services/placement-service/.env
     depends_on:
       postgres:
         condition: service_healthy
@@ -132,6 +136,8 @@ services:
     container_name: clahan-report-service
     ports:
       - "4009:4009"
+    env_file:
+      - ./services/report-service/.env
     depends_on:
       postgres:
         condition: service_healthy

@@ -8,6 +8,9 @@ services=(
   "exam-service"
   "proctoring-service"
   "notification-service"
+  "training-service"
+  "placement-service"
+  "report-service"
   "ai-service"
   "frontend-service"
 )
