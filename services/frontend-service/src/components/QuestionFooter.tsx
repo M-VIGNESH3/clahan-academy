@@ -12,6 +12,7 @@ interface QuestionFooterProps {
   isLastQuestion: boolean;
   isExamLocked: boolean;
   navigationMode: string;
+  submissionMode?: 'manual' | 'auto';
   onPrevious: () => void;
   onNext: () => void;
   onSubmitSection: () => void;
@@ -28,11 +29,13 @@ export const QuestionFooter: React.FC<QuestionFooterProps> = ({
   isLastQuestion,
   isExamLocked,
   navigationMode,
+  submissionMode = 'manual',
   onPrevious,
   onNext,
   onSubmitSection
 }) => {
   const isLockedMode = navigationMode === 'locked' || navigationMode === 'sequential_locked';
+  const isAutoSubmission = submissionMode === 'auto';
 
   return (
     <footer className="flex-shrink-0 bg-slate-900 border-t border-white/10 px-4 md:px-6 py-3 flex flex-wrap items-center justify-between gap-4 z-30 relative select-none">
@@ -59,6 +62,12 @@ export const QuestionFooter: React.FC<QuestionFooterProps> = ({
             <HelpCircle className="h-3 w-3" /> {unansweredCount} Unanswered
           </span>
         </div>
+
+        {isAutoSubmission && (
+          <span className="text-[10px] text-amber-400 font-sans font-extrabold bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg animate-pulse">
+            Auto-Submit Active: Assessment submits automatically when timer expires.
+          </span>
+        )}
       </div>
 
       {/* Progress & Action Buttons Right Display */}
@@ -83,17 +92,19 @@ export const QuestionFooter: React.FC<QuestionFooterProps> = ({
           Next Question <ArrowRight className="h-3.5 w-3.5" />
         </button>
 
-        <button
-          onClick={onSubmitSection}
-          disabled={isExamLocked}
-          className={`px-5 py-2 font-extrabold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 ml-1 ${
-            isLockedMode
-              ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20'
-              : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
-          } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          <Lock className="h-3.5 w-3.5" /> Submit Section
-        </button>
+        {!isAutoSubmission && (
+          <button
+            onClick={onSubmitSection}
+            disabled={isExamLocked}
+            className={`px-5 py-2 font-extrabold rounded-xl text-xs transition-all shadow-md flex items-center gap-1.5 ml-1 ${
+              isLockedMode
+                ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/20'
+                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20'
+            } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            <Lock className="h-3.5 w-3.5" /> Submit Section
+          </button>
+        )}
       </div>
     </footer>
   );

@@ -6833,9 +6833,6 @@ export default function App() {
                           >
                             <option value="mcq">MCQ (Multiple Choice Questions)</option>
                             <option value="coding">Coding (Programming Challenges)</option>
-                            <option value="descriptive">Descriptive (Written Response)</option>
-                            <option value="communication">Communication (Verbal / Listening)</option>
-                            <option value="practical">Practical (Lab / Exercise)</option>
                           </select>
                         </div>
                         <div>
