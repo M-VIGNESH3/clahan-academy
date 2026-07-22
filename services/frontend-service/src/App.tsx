@@ -46,6 +46,8 @@ interface Exam {
   coding_cutoff_marks?: number; codingCutoffMarks?: number;
   navigation_mode?: 'free' | 'locked' | 'sequential' | 'sequential_locked';
   navigationMode?: 'free' | 'locked' | 'sequential' | 'sequential_locked';
+  submission_mode?: 'manual' | 'auto';
+  submissionMode?: 'manual' | 'auto';
 }
 interface MCQQuestion {
   id: string; question: string; option_a: string; option_b: string; option_c: string; option_d: string;
@@ -275,6 +277,7 @@ export default function App() {
     mcqCutoffMarks?: number;
     codingCutoffMarks?: number;
     navigationMode?: 'free' | 'locked' | 'sequential' | 'sequential_locked';
+    submissionMode?: 'manual' | 'auto';
   }>({
     name: '', description: '', examType: 'mcq',
     durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
@@ -286,7 +289,8 @@ export default function App() {
     codingCutoffPercentage: 50,
     mcqCutoffMarks: 0,
     codingCutoffMarks: 0,
-    navigationMode: 'free'
+    navigationMode: 'free',
+    submissionMode: 'manual'
   });
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [terminationModal, setTerminationModal] = useState<{ attemptId: string; studentName: string } | null>(null);
@@ -6737,6 +6741,44 @@ export default function App() {
                     </div>
                   </div>
 
+                  <div className="p-4 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-2">
+                    <label className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider block">Assessment Submission Policy</label>
+                    <p className="text-[11px] text-muted-foreground">Configure how candidate answers are submitted and reviewed at assessment completion.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                      {[
+                        { 
+                          mode: 'manual', 
+                          title: 'Manual Submission', 
+                          desc: 'Candidates may review and modify answers before submitting. Submit button is visible. Timer expiry automatically submits saved answers.' 
+                        },
+                        { 
+                          mode: 'auto', 
+                          title: 'Automatic Submission', 
+                          desc: 'Candidates cannot submit early. Answers become locked & read-only after completing all sections. Automatic submission occurs when timer expires.' 
+                        }
+                      ].map(opt => (
+                        <label key={opt.mode} className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all flex items-start gap-3 ${
+                          (examForm.submissionMode || 'manual') === opt.mode
+                            ? 'bg-indigo-600/10 border-indigo-500 text-slate-900 dark:text-white shadow-sm ring-1 ring-indigo-500/30 font-bold'
+                            : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-indigo-300'
+                        }`}>
+                          <input
+                            type="radio"
+                            name="submissionMode"
+                            value={opt.mode}
+                            checked={(examForm.submissionMode || 'manual') === opt.mode}
+                            onChange={() => setExamForm({ ...examForm, submissionMode: opt.mode as any })}
+                            className="mt-0.5 h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <div>
+                            <span className="font-extrabold block text-xs">{opt.title}</span>
+                            <span className="text-[10px] text-muted-foreground font-normal leading-relaxed block mt-0.5">{opt.desc}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-2 p-1">
                     <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-200 select-none">
                       <input 
@@ -8375,26 +8417,26 @@ export default function App() {
                     </p>
                   </div>
 
-                  {/* Submission Button */}
-                  <button
-                    onClick={() => {
-                      if (isExamLocked) return;
-                      if (timeLeft > 0) {
-                        showToast("You cannot submit early. Please wait for the exam time to complete.", "warning");
-                        return;
-                      }
-                      submitEntireExam();
-                    }}
-                    disabled={timeLeft > 0 || isExamLocked}
-                    className={`px-5 py-2.5 text-white font-bold rounded-lg text-xs uppercase tracking-wider transition-all border ${
-                      (timeLeft > 0 || isExamLocked)
-                        ? 'bg-slate-800/40 cursor-not-allowed text-slate-500 border-white/5' 
-                        : 'bg-rose-600 hover:bg-rose-500 border-rose-500/30 shadow-lg shadow-rose-600/25'
-                    }`}
-                    title={timeLeft > 0 ? "Submit is locked until timer runs out" : "Submit Exam"}
-                  >
-                    {timeLeft > 0 ? "Submit Locked" : "Submit Exam"}
-                  </button>
+                  {/* Submission Button & Mode Handling */}
+                  {((currentExam?.submission_mode || currentExam?.submissionMode) !== 'auto') ? (
+                    <button
+                      onClick={() => {
+                        if (isExamLocked) return;
+                        if (window.confirm("Are you sure you want to submit your assessment? Your current answers will be evaluated.")) {
+                          submitEntireExam();
+                        }
+                      }}
+                      disabled={isExamLocked}
+                      className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs uppercase tracking-wider transition-all border border-rose-500/30 shadow-lg shadow-rose-600/25"
+                    >
+                      Submit Assessment
+                    </button>
+                  ) : (
+                    <div className="px-3.5 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-right">
+                      <span className="text-[10px] text-amber-300 font-extrabold uppercase block">Auto-Submit Mode</span>
+                      <span className="text-[9px] text-slate-400 font-medium block">Submits when time expires</span>
+                    </div>
+                  )}
                 </div>
               </header>
 
