@@ -65,6 +65,42 @@
       "norm_label": "copy-env-examples.sh script"
     },
     {
+      "label": "fix_errors.py",
+      "file_type": "code",
+      "source_file": ".gemini/antigravity/brain/f6905565-85a3-4a79-acd3-cd90d6fab191/scratch/fix_errors.py",
+      "source_location": "L1",
+      "id": "gemini_antigravity_brain_f6905565_85a3_4a79_acd3_cd90d6fab191_scratch_fix_errors_py",
+      "community": 77,
+      "norm_label": "fix_errors.py"
+    },
+    {
+      "label": "replace_editor.py",
+      "file_type": "code",
+      "source_file": ".gemini/antigravity/brain/f6905565-85a3-4a79-acd3-cd90d6fab191/scratch/replace_editor.py",
+      "source_location": "L1",
+      "id": "gemini_antigravity_brain_f6905565_85a3_4a79_acd3_cd90d6fab191_scratch_replace_editor_py",
+      "community": 78,
+      "norm_label": "replace_editor.py"
+    },
+    {
+      "label": "search_sections.py",
+      "file_type": "code",
+      "source_file": ".gemini/antigravity/brain/f6905565-85a3-4a79-acd3-cd90d6fab191/scratch/search_sections.py",
+      "source_location": "L1",
+      "id": "gemini_antigravity_brain_f6905565_85a3_4a79_acd3_cd90d6fab191_scratch_search_sections_py",
+      "community": 79,
+      "norm_label": "search_sections.py"
+    },
+    {
+      "label": "search_starter_code.py",
+      "file_type": "code",
+      "source_file": ".gemini/antigravity/brain/f6905565-85a3-4a79-acd3-cd90d6fab191/scratch/search_starter_code.py",
+      "source_location": "L1",
+      "id": "gemini_antigravity_brain_f6905565_85a3_4a79_acd3_cd90d6fab191_scratch_search_starter_code_py",
+      "community": 80,
+      "norm_label": "search_starter_code.py"
+    },
+    {
       "label": "host.json",
       "file_type": "code",
       "source_file": "functions/host.json",
@@ -12824,9 +12860,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L910",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_finalcodings",
-      "confidence_score": 1.0
+      "target": "src_index_finalcodings"
     },
     {
       "relation": "contains",
@@ -12834,9 +12870,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L909",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_finalmcqs",
-      "confidence_score": 1.0
+      "target": "src_index_finalmcqs"
     },
     {
       "relation": "contains",
@@ -12914,9 +12950,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L933",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_residualcodings",
-      "confidence_score": 1.0
+      "target": "src_index_residualcodings"
     },
     {
       "relation": "contains",
@@ -12924,9 +12960,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L930",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_residualmcqs",
-      "confidence_score": 1.0
+      "target": "src_index_residualmcqs"
     },
     {
       "relation": "contains",
@@ -12974,9 +13010,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L922",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_sectcodings",
-      "confidence_score": 1.0
+      "target": "src_index_sectcodings"
     },
     {
       "relation": "contains",
@@ -12984,9 +13020,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L430",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_sectionidmap",
-      "confidence_score": 1.0
+      "target": "src_index_sectionidmap"
     },
     {
       "relation": "contains",
@@ -12994,9 +13030,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L916",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_sectmcqs",
-      "confidence_score": 1.0
+      "target": "src_index_sectmcqs"
     },
     {
       "relation": "contains",
@@ -13004,9 +13040,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L66",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_seededshuffle",
-      "confidence_score": 1.0
+      "target": "src_index_seededshuffle"
     },
     {
       "relation": "contains",
@@ -20608,5 +20644,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "1a2edefbd4376275c6f3ff329e8bf21965672912"
+  "built_at_commit": "caa00e7443e23bd9298d93b927378478b10bf2e0"
 }

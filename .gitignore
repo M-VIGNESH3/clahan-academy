@@ -85,3 +85,7 @@ htmlcov/
 # Azure
 .azure/
 azureauth.json
+
+# Gemini / Agent local
+.gemini/
+

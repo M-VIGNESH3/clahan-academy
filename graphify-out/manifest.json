@@ -500,8 +500,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\App.tsx": {
-    "mtime": 1784651099.0253463,
-    "ast_hash": "f94ff10d329566ab22ad3d42ee9e5a26",
+    "mtime": 1784653710.7116706,
+    "ast_hash": "6f103feb09444dab0ed48f7a22c6cdb6",
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\main.tsx": {
@@ -1157,6 +1157,26 @@
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\terraform\\.github\\workflows\\terraform-apply.yml": {
     "mtime": 1782009774.7681606,
     "ast_hash": "43886ac6bbe4455453e0b1640f3a7f86",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\.gemini\\antigravity\\brain\\f6905565-85a3-4a79-acd3-cd90d6fab191\\scratch\\fix_errors.py": {
+    "mtime": 1784653633.9598095,
+    "ast_hash": "3f60931fd34495a835666c4b2dabfa39",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\.gemini\\antigravity\\brain\\f6905565-85a3-4a79-acd3-cd90d6fab191\\scratch\\replace_editor.py": {
+    "mtime": 1784653300.668149,
+    "ast_hash": "f281ef574055b341d2cd96838914dad2",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\.gemini\\antigravity\\brain\\f6905565-85a3-4a79-acd3-cd90d6fab191\\scratch\\search_sections.py": {
+    "mtime": 1784653512.199219,
+    "ast_hash": "ab99c0ced2d2810007d2778646369e0a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\.gemini\\antigravity\\brain\\f6905565-85a3-4a79-acd3-cd90d6fab191\\scratch\\search_starter_code.py": {
+    "mtime": 1784653574.157447,
+    "ast_hash": "ed515b6a0d411521ee52186e70b0f608",
     "semantic_hash": ""
   }
 }

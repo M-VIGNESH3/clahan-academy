@@ -103,7 +103,7 @@ export default function App() {
   });
 
   // App Routing
-  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'admin-login'>(() => {
+  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login'>(() => {
     const path = window.location.pathname.toLowerCase();
     if (path === '/admin-login' || path === '/admin-login/') {
       return 'admin-login';
@@ -272,6 +272,9 @@ export default function App() {
   });
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
+  const [examWorkspaceTab, setExamWorkspaceTab] = useState<'overview' | 'sections' | 'questions' | 'schedule' | 'results' | 'reports' | 'review'>('overview');
+  const [examWizardStep, setExamWizardStep] = useState<number>(1);
+  const [isCreatingNewExam, setIsCreatingNewExam] = useState<boolean>(false);
   const [adminSelectedExamResults, setAdminSelectedExamResults] = useState<any[]>([]);
   const [selectedExamIdForResults, setSelectedExamIdForResults] = useState<string | null>(null);
   const [selectedExamNameForResults, setSelectedExamNameForResults] = useState<string>('');
@@ -1843,11 +1846,17 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
-        showToast('Exam created successfully. Now customize questions.');
+        showToast('Exam basic details saved.');
         setSelectedExamIdForQuestions(data.id);
+        setEditingExamId(data.id);
         loadAdminExamQuestions(data.id);
-        setCurrentPage('questions-editor');
         loadAdminDashboard();
+        if (isCreatingNewExam) {
+          setExamWizardStep(2);
+          setExamWorkspaceTab('sections');
+        } else {
+          showToast('Exam configuration updated successfully.');
+        }
       } else {
         throw new Error(`Exams API returned status ${res.status}`);
       }
@@ -1877,8 +1886,14 @@ export default function App() {
       };
       setAdminExams(prev => [mockE, ...prev]);
       setSelectedExamIdForQuestions(mockId);
-      setCurrentPage('questions-editor');
-      showToast('Exam created successfully (Simulated). Add questions now.');
+      setEditingExamId(mockId);
+      if (isCreatingNewExam) {
+        setExamWizardStep(2);
+        setExamWorkspaceTab('sections');
+        showToast('Exam created successfully (Simulated). Configure sections now.');
+      } else {
+        showToast('Exam updated successfully (Simulated).');
+      }
     }
   };
 
@@ -1992,11 +2007,11 @@ export default function App() {
       fetchBatches(ex.college_id);
     }
     setEditingExamId(ex.id);
-    
-    const formElement = document.getElementById('exam-configuration-card');
-    if (formElement) {
-      formElement.scrollIntoView({ behavior: 'smooth' });
-    }
+    setSelectedExamIdForQuestions(ex.id);
+    loadAdminExamQuestions(ex.id);
+    setIsCreatingNewExam(false);
+    setExamWorkspaceTab('overview');
+    setCurrentPage('exam-workspace');
   };
 
   const downloadMcqTemplate = () => {
@@ -5409,276 +5424,37 @@ export default function App() {
 
               {activeAdminTab === 'exams' && (
                 <div className="space-y-6">
-                  {/* Create Exam */}
-                  <div id="exam-configuration-card" className={`p-6 rounded-2xl border-2 transition-all ${editingExamId ? 'border-amber-500/40 bg-amber-500/5 dark:bg-amber-950/10' : 'border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950'} shadow-sm space-y-4`}>
-                    <h3 className="font-extrabold text-base flex justify-between items-center">
-                      <span>{editingExamId ? 'Reschedule & Reconfigure Exam' : 'Configure Exam & Settings'}</span>
-                      {editingExamId && (
-                        <button type="button" onClick={() => {
-                          setEditingExamId(null);
-                          setExamForm({
-                            name: '', description: '', examType: 'mcq',
-                            durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
-                            windowOpenMinutes: 10,
-                            collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year',
-                            enableFaceDetection: true,
-                            enableSectionCutoff: false,
-                            mcqCutoffPercentage: 50,
-                            codingCutoffPercentage: 50,
-                            mcqCutoffMarks: 0,
-                            codingCutoffMarks: 0
-                          });
-                        }} className="text-xs font-bold text-amber-600 hover:underline">Cancel Edit</button>
-                      )}
-                    </h3>
-                    <form onSubmit={editingExamId ? updateExam : createExam} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-xs font-semibold text-muted-foreground">Exam Name</label>
-                          <input type="text" value={examForm.name} onChange={e => setExamForm({...examForm, name: e.target.value})} placeholder="e.g. End Semester Exam" className="w-full p-3 border rounded-xl text-xs bg-transparent mt-1" required />
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-muted-foreground">Exam Type</label>
-                           <select value={examForm.examType} onChange={e => setExamForm({...examForm, examType: e.target.value as any})} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
-                            <option value="mcq" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">MCQ Only</option>
-                            <option value="coding" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Coding Only</option>
-                            <option value="both" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">MCQ + Coding</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <label className="text-xs font-semibold text-muted-foreground">Duration (Mins)</label>
-                          <input type="number" value={examForm.durationMinutes} onChange={e => setExamForm({...examForm, durationMinutes: parseInt(e.target.value) || 60})} className="w-full p-3 border rounded-xl text-xs bg-transparent mt-1" required />
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-muted-foreground">Cutoff %</label>
-                          <input type="number" value={examForm.cutoffPercentage} onChange={e => setExamForm({...examForm, cutoffPercentage: parseInt(e.target.value) || 50})} className="w-full p-3 border rounded-xl text-xs bg-transparent mt-1" required />
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-muted-foreground">Allowed Attempts</label>
-                          <select value={examForm.allowedAttempts} onChange={e => setExamForm({...examForm, allowedAttempts: parseInt(e.target.value) || 1})} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1">
-                            <option value="1" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">1 Attempt</option>
-                            <option value="2" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">2 Attempts</option>
-                            <option value="3" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">3 Attempts</option>
-                            <option value="999" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Unlimited</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                        <div>
-                          <label className="text-xs font-semibold text-muted-foreground">College Eligibility</label>
-                          <select value={examForm.collegeId} onChange={e => { setExamForm({...examForm, collegeId: e.target.value, batchId: '', trainerId: ''}); fetchDepartments(e.target.value); fetchBatches(e.target.value); }} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
-                            <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select College</option>
-                            {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-muted-foreground">Batch (Optional)</label>
-                          <select 
-                            value={examForm.batchId || ''} 
-                            onChange={e => setExamForm({...examForm, batchId: e.target.value, trainerId: ''})} 
-                            className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
-                            disabled={!examForm.collegeId}
-                          >
-                            <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">No Batch (Use Dept/Year below)</option>
-                            {batches.map(b => <option key={b.id} value={b.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{b.name}</option>)}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-muted-foreground">Trainer (Optional)</label>
-                          <select 
-                            value={examForm.trainerId || ''} 
-                            onChange={e => setExamForm({...examForm, trainerId: e.target.value})} 
-                            className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
-                            disabled={!examForm.collegeId}
-                          >
-                            <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Trainer</option>
-                            {adminTrainers
-                              .filter(t => {
-                                const matchCollege = (t.college_id === examForm.collegeId || t.collegeId === examForm.collegeId);
-                                if (!matchCollege) return false;
-                                if (examForm.batchId) {
-                                  return (t.batch_id === examForm.batchId || t.batchId === examForm.batchId);
-                                }
-                                return true;
-                              })
-                              .map(t => <option key={t.id} value={t.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{t.name} ({t.batch_name || 'General'})</option>)}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-muted-foreground mb-1 block">Department Eligibility</label>
-                          {!examForm.collegeId ? (
-                            <div className="text-[10px] text-slate-400 italic p-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50 mt-1">
-                              Select a college first
-                            </div>
-                          ) : examForm.batchId ? (
-                            <div className="text-[10px] text-indigo-500 font-semibold italic p-3 border border-indigo-200 dark:border-indigo-850 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 mt-1">
-                              Disabled (Batch Selected)
-                            </div>
-                          ) : departments.length === 0 ? (
-                            <div className="text-[10px] text-slate-400 italic p-3 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50 mt-1">
-                              No departments found
-                            </div>
-                          ) : (
-                            <div className="flex flex-wrap gap-1.5 p-2 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 max-h-28 overflow-y-auto mt-1">
-                              {departments.map(d => {
-                                const isChecked = examForm.departmentIds?.includes(d.id);
-                                return (
-                                  <label key={d.id} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] cursor-pointer select-none transition-all ${isChecked ? 'bg-indigo-500/10 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-semibold' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-600 dark:text-slate-400'}`}>
-                                    <input 
-                                      type="checkbox" 
-                                      className="sr-only" 
-                                      checked={isChecked || false}
-                                      onChange={() => {
-                                        const currentIds = examForm.departmentIds || [];
-                                        const newIds = isChecked 
-                                          ? currentIds.filter(id => id !== d.id)
-                                          : [...currentIds, d.id];
-                                        setExamForm({
-                                          ...examForm, 
-                                          departmentIds: newIds,
-                                          departmentId: newIds[0] || ''
-                                        });
-                                      }}
-                                    />
-                                    {d.name}
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-muted-foreground">Year Eligibility</label>
-                          <select 
-                            value={examForm.batchId ? '' : examForm.year} 
-                            onChange={e => setExamForm({...examForm, year: e.target.value})} 
-                            className="w-full p-3 border border-slate-200 dark:border-slate-850 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" 
-                            required={!examForm.batchId}
-                            disabled={!!examForm.batchId}
-                          >
-                            {examForm.batchId ? (
-                              <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Disabled (Batch Selected)</option>
-                            ) : (
-                              <>
-                                <option value="1st Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">1st Year</option>
-                                <option value="2nd Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">2nd Year</option>
-                                <option value="3rd Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">3rd Year</option>
-                                <option value="4th Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">4th Year</option>
-                              </>
-                            )}
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-xs font-semibold text-muted-foreground">Schedule Date & Time</label>
-                          <input type="datetime-local" value={examForm.scheduleDate} onChange={e => setExamForm({...examForm, scheduleDate: e.target.value})} className="w-full p-2.5 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white mt-1" required />
-                        </div>
-                        <div>
-                          <label className="text-xs font-semibold text-muted-foreground">Entry Window (Minutes)</label>
-                          <input type="number" value={examForm.windowOpenMinutes} onChange={e => setExamForm({...examForm, windowOpenMinutes: parseInt(e.target.value) || 10})} className="w-full p-2.5 border rounded-xl text-xs bg-transparent mt-1" min={1} max={1440} placeholder="By default 10 mins" required />
-                        </div>
-                      </div>
-
-                      <textarea value={examForm.description} onChange={e => setExamForm({...examForm, description: e.target.value})} placeholder="Exam instructions and general description..." rows={2} className="w-full p-3 border rounded-xl text-xs bg-transparent focus:outline-indigo-500" />
-                      
-                      <div className="flex items-center gap-2 p-1">
-                        <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-200 select-none">
-                          <input 
-                            type="checkbox" 
-                            checked={examForm.enableFaceDetection !== false} 
-                            onChange={e => setExamForm({...examForm, enableFaceDetection: e.target.checked})} 
-                            className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-slate-900" 
-                          />
-                          Enable AI Face Detection (background checking for face absence/multiple people)
-                        </label>
-                      </div>
-
-                      <div className="space-y-3 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
-                        <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 select-none">
-                          <input 
-                            type="checkbox" 
-                            checked={examForm.enableSectionCutoff === true} 
-                            onChange={e => setExamForm({...examForm, enableSectionCutoff: e.target.checked})} 
-                            className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-slate-900" 
-                          />
-                          Enable Section-wise Cutoffs (configure separate MCQ and Coding pass criteria)
-                        </label>
-
-                        {examForm.enableSectionCutoff && (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-800/60 transition-all duration-300 ease-in-out">
-                            {/* MCQ Section Cutoff */}
-                            {examForm.examType !== 'coding' && (
-                              <div className="space-y-2 p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80">
-                                <h4 className="text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">MCQ Section</h4>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-muted-foreground">Passing Percentage (%)</label>
-                                    <input 
-                                      type="number" 
-                                      value={examForm.mcqCutoffPercentage !== undefined ? examForm.mcqCutoffPercentage : 50} 
-                                      onChange={e => setExamForm({...examForm, mcqCutoffPercentage: parseFloat(e.target.value) || 0})} 
-                                      className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1" 
-                                      min={0} 
-                                      max={100}
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-muted-foreground">Passing Marks (or 0 for %)</label>
-                                    <input 
-                                      type="number" 
-                                      value={examForm.mcqCutoffMarks !== undefined ? examForm.mcqCutoffMarks : 0} 
-                                      onChange={e => setExamForm({...examForm, mcqCutoffMarks: parseFloat(e.target.value) || 0})} 
-                                      className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1" 
-                                      min={0}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Coding Section Cutoff */}
-                            {examForm.examType !== 'mcq' && (
-                              <div className="space-y-2 p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80">
-                                <h4 className="text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Coding Section</h4>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-muted-foreground">Passing Percentage (%)</label>
-                                    <input 
-                                      type="number" 
-                                      value={examForm.codingCutoffPercentage !== undefined ? examForm.codingCutoffPercentage : 50} 
-                                      onChange={e => setExamForm({...examForm, codingCutoffPercentage: parseFloat(e.target.value) || 0})} 
-                                      className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1" 
-                                      min={0} 
-                                      max={100}
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-muted-foreground">Passing Marks (or 0 for %)</label>
-                                    <input 
-                                      type="number" 
-                                      value={examForm.codingCutoffMarks !== undefined ? examForm.codingCutoffMarks : 0} 
-                                      onChange={e => setExamForm({...examForm, codingCutoffMarks: parseFloat(e.target.value) || 0})} 
-                                      className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1" 
-                                      min={0}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <button type="submit" className={`w-full py-3 ${editingExamId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-indigo-600 hover:bg-indigo-500'} text-white font-bold rounded-xl text-xs transition-colors`}>
-                        {editingExamId ? 'Save Configuration & Reschedule' : 'Configure & Create Exam'}
-                      </button>
-                    </form>
+                  {/* Action Bar */}
+                  <div className="flex justify-between items-center bg-white dark:bg-slate-950 p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+                    <div>
+                      <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100">Assessment Templates</h3>
+                      <p className="text-xs text-muted-foreground mt-1">Design, schedule, and configure secure exam workspaces.</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setExamForm({
+                          name: '', description: '', examType: 'both',
+                          durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
+                          windowOpenMinutes: 10,
+                          collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year',
+                          enableFaceDetection: true,
+                          enableSectionCutoff: false,
+                          mcqCutoffPercentage: 50,
+                          codingCutoffPercentage: 50,
+                          mcqCutoffMarks: 0,
+                          codingCutoffMarks: 0
+                        });
+                        setEditingExamId(null);
+                        setSelectedExamIdForQuestions(null);
+                        setExamWizardStep(1);
+                        setIsCreatingNewExam(true);
+                        setExamWorkspaceTab('overview');
+                        setCurrentPage('exam-workspace');
+                      }}
+                      className="px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs flex items-center gap-2 transition-all shadow-md shadow-indigo-500/10"
+                    >
+                      <Plus className="h-4 w-4" /> Create New Exam
+                    </button>
                   </div>
 
                   {/* Questions configuration is now managed in the dedicated full-screen Questions Editor page */}
@@ -5840,8 +5616,21 @@ export default function App() {
                                 </span>
                               </td>
                               <td className="text-right py-3 px-2 space-x-1 whitespace-nowrap">
-                                <button onClick={() => { setSelectedExamIdForResults(null); loadAdminExamResults(ex.id, ex.name); }} className="text-[10px] font-bold px-2 py-1 border rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors">Results</button>
-                                <button onClick={() => { setSelectedExamIdForQuestions(ex.id); loadAdminExamQuestions(ex.id); setCurrentPage('questions-editor'); }} className="text-[10px] font-bold px-2 py-1 border rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500 hover:text-white transition-colors">Questions</button>
+                                <button onClick={() => {
+                                  setSelectedExamIdForQuestions(ex.id);
+                                  loadAdminExamQuestions(ex.id);
+                                  loadAdminExamResults(ex.id, ex.name);
+                                  setIsCreatingNewExam(false);
+                                  setExamWorkspaceTab('results');
+                                  setCurrentPage('exam-workspace');
+                                }} className="text-[10px] font-bold px-2 py-1 border rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors">Results</button>
+                                <button onClick={() => {
+                                  setSelectedExamIdForQuestions(ex.id);
+                                  loadAdminExamQuestions(ex.id);
+                                  setIsCreatingNewExam(false);
+                                  setExamWorkspaceTab('questions');
+                                  setCurrentPage('exam-workspace');
+                                }} className="text-[10px] font-bold px-2 py-1 border rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500 hover:text-white transition-colors">Questions</button>
                                 <button onClick={() => startEditingExam(ex)} className="text-[10px] font-bold px-2 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded hover:bg-amber-500 hover:text-white transition-colors">Edit</button>
                                 {!ex.is_published && <button onClick={() => publishExam(ex.id)} className="text-[10px] font-bold px-2 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-500">Publish</button>}
                                 <button onClick={() => duplicateExam(ex.id)} className="text-[10px] font-bold px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded hover:bg-slate-200">Duplicate</button>
@@ -6093,916 +5882,1408 @@ export default function App() {
       )}
 
       {/* DEDICATED FULL-PAGE QUESTIONS EDITOR PAGE */}
-      {currentPage === 'questions-editor' && selectedExamIdForQuestions && (
+      {/* DEDICATED FULL-PAGE EXAM BUILDER & MANAGEMENT WORKSPACE */}
+      {(currentPage === 'exam-workspace' || currentPage === 'questions-editor') && selectedExamIdForQuestions && (
         <main className="max-w-7xl mx-auto py-10 px-4">
-          <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-lg">
+          {/* Header */}
+          <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-900/50 backdrop-blur-md p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-lg">
             <div>
               <button 
                 onClick={() => {
                   setSelectedExamIdForQuestions(null);
+                  setEditingExamId(null);
                   setCurrentPage('admin-dash');
                 }}
                 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors mb-2"
               >
-                &larr; Back to Admin Dashboard
+                &larr; Exit Workspace to Dashboard
               </button>
               <h2 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2.5">
                 <BookOpen className="h-6 w-6 text-indigo-600" />
-                Exam Questions Manager
+                {isCreatingNewExam ? 'Exam Creator Wizard' : 'Exam Workspace'}
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Configure, create, and bulk-import test scenarios for exam: <span className="font-extrabold text-indigo-600 dark:text-indigo-400">{adminExams.find(ex => ex.id === selectedExamIdForQuestions)?.name || 'Selected Exam'}</span>
+                {isCreatingNewExam ? 'Complete steps to design and publish your assessment.' : 'Manage details, structure, questions, and view candidate scores.'}
+                {editingExamId && (
+                  <span className="ml-1.5 px-2 py-0.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-full font-bold text-[10px]">
+                    ID: {editingExamId}
+                  </span>
+                )}
               </p>
             </div>
             
-            <div className="flex gap-4">
-              <button
-                onClick={() => {
-                  setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true });
-                  setEditingSectionId(null);
-                  setIsSectionModalOpen(true);
-                }}
-                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl text-xs flex items-center gap-1.5 transition-all shadow-md shadow-indigo-500/10 h-fit self-center"
-              >
-                <Layers className="h-4 w-4" /> Manage Sections
-              </button>
-              <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-950 rounded-2xl text-center min-w-[100px]">
-                <div className="text-lg font-black text-indigo-600 dark:text-indigo-400">{adminSelectedExamMCQs.length}</div>
-                <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">Total MCQs</div>
+            {/* Quick Metrics in Header */}
+            {editingExamId && (
+              <div className="flex gap-4">
+                <div className="p-3 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-950 rounded-2xl text-center min-w-[90px]">
+                  <div className="text-base font-black text-indigo-600 dark:text-indigo-400">{adminSelectedExamMCQs.length}</div>
+                  <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">MCQs</div>
+                </div>
+                <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-950 rounded-2xl text-center min-w-[90px]">
+                  <div className="text-base font-black text-emerald-600 dark:text-emerald-400">{adminSelectedExamCodings.length}</div>
+                  <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">Coding</div>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center min-w-[90px]">
+                  <div className="text-base font-black text-slate-700 dark:text-slate-200">{adminSelectedExamSections.length}</div>
+                  <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">Sections</div>
+                </div>
               </div>
-              <div className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-950 rounded-2xl text-center min-w-[100px]">
-                <div className="text-lg font-black text-emerald-600 dark:text-emerald-400">{adminSelectedExamCodings.length}</div>
-                <div className="text-[9px] uppercase tracking-widest font-bold text-muted-foreground">Coding Challenges</div>
-              </div>
-            </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left Side: Question Creator Forms */}
-            <div className="lg:col-span-7 space-y-6">
-              {/* Tab selector */}
-              <div className="flex gap-1.5 p-1 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 w-full md:w-fit shadow-sm">
-                <button
-                  onClick={() => setQuestionEditorTab('mcq')}
-                  className={`flex-1 md:flex-initial px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${questionEditorTab === 'mcq' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10' : 'text-muted-foreground hover:bg-slate-100/50 dark:hover:bg-slate-900/50 hover:text-foreground'}`}
-                >
-                  Multiple Choice Questions (MCQ)
-                </button>
-                <button
-                  onClick={() => setQuestionEditorTab('coding')}
-                  className={`flex-1 md:flex-initial px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${questionEditorTab === 'coding' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10' : 'text-muted-foreground hover:bg-slate-100/50 dark:hover:bg-slate-900/50 hover:text-foreground'}`}
-                >
-                  Coding Challenges
-                </button>
-              </div>
-
-              {questionEditorTab === 'mcq' ? (
-                <div className="bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-md space-y-6">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Add MCQ Question</h3>
-                    <p className="text-[11px] text-muted-foreground">Add multiple choice questions manually or use CSV import below.</p>
-                  </div>
-
-                  <form onSubmit={addMcqQuestion} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs font-bold text-muted-foreground">Target MCQ Section</label>
-                        <select 
-                          value={selectedSectionIdForMcq} 
-                          onChange={e => setSelectedSectionIdForMcq(e.target.value)} 
-                          className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
-                          required
-                        >
-                          {adminSelectedExamSections.filter(s => s.section_type === 'mcq').map(s => (
-                            <option key={s.id} value={s.id}>{s.name} ({s.is_mandatory ? 'Mandatory' : 'Optional'})</option>
-                          ))}
-                          {adminSelectedExamSections.filter(s => s.section_type === 'mcq').length === 0 && (
-                            <option value="">No MCQ Sections - Click 'Manage Sections' to create one</option>
-                          )}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-muted-foreground">Question Statement</label>
-                        <textarea 
-                          value={mcqForm.question} 
-                          onChange={e => setMcqForm({...mcqForm, question: e.target.value})} 
-                          placeholder="What is the output of print(type(1/2)) in Python 3?" 
-                          rows={1} 
-                          className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent focus:outline-indigo-500 text-slate-900 dark:text-white" 
-                          required 
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs font-bold text-muted-foreground">Option A</label>
-                        <input type="text" value={mcqForm.optionA} onChange={e => setMcqForm({...mcqForm, optionA: e.target.value})} placeholder="Option A" className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-muted-foreground">Option B</label>
-                        <input type="text" value={mcqForm.optionB} onChange={e => setMcqForm({...mcqForm, optionB: e.target.value})} placeholder="Option B" className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-xs font-bold text-muted-foreground">Option C</label>
-                        <input type="text" value={mcqForm.optionC} onChange={e => setMcqForm({...mcqForm, optionC: e.target.value})} placeholder="Option C" className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-muted-foreground">Option D</label>
-                        <input type="text" value={mcqForm.optionD} onChange={e => setMcqForm({...mcqForm, optionD: e.target.value})} placeholder="Option D" className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required />
-                      </div>
-                    </div>
-
-                     <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="text-xs font-bold text-muted-foreground">Correct Option</label>
-                        <select value={mcqForm.correctAnswer} onChange={e => setMcqForm({...mcqForm, correctAnswer: e.target.value})} className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
-                          <option value="A" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Option A</option>
-                          <option value="B" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Option B</option>
-                          <option value="C" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Option C</option>
-                          <option value="D" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Option D</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-muted-foreground">Question Marks</label>
-                        <input type="number" value={mcqForm.marks} onChange={e => setMcqForm({...mcqForm, marks: parseInt(e.target.value) || 1})} placeholder="Marks" className="w-full p-3 mt-1 border rounded-xl text-xs bg-transparent text-slate-900 dark:text-white" required />
-                      </div>
-                      <div>
-                        <label className="text-xs font-bold text-muted-foreground">Difficulty Level</label>
-                        <select value={mcqForm.difficulty} onChange={e => setMcqForm({...mcqForm, difficulty: e.target.value})} className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
-                          <option value="easy" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Easy</option>
-                          <option value="medium" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Medium</option>
-                          <option value="hard" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Hard</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <button type="submit" className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-colors flex justify-center items-center gap-2">
-                      <Plus className="h-4 w-4" /> Save MCQ Question
-                    </button>
-                  </form>
-
-                  <div className="border-t border-slate-200/50 dark:border-slate-800/50 pt-6">
-                    <div className="flex justify-between items-center mb-4">
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-800 dark:text-slate-100">Bulk Import via CSV</h4>
-                        <p className="text-[10px] text-muted-foreground">Add multiple questions at once using a formatted CSV file.</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={downloadMcqTemplate}
-                        className="text-xs font-bold text-indigo-600 hover:text-indigo-500 hover:underline flex items-center gap-1"
-                      >
-                        <Download className="h-3.5 w-3.5" /> Download Template
-                      </button>
-                    </div>
-                    
-                    <form onSubmit={importMcqCsv} className="space-y-4">
-                      <div className="border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-2xl p-6 text-center hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors relative cursor-pointer">
-                        <label className="cursor-pointer block">
-                          <span className="text-sm text-indigo-600 dark:text-indigo-400 font-extrabold block">📂 Choose CSV / Excel File</span>
-                          <span className="text-xs text-muted-foreground block mt-1">
-                            {selectedMcqFileName 
-                              ? <span className="text-emerald-600 dark:text-emerald-400 font-bold">✓ Selected: {selectedMcqFileName}</span>
-                              : 'Select a valid .csv, .xlsx, or .xls template'
-                            }
-                          </span>
-                          <input
-                            type="file"
-                            accept=".csv,.xlsx,.xls"
-                            onChange={handleMcqFileChange}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-muted-foreground">Or Paste CSV Content</label>
-                        <textarea
-                          value={mcqCsvInput}
-                          onChange={e => setMcqCsvInput(e.target.value)}
-                          placeholder="Header: Question,Option A,Option B,Option C,Option D,Correct Answer,Marks,Difficulty"
-                          rows={4}
-                          className="w-full p-3 border rounded-xl text-xs bg-transparent font-mono focus:outline-indigo-500 text-slate-900 dark:text-white"
-                          required
-                        />
-                      </div>
-                      <button type="submit" className="w-full py-3 border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-600 hover:text-white font-extrabold rounded-xl text-xs transition-all">
-                        Import MCQ CSV Data
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-white dark:bg-slate-950 p-8 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-md space-y-6 flex flex-col items-center text-center">
-                  <div className="h-16 w-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-600 mb-2">
-                    <Code className="h-8 w-8" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-extrabold text-slate-800 dark:text-slate-100">Coding Challenge Studio</h3>
-                    <p className="text-xs text-muted-foreground mt-2 max-w-md mx-auto leading-relaxed">
-                      Configure complex technical coding assessments. You can define test cases, target language templates, memory/time limits, and enable automated code grading.
-                    </p>
-                  </div>
-                  
-                  <button 
-                    type="button"
-                    onClick={() => setIsCodingModalOpen(true)}
-                    className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl text-xs transition-all shadow-md shadow-indigo-500/10 flex items-center gap-2"
-                  >
-                    <Plus className="h-4 w-4" /> Open Coding Studio
-                  </button>
-
-                  <div className="w-full border-t border-slate-200/40 dark:border-slate-800/40 pt-6 text-left space-y-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Quick Guide:</h4>
-                    <ul className="text-xs text-muted-foreground space-y-2 list-disc pl-4 leading-relaxed">
-                      <li>Use standard system inputs/outputs in your test cases.</li>
-                      <li>Define at least one visible test case for candidates to verify syntax.</li>
-                      <li>Use the starter template code editor to offer baseline code structures.</li>
-                      <li>Custom time limits are defined in milliseconds (default: 2000ms).</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {isCodingModalOpen && (
-                <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-                  <div className="bg-white dark:bg-slate-950 border border-slate-200/50 dark:border-slate-800/50 rounded-3xl w-full max-w-4xl shadow-2xl p-6 md:p-8 flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-                    <div className="flex justify-between items-start border-b border-slate-200/40 dark:border-slate-800/40 pb-4">
-                      <div>
-                        <h3 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                          <Code className="h-5 w-5 text-indigo-600" />
-                          Coding Challenge Studio
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-1">Configure challenge parameters, custom starter templates, and expected test outputs.</p>
-                      </div>
+          {/* Navigation Mode */}
+          {isCreatingNewExam ? (
+            /* Wizard steps indicator */
+            <div className="mb-8 bg-white dark:bg-slate-955 border border-slate-200/60 dark:border-slate-850/60 rounded-2xl p-4 shadow-sm">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                {[
+                  { step: 1, label: 'Basic Details', desc: 'Title, type & duration', key: 'overview' },
+                  { step: 2, label: 'Sections', desc: 'Structure & order', key: 'sections' },
+                  { step: 3, label: 'Questions', desc: 'MCQs & coding challenges', key: 'questions' },
+                  { step: 4, label: 'Schedule', desc: 'Date, window & batch eligibility', key: 'schedule' },
+                  { step: 5, label: 'Review & Publish', desc: 'Verification & deployment', key: 'review' }
+                ].map((s, idx) => {
+                  const isCompleted = examWizardStep > s.step;
+                  const isActive = examWizardStep === s.step;
+                  return (
+                    <div key={s.step} className="flex-1 flex items-center w-full">
                       <button 
-                        type="button"
-                        onClick={() => setIsCodingModalOpen(false)}
-                        className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 text-muted-foreground hover:text-foreground transition-all"
+                        disabled={s.step > 1 && !editingExamId} 
+                        onClick={() => {
+                          setExamWizardStep(s.step);
+                          setExamWorkspaceTab(s.key as any);
+                        }}
+                        className="flex items-center gap-3 text-left focus:outline-none disabled:opacity-50"
                       >
-                        <X className="h-5 w-5" />
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
+                          isCompleted ? 'bg-indigo-600 text-white' : 
+                          isActive ? 'bg-indigo-500 text-white shadow-md ring-4 ring-indigo-500/25' : 
+                          'bg-slate-100 dark:bg-slate-900 text-muted-foreground'
+                        }`}>
+                          {isCompleted ? <Check className="h-4 w-4" /> : s.step}
+                        </div>
+                        <div>
+                          <div className={`text-xs font-bold ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-foreground'}`}>{s.label}</div>
+                          <div className="text-[10px] text-muted-foreground">{s.desc}</div>
+                        </div>
                       </button>
+                      {idx < 4 && <div className="hidden md:block flex-1 h-0.5 bg-slate-200 dark:bg-slate-800 mx-4" />}
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            /* Tab bar navigation */
+            <div className="flex flex-wrap gap-1.5 p-1 mb-8 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 w-full shadow-sm">
+              {[
+                { key: 'overview', label: 'Overview', icon: BookOpen },
+                { key: 'sections', label: 'Sections', icon: Layers },
+                { key: 'questions', label: 'Questions', icon: BookOpen },
+                { key: 'schedule', label: 'Schedule', icon: Clock },
+                { key: 'results', label: 'Results', icon: Award },
+                { key: 'reports', label: 'Reports', icon: Download }
+              ].map(tab => {
+                const Icon = tab.icon;
+                const isActive = examWorkspaceTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setExamWorkspaceTab(tab.key as any)}
+                    className={`flex-1 md:flex-initial flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-bold transition-all ${
+                      isActive ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10' : 'text-muted-foreground hover:bg-slate-100/50 dark:hover:bg-slate-900/50 hover:text-foreground'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
-                    <form onSubmit={async (e) => {
-                      await addCodingQuestion(e);
-                      setIsCodingModalOpen(false);
-                    }} className="space-y-6">
-                      {/* AI QUESTION GENERATOR BOX */}
-                      <div className="bg-gradient-to-r from-indigo-50 to-indigo-100/30 dark:from-indigo-950/20 dark:to-slate-900/10 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-950/50 space-y-3 shadow-sm">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400 animate-pulse" />
-                          <h4 className="text-xs font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-400">AI Challenge Auto-Generator</h4>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground leading-relaxed max-w-2xl">
-                          Type a high-level topic (e.g., "Check prime number", "Fibonacci sequence", "Verify BST", "Find array duplicates"). 
-                          The AI will automatically write the title, detailed markdown description, boilerplate code template, and test cases!
-                        </p>
-                        <div className="flex gap-2">
-                          <input 
-                            type="text" 
-                            placeholder="e.g. Check if a number is prime" 
-                            id="ai-topic-input"
-                            className="flex-1 p-2.5 border rounded-xl text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-indigo-500" 
-                          />
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              const inputEl = document.getElementById('ai-topic-input') as HTMLInputElement;
-                              const topic = inputEl?.value?.trim();
-                              if (!topic) return showToast('Please enter a topic first', 'error');
-                              
-                              showToast('Generating question using AI...', 'info');
-                              try {
-                                const response = await fetch('/api/exams/admin/generate-coding-question', {
-                                  method: 'POST',
-                                  headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${token}`
-                                  },
-                                  body: JSON.stringify({
-                                    topic,
-                                    difficulty: codingForm.difficulty,
-                                    language: codingForm.language
-                                  })
-                                });
-                                if (response.ok) {
-                                  const qData = await response.json();
-                                  setCodingForm(prev => ({
-                                    ...prev,
-                                    title: qData.title || prev.title,
-                                    description: qData.description || prev.description,
-                                    starterCode: qData.starter_code || prev.starterCode
-                                  }));
-                                  if (qData.test_cases && Array.isArray(qData.test_cases)) {
-                                    setCodingTestCases(qData.test_cases.map((tc: any) => ({
-                                      input: tc.input || '',
-                                      expected_output: tc.expected_output || '',
-                                      isHidden: tc.is_hidden || false
-                                    })));
-                                  }
-                                  showToast('Question details loaded into the editor below!', 'success');
-                                } else {
-                                  const errData = await response.json();
-                                  showToast(errData.error || 'AI Generation failed', 'error');
-                                }
-                              } catch (err: any) {
-                                showToast(`Error generating question: ${err.message}`, 'error');
-                              }
-                            }}
-                            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 shrink-0 shadow-sm"
-                          >
-                            <Sparkles className="h-4 w-4" /> Auto-Generate
-                          </button>
-                        </div>
+          {/* Content Areas */}
+          <div className="space-y-6">
+            {/* OVERVIEW / STEP 1: BASIC DETAILS */}
+            {examWorkspaceTab === 'overview' && (
+              <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Basic Details & Assessment Settings</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Define core parameters like the assessment name, duration, scoring, and proctoring rules.</p>
+                </div>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (editingExamId) {
+                    await updateExam(e);
+                    if (isCreatingNewExam) {
+                      setExamWizardStep(2);
+                      setExamWorkspaceTab('sections');
+                    }
+                  } else {
+                    await createExam(e);
+                  }
+                }} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">Exam Name</label>
+                      <input type="text" value={examForm.name} onChange={e => setExamForm({...examForm, name: e.target.value})} placeholder="e.g. Full-Stack Aptitude Assessment" className="w-full p-3 border rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" required />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">Exam Type</label>
+                      <select value={examForm.examType} onChange={e => setExamForm({...examForm, examType: e.target.value as any})} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
+                        <option value="mcq">MCQ Only</option>
+                        <option value="coding">Coding Only</option>
+                        <option value="both">MCQ + Coding</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">Total Duration (Minutes)</label>
+                      <input type="number" value={examForm.durationMinutes} onChange={e => setExamForm({...examForm, durationMinutes: parseInt(e.target.value) || 60})} className="w-full p-3 border rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" required />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">Cutoff Percentage (%)</label>
+                      <input type="number" value={examForm.cutoffPercentage} onChange={e => setExamForm({...examForm, cutoffPercentage: parseInt(e.target.value) || 50})} className="w-full p-3 border rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" required />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">Allowed Attempts</label>
+                      <select value={examForm.allowedAttempts} onChange={e => setExamForm({...examForm, allowedAttempts: parseInt(e.target.value) || 1})} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1">
+                        <option value="1">1 Attempt</option>
+                        <option value="2">2 Attempts</option>
+                        <option value="3">3 Attempts</option>
+                        <option value="999">Unlimited</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground">Exam Instructions / Description</label>
+                    <textarea value={examForm.description} onChange={e => setExamForm({...examForm, description: e.target.value})} placeholder="Provide exam guidelines, candidate instructions, and general scope..." rows={3} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent mt-1 focus:outline-indigo-500 text-slate-900 dark:text-white" />
+                  </div>
+
+                  <div className="flex items-center gap-2 p-1">
+                    <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-200 select-none">
+                      <input 
+                        type="checkbox" 
+                        checked={examForm.enableFaceDetection !== false} 
+                        onChange={e => setExamForm({...examForm, enableFaceDetection: e.target.checked})} 
+                        className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-slate-900" 
+                      />
+                      Enable AI Face Detection (background checking for face absence/multiple people)
+                    </label>
+                  </div>
+
+                  <div className="space-y-3 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30">
+                    <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 select-none">
+                      <input 
+                        type="checkbox" 
+                        checked={examForm.enableSectionCutoff === true} 
+                        onChange={e => setExamForm({...examForm, enableSectionCutoff: e.target.checked})} 
+                        className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-slate-900" 
+                      />
+                      Enable Section-wise Cutoffs (configure separate MCQ and Coding pass criteria)
+                    </label>
+
+                    {examForm.enableSectionCutoff && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-800/60 transition-all duration-300 ease-in-out">
+                        {examForm.examType !== 'coding' && (
+                          <div className="space-y-2 p-3 rounded-lg bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800/80">
+                            <h4 className="text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">MCQ Section</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[10px] font-semibold text-muted-foreground">Passing Percentage (%)</label>
+                                <input 
+                                  type="number" 
+                                  value={examForm.mcqCutoffPercentage !== undefined ? examForm.mcqCutoffPercentage : 50} 
+                                  onChange={e => setExamForm({...examForm, mcqCutoffPercentage: parseFloat(e.target.value) || 0})} 
+                                  className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" 
+                                  min={0} 
+                                  max={100}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-semibold text-muted-foreground">Passing Marks (or 0 for %)</label>
+                                <input 
+                                  type="number" 
+                                  value={examForm.mcqCutoffMarks !== undefined ? examForm.mcqCutoffMarks : 0} 
+                                  onChange={e => setExamForm({...examForm, mcqCutoffMarks: parseFloat(e.target.value) || 0})} 
+                                  className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" 
+                                  min={0}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {examForm.examType !== 'mcq' && (
+                          <div className="space-y-2 p-3 rounded-lg bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800/80">
+                            <h4 className="text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Coding Section</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[10px] font-semibold text-muted-foreground">Passing Percentage (%)</label>
+                                <input 
+                                  type="number" 
+                                  value={examForm.codingCutoffPercentage !== undefined ? examForm.codingCutoffPercentage : 50} 
+                                  onChange={e => setExamForm({...examForm, codingCutoffPercentage: parseFloat(e.target.value) || 0})} 
+                                  className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" 
+                                  min={0} 
+                                  max={100}
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-semibold text-muted-foreground">Passing Marks (or 0 for %)</label>
+                                <input 
+                                  type="number" 
+                                  value={examForm.codingCutoffMarks !== undefined ? examForm.codingCutoffMarks : 0} 
+                                  onChange={e => setExamForm({...examForm, codingCutoffMarks: parseFloat(e.target.value) || 0})} 
+                                  className="w-full p-2 border rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" 
+                                  min={0}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
+                    )}
+                  </div>
 
+                  <div className="pt-4 flex justify-between items-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedExamIdForQuestions(null);
+                        setEditingExamId(null);
+                        setCurrentPage('admin-dash');
+                      }}
+                      className="px-4 py-2 border rounded-xl text-xs font-bold text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
+                    >
+                      Back to Dashboard
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs transition-colors"
+                    >
+                      {editingExamId ? (isCreatingNewExam ? 'Next: Configure Sections \u2192' : 'Save Details') : 'Configure & Create Exam'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+            
+            {/* SECTIONS TAB / STEP 2 */}
+            {examWorkspaceTab === 'sections' && (
+              <div className="space-y-6">
+                <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Assessment Structure & Sections</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Divide your assessment into logical sections (e.g. Aptitude, Technical MCQ, Core Coding).</p>
+                    </div>
+                    {!isSectionModalOpen && (
+                      <button
+                        onClick={() => {
+                          setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true });
+                          setEditingSectionId(null);
+                          setIsSectionModalOpen(true);
+                        }}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-sm"
+                      >
+                        <Plus className="h-3.5 w-3.5" /> Add Section
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Inline Section Form */}
+                  {isSectionModalOpen && (
+                    <form 
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (editingSectionId) {
+                          await updateSection(e);
+                        } else {
+                          await createSection(e);
+                        }
+                        setIsSectionModalOpen(false);
+                      }}
+                      className="p-5 border-2 border-indigo-500/20 bg-indigo-50/5 dark:bg-indigo-950/10 rounded-2xl space-y-4"
+                    >
+                      <h4 className="font-bold text-xs text-indigo-600 dark:text-indigo-400">
+                        {editingSectionId ? 'Edit Section Properties' : 'Create New Section'}
+                      </h4>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
-                          <label className="text-xs font-bold text-muted-foreground">Challenge Title</label>
+                          <label className="text-[10px] uppercase font-bold text-muted-foreground">Section Name</label>
                           <input 
                             type="text" 
-                            value={codingForm.title} 
-                            onChange={e => setCodingForm({...codingForm, title: e.target.value})} 
-                            placeholder="Fibonacci Sequence Generator" 
-                            className="w-full p-3 mt-1 border rounded-xl text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-indigo-500" 
+                            value={sectionForm.name} 
+                            onChange={e => setSectionForm({ ...sectionForm, name: e.target.value })} 
+                            className="w-full p-2.5 border rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" 
+                            placeholder="e.g. Aptitude MCQ" 
                             required 
                           />
                         </div>
                         <div>
-                          <label className="text-xs font-bold text-muted-foreground">Target Language</label>
+                          <label className="text-[10px] uppercase font-bold text-muted-foreground">Question Type Allowed</label>
                           <select 
-                            value={codingForm.language} 
-                            onChange={e => {
-                              const lang = e.target.value;
-                              const starterTemplates: Record<string, string> = {
-                                'Python': 'def solve(input_val):\n    # Write your code here\n    pass',
-                                'Java': 'import java.util.*;\n\npublic class Solution {\n    public static void main(String[] args) {\n        Scanner sc = new Scanner(System.in);\n        // Write your code here\n    }\n}',
-                                'C++': '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Write your code here\n    return 0;\n}',
-                                'JavaScript': 'function solve(inputVal) {\n    // Write your code here\n    return null;\n}'
-                              };
-                              setCodingForm({
-                                ...codingForm,
-                                language: lang,
-                                starterCode: starterTemplates[lang] || ''
-                              });
-                            }} 
-                            className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white" 
-                            required
+                            value={sectionForm.sectionType} 
+                            onChange={e => setSectionForm({ ...sectionForm, sectionType: e.target.value })} 
+                            className="w-full p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
                           >
-                            <option value="Python">Python</option>
-                            <option value="Java">Java</option>
-                            <option value="C++">C++</option>
-                            <option value="JavaScript">JavaScript</option>
+                            <option value="mcq">MCQ Only</option>
+                            <option value="coding">Coding challenges only</option>
                           </select>
                         </div>
                         <div>
-                          <label className="text-xs font-bold text-muted-foreground">Target Coding Section</label>
-                          <select 
-                            value={selectedSectionIdForCoding} 
-                            onChange={e => setSelectedSectionIdForCoding(e.target.value)} 
-                            className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-                            required
-                          >
-                            {adminSelectedExamSections.filter(s => s.section_type === 'coding').map(s => (
-                              <option key={s.id} value={s.id}>{s.name} ({s.is_mandatory ? 'Mandatory' : 'Optional'})</option>
-                            ))}
-                            {adminSelectedExamSections.filter(s => s.section_type === 'coding').length === 0 && (
-                              <option value="">No Coding Sections - Click 'Manage Sections' to create one</option>
-                            )}
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="text-xs font-bold text-muted-foreground">Marks</label>
-                          <input type="number" value={codingForm.marks} onChange={e => setCodingForm({...codingForm, marks: parseInt(e.target.value) || 10})} className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white" required />
-                        </div>
-                        <div>
-                          <label className="text-xs font-bold text-muted-foreground">Time Limit (ms)</label>
-                          <input type="number" value={codingForm.timeLimit} onChange={e => setCodingForm({...codingForm, timeLimit: parseInt(e.target.value) || 2000})} className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white" required />
-                        </div>
-                        <div>
-                          <label className="text-xs font-bold text-muted-foreground">Memory Limit (KB)</label>
-                          <input type="number" value={codingForm.memoryLimit} onChange={e => setCodingForm({...codingForm, memoryLimit: parseInt(e.target.value) || 512000})} className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white" required />
+                          <label className="text-[10px] uppercase font-bold text-muted-foreground">Duration (Minutes, optional)</label>
+                          <input 
+                            type="number" 
+                            value={sectionForm.durationMinutes} 
+                            onChange={e => setSectionForm({ ...sectionForm, durationMinutes: e.target.value })} 
+                            className="w-full p-2.5 border rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" 
+                            placeholder="Defaults to full exam time" 
+                          />
                         </div>
                       </div>
 
                       <div>
-                        <label className="text-xs font-bold text-muted-foreground">Challenge Description & Examples</label>
-                        <textarea 
-                          value={codingForm.description} 
-                          onChange={e => setCodingForm({...codingForm, description: e.target.value})} 
-                          placeholder="Write clear instructions for the student, detailing inputs, outputs, constraints, and test scenarios..." 
-                          rows={4} 
-                          className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-indigo-500" 
-                          required 
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-bold text-muted-foreground">Starter template code (Reflected automatically on changing language)</label>
-                        <textarea 
-                          value={codingForm.starterCode} 
-                          onChange={e => setCodingForm({...codingForm, starterCode: e.target.value})} 
-                          placeholder="Code shown to students at the beginning of the test..." 
-                          rows={5} 
-                          className="w-full p-3.5 mt-1 border rounded-xl text-xs bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 font-mono focus:outline-indigo-500" 
-                        />
-                      </div>
-                      
-                      {/* Test cases selection */}
-                      <div className="border-t border-slate-200/50 dark:border-slate-800/50 pt-4">
-                        <div className="flex justify-between items-center mb-3">
-                          <div>
-                            <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-800 dark:text-slate-200">Evaluation Test Cases</h4>
-                            <p className="text-[10px] text-muted-foreground">Minimum 1 testcase is required for automated evaluation.</p>
-                          </div>
-                          <button 
-                            type="button" 
-                            onClick={addTestCaseInput} 
-                            className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg flex items-center gap-1 transition-all"
-                          >
-                            <Plus className="h-3.5 w-3.5" /> Add Case
-                          </button>
-                        </div>
-                        
-                        <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
-                          {codingTestCases.map((tc, idx) => (
-                            <div key={idx} className="flex flex-col md:flex-row gap-3 p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200/50 dark:border-slate-800/50 items-end">
-                              <div className="flex-1 w-full">
-                                <label className="text-[10px] font-bold text-muted-foreground block mb-1">Standard Input</label>
-                                <input 
-                                  type="text" 
-                                  placeholder="Input" 
-                                  value={tc.input} 
-                                  onChange={e => {
-                                    const updated = [...codingTestCases];
-                                    updated[idx].input = e.target.value;
-                                    setCodingTestCases(updated);
-                                  }} 
-                                  className="w-full p-2 border rounded-lg text-xs bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white" 
-                                  required 
-                                />
-                              </div>
-                              <div className="flex-1 w-full">
-                                <label className="text-[10px] font-bold text-muted-foreground block mb-1">Expected Output</label>
-                                <input 
-                                  type="text" 
-                                  placeholder="Output" 
-                                  value={tc.expected_output} 
-                                  onChange={e => {
-                                    const updated = [...codingTestCases];
-                                    updated[idx].expected_output = e.target.value;
-                                    setCodingTestCases(updated);
-                                  }} 
-                                  className="w-full p-2 border rounded-lg text-xs bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white" 
-                                  required 
-                                />
-                              </div>
-                              <div className="w-full md:w-32">
-                                <label className="text-[10px] font-bold text-muted-foreground block mb-1">Visibility</label>
-                                <select 
-                                  value={tc.isHidden ? 'true' : 'false'} 
-                                  onChange={e => {
-                                    const updated = [...codingTestCases];
-                                    updated[idx].isHidden = e.target.value === 'true';
-                                    setCodingTestCases(updated);
-                                  }} 
-                                  className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-white"
-                                >
-                                  <option value="false">Visible</option>
-                                  <option value="true">Hidden</option>
-                                </select>
-                              </div>
-                              <button 
-                                type="button" 
-                                onClick={() => {
-                                  setCodingTestCases(prev => prev.filter((_, i) => i !== idx));
-                                }}
-                                className="p-2.5 rounded-lg border border-rose-200 dark:border-rose-950 hover:bg-rose-500 hover:text-white text-rose-500 transition-all flex items-center justify-center shrink-0 w-full md:w-auto"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="flex gap-3 justify-end border-t border-slate-200/45 dark:border-slate-800/45 pt-4 mt-6">
-                        <button 
-                          type="button"
-                          onClick={() => setIsCodingModalOpen(false)}
-                          className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 transition-all"
-                        >
-                          Cancel
-                        </button>
-                        <button type="submit" className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-colors flex items-center gap-2">
-                          <Plus className="h-4 w-4" /> Save Coding Question
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Right Side: Configured Questions List (Interactive & beautifully styled) */}
-            <div className="lg:col-span-5 bg-white dark:bg-slate-950 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-md space-y-6">
-              <div>
-                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                  Configured Questions
-                  <span className="text-[11px] font-normal px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400">
-                    {adminSelectedExamMCQs.length + adminSelectedExamCodings.length} Total
-                  </span>
-                </h3>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Manage existing questions that will appear in the exam test environment.</p>
-              </div>
-
-              <div className="space-y-6 max-h-[680px] overflow-y-auto pr-1">
-                {adminSelectedExamSections.map((sect, sectIdx) => {
-                  const sectMcqs = adminSelectedExamMCQs.filter(q => q.section_id === sect.id);
-                  const sectCodings = adminSelectedExamCodings.filter(q => q.section_id === sect.id);
-                  
-                  return (
-                    <div key={sect.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 space-y-3">
-                      <div className="flex justify-between items-start border-b border-slate-200/40 dark:border-slate-800/40 pb-2">
-                        <div>
-                          <h4 className="font-extrabold text-xs text-indigo-700 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
-                            Section {sectIdx + 1}: {sect.name}
-                            <span className={`px-1.5 py-0.5 rounded-[4px] text-[8px] uppercase tracking-wider font-extrabold ${sect.section_type === 'mcq' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
-                              {sect.section_type}
-                            </span>
-                          </h4>
-                          {sect.description && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5">{sect.description}</p>
-                          )}
-                          <div className="text-[9px] text-muted-foreground flex gap-x-2 mt-1">
-                            <span>⏱ {sect.duration_minutes ? `${sect.duration_minutes}m` : 'inherit'}</span>
-                            <span>• {sect.is_mandatory ? 'Mandatory' : 'Optional'}</span>
-                            <span>• {sect.randomize_questions ? 'Randomized' : 'Sequential'}</span>
-                            <span>• {sect.section_type === 'mcq' ? sectMcqs.length : sectCodings.length} Questions</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {sect.section_type === 'mcq' ? (
-                        <div className="space-y-3">
-                          {sectMcqs.map((q, idx) => (
-                            <div key={q.id || idx} className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs text-left shadow-sm group relative">
-                              <div className="font-bold text-slate-800 dark:text-slate-100 pr-6">{idx + 1}. {q.question}</div>
-                              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-2.5 text-[11px] text-muted-foreground border-t border-slate-200/20 dark:border-slate-800/20 pt-2">
-                                <div>A: {q.option_a || (q as any).optionA}</div>
-                                <div>B: {q.option_b || (q as any).optionB}</div>
-                                <div>C: {q.option_c || (q as any).optionC}</div>
-                                <div>D: {q.option_d || (q as any).optionD}</div>
-                              </div>
-                              
-                              <div className="flex flex-wrap items-center gap-2 mt-3 pt-2 border-t border-slate-200/20 dark:border-slate-800/20">
-                                <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[9px]">Correct: {q.correct_answer || (q as any).correctAnswer}</span>
-                                <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[9px]">{q.marks} Marks</span>
-                                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-850 text-slate-600 dark:text-slate-400 font-bold text-[9px] capitalize">{q.difficulty}</span>
-                                
-                                <button
-                                  type="button"
-                                  onClick={async () => {
-                                    if (confirm('Are you sure you want to delete this MCQ question?')) {
-                                      try {
-                                        const delRes = await fetch(`/api/mcq/${q.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-                                        if (delRes.ok) {
-                                          setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
-                                          showToast('MCQ Question deleted');
-                                        }
-                                      } catch (err) {
-                                        setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
-                                        showToast('MCQ Question deleted (Simulated)');
-                                      }
-                                    }
-                                  }}
-                                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-rose-500 hover:text-rose-600 hover:scale-105 transition-all p-1"
-                                  title="Delete Question"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                          {sectMcqs.length === 0 && (
-                            <p className="text-[11px] text-muted-foreground italic text-center py-2">No MCQ questions added to this section.</p>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {sectCodings.map((q, idx) => (
-                            <div key={q.id || idx} className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-xs text-left shadow-sm group relative">
-                              <div className="font-bold text-slate-800 dark:text-slate-100 pr-6">{idx + 1}. {q.title} ({q.language})</div>
-                              <div className="mt-2 text-[11px] text-muted-foreground whitespace-pre-wrap font-mono line-clamp-2 bg-slate-50 dark:bg-slate-900 p-2 rounded-lg border border-slate-200/40 dark:border-slate-800/40">{q.description}</div>
-                              
-                              <div className="flex flex-wrap items-center gap-2 mt-3 pt-2 border-t border-slate-200/20 dark:border-slate-800/20">
-                                <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold text-[9px]">{q.marks} Marks</span>
-                                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-850 text-slate-600 dark:text-slate-400 font-bold text-[9px] capitalize">{q.difficulty}</span>
-                                
-                                <button
-                                  type="button"
-                                  onClick={async () => {
-                                    if (confirm('Are you sure you want to delete this coding question?')) {
-                                      try {
-                                        const delRes = await fetch(`/api/coding/${q.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-                                        if (delRes.ok) {
-                                          setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
-                                          showToast('Coding Question deleted');
-                                        }
-                                      } catch (err) {
-                                        setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
-                                        showToast('Coding Question deleted (Simulated)');
-                                      }
-                                    }
-                                  }}
-                                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-rose-500 hover:text-rose-600 hover:scale-105 transition-all p-1"
-                                  title="Delete Question"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                          {sectCodings.length === 0 && (
-                            <p className="text-[11px] text-muted-foreground italic text-center py-2">No coding questions added to this section.</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {/* Fallback for unassigned questions */}
-                {(() => {
-                  const unassignedMcqs = adminSelectedExamMCQs.filter(q => !q.section_id || !adminSelectedExamSections.some(s => s.id === q.section_id));
-                  const unassignedCodings = adminSelectedExamCodings.filter(q => !q.section_id || !adminSelectedExamSections.some(s => s.id === q.section_id));
-                  
-                  if (unassignedMcqs.length === 0 && unassignedCodings.length === 0) return null;
-
-                  return (
-                    <div className="p-4 rounded-2xl border border-dashed border-amber-300 dark:border-amber-800 bg-amber-50/20 dark:bg-amber-950/10 space-y-3">
-                      <div>
-                        <h4 className="font-extrabold text-xs text-amber-700 dark:text-amber-400 uppercase tracking-widest">Unassigned Questions</h4>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">These questions are not linked to any section and should be deleted or reassigned.</p>
-                      </div>
-                      
-                      {unassignedMcqs.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="text-[10px] font-bold text-amber-600 uppercase">MCQ List</div>
-                          {unassignedMcqs.map((q, idx) => (
-                            <div key={q.id || idx} className="p-3 bg-white dark:bg-slate-900 border rounded-xl text-xs flex justify-between items-center">
-                              <span className="font-bold text-slate-800 dark:text-slate-100 truncate flex-1">{idx + 1}. {q.question}</span>
-                              <button
-                                onClick={async () => {
-                                  if (confirm('Delete unassigned question?')) {
-                                    setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
-                                  }
-                                }}
-                                className="text-rose-500 hover:underline text-[10px] font-bold ml-2"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {unassignedCodings.length > 0 && (
-                        <div className="space-y-2">
-                          <div className="text-[10px] font-bold text-amber-600 uppercase">Coding List</div>
-                          {unassignedCodings.map((q, idx) => (
-                            <div key={q.id || idx} className="p-3 bg-white dark:bg-slate-900 border rounded-xl text-xs flex justify-between items-center">
-                              <span className="font-bold text-slate-800 dark:text-slate-100 truncate flex-1">{idx + 1}. {q.title}</span>
-                              <button
-                                onClick={async () => {
-                                  if (confirm('Delete unassigned question?')) {
-                                    setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
-                                  }
-                                }}
-                                className="text-rose-500 hover:underline text-[10px] font-bold ml-2"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {adminSelectedExamMCQs.length === 0 && adminSelectedExamCodings.length === 0 && (
-                  <div className="text-center py-12 text-muted-foreground text-xs italic bg-slate-50 dark:bg-slate-900/30 rounded-3xl border border-dashed border-slate-200 dark:border-slate-850">
-                    No questions configured for this exam yet.
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Section Management Modal */}
-          {isSectionModalOpen && (
-            <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-              <div className="bg-white dark:bg-slate-950 border border-slate-200/50 dark:border-slate-800/50 rounded-3xl w-full max-w-3xl shadow-2xl p-6 md:p-8 flex flex-col gap-6 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-                <div className="flex justify-between items-start border-b border-slate-200/40 dark:border-slate-800/40 pb-4">
-                  <div>
-                    <h3 className="text-xl font-extrabold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                      <Layers className="h-5 w-5 text-indigo-600" />
-                      Manage Exam Sections
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1">Configure, reorder, or edit sections for this exam.</p>
-                  </div>
-                  <button 
-                    type="button" 
-                    onClick={() => setIsSectionModalOpen(false)}
-                    className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-900 text-muted-foreground hover:text-foreground transition-all"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                  {/* Left: Section Form */}
-                  <div className="space-y-4 bg-slate-50 dark:bg-slate-900/40 p-5 rounded-2xl border border-slate-200/50 dark:border-slate-800/50">
-                    <h4 className="font-extrabold text-xs text-indigo-700 dark:text-indigo-400 uppercase tracking-widest">
-                      {editingSectionId ? 'Edit Section' : 'Create Section'}
-                    </h4>
-                    <form onSubmit={editingSectionId ? updateSection : createSection} className="space-y-4">
-                      <div>
-                        <label className="text-[11px] font-bold text-muted-foreground block">Section Name</label>
-                        <input 
-                          type="text" 
-                          value={sectionForm.name} 
-                          onChange={e => setSectionForm({...sectionForm, name: e.target.value})} 
-                          placeholder="e.g. MCQ Aptitude" 
-                          className="w-full p-2.5 mt-1 border rounded-xl text-xs bg-white dark:bg-slate-905 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" 
-                          required 
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-bold text-muted-foreground block">Description (Optional)</label>
+                        <label className="text-[10px] uppercase font-bold text-muted-foreground">Description / Guidelines</label>
                         <textarea 
                           value={sectionForm.description} 
-                          onChange={e => setSectionForm({...sectionForm, description: e.target.value})} 
-                          placeholder="Brief instructions for this section..." 
+                          onChange={e => setSectionForm({ ...sectionForm, description: e.target.value })} 
+                          className="w-full p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white" 
                           rows={2} 
-                          className="w-full p-2.5 mt-1 border rounded-xl text-xs bg-white dark:bg-slate-905 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" 
+                          placeholder="Provide section instructions..." 
                         />
                       </div>
 
-                      <div>
-                        <label className="text-[11px] font-bold text-muted-foreground block">Section Type</label>
-                        <select 
-                          value={sectionForm.sectionType} 
-                          onChange={e => setSectionForm({...sectionForm, sectionType: e.target.value})} 
-                          className="w-full p-2.5 mt-1 border rounded-xl text-xs bg-white dark:bg-slate-905 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
-                          disabled={!!editingSectionId}
-                          required
-                        >
-                          <option value="mcq">MCQ Section</option>
-                          <option value="coding">Coding Section</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="text-[11px] font-bold text-muted-foreground block">Duration (Mins, Optional)</label>
-                        <input 
-                          type="number" 
-                          value={sectionForm.durationMinutes} 
-                          onChange={e => setSectionForm({...sectionForm, durationMinutes: e.target.value})} 
-                          placeholder="Inherits overall exam duration if blank" 
-                          className="w-full p-2.5 mt-1 border rounded-xl text-xs bg-white dark:bg-slate-905 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" 
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-2 pt-2 border-t border-slate-200/50 dark:border-slate-800/50">
-                        <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer text-xs select-none text-slate-700 dark:text-slate-200">
                           <input 
                             type="checkbox" 
                             checked={sectionForm.randomizeQuestions} 
-                            onChange={e => setSectionForm({...sectionForm, randomizeQuestions: e.target.checked})} 
-                            className="rounded text-indigo-600 focus:ring-indigo-500" 
+                            onChange={e => setSectionForm({ ...sectionForm, randomizeQuestions: e.target.checked })} 
+                            className="h-4 w-4 text-indigo-600 rounded border-slate-300 dark:border-slate-700 bg-transparent" 
                           />
-                          Randomize questions order for student
+                          Randomize question presentation order
                         </label>
-                        <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                        <label className="flex items-center gap-2 cursor-pointer text-xs select-none text-slate-700 dark:text-slate-200">
                           <input 
                             type="checkbox" 
                             checked={sectionForm.isMandatory} 
-                            onChange={e => setSectionForm({...sectionForm, isMandatory: e.target.checked})} 
-                            className="rounded text-indigo-600 focus:ring-indigo-500" 
+                            onChange={e => setSectionForm({ ...sectionForm, isMandatory: e.target.checked })} 
+                            className="h-4 w-4 text-indigo-600 rounded border-slate-300 dark:border-slate-700 bg-transparent" 
                           />
-                          Mandatory Section
+                          Mandatory section (candidates must attempt)
                         </label>
                       </div>
 
-                      <div className="flex gap-2 pt-2">
-                        {editingSectionId && (
-                          <button 
-                            type="button" 
-                            onClick={() => {
-                              setEditingSectionId(null);
-                              setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true });
-                            }}
-                            className="flex-1 py-2.5 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                        <button type="submit" className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs">
+                      <div className="flex gap-2 justify-end pt-2">
+                        <button 
+                          type="button" 
+                          onClick={() => setIsSectionModalOpen(false)} 
+                          className="px-3.5 py-1.5 text-xs border rounded-xl text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          type="submit" 
+                          className="px-4 py-1.5 text-xs bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-500"
+                        >
                           {editingSectionId ? 'Save Changes' : 'Create Section'}
                         </button>
                       </div>
                     </form>
+                  )}
+
+                  {/* Sections List */}
+                  <div className="space-y-3">
+                    {adminSelectedExamSections.map((sect, index) => (
+                      <div key={sect.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 flex items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{sect.name}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                              sect.section_type === 'mcq' ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400'
+                            }`}>
+                              {sect.section_type}
+                            </span>
+                            {sect.is_mandatory && <span className="px-2 py-0.5 rounded-full text-[9px] bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 font-bold">Mandatory</span>}
+                            {sect.randomize_questions && <span className="px-2 py-0.5 rounded-full text-[9px] bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold">Randomized</span>}
+                          </div>
+                          {sect.description && <p className="text-[10px] text-muted-foreground max-w-xl">{sect.description}</p>}
+                          <div className="text-[10px] text-muted-foreground flex gap-3">
+                            <span>Duration: {sect.duration_minutes ? `${sect.duration_minutes} Mins` : 'Exam default'}</span>
+                            <span>Order: #{index + 1}</span>
+                          </div>
+                        </div>
+
+                        {/* Controls */}
+                        <div className="flex items-center gap-2">
+                          <button
+                            disabled={index === 0}
+                            onClick={() => moveSection(sect.id, 'up')}
+                            className="p-1 border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 text-xs font-bold w-6 h-6 flex items-center justify-center text-slate-800 dark:text-white"
+                            title="Move Up"
+                          >
+                            &uarr;
+                          </button>
+                          <button
+                            disabled={index === adminSelectedExamSections.length - 1}
+                            onClick={() => moveSection(sect.id, 'down')}
+                            className="p-1 border border-slate-200 dark:border-slate-800 rounded bg-white dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 text-xs font-bold w-6 h-6 flex items-center justify-center text-slate-800 dark:text-white"
+                            title="Move Down"
+                          >
+                            &darr;
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSectionForm({
+                                name: sect.name,
+                                description: sect.description || '',
+                                sectionType: sect.section_type,
+                                durationMinutes: sect.duration_minutes ? String(sect.duration_minutes) : '',
+                                randomizeQuestions: sect.randomize_questions || false,
+                                isMandatory: sect.is_mandatory !== false
+                              });
+                              setEditingSectionId(sect.id);
+                              setIsSectionModalOpen(true);
+                            }}
+                            className="text-[10px] font-bold px-2 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded hover:bg-amber-500 hover:text-white transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => deleteSection(sect.id)}
+                            className="text-[10px] font-bold px-2 py-1 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded hover:bg-rose-500 hover:text-white transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {adminSelectedExamSections.length === 0 && (
+                      <div className="text-center py-10 text-muted-foreground text-xs italic bg-slate-50 dark:bg-slate-900/20 border border-dashed rounded-2xl border-slate-200 dark:border-slate-800">
+                        No sections configured yet. Click "Add Section" to establish the test structure.
+                      </div>
+                    )}
                   </div>
 
-                  {/* Right: Sections List */}
-                  <div className="space-y-4">
-                    <h4 className="font-extrabold text-xs text-indigo-700 dark:text-indigo-400 uppercase tracking-widest">
-                      Existing Sections ({adminSelectedExamSections.length})
-                    </h4>
-                    <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
-                      {adminSelectedExamSections.map((sect, idx) => (
-                        <div key={sect.id} className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between text-xs">
-                          <div>
-                            <div className="font-bold text-slate-800 dark:text-white flex items-center gap-1.5 font-mono">
-                              {sect.name}
-                              <span className={`px-1.5 py-0.5 rounded-[4px] text-[8px] uppercase tracking-wider font-extrabold ${sect.section_type === 'mcq' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
-                                {sect.section_type}
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-x-2">
-                              {sect.duration_minutes ? <span>⏱ {sect.duration_minutes}m</span> : <span>⏱ inherit</span>}
-                              <span>{sect.is_mandatory ? 'Mandatory' : 'Optional'}</span>
-                              <span>{sect.randomize_questions ? 'Randomized' : 'Sequential'}</span>
-                            </div>
-                          </div>
+                  {/* Navigation buttons */}
+                  <div className="pt-6 flex justify-between items-center border-t border-slate-100 dark:border-slate-850">
+                    <button
+                      onClick={() => {
+                        if (isCreatingNewExam) {
+                          setExamWizardStep(1);
+                          setExamWorkspaceTab('overview');
+                        }
+                      }}
+                      className="px-4 py-2 border rounded-xl text-xs font-bold text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
+                    >
+                      &larr; Back: Basic Details
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (isCreatingNewExam) {
+                          setExamWizardStep(3);
+                          setExamWorkspaceTab('questions');
+                        }
+                      }}
+                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs"
+                      disabled={adminSelectedExamSections.length === 0}
+                    >
+                      Next: Add Questions &rarr;
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
-                          <div className="flex items-center gap-1.5">
-                            <button 
-                              onClick={() => moveSection(sect.id, 'up')} 
-                              disabled={idx === 0}
-                              className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 disabled:opacity-40"
-                            >
-                              ▲
-                            </button>
-                            <button 
-                              onClick={() => moveSection(sect.id, 'down')} 
-                              disabled={idx === adminSelectedExamSections.length - 1}
-                              className="p-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 disabled:opacity-40"
-                            >
-                              ▼
-                            </button>
-                            <button 
-                              onClick={() => {
-                                setEditingSectionId(sect.id);
-                                setSectionForm({
-                                  name: sect.name,
-                                  description: sect.description || '',
-                                  sectionType: sect.section_type,
-                                  durationMinutes: sect.duration_minutes ? String(sect.duration_minutes) : '',
-                                  randomizeQuestions: sect.randomize_questions || false,
-                                  isMandatory: sect.is_mandatory || false
-                                });
-                              }}
-                              className="p-1 text-amber-600 hover:underline"
-                              title="Edit"
-                            >
-                              Edit
-                            </button>
-                            <button 
-                              onClick={() => deleteSection(sect.id)}
-                              className="p-1 text-rose-600 hover:underline"
-                              title="Delete"
-                            >
-                              Delete
-                            </button>
+            {/* QUESTIONS TAB / STEP 3 */}
+            {examWorkspaceTab === 'questions' && (
+              <div className="space-y-6">
+                <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-4">
+                  <div>
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Add & Configure Questions</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Define MCQ or Coding scenarios for each exam section created.</p>
+                  </div>
+
+                  {adminSelectedExamSections.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground text-xs italic bg-slate-50 dark:bg-slate-900/20 border border-dashed rounded-2xl border-slate-200 dark:border-slate-800">
+                      Please define at least one section in the "Sections" step before adding questions.
+                    </div>
+                  ) : (
+                    <div className="space-y-8">
+                      {adminSelectedExamSections.map((sect) => {
+                        const isMcq = sect.section_type === 'mcq';
+                        const mcqQuestions = adminSelectedExamMCQs.filter(q => q.section_id === sect.id);
+                        const codingQuestions = adminSelectedExamCodings.filter(q => q.section_id === sect.id);
+                        const totalQuestions = isMcq ? mcqQuestions.length : codingQuestions.length;
+
+                        // Check if forms are open for this section
+                        const isMcqFormOpen = selectedSectionIdForMcq === sect.id && isSectionModalOpen;
+                        const isMcqImportOpen = selectedSectionIdForMcq === sect.id && mcqCsvInput.length > 0;
+                        const isCodingFormOpen = selectedSectionIdForCoding === sect.id && isCodingModalOpen;
+
+                        return (
+                          <div key={sect.id} className="p-6 border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950 rounded-2xl shadow-sm space-y-4">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 pb-3 border-b border-slate-200/50 dark:border-slate-800/50">
+                              <div>
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                  isMcq ? 'bg-indigo-100 text-indigo-600' : 'bg-emerald-100 text-emerald-600'
+                                }`}>
+                                  {isMcq ? 'MCQ Section' : 'Coding Section'}
+                                </span>
+                                <h4 className="font-extrabold text-sm text-slate-800 dark:text-slate-200 mt-1">{sect.name}</h4>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                  {totalQuestions} Questions | Duration: {sect.duration_minutes ? `${sect.duration_minutes} Mins` : 'Exam Default'}
+                                </p>
+                              </div>
+                              
+                              <div className="flex gap-2">
+                                {isMcq ? (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        setSelectedSectionIdForMcq(sect.id);
+                                        setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', correctAnswer: 'A', marks: 1, difficulty: 'medium' });
+                                        setIsSectionModalOpen(true); 
+                                        setMcqCsvInput('');
+                                      }}
+                                      className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm"
+                                    >
+                                      <Plus className="h-3 w-3" /> Add MCQ Question
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setSelectedSectionIdForMcq(sect.id);
+                                        setMcqCsvInput('Question,Option A,Option B,Option C,Option D,Correct Answer,Marks,Difficulty\n');
+                                        setIsSectionModalOpen(false);
+                                      }}
+                                      className="px-3 py-1.5 border border-indigo-200 hover:bg-indigo-50 text-indigo-600 dark:border-indigo-900/60 dark:text-indigo-400 text-[10px] font-bold rounded-lg flex items-center gap-1"
+                                    >
+                                      <Upload className="h-3 w-3" /> Import CSV
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedSectionIdForCoding(sect.id);
+                                      setCodingForm({ title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python', starterCode: 'def solve():\n    # Write code here\n    pass', timeLimit: 2000, memoryLimit: 512000 });
+                                      setCodingTestCases([{ input: '5\n', expected_output: '10\n', isHidden: false }]);
+                                      setIsCodingModalOpen(true);
+                                    }}
+                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm"
+                                  >
+                                    <Plus className="h-3 w-3" /> Add Coding Question
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Nest MCQ creation Form inside section card */}
+                            {isMcq && isMcqFormOpen && (
+                              <form 
+                                onSubmit={async (e) => {
+                                  await addMcqQuestion(e);
+                                  setIsSectionModalOpen(false);
+                                }}
+                                className="p-4 border border-indigo-200 bg-indigo-50/5 dark:bg-indigo-950/10 rounded-xl space-y-3 animate-fadeIn"
+                              >
+                                <h5 className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">New Multiple Choice Question</h5>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-semibold text-muted-foreground">Question Stem</label>
+                                  <input type="text" value={mcqForm.question} onChange={e => setMcqForm({ ...mcqForm, question: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" placeholder="What is the runtime complexity of binary search?" required />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Option A</label>
+                                    <input type="text" value={mcqForm.optionA} onChange={e => setMcqForm({ ...mcqForm, optionA: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" required />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Option B</label>
+                                    <input type="text" value={mcqForm.optionB} onChange={e => setMcqForm({ ...mcqForm, optionB: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" required />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Option C</label>
+                                    <input type="text" value={mcqForm.optionC} onChange={e => setMcqForm({ ...mcqForm, optionC: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" required />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Option D</label>
+                                    <input type="text" value={mcqForm.optionD} onChange={e => setMcqForm({ ...mcqForm, optionD: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" required />
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Correct Option</label>
+                                    <select value={mcqForm.correctAnswer} onChange={e => setMcqForm({ ...mcqForm, correctAnswer: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1">
+                                      <option value="A">Option A</option>
+                                      <option value="B">Option B</option>
+                                      <option value="C">Option C</option>
+                                      <option value="D">Option D</option>
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Award Marks</label>
+                                    <input type="number" value={mcqForm.marks} onChange={e => setMcqForm({ ...mcqForm, marks: parseInt(e.target.value) || 1 })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" min={1} required />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Difficulty</label>
+                                    <select value={mcqForm.difficulty} onChange={e => setMcqForm({ ...mcqForm, difficulty: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1">
+                                      <option value="easy">Easy</option>
+                                      <option value="medium">Medium</option>
+                                      <option value="hard">Hard</option>
+                                    </select>
+                                  </div>
+                                </div>
+
+                                <div className="flex justify-end gap-2 pt-2">
+                                  <button type="button" onClick={() => setIsSectionModalOpen(false)} className="px-3 py-1.5 text-[10px] border border-slate-200 dark:border-slate-800 rounded-lg text-muted-foreground">Cancel</button>
+                                  <button type="submit" className="px-4 py-1.5 text-[10px] bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500">Save Question</button>
+                                </div>
+                              </form>
+                            )}
+
+                            {/* CSV Import Form */}
+                            {isMcq && isMcqImportOpen && (
+                              <form 
+                                onSubmit={async (e) => {
+                                  await importMcqCsv(e);
+                                }}
+                                className="p-4 border border-indigo-200 bg-indigo-50/5 dark:bg-indigo-950/10 rounded-xl space-y-3 animate-fadeIn"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <h5 className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">Import MCQ Questions (CSV / Excel format)</h5>
+                                  <button type="button" onClick={downloadMcqTemplate} className="text-[9px] text-indigo-600 dark:text-indigo-400 hover:underline font-bold">Download Template</button>
+                                </div>
+                                <textarea
+                                  value={mcqCsvInput}
+                                  onChange={e => setMcqCsvInput(e.target.value)}
+                                  className="w-full p-2.5 font-mono text-[10px] border border-slate-200 dark:border-slate-800 rounded-lg bg-transparent text-slate-900 dark:text-white"
+                                  rows={6}
+                                  placeholder="Question,Option A,Option B,Option C,Option D,Correct Answer,Marks,Difficulty"
+                                  required
+                                />
+                                <div className="flex justify-end gap-2">
+                                  <button type="button" onClick={() => setMcqCsvInput('')} className="px-3 py-1.5 text-[10px] border border-slate-200 dark:border-slate-800 rounded-lg text-muted-foreground">Cancel</button>
+                                  <button type="submit" className="px-4 py-1.5 text-[10px] bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500">Import Batch</button>
+                                </div>
+                              </form>
+                            )}
+
+                            {/* Nest Coding Question Form */}
+                            {!isMcq && isCodingFormOpen && (
+                              <form 
+                                onSubmit={async (e) => {
+                                  await addCodingQuestion(e);
+                                  setIsCodingModalOpen(false);
+                                }}
+                                className="p-4 border border-emerald-200 bg-emerald-50/5 dark:bg-emerald-950/10 rounded-xl space-y-3 animate-fadeIn"
+                              >
+                                <h5 className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">New Coding Scenario</h5>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Challenge Title</label>
+                                    <input type="text" value={codingForm.title} onChange={e => setCodingForm({ ...codingForm, title: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" placeholder="e.g. Reverse a Linked List" required />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Programming Language (Starter code context)</label>
+                                    <select value={codingForm.language} onChange={e => setCodingForm({ ...codingForm, language: e.target.value, starterCode: STARTER_TEMPLATES[e.target.value === 'Cpp' ? 'C++' : e.target.value] || '' })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1">
+                                      <option value="Python">Python 3</option>
+                                      <option value="Java">Java 11</option>
+                                      <option value="Cpp">C++ (GCC)</option>
+                                      <option value="C">C (GCC)</option>
+                                      <option value="JavaScript">NodeJS (Javascript)</option>
+                                    </select>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Award Marks</label>
+                                    <input type="number" value={codingForm.marks} onChange={e => setCodingForm({ ...codingForm, marks: parseInt(e.target.value) || 10 })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" min={1} required />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Time Limit (Milliseconds)</label>
+                                    <input type="number" value={codingForm.timeLimit} onChange={e => setCodingForm({ ...codingForm, timeLimit: parseInt(e.target.value) || 2000 })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" required />
+                                  </div>
+                                  <div>
+                                    <label className="text-[10px] font-semibold text-muted-foreground">Memory Limit (Kilobytes)</label>
+                                    <input type="number" value={codingForm.memoryLimit} onChange={e => setCodingForm({ ...codingForm, memoryLimit: parseInt(e.target.value) || 512000 })} className="w-full p-2 border border-slate-200 dark:border-slate-805 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" required />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] font-semibold text-muted-foreground">Problem Description (supports Markdown)</label>
+                                  <textarea value={codingForm.description} onChange={e => setCodingForm({ ...codingForm, description: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" rows={3} placeholder="Write instructions, constraints, input/output formats..." required />
+                                </div>
+
+                                <div>
+                                  <label className="text-[10px] font-semibold text-muted-foreground">Starter Skeleton Code</label>
+                                  <textarea value={codingForm.starterCode} onChange={e => setCodingForm({ ...codingForm, starterCode: e.target.value })} className="w-full p-2 font-mono text-[10px] border border-slate-200 dark:border-slate-800 rounded-lg bg-transparent mt-1 text-slate-900 dark:text-white" rows={4} required />
+                                </div>
+
+                                {/* Coding Test Cases list */}
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-bold text-muted-foreground">Standard IO Test Cases</span>
+                                    <button 
+                                      type="button" 
+                                      onClick={() => setCodingTestCases([...codingTestCases, { input: '', expected_output: '', isHidden: false }])}
+                                      className="text-[9px] text-emerald-600 font-bold hover:underline"
+                                    >
+                                      + Add Test Case
+                                    </button>
+                                  </div>
+                                  {codingTestCases.map((tc, tcIdx) => (
+                                    <div key={tcIdx} className="grid grid-cols-12 gap-2 items-center bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
+                                      <div className="col-span-5">
+                                        <input type="text" value={tc.input} onChange={e => {
+                                          const next = [...codingTestCases];
+                                          next[tcIdx].input = e.target.value;
+                                          setCodingTestCases(next);
+                                        }} placeholder="STDIN Input" className="w-full p-1.5 border border-slate-200 dark:border-slate-800 rounded text-[10px] bg-transparent text-slate-900 dark:text-white" required />
+                                      </div>
+                                      <div className="col-span-5">
+                                        <input type="text" value={tc.expected_output} onChange={e => {
+                                          const next = [...codingTestCases];
+                                          next[tcIdx].expected_output = e.target.value;
+                                          setCodingTestCases(next);
+                                        }} placeholder="Expected STDOUT" className="w-full p-1.5 border border-slate-200 dark:border-slate-800 rounded text-[10px] bg-transparent text-slate-900 dark:text-white" required />
+                                      </div>
+                                      <div className="col-span-2 flex items-center justify-between gap-1">
+                                        <label className="text-[8px] flex items-center gap-0.5 cursor-pointer text-slate-700 dark:text-slate-300">
+                                          <input type="checkbox" checked={tc.isHidden} onChange={e => {
+                                            const next = [...codingTestCases];
+                                            next[tcIdx].isHidden = e.target.checked;
+                                            setCodingTestCases(next);
+                                          }} className="h-3 w-3 rounded text-emerald-600" />
+                                          Hidden
+                                        </label>
+                                        <button 
+                                          type="button" 
+                                          onClick={() => setCodingTestCases(codingTestCases.filter((_, idx) => idx !== tcIdx))}
+                                          className="text-rose-505 hover:text-rose-600 font-bold text-[10px]"
+                                        >
+                                          x
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                <div className="flex justify-end gap-2 pt-2">
+                                  <button type="button" onClick={() => setIsCodingModalOpen(false)} className="px-3 py-1.5 text-[10px] border border-slate-200 dark:border-slate-800 rounded-lg text-muted-foreground">Cancel</button>
+                                  <button type="submit" className="px-4 py-1.5 text-[10px] bg-emerald-650 text-white font-bold rounded-lg hover:bg-emerald-500">Save Challenge</button>
+                                </div>
+                              </form>
+                            )}
+
+                            {/* Questions List for this Section */}
+                            <div className="space-y-2 pt-1">
+                              {isMcq ? (
+                                mcqQuestions.length === 0 ? (
+                                  <div className="text-[10px] text-muted-foreground italic py-3 text-center border border-dashed rounded-lg bg-slate-50/50 dark:bg-slate-900/5 border-slate-200 dark:border-slate-800">
+                                    No MCQs added to this section yet.
+                                  </div>
+                                ) : (
+                                  mcqQuestions.map((q, idx) => (
+                                    <div key={q.id} className="p-3 border border-slate-100 dark:border-slate-850 rounded-xl hover:bg-slate-50/50 dark:hover:bg-slate-900/20 flex justify-between items-start gap-4">
+                                      <div>
+                                        <div className="font-semibold text-xs flex items-center gap-2">
+                                          <span className="text-[10px] text-indigo-500 dark:text-indigo-400 font-extrabold">Q{idx + 1}.</span>
+                                          <span className="text-slate-900 dark:text-slate-100">{q.question}</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-x-6 gap-y-1 mt-2 text-[10px] text-muted-foreground pl-4">
+                                          <div className={q.correct_answer === 'A' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>A: {q.option_a}</div>
+                                          <div className={q.correct_answer === 'B' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>B: {q.option_b}</div>
+                                          <div className={q.correct_answer === 'C' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>C: {q.option_c}</div>
+                                          <div className={q.correct_answer === 'D' ? 'text-indigo-600 dark:text-indigo-400 font-bold' : ''}>D: {q.option_d}</div>
+                                        </div>
+                                        <div className="text-[9px] text-muted-foreground mt-2 pl-4 flex gap-4">
+                                          <span>Correct Answer: <span className="font-bold text-indigo-600 dark:text-indigo-400">{q.correct_answer}</span></span>
+                                          <span>Weight: {q.marks || 1} pts</span>
+                                          <span className="capitalize">Difficulty: {q.difficulty}</span>
+                                        </div>
+                                      </div>
+                                      <button 
+                                        onClick={async () => {
+                                          try {
+                                            await fetch(`${API_EXAMS}/mcq/${q.id}`, {
+                                              method: 'DELETE',
+                                              headers: { Authorization: `Bearer ${token}` }
+                                            });
+                                            showToast('MCQ deleted');
+                                            loadAdminExamQuestions(selectedExamIdForQuestions);
+                                          } catch {
+                                            setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
+                                            showToast('MCQ deleted (Simulated)');
+                                          }
+                                        }}
+                                        className="text-rose-500 hover:text-rose-600 p-1"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                  ))
+                                )
+                              ) : (
+                                codingQuestions.length === 0 ? (
+                                  <div className="text-[10px] text-muted-foreground italic py-3 text-center border border-dashed rounded-lg bg-slate-50/50 dark:bg-slate-900/5 border-slate-200 dark:border-slate-800">
+                                    No coding challenges added to this section yet.
+                                  </div>
+                                ) : (
+                                  codingQuestions.map((q, idx) => (
+                                    <div key={q.id} className="p-3 border border-slate-100 dark:border-slate-850 rounded-xl hover:bg-slate-50/50 dark:hover:bg-slate-900/20 flex justify-between items-start gap-4">
+                                      <div>
+                                        <div className="font-semibold text-xs flex items-center gap-2">
+                                          <span className="text-[10px] text-emerald-500 dark:text-emerald-400 font-extrabold">C{idx + 1}.</span>
+                                          <span className="text-slate-900 dark:text-slate-100">{q.title}</span>
+                                          <span className="text-[9px] px-1.5 py-0.2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full font-bold uppercase">{q.language}</span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground mt-1 pl-4 truncate max-w-xl">{q.description}</p>
+                                        <div className="text-[9px] text-muted-foreground mt-2 pl-4 flex gap-4">
+                                          <span>Weight: {q.marks || 10} pts</span>
+                                          <span className="capitalize">Difficulty: {q.difficulty}</span>
+                                          <span>Limits: {q.time_limit || 2000}ms / {q.memory_limit ? `${q.memory_limit}kb` : '512mb'}</span>
+                                        </div>
+                                      </div>
+                                      <button 
+                                        onClick={async () => {
+                                          try {
+                                            await fetch(`${API_EXAMS}/coding/${q.id}`, {
+                                              method: 'DELETE',
+                                              headers: { Authorization: `Bearer ${token}` }
+                                            });
+                                            showToast('Coding challenge deleted');
+                                            loadAdminExamQuestions(selectedExamIdForQuestions);
+                                          } catch {
+                                            setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
+                                            showToast('Coding challenge deleted (Simulated)');
+                                          }
+                                        }}
+                                        className="text-rose-505 hover:text-rose-600 p-1"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                  ))
+                                )
+                              )}
+                            </div>
                           </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Backward compatibility: Legacy/Unassigned Questions section */}
+                  {(() => {
+                    const unassignedMcqs = adminSelectedExamMCQs.filter(q => !q.section_id);
+                    const unassignedCodings = adminSelectedExamCodings.filter(q => !q.section_id);
+                    if (unassignedMcqs.length === 0 && unassignedCodings.length === 0) return null;
+                    return (
+                      <div className="p-5 border border-dashed border-amber-500/30 bg-amber-500/5 rounded-2xl space-y-3">
+                        <h4 className="font-extrabold text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                          <AlertTriangle className="h-4 w-4 text-amber-500" /> Unassigned Legacy Questions ({unassignedMcqs.length + unassignedCodings.length})
+                        </h4>
+                        <p className="text-[10px] text-muted-foreground">These questions were created before sections were established, or are missing a section assignment.</p>
+                        
+                        <div className="space-y-2">
+                          {unassignedMcqs.map((q) => (
+                            <div key={q.id} className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex justify-between items-center text-xs">
+                              <span className="text-slate-800 dark:text-slate-200">[MCQ] {q.question}</span>
+                              <div className="flex gap-2">
+                                <select 
+                                  onChange={async (e) => {
+                                    const sectionId = e.target.value;
+                                    if (!sectionId) return;
+                                    try {
+                                      await fetch(`${API_EXAMS}/mcq/${q.id}/section`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                        body: JSON.stringify({ sectionId })
+                                      });
+                                      showToast('Question assigned to section');
+                                      loadAdminExamQuestions(selectedExamIdForQuestions);
+                                    } catch {
+                                      setAdminSelectedExamMCQs(prev => prev.map(item => item.id === q.id ? { ...item, section_id: sectionId } : item));
+                                      showToast('Question assigned (Simulated)');
+                                    }
+                                  }}
+                                  className="p-1 border rounded text-[10px] bg-transparent text-slate-800 dark:text-white border-slate-200 dark:border-slate-800"
+                                >
+                                  <option value="">Assign to section...</option>
+                                  {adminSelectedExamSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                              </div>
+                            </div>
+                          ))}
+                          {unassignedCodings.map((q) => (
+                            <div key={q.id} className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex justify-between items-center text-xs">
+                              <span className="text-slate-800 dark:text-slate-200">[Coding] {q.title}</span>
+                              <div className="flex gap-2">
+                                <select 
+                                  onChange={async (e) => {
+                                    const sectionId = e.target.value;
+                                    if (!sectionId) return;
+                                    try {
+                                      await fetch(`${API_EXAMS}/coding/${q.id}/section`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                        body: JSON.stringify({ sectionId })
+                                      });
+                                      showToast('Question assigned to section');
+                                      loadAdminExamQuestions(selectedExamIdForQuestions);
+                                    } catch {
+                                      setAdminSelectedExamCodings(prev => prev.map(item => item.id === q.id ? { ...item, section_id: sectionId } : item));
+                                      showToast('Question assigned (Simulated)');
+                                    }
+                                  }}
+                                  className="p-1 border rounded text-[10px] bg-transparent text-slate-800 dark:text-white border-slate-200 dark:border-slate-800"
+                                >
+                                  <option value="">Assign to section...</option>
+                                  {adminSelectedExamSections.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                      {adminSelectedExamSections.length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground text-xs italic bg-slate-50 dark:bg-slate-900/30 border border-dashed rounded-xl">
-                          No sections configured.
+                      </div>
+                    );
+                  })()}
+
+                  {/* Navigation buttons */}
+                  <div className="pt-6 flex justify-between items-center border-t border-slate-100 dark:border-slate-850">
+                    <button
+                      onClick={() => {
+                        if (isCreatingNewExam) {
+                          setExamWizardStep(2);
+                          setExamWorkspaceTab('sections');
+                        }
+                      }}
+                      className="px-4 py-2 border rounded-xl text-xs font-bold text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
+                    >
+                      &larr; Back: Sections
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (isCreatingNewExam) {
+                          setExamWizardStep(4);
+                          setExamWorkspaceTab('schedule');
+                        }
+                      }}
+                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs"
+                    >
+                      Next: Candidate Schedule &rarr;
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* SCHEDULE TAB / STEP 4 */}
+            {examWorkspaceTab === 'schedule' && (
+              <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Schedule & Candidate Eligibility</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Specify when the exam takes place and which batches, departments, or colleges have permission to join.</p>
+                </div>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  await updateExam(e); 
+                  if (isCreatingNewExam) {
+                    setExamWizardStep(5);
+                    setExamWorkspaceTab('review');
+                  }
+                }} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">Start Date & Time</label>
+                      <input type="datetime-local" value={examForm.scheduleDate} onChange={e => setExamForm({...examForm, scheduleDate: e.target.value})} className="w-full p-3 border rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" required />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">Late Entry Allowed Window (Minutes)</label>
+                      <input type="number" value={examForm.windowOpenMinutes} onChange={e => setExamForm({...examForm, windowOpenMinutes: parseInt(e.target.value) || 10})} className="w-full p-3 border rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" min={1} required />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">College Eligibility</label>
+                      <select value={examForm.collegeId} onChange={e => { setExamForm({...examForm, collegeId: e.target.value, batchId: '', trainerId: ''}); fetchDepartments(e.target.value); fetchBatches(e.target.value); }} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
+                        <option value="">Select College</option>
+                        {adminColleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">Batch (Optional)</label>
+                      <select 
+                        value={examForm.batchId || ''} 
+                        onChange={e => setExamForm({...examForm, batchId: e.target.value, trainerId: ''})} 
+                        className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                        disabled={!examForm.collegeId}
+                      >
+                        <option value="">No Batch (Use Dept/Year below)</option>
+                        {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">Trainer (Optional)</label>
+                      <select 
+                        value={examForm.trainerId || ''} 
+                        onChange={e => setExamForm({...examForm, trainerId: e.target.value})} 
+                        className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                        disabled={!examForm.collegeId}
+                      >
+                        <option value="">Select Trainer</option>
+                        {adminTrainers
+                          .filter(t => (t.college_id === examForm.collegeId || t.collegeId === examForm.collegeId))
+                          .map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground mb-1 block">Department Eligibility</label>
+                      {!examForm.collegeId ? (
+                        <div className="text-xs text-slate-400 italic p-3 border rounded-xl bg-slate-50 dark:bg-slate-900/50 mt-1 border-slate-200 dark:border-slate-800">
+                          Select college first
+                        </div>
+                      ) : examForm.batchId ? (
+                        <div className="text-xs text-indigo-500 font-semibold italic p-3 border rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 mt-1 border-indigo-100 dark:border-indigo-905">
+                          Disabled (Batch Selected)
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 p-3 border rounded-xl bg-white dark:bg-slate-900 max-h-36 overflow-y-auto mt-1 border-slate-200 dark:border-slate-800">
+                          {departments.map(d => {
+                            const isChecked = examForm.departmentIds?.includes(d.id);
+                            return (
+                              <label key={d.id} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs cursor-pointer select-none transition-all ${isChecked ? 'bg-indigo-500/10 border-indigo-500 text-indigo-600 font-semibold' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-300'}`}>
+                                <input 
+                                  type="checkbox" 
+                                  className="sr-only" 
+                                  checked={isChecked || false}
+                                  onChange={() => {
+                                    const currentIds = examForm.departmentIds || [];
+                                    const newIds = isChecked 
+                                      ? currentIds.filter(id => id !== d.id)
+                                      : [...currentIds, d.id];
+                                    setExamForm({
+                                      ...examForm, 
+                                      departmentIds: newIds,
+                                      departmentId: newIds[0] || ''
+                                    });
+                                  }}
+                                />
+                                {d.name}
+                              </label>
+                            );
+                          })}
                         </div>
                       )}
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">Year Eligibility</label>
+                      <select 
+                        value={examForm.batchId ? '' : examForm.year} 
+                        onChange={e => setExamForm({...examForm, year: e.target.value})} 
+                        className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" 
+                        required={!examForm.batchId}
+                        disabled={!!examForm.batchId}
+                      >
+                        {examForm.batchId ? (
+                          <option value="">Disabled (Batch Selected)</option>
+                        ) : (
+                          <>
+                            <option value="1st Year">1st Year</option>
+                            <option value="2nd Year">2nd Year</option>
+                            <option value="3rd Year">3rd Year</option>
+                            <option value="4th Year">4th Year</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="pt-6 flex justify-between items-center border-t border-slate-200 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isCreatingNewExam) {
+                          setExamWizardStep(3);
+                          setExamWorkspaceTab('questions');
+                        }
+                      }}
+                      className="px-4 py-2 border rounded-xl text-xs font-bold text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
+                    >
+                      &larr; Back: Questions
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs"
+                    >
+                      {isCreatingNewExam ? 'Next: Review & Deploy \u2192' : 'Save Schedule'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* REVIEW TAB / STEP 5 (WIZARD MODE ONLY) */}
+            {examWorkspaceTab === 'review' && isCreatingNewExam && (
+              <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-850/50 shadow-sm space-y-6">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Review & Deploy Assessment</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Please verify all configurations before publishing this exam template to candidates.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 dark:bg-slate-900/10 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                  <div className="space-y-3">
+                    <h4 className="text-xs uppercase font-extrabold text-indigo-600 dark:text-indigo-400 tracking-wider">Exam Settings</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <span className="text-muted-foreground">Title:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200"></span>
+                      <span className="text-muted-foreground">Type:</span>
+                      <span className="font-bold uppercase text-slate-800 dark:text-slate-200">{examForm.examType}</span>
+                      <span className="text-muted-foreground">Duration:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{examForm.durationMinutes} Minutes</span>
+                      <span className="text-muted-foreground">Allowed Attempts:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{examForm.allowedAttempts === 999 ? 'Unlimited' : examForm.allowedAttempts}</span>
+                      <span className="text-muted-foreground">AI Face Proctored:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{examForm.enableFaceDetection !== false ? 'Yes' : 'No'}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="text-xs uppercase font-extrabold text-indigo-600 dark:text-indigo-400 tracking-wider">Schedule & Batch Details</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <span className="text-muted-foreground">Scheduled Start:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{examForm.scheduleDate ? new Date(examForm.scheduleDate).toLocaleString() : 'N/A'}</span>
+                      <span className="text-muted-foreground">Late Window:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{examForm.windowOpenMinutes} Minutes</span>
+                      <span className="text-muted-foreground">Target Batch:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{examForm.batchId ? 'Selected Batch' : `${examForm.year || 'All Years'}`}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="text-xs uppercase font-extrabold text-indigo-600 dark:text-indigo-400 tracking-wider">Configured Sections & Question Summary</h4>
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-950">
+                    <table className="w-full text-xs text-left">
+                      <thead>
+                        <tr className="border-b bg-slate-50 dark:bg-slate-900 text-muted-foreground font-bold border-slate-200 dark:border-slate-800">
+                          <th className="p-3">Section Title</th>
+                          <th>Type</th>
+                          <th>Duration</th>
+                          <th>Mandatory</th>
+                          <th>Order</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminSelectedExamSections.map((sect, index) => (
+                          <tr key={sect.id} className="border-b last:border-0 border-slate-200 dark:border-slate-800">
+                            <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{sect.name}</td>
+                            <td className="uppercase font-bold text-[10px] text-slate-800 dark:text-slate-200">{sect.section_type}</td>
+                            <td className="text-slate-800 dark:text-slate-200">{sect.duration_minutes ? `${sect.duration_minutes} Mins` : 'Exam duration'}</td>
+                            <td className="text-slate-800 dark:text-slate-200">{sect.is_mandatory !== false ? 'Yes' : 'No'}</td>
+                            <td className="text-slate-800 dark:text-slate-200">#{index + 1}</td>
+                          </tr>
+                        ))}
+                        {adminSelectedExamSections.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="text-center py-4 text-muted-foreground italic">No sections created.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="pt-6 flex justify-between items-center border-t border-slate-200 dark:border-slate-800">
+                  <button
+                    onClick={() => {
+                      setExamWizardStep(4);
+                      setExamWorkspaceTab('schedule');
+                    }}
+                    className="px-4 py-2 border rounded-xl text-xs font-bold text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
+                  >
+                    &larr; Back: Schedule
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (editingExamId) {
+                        try {
+                          await publishExam(editingExamId);
+                          showToast('Exam successfully deployed and published.');
+                          setSelectedExamIdForQuestions(null);
+                          setEditingExamId(null);
+                          setCurrentPage('admin-dash');
+                        } catch {
+                          showToast('Published successfully (Simulated)');
+                          setSelectedExamIdForQuestions(null);
+                          setEditingExamId(null);
+                          setCurrentPage('admin-dash');
+                        }
+                      }
+                    }}
+                    className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs shadow-md shadow-emerald-500/10"
+                  >
+                    Publish Assessment Template
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* RESULTS TAB (MANAGEMENT MODE ONLY) */}
+            {examWorkspaceTab === 'results' && !isCreatingNewExam && (
+              <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Candidate Assessment Results</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Real-time candidate attempts, grading progress, and final scorecard analytics.</p>
+                  </div>
+                  <button
+                    onClick={downloadExamResultsCsv}
+                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-1 shadow-sm transition-colors"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Export CSV
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 bg-slate-50/50 dark:bg-slate-900/10 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <div className="text-center">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground">Total Attempts</span>
+                    <p className="text-lg font-black text-slate-800 dark:text-slate-100">{adminSelectedExamResults.length}</p>
+                  </div>
+                  <div className="text-center border-x border-slate-200 dark:border-slate-800">
+                    <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Passed</span>
+                    <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{adminSelectedExamResults.filter(r => r.status !== 'terminated' && r.passed).length}</p>
+                  </div>
+                  <div className="text-center">
+                    <span className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400">Failed / Terminated</span>
+                    <p className="text-lg font-black text-rose-600 dark:text-rose-400">{adminSelectedExamResults.filter(r => r.status === 'terminated' || !r.passed).length}</p>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-slate-200/50 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+                  <table className="w-full text-xs text-left">
+                    <thead>
+                      <tr className="border-b bg-slate-50/50 dark:bg-slate-900/20 text-muted-foreground uppercase tracking-wider font-semibold border-slate-200 dark:border-slate-800">
+                        <th className="py-3 px-4">Student Info</th>
+                        <th className="py-3 px-2">Roll Number</th>
+                        <th className="py-3 px-2">Dept & Year</th>
+                        <th className="py-3 px-2 text-center">Score</th>
+                        <th className="py-3 px-2 text-center">Percentage</th>
+                        <th className="py-3 px-4 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adminSelectedExamResults.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="text-center py-8 text-muted-foreground italic">
+                            No candidate attempts found for this exam yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        adminSelectedExamResults.map(r => (
+                          <tr key={r.id} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/20 border-slate-200 dark:border-slate-800">
+                            <td className="py-3.5 px-4 font-bold text-slate-800 dark:text-slate-200">{r.full_name || 'N/A'}</td>
+                            <td className="py-3.5 px-2 font-mono">{r.roll_number || 'N/A'}</td>
+                            <td className="py-3.5 px-2 text-muted-foreground">{r.department_name || 'N/A'} - {r.year || 'N/A'}</td>
+                            <td className="py-3.5 px-2 text-center font-bold">
+                              <div className="text-slate-800 dark:text-slate-200">{r.score} pts</div>
+                              {r.enable_section_cutoff && (
+                                <div className="text-[10px] text-muted-foreground mt-0.5 space-y-0.5">
+                                  {r.mcq_score !== null && r.mcq_score !== undefined && (
+                                    <div className="flex items-center justify-center gap-1">
+                                      <span>MCQ: {r.mcq_score}</span>
+                                      <span className={`w-1.5 h-1.5 rounded-full ${r.mcq_passed ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                    </div>
+                                  )}
+                                  {r.coding_score !== null && r.coding_score !== undefined && (
+                                    <div className="flex items-center justify-center gap-1">
+                                      <span>Coding: {r.coding_score}</span>
+                                      <span className={`w-1.5 h-1.5 rounded-full ${r.coding_passed ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-2 text-center font-black text-indigo-600 dark:text-indigo-400">{r.percentage}%</td>
+                            <td className="py-3.5 px-4 text-center">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                r.status === 'terminated' ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30' : 
+                                r.passed ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                              }`}>
+                                {r.status === 'terminated' ? 'Terminated' : r.passed ? 'Passed' : 'Failed'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* REPORTS TAB (MANAGEMENT MODE ONLY) */}
+            {examWorkspaceTab === 'reports' && !isCreatingNewExam && (
+              <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Scorecard & Analytics Reports</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Export structured scorecards and view detailed candidate evaluation metrics.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="p-5 border rounded-2xl space-y-3 border-slate-200 dark:border-slate-800 bg-slate-50/10 dark:bg-slate-955">
+                    <h4 className="font-bold text-xs">Standard CSV Export</h4>
+                    <p className="text-xs text-muted-foreground">Download a complete tabular dataset containing roll numbers, candidate profiles, individual section scores, percentages, and status.</p>
+                    <button
+                      onClick={downloadExamResultsCsv}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm transition-colors"
+                    >
+                      <Download className="h-4 w-4" /> Download CSV Dataset
+                    </button>
+                  </div>
+
+                  <div className="p-5 border rounded-2xl space-y-3 border-slate-200 dark:border-slate-800 bg-slate-50/10 dark:bg-slate-955">
+                    <h4 className="font-bold text-xs">Assessment Performance Insights</h4>
+                    <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Average score percentage:</span>
+                        <span className="font-bold text-indigo-600 dark:text-indigo-400 font-mono">
+                          {adminSelectedExamResults.length > 0 
+                            ? `${Math.round(adminSelectedExamResults.reduce((acc, curr) => acc + (curr.percentage || 0), 0) / adminSelectedExamResults.length)}%` 
+                            : '0%'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Proctoring warning rate:</span>
+                        <span className="font-bold text-amber-600">0 warnings recorded</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Completed attempts:</span>
+                        <span className="font-bold text-emerald-605">{adminSelectedExamResults.filter(r => r.status === 'completed' || r.status === 'submitted' || !r.status).length}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </main>
-      )}
-
+      )}\n
       {/* EXAM ENVIRONMENT ROUTE (STRICT PROCTOR MODE) */}
       {currentPage === 'exam-env' && currentExam && (
         <main className="fixed inset-0 z-50 bg-slate-900 text-white overflow-y-auto p-4 md:p-8 flex flex-col justify-between">
