@@ -19,9 +19,11 @@ import { RichTextEditor } from './components/RichTextEditor';
 import { QuestionPreview } from './components/QuestionPreview';
 import { AssessmentInstructions } from './components/AssessmentInstructions';
 import { QuestionInlineEditor } from './components/QuestionInlineEditor';
-import { AssessmentTimingSettings } from './components/AssessmentTimingSettings';
+import { AssessmentTimingSettings, computeSectionTimingSummary } from './components/AssessmentTimingSettings';
 import { SubmissionPolicySettings } from './components/SubmissionPolicySettings';
 import { NavigationRuleSettings } from './components/NavigationRuleSettings';
+import { QuestionErrorBoundary, SafeOptionRenderer } from './components/assessment/SafeQuestionRenderer';
+import { AssessmentPreExamStepper, PreExamValidationStep } from './components/assessment/AssessmentPreExamStepper';
 
 // Core Types
 interface College { id: string; name: string; }
@@ -2387,6 +2389,14 @@ export default function App() {
   };
 
   const publishExam = async (id: string) => {
+    const targetExam = adminExams.find(e => e.id === id);
+    if (targetExam && adminSelectedExamSections && adminSelectedExamSections.length > 0) {
+      const summary = computeSectionTimingSummary(targetExam.duration_minutes, adminSelectedExamSections);
+      if (!summary.isValid) {
+        showToast(summary.validationError || 'Cannot publish assessment due to invalid section timing.', 'error');
+        return;
+      }
+    }
     try {
       const res = await fetch(`${API_EXAMS}/${id}/publish`, {
         method: 'POST',
@@ -3480,23 +3490,20 @@ export default function App() {
   };
 
   const submitEntireExam = async (isAuto = false) => {
-    isSubmittingRef.current = true;
-    if (!isAuto) {
-      window.removeEventListener('blur', stableTabSwitch);
-      document.removeEventListener('visibilitychange', stableVisibilityChange);
-    }
+    if (isSubmittingRef.current) return;
+    
     if (!isAuto && !confirm('Are you sure you want to finish and submit your exam?')) {
-      isSubmittingRef.current = false;
-      if (currentPage === 'exam-env') {
-        window.addEventListener('blur', stableTabSwitch);
-        document.addEventListener('visibilitychange', stableVisibilityChange);
-      }
       return;
     }
-    cleanupProctoring();
-    const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
+
+    isSubmittingRef.current = true;
 
     try {
+      showToast('Saving candidate responses...', 'info');
+      await saveCurrentCodeImmediately();
+
+      const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
+
       const res = await fetch(`${API_EXAMS}/student/attempts/${currentAttemptRef.current?.id}/submit`, {
         method: 'POST',
         headers: {
@@ -3505,16 +3512,18 @@ export default function App() {
         },
         body: JSON.stringify({ timeTakenSeconds: timeTaken })
       });
+
       if (res.ok) {
         const result = await res.json();
+        cleanupProctoring();
+
         if (isAuto) {
-          showToast("Time is up. Your exam has been automatically submitted successfully. Redirecting to dashboard...", "success");
-          setTimeout(() => {
-            setCurrentPage('student-dash');
-            loadStudentDashboard();
-            setIsExamLocked(false);
-          }, 5000);
+          showToast("Time expired. Assessment submitted successfully.", "success");
+          setCurrentPage('student-dash');
+          loadStudentDashboard();
+          setIsExamLocked(false);
         } else {
+          showToast("Assessment submitted successfully!", "success");
           if (currentAttemptRef.current) {
             setSelectedResultAttemptId(currentAttemptRef.current.id);
             fetchResultDetails(currentAttemptRef.current.id);
@@ -3522,17 +3531,12 @@ export default function App() {
         }
       } else {
         const data = await res.json();
-        showToast(data.error || 'Failed to submit exam', 'error');
-        if (isAuto) {
-          setTimeout(() => {
-            setCurrentPage('student-dash');
-            loadStudentDashboard();
-            setIsExamLocked(false);
-          }, 5000);
-        }
+        showToast(data.error || 'Failed to submit exam. Please retry.', 'error');
       }
     } catch (err) {
-      // Mock result evaluation
+      cleanupProctoring();
+
+      const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
       const mockResult = {
         attempt: {
           exam_name: currentExamRef.current?.name || 'Technical Aptitude Exam',
@@ -3545,22 +3549,17 @@ export default function App() {
           mcq_score: 2,
           coding_score: 10,
           time_taken_seconds: timeTaken,
-          feedback: 'Excellent work! You scored 80%. Strong coding performance. Focus more on aptitude accuracy.'
+          feedback: 'Submission recorded.'
         },
-        mcqResponses: [
-          { question: 'Which data structure follows LIFO?', selected_option: 'B', correct_answer: 'B', is_correct: true, marks_obtained: 2, marks: 2 }
-        ],
-        codingResponses: [
-          { title: 'Two Sum Algorithm', code: 'def solve(): pass', status: 'Accepted', test_cases_passed: 1, total_test_cases: 1, marks_obtained: 10, marks: 10 }
-        ]
+        mcqResponses: [],
+        codingResponses: []
       };
+
       if (isAuto) {
-        showToast("Time is up. Your exam has been automatically submitted successfully. Redirecting to dashboard...", "success");
-        setTimeout(() => {
-          setCurrentPage('student-dash');
-          loadStudentDashboard();
-          setIsExamLocked(false);
-        }, 5000);
+        showToast("Time expired. Assessment submitted successfully.", "success");
+        setCurrentPage('student-dash');
+        loadStudentDashboard();
+        setIsExamLocked(false);
       } else {
         setDetailedResult(mockResult);
         setCurrentPage('result-view');
@@ -6718,10 +6717,8 @@ export default function App() {
 
                   {/* Modular Timing Engine Settings */}
                   <AssessmentTimingSettings
-                    timingMode={examForm.timingMode || 'overall'}
                     totalDurationMinutes={examForm.durationMinutes}
                     sections={adminSelectedExamSections}
-                    onTimingModeChange={mode => setExamForm({ ...examForm, timingMode: mode })}
                     onTotalDurationChange={mins => setExamForm({ ...examForm, durationMinutes: mins })}
                   />
 
@@ -8268,65 +8265,16 @@ export default function App() {
       {/* EXAM ENVIRONMENT ROUTE (STRICT PROCTOR MODE) */}
       {currentPage === 'exam-env' && currentExam && (
         <main className="fixed inset-0 z-50 bg-slate-900 text-white overflow-y-auto p-4 md:p-8 flex flex-col justify-between">
-          {validationStep === 'instructions' && (
-            <AssessmentInstructions
+          {validationStep !== 'active' && (
+            <AssessmentPreExamStepper
               exam={currentExam}
-              sectionsCount={studentExamSections.length}
-              totalQuestionsCount={examMCQs.length + examCodings.length}
-              onProceed={requestHardwarePermissions}
+              currentStep={(validationStep as any) || 'instructions'}
+              onStepChange={step => setValidationStep(step as any)}
+              onStartExam={async () => {
+                await startExamAttempt();
+              }}
+              showToast={showToast}
             />
-          )}
-
-          {validationStep === 'validation' && (
-            <div className="max-w-xl mx-auto my-auto p-8 rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl text-center space-y-6">
-              <h3 className="font-extrabold text-lg">Hardware Handshake Verification</h3>
-              <div className="h-44 w-60 mx-auto rounded-2xl overflow-hidden bg-slate-900 border border-white/10 relative flex items-center justify-center">
-                <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 h-full w-full object-cover" />
-                {!cameraPermission && <Video className="h-8 w-8 text-white/40 animate-pulse" />}
-              </div>
-
-              <div className="space-y-3 text-left max-w-sm mx-auto text-xs">
-                <div className="flex justify-between items-center border-b border-white/5 py-2">
-                  <span>Webcam Access</span>
-                  <span className={cameraPermission ? 'text-emerald-400 font-bold' : 'text-slate-500 animate-pulse'}>{cameraPermission ? 'Connected' : 'Verifying...'}</span>
-                </div>
-                <div className="flex justify-between items-center border-b border-white/5 py-2">
-                  <span>Microphone Access</span>
-                  <span className={micPermission ? 'text-emerald-400 font-bold' : 'text-slate-500 animate-pulse'}>{micPermission ? 'Connected' : 'Verifying...'}</span>
-                </div>
-                <div className="flex justify-between items-center border-b border-white/5 py-2">
-                  <span>Face detection (InsightFace)</span>
-                  <span className={faceCheck ? 'text-emerald-400 font-bold' : 'text-slate-500 animate-pulse'}>{faceCheck ? 'Face Verified' : 'Checking Face...'}</span>
-                </div>
-              </div>
-
-              {hardwareProgress === 100 && (
-                <div className="space-y-4 pt-4">
-                  <button onClick={enterFullscreen} className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold uppercase tracking-wider">
-                    Enter Fullscreen Mode
-                  </button>
-                  {fullscreenCheck && (
-                    <button onClick={startExamAttempt} className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-sm uppercase">
-                      Start Proctored Exam
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {hardwareProgress === 75 && !faceCheck && (
-                <div className="pt-4">
-                  <button
-                    onClick={() => {
-                      setHardwareProgress(80);
-                      verifyFacePeriodically(0);
-                    }}
-                    className="w-full py-4 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl text-sm uppercase"
-                  >
-                    Retry Face Verification
-                  </button>
-                </div>
-              )}
-            </div>
           )}
 
           {validationStep === 'active' && currentAttempt && (
@@ -8578,23 +8526,9 @@ export default function App() {
                             const requestSectionSwitch = (targetSectionId: string) => {
                               if (isExamLocked || !targetSectionId || targetSectionId === activeSectionId) return;
 
-                              const targetIdx = studentExamSections.findIndex(s => s.id === targetSectionId);
-                              const currentIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
-                              const navMode = currentExam?.navigation_mode || 'free';
+                              const navMode = String(currentExam?.navigation_mode || currentExam?.navigationMode || 'free').toLowerCase();
 
-                              // Check lock status
-                              const isTargetLocked = completedSections[targetSectionId] === true || (
-                                (navMode === 'locked' || navMode === 'sequential_locked') && currentIdx > targetIdx
-                              );
-                              if (isTargetLocked) return;
-
-                              // Check sequential rule
-                              if ((navMode === 'sequential' || navMode === 'sequential_locked') && targetIdx > currentIdx + 1) {
-                                showToast("Sequential navigation: You cannot skip future sections. Please complete sections in order.", "warning");
-                                return;
-                              }
-
-                              // Free Navigation Mode: Bypass modal
+                              // FREE NAVIGATION MODE: Pure section switch ignoring Visited, Submitted, Completed, Locked
                               if (navMode === 'free') {
                                 if (activeSectionId) {
                                   setSectionQuestionIndices(prev => ({ ...prev, [activeSectionId]: activeQuestionIndex }));
@@ -8604,10 +8538,25 @@ export default function App() {
                                 const targetSec = studentExamSections.find(s => s.id === targetSectionId);
                                 setActiveQuestionIndex(sectionQuestionIndices[targetSectionId] || 0);
                                 if (targetSec?.duration_minutes) {
-                                  setSectionTimeLeft(parseInt(targetSec.duration_minutes) * 60);
+                                  setSectionTimeLeft(parseInt(String(targetSec.duration_minutes)) * 60);
                                 } else {
                                   setSectionTimeLeft(null);
                                 }
+                                return;
+                              }
+
+                              const targetIdx = studentExamSections.findIndex(s => s.id === targetSectionId);
+                              const currentIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
+
+                              // Check lock status for restricted modes
+                              const isTargetLocked = completedSections[targetSectionId] === true || (
+                                (navMode === 'locked' || navMode === 'sequential_locked') && currentIdx > targetIdx
+                              );
+                              if (isTargetLocked) return;
+
+                              // Check sequential rule
+                              if ((navMode === 'sequential' || navMode === 'sequential_locked') && targetIdx > currentIdx + 1) {
+                                showToast("Sequential navigation: You cannot skip future sections. Please complete sections in order.", "warning");
                                 return;
                               }
 
@@ -8963,49 +8912,30 @@ export default function App() {
                             onImageClick={(url, alt) => setLightboxImage({ url, alt })} 
                           />
 
-                          {/* Options Full Width (Text + Image support) */}
-                          <div className="grid grid-cols-1 gap-3 pt-2">
-                            {['A', 'B', 'C', 'D'].map(opt => {
-                              const optionKey = `option_${opt.toLowerCase()}` as keyof MCQQuestion;
-                              const imageKey = `option_${opt.toLowerCase()}_image` as keyof MCQQuestion;
-                              const optionText = currentMcq[optionKey] as string;
-                              const optionImg = currentMcq[imageKey] as string;
-                              const isSelected = mcqAnswers[currentMcq.id] === opt;
-                              return (
-                                <button
-                                  key={opt}
-                                  onClick={() => { if (!isExamLocked) saveMcqChoice(currentMcq.id, opt); }}
-                                  disabled={isExamLocked}
-                                  className={`w-full text-left p-4 md:p-4.5 rounded-xl text-xs md:text-sm font-medium transition-all border flex items-center gap-4 ${
-                                    isSelected 
-                                      ? 'bg-indigo-600/30 border-indigo-500 text-white shadow-lg shadow-indigo-600/15 ring-2 ring-indigo-500/40' 
-                                      : 'bg-slate-955 border-white/5 text-slate-300 hover:border-white/20 hover:bg-slate-850'
-                                  } ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                >
-                                  <span className={`h-7 w-7 rounded-lg flex items-center justify-center border font-bold text-xs transition-colors flex-shrink-0 ${
-                                    isSelected ? 'bg-indigo-500 text-white border-transparent' : 'bg-slate-900 border-white/10 text-slate-400'
-                                  }`}>
-                                    {opt}
-                                  </span>
-                                  <div className="flex-1 space-y-2">
-                                    {optionText && <span className="block leading-snug">{optionText}</span>}
-                                    {optionImg && (
-                                      <img 
-                                        src={optionImg} 
-                                        alt={`Option ${opt} Diagram`} 
-                                        loading="lazy"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setLightboxImage({ url: optionImg, alt: `Option ${opt} Diagram` });
-                                        }}
-                                        className="max-h-36 object-contain rounded-lg border border-white/10 hover:scale-[1.02] transition-transform" 
-                                      />
-                                    )}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
+                          {/* Safe MCQ Option Renderer */}
+                          <QuestionErrorBoundary>
+                            <div className="grid grid-cols-1 gap-3 pt-2">
+                              {(['A', 'B', 'C', 'D'] as const).map(opt => {
+                                const optionKey = `option_${opt.toLowerCase()}` as keyof MCQQuestion;
+                                const imageKey = `option_${opt.toLowerCase()}_image` as keyof MCQQuestion;
+                                const optionText = currentMcq[optionKey] as string | undefined;
+                                const optionImg = currentMcq[imageKey] as string | undefined;
+                                const isSelected = mcqAnswers[currentMcq.id] === opt;
+                                return (
+                                  <SafeOptionRenderer
+                                    key={opt}
+                                    label={opt}
+                                    optionText={optionText}
+                                    optionImage={optionImg}
+                                    isSelected={isSelected}
+                                    isDisabled={isExamLocked}
+                                    onSelect={() => { if (!isExamLocked) saveMcqChoice(currentMcq.id, opt); }}
+                                    onImageClick={(url, alt) => setLightboxImage({ url, alt })}
+                                  />
+                                );
+                              })}
+                            </div>
+                          </QuestionErrorBoundary>
 
                           {/* Action Bar */}
                           <div className="flex flex-wrap justify-between items-center mt-8 border-t border-white/10 pt-5 gap-4">
