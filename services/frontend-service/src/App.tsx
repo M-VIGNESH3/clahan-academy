@@ -3523,7 +3523,6 @@ export default function App() {
   };
 
   const submitEntireExam = async (isAuto = false) => {
-<<<<<<< HEAD
     if (isSubmittingRef.current) return;
     
     if (!isAuto && !confirm('Are you sure you want to finish and submit your exam?')) {
@@ -3531,51 +3530,13 @@ export default function App() {
     }
 
     isSubmittingRef.current = true;
-=======
-    console.log(`[RuntimeController] [Submit Step 1/9] Submit initiated by candidate (isAuto=${isAuto})`);
-    isSubmittingRef.current = true;
-    if (!isAuto) {
-      document.removeEventListener('visibilitychange', stableVisibilityChange);
-    }
-    if (!isAuto && !confirm('Are you sure you want to finish and submit your exam?')) {
-      console.log('[RuntimeController] Candidate cancelled submission dialog');
-      isSubmittingRef.current = false;
-      if (currentPage === 'exam-env') {
-        document.addEventListener('visibilitychange', stableVisibilityChange);
-      }
-      return;
-    }
-
-    console.log('[RuntimeController] [Submit Step 2/9] Confirmation accepted, unbinding window focus listeners and stopping proctoring');
-    cleanupProctoring();
-
-    console.log('[RuntimeController] [Submit Step 3/9] Saving candidate answers and code solutions');
-    await saveCurrentCodeImmediately();
-
-    const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
->>>>>>> 2be173b7ead49b6b4cf9ac0927c5e94199f788e6
-
-    const performPostSubmissionCleanup = async () => {
-      if (document.exitFullscreen && document.fullscreenElement) {
-        try {
-          console.log('[RuntimeController] [Submit Step 8/9] Exiting browser fullscreen mode');
-          await document.exitFullscreen();
-        } catch {
-          // ignore potential user gesture restrictions
-        }
-      }
-    };
 
     try {
-<<<<<<< HEAD
       showToast('Saving candidate responses...', 'info');
       await saveCurrentCodeImmediately();
 
       const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
 
-=======
-      console.log(`[RuntimeController] [Submit Step 4/9] Dispatching POST /api/exams/student/attempts/${currentAttemptRef.current?.id}/submit`);
->>>>>>> 2be173b7ead49b6b4cf9ac0927c5e94199f788e6
       const res = await fetch(`${API_EXAMS}/student/attempts/${currentAttemptRef.current?.id}/submit`, {
         method: 'POST',
         headers: {
@@ -3586,15 +3547,9 @@ export default function App() {
       });
 
       if (res.ok) {
-        console.log('[RuntimeController] [Submit Step 5/9] HTTP 200 OK response received from backend server');
         const result = await res.json();
-<<<<<<< HEAD
         cleanupProctoring();
 
-=======
-        await performPostSubmissionCleanup();
-        console.log('[RuntimeController] [Submit Step 9/9] Navigating to result view');
->>>>>>> 2be173b7ead49b6b4cf9ac0927c5e94199f788e6
         if (isAuto) {
           showToast("Time expired. Assessment submitted successfully.", "success");
           setCurrentPage('student-dash');
@@ -3609,30 +3564,12 @@ export default function App() {
         }
       } else {
         const data = await res.json();
-<<<<<<< HEAD
         showToast(data.error || 'Failed to submit exam. Please retry.', 'error');
       }
     } catch (err) {
       cleanupProctoring();
 
       const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
-=======
-        console.error('[RuntimeController] Backend submit endpoint error:', data.error);
-        showToast(data.error || 'Failed to submit exam', 'error');
-        if (isAuto) {
-          await performPostSubmissionCleanup();
-          setTimeout(() => {
-            setCurrentPage('student-dash');
-            loadStudentDashboard();
-            setIsExamLocked(false);
-          }, 5000);
-        }
-      }
-    } catch (err) {
-      console.warn('[RuntimeController] Network fallback triggered during submission');
-      await performPostSubmissionCleanup();
-      // Mock result evaluation
->>>>>>> 2be173b7ead49b6b4cf9ac0927c5e94199f788e6
       const mockResult = {
         attempt: {
           exam_name: currentExamRef.current?.name || 'Technical Aptitude Exam',
@@ -3650,11 +3587,7 @@ export default function App() {
         mcqResponses: [],
         codingResponses: []
       };
-<<<<<<< HEAD
 
-=======
-      console.log('[RuntimeController] [Submit Step 9/9] Navigating to result-view page (simulated response)');
->>>>>>> 2be173b7ead49b6b4cf9ac0927c5e94199f788e6
       if (isAuto) {
         showToast("Time expired. Assessment submitted successfully.", "success");
         setCurrentPage('student-dash');
@@ -8715,16 +8648,10 @@ export default function App() {
                                 const targetSec = studentExamSections.find(s => s.id === targetSectionId);
                                 setActiveQuestionIndex(sectionQuestionIndices[targetSectionId] || 0);
                                 if (targetSec?.duration_minutes) {
-<<<<<<< HEAD
-                                  setSectionTimeLeft(parseInt(String(targetSec.duration_minutes)) * 60);
-                                } else {
-                                  setSectionTimeLeft(null);
-=======
-                                  setSectionRemainingTimes(prevMap => {
-                                    if (prevMap[targetSectionId] !== undefined) return prevMap;
-                                    return { ...prevMap, [targetSectionId]: parseInt(targetSec.duration_minutes) * 60 };
-                                  });
->>>>>>> 2be173b7ead49b6b4cf9ac0927c5e94199f788e6
+                                  setSectionRemainingTimes(prevMap => ({
+                                    ...prevMap,
+                                    [targetSectionId]: parseInt(String(targetSec.duration_minutes)) * 60
+                                  }));
                                 }
                                 return;
                               }
