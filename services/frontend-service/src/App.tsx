@@ -399,7 +399,11 @@ export default function App() {
   const [examCodings, setExamCodings] = useState<CodingQuestion[]>([]);
   const [studentExamSections, setStudentExamSections] = useState<any[]>([]);
   const [activeSectionId, setActiveSectionId] = useState<string>('');
-  const [sectionTimeLeft, setSectionTimeLeft] = useState<number | null>(null);
+  const [sectionRemainingTimes, setSectionRemainingTimes] = useState<Record<string, number>>({});
+  const activeSectionIdRef = useRef<string>('');
+  useEffect(() => { activeSectionIdRef.current = activeSectionId; }, [activeSectionId]);
+  const sectionTimeLeft = activeSectionId && sectionRemainingTimes[activeSectionId] !== undefined ? sectionRemainingTimes[activeSectionId] : null;
+
   const [selectedSection, setSelectedSection] = useState<'mcq' | 'coding'>('mcq');
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [sectionQuestionIndices, setSectionQuestionIndices] = useState<Record<string, number>>({});
@@ -632,16 +636,13 @@ export default function App() {
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
 
@@ -1002,7 +1003,7 @@ export default function App() {
       const isCurrentlyFullscreen = !!document.fullscreenElement;
       setIsExamFullscreen(isCurrentlyFullscreen);
 
-      if (!isCurrentlyFullscreen) {
+      if (!isCurrentlyFullscreen && !isSubmittingRef.current && currentPageRef.current === 'exam-env') {
         setProctorLogs(p => [`[Violation] Fullscreen mode exited! (${new Date().toLocaleTimeString()})`, ...p]);
         
         if (socketRef.current) {
@@ -1449,13 +1450,14 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch(`/api/exams/${targetExamId}/sections`, {
+      const res = await fetch(`${API_EXAMS}/${targetExamId}/sections`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           name: sectionForm.name,
           description: sectionForm.description,
           sectionType: sectionForm.sectionType,
+          section_type: sectionForm.sectionType,
           durationMinutes: sectionForm.durationMinutes ? parseInt(sectionForm.durationMinutes) : null,
           randomizeQuestions: sectionForm.randomizeQuestions,
           isMandatory: sectionForm.isMandatory,
@@ -1465,10 +1467,14 @@ export default function App() {
         })
       });
       if (res.ok) {
+        const createdSec = await res.json();
         showToast('Section created successfully');
         setIsSectionModalOpen(false);
         setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
         setSelectedExamIdForQuestions(targetExamId);
+        if (createdSec && createdSec.id) {
+          setAdminSelectedExamSections(prev => [...prev.filter(s => s.id !== createdSec.id), createdSec]);
+        }
         loadAdminExamQuestions(targetExamId);
       }
     } catch (err) {
@@ -1498,7 +1504,7 @@ export default function App() {
     const targetExamId = selectedExamIdForQuestions || editingExamId;
     if (!editingSectionId || !targetExamId) return;
     try {
-      const res = await fetch(`/api/sections/${editingSectionId}`, {
+      const res = await fetch(`${API_EXAMS}/sections/${editingSectionId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -1544,7 +1550,7 @@ export default function App() {
     if (!confirm('Are you sure you want to delete this section? All questions in it will be unassigned.')) return;
     const targetExamId = selectedExamIdForQuestions || editingExamId;
     try {
-      const res = await fetch(`/api/sections/${sectionId}`, {
+      const res = await fetch(`${API_EXAMS}/sections/${sectionId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -1574,7 +1580,7 @@ export default function App() {
 
     const sectionIds = newSections.map(s => s.id);
     try {
-      const res = await fetch(`/api/exams/${selectedExamIdForQuestions}/sections/reorder`, {
+      const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/sections/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ sectionIds })
@@ -2471,7 +2477,6 @@ export default function App() {
       marks: q.marks || 1,
       difficulty: q.difficulty || 'medium'
     });
-    setIsSectionModalOpen(true);
   };
 
   const startEditingCoding = (q: CodingQuestion) => {
@@ -2494,12 +2499,26 @@ export default function App() {
       expected_output: tc.expected_output || (tc as any).expectedOutput || '',
       isHidden: tc.is_hidden === true || (tc as any).isHidden === true
     })));
-    setIsCodingModalOpen(true);
   };
 
   const saveMcqQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedExamIdForQuestions) return;
+
+    const payload = {
+      ...mcqForm,
+      sectionId: selectedSectionIdForMcq,
+      optionAImage: mcqForm.optionAImage,
+      optionBImage: mcqForm.optionBImage,
+      optionCImage: mcqForm.optionCImage,
+      optionDImage: mcqForm.optionDImage,
+      option_a_image: mcqForm.optionAImage,
+      option_b_image: mcqForm.optionBImage,
+      option_c_image: mcqForm.optionCImage,
+      option_d_image: mcqForm.optionDImage,
+      contentBlocks: mcqForm.contentBlocks,
+      content_blocks: mcqForm.contentBlocks
+    };
 
     if (editingMcqId) {
       // Edit / Update MCQ mode
@@ -2507,7 +2526,7 @@ export default function App() {
         const res = await fetch(`${API_EXAMS}/mcq/${editingMcqId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ ...mcqForm, sectionId: selectedSectionIdForMcq })
+          body: JSON.stringify(payload)
         });
         if (res.ok) {
           showToast('MCQ Question updated successfully!');
@@ -2546,7 +2565,7 @@ export default function App() {
       const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/mcq`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ...mcqForm, sectionId: selectedSectionIdForMcq })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         showToast('MCQ Question added');
@@ -2753,19 +2772,32 @@ export default function App() {
   // --- EXAM ENVIRONMENT HANDLERS ---
   const checkInstructions = async (examId: string) => {
     try {
+      console.log(`[RuntimeController] Fetching exam instructions for examId: ${examId}`);
       const res = await fetch(`${API_EXAMS}/student/${examId}/instructions`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setCurrentExam(data.exam);
-        setValidationStep('instructions');
+        const examObj = data.exam;
+        setCurrentExam(examObj);
+        console.log(`[RuntimeController] Exam instructions retrieved: name="${examObj?.name}", navigation_mode="${examObj?.navigation_mode || 'free'}", submission_mode="${examObj?.submission_mode || 'manual'}"`);
+        
+        const skipInstructions = examObj?.skip_instructions === true || examObj?.skipInstructions === true;
         setCurrentPage('exam-env');
+        if (skipInstructions) {
+          console.log('[RuntimeController] Admin explicitly enabled skip_instructions. Bypassing instructions stage.');
+          requestHardwarePermissions();
+        } else {
+          console.log('[RuntimeController] Setting stage: instructions');
+          setValidationStep('instructions');
+        }
       } else {
         const data = await res.json();
+        console.error('[RuntimeController] Access denied fetching instructions:', data.error);
         showToast(data.error || 'Access denied', 'error');
       }
     } catch (err: any) {
+      console.error('[RuntimeController] Network error in checkInstructions:', err);
       showToast('Network error: Unable to verify exam authorization. Please check your connection.', 'error');
     }
   };
@@ -2951,11 +2983,6 @@ export default function App() {
           const nextSec = prevSections[currentIdx + 1];
           showToast(`Time expired for section "${prevSections[currentIdx].name}". Moving to "${nextSec.name}".`, 'info');
           setActiveQuestionIndex(0);
-          if (nextSec.duration_minutes) {
-            setSectionTimeLeft(parseInt(nextSec.duration_minutes) * 60);
-          } else {
-            setSectionTimeLeft(null);
-          }
           return nextSec.id;
         } else {
           showToast('All section durations completed. Submitting assessment...', 'info');
@@ -2998,11 +3025,13 @@ export default function App() {
         setActiveSectionId(firstSecId);
         setActiveQuestionIndex(0);
 
-        if (sectionsList[0]?.duration_minutes) {
-          setSectionTimeLeft(parseInt(sectionsList[0].duration_minutes) * 60);
-        } else {
-          setSectionTimeLeft(null);
-        }
+        const initialTimesMap: Record<string, number> = {};
+        sectionsList.forEach((sec: any) => {
+          if (sec.duration_minutes) {
+            initialTimesMap[sec.id] = parseInt(sec.duration_minutes) * 60;
+          }
+        });
+        setSectionRemainingTimes(initialTimesMap);
 
         // Initialize default answers
         const mcqAns: Record<string, string> = {};
@@ -3056,7 +3085,15 @@ export default function App() {
           console.warn('Failed to restore workspace settings:', e);
         }
 
-        setTimeLeft((examObj?.duration_minutes || 60) * 60);
+        const createdTimestamp = data.created_at || data.attempt?.created_at;
+        if (createdTimestamp) {
+          const startTime = new Date(createdTimestamp).getTime();
+          const elapsedSecs = Math.max(0, Math.floor((Date.now() - startTime) / 1000));
+          const totalSecs = (examObj?.duration_minutes || 60) * 60;
+          setTimeLeft(Math.max(0, totalSecs - elapsedSecs));
+        } else {
+          setTimeLeft((examObj?.duration_minutes || 60) * 60);
+        }
         setTabWarnings(0);
         setProctorLogs([]);
 
@@ -3088,15 +3125,16 @@ export default function App() {
         return prev - 1;
       });
 
-      setSectionTimeLeft(prevSec => {
-        if (prevSec !== null && prevSec !== undefined) {
-          if (prevSec <= 1) {
-            switchToNextSection();
-            return null;
-          }
-          return prevSec - 1;
+      setSectionRemainingTimes(prevMap => {
+        const activeId = activeSectionIdRef.current;
+        if (!activeId || prevMap[activeId] === undefined) return prevMap;
+        const currentRemaining = prevMap[activeId];
+        if (currentRemaining <= 1) {
+          const updated = { ...prevMap, [activeId]: 0 };
+          setTimeout(() => switchToNextSection(), 0);
+          return updated;
         }
-        return null;
+        return { ...prevMap, [activeId]: Math.max(0, currentRemaining - 1) };
       });
     }, 1000);
   };
@@ -3263,8 +3301,7 @@ export default function App() {
       }
     }, 1000);
 
-    // Track tab switching browser events
-    window.addEventListener('blur', stableTabSwitch);
+    // Track tab switching browser events via visibilitychange
     document.addEventListener('visibilitychange', stableVisibilityChange);
   };
 
@@ -3341,11 +3378,7 @@ export default function App() {
       cameraStream.getTracks().forEach(track => track.stop());
       setCameraStream(null);
     }
-    window.removeEventListener('blur', stableTabSwitch);
     document.removeEventListener('visibilitychange', stableVisibilityChange);
-    if (document.exitFullscreen && document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
-    }
     // Reset Debug panel states
     setCameraConnected(false);
     setCameraStreamActive(false);
@@ -3490,6 +3523,7 @@ export default function App() {
   };
 
   const submitEntireExam = async (isAuto = false) => {
+<<<<<<< HEAD
     if (isSubmittingRef.current) return;
     
     if (!isAuto && !confirm('Are you sure you want to finish and submit your exam?')) {
@@ -3497,13 +3531,51 @@ export default function App() {
     }
 
     isSubmittingRef.current = true;
+=======
+    console.log(`[RuntimeController] [Submit Step 1/9] Submit initiated by candidate (isAuto=${isAuto})`);
+    isSubmittingRef.current = true;
+    if (!isAuto) {
+      document.removeEventListener('visibilitychange', stableVisibilityChange);
+    }
+    if (!isAuto && !confirm('Are you sure you want to finish and submit your exam?')) {
+      console.log('[RuntimeController] Candidate cancelled submission dialog');
+      isSubmittingRef.current = false;
+      if (currentPage === 'exam-env') {
+        document.addEventListener('visibilitychange', stableVisibilityChange);
+      }
+      return;
+    }
+
+    console.log('[RuntimeController] [Submit Step 2/9] Confirmation accepted, unbinding window focus listeners and stopping proctoring');
+    cleanupProctoring();
+
+    console.log('[RuntimeController] [Submit Step 3/9] Saving candidate answers and code solutions');
+    await saveCurrentCodeImmediately();
+
+    const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
+>>>>>>> 2be173b7ead49b6b4cf9ac0927c5e94199f788e6
+
+    const performPostSubmissionCleanup = async () => {
+      if (document.exitFullscreen && document.fullscreenElement) {
+        try {
+          console.log('[RuntimeController] [Submit Step 8/9] Exiting browser fullscreen mode');
+          await document.exitFullscreen();
+        } catch {
+          // ignore potential user gesture restrictions
+        }
+      }
+    };
 
     try {
+<<<<<<< HEAD
       showToast('Saving candidate responses...', 'info');
       await saveCurrentCodeImmediately();
 
       const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
 
+=======
+      console.log(`[RuntimeController] [Submit Step 4/9] Dispatching POST /api/exams/student/attempts/${currentAttemptRef.current?.id}/submit`);
+>>>>>>> 2be173b7ead49b6b4cf9ac0927c5e94199f788e6
       const res = await fetch(`${API_EXAMS}/student/attempts/${currentAttemptRef.current?.id}/submit`, {
         method: 'POST',
         headers: {
@@ -3514,9 +3586,15 @@ export default function App() {
       });
 
       if (res.ok) {
+        console.log('[RuntimeController] [Submit Step 5/9] HTTP 200 OK response received from backend server');
         const result = await res.json();
+<<<<<<< HEAD
         cleanupProctoring();
 
+=======
+        await performPostSubmissionCleanup();
+        console.log('[RuntimeController] [Submit Step 9/9] Navigating to result view');
+>>>>>>> 2be173b7ead49b6b4cf9ac0927c5e94199f788e6
         if (isAuto) {
           showToast("Time expired. Assessment submitted successfully.", "success");
           setCurrentPage('student-dash');
@@ -3531,12 +3609,30 @@ export default function App() {
         }
       } else {
         const data = await res.json();
+<<<<<<< HEAD
         showToast(data.error || 'Failed to submit exam. Please retry.', 'error');
       }
     } catch (err) {
       cleanupProctoring();
 
       const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
+=======
+        console.error('[RuntimeController] Backend submit endpoint error:', data.error);
+        showToast(data.error || 'Failed to submit exam', 'error');
+        if (isAuto) {
+          await performPostSubmissionCleanup();
+          setTimeout(() => {
+            setCurrentPage('student-dash');
+            loadStudentDashboard();
+            setIsExamLocked(false);
+          }, 5000);
+        }
+      }
+    } catch (err) {
+      console.warn('[RuntimeController] Network fallback triggered during submission');
+      await performPostSubmissionCleanup();
+      // Mock result evaluation
+>>>>>>> 2be173b7ead49b6b4cf9ac0927c5e94199f788e6
       const mockResult = {
         attempt: {
           exam_name: currentExamRef.current?.name || 'Technical Aptitude Exam',
@@ -3554,7 +3650,11 @@ export default function App() {
         mcqResponses: [],
         codingResponses: []
       };
+<<<<<<< HEAD
 
+=======
+      console.log('[RuntimeController] [Submit Step 9/9] Navigating to result-view page (simulated response)');
+>>>>>>> 2be173b7ead49b6b4cf9ac0927c5e94199f788e6
       if (isAuto) {
         showToast("Time expired. Assessment submitted successfully.", "success");
         setCurrentPage('student-dash');
@@ -7322,23 +7422,102 @@ export default function App() {
                                   <input type="text" value={mcqForm.question} onChange={e => setMcqForm({ ...mcqForm, question: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" placeholder="What is the runtime complexity of binary search?" required />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-muted-foreground">Option A</label>
-                                    <input type="text" value={mcqForm.optionA} onChange={e => setMcqForm({ ...mcqForm, optionA: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" required />
-                                  </div>
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-muted-foreground">Option B</label>
-                                    <input type="text" value={mcqForm.optionB} onChange={e => setMcqForm({ ...mcqForm, optionB: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" required />
-                                  </div>
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-muted-foreground">Option C</label>
-                                    <input type="text" value={mcqForm.optionC} onChange={e => setMcqForm({ ...mcqForm, optionC: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" required />
-                                  </div>
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-muted-foreground">Option D</label>
-                                    <input type="text" value={mcqForm.optionD} onChange={e => setMcqForm({ ...mcqForm, optionD: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" required />
-                                  </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-semibold text-muted-foreground">Question Diagram / Rich Content Blocks</label>
+                                  <RichTextEditor
+                                    contentBlocks={mcqForm.contentBlocks || []}
+                                    onChange={blocks => setMcqForm(prev => ({ ...prev, contentBlocks: blocks }))}
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {[
+                                    { label: 'Option A', key: 'optionA', imgKey: 'optionAImage' },
+                                    { label: 'Option B', key: 'optionB', imgKey: 'optionBImage' },
+                                    { label: 'Option C', key: 'optionC', imgKey: 'optionCImage' },
+                                    { label: 'Option D', key: 'optionD', imgKey: 'optionDImage' },
+                                  ].map(opt => {
+                                    const currentVal = mcqForm[opt.key as keyof typeof mcqForm] as string;
+                                    const currentImg = (mcqForm[opt.imgKey as keyof typeof mcqForm] as string) || '';
+
+                                    return (
+                                      <div key={opt.key} className="p-3 border rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 space-y-2">
+                                        <label className="text-[10px] font-semibold text-muted-foreground">{opt.label}</label>
+                                        <input
+                                          type="text"
+                                          value={currentVal}
+                                          onChange={e => setMcqForm({ ...mcqForm, [opt.key]: e.target.value })}
+                                          className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent text-slate-900 dark:text-white"
+                                          required
+                                        />
+                                        <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800">
+                                          <div className="flex items-center gap-2">
+                                            <input
+                                              type="text"
+                                              value={currentImg}
+                                              onChange={e => setMcqForm({ ...mcqForm, [opt.imgKey]: e.target.value })}
+                                              placeholder={`${opt.label} Image URL or Upload below`}
+                                              className="w-full p-1.5 border rounded-lg text-[10px] bg-transparent border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                                            />
+                                            <label className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-colors flex items-center gap-1 shrink-0">
+                                              Upload
+                                              <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={e => {
+                                                  const file = e.target.files?.[0];
+                                                  if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onload = () => {
+                                                      if (typeof reader.result === 'string') {
+                                                        setMcqForm(prev => ({ ...prev, [opt.imgKey]: reader.result }));
+                                                      }
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                  }
+                                                }}
+                                                className="hidden"
+                                              />
+                                            </label>
+                                          </div>
+                                          {currentImg && (
+                                            <div className="p-2 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between gap-2">
+                                              <img src={currentImg} alt={`${opt.label} Preview`} className="max-h-14 object-contain rounded border border-white/10" />
+                                              <div className="flex items-center gap-1">
+                                                <label className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[9px] font-bold cursor-pointer transition-colors">
+                                                  Replace
+                                                  <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={e => {
+                                                      const file = e.target.files?.[0];
+                                                      if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onload = () => {
+                                                          if (typeof reader.result === 'string') {
+                                                            setMcqForm(prev => ({ ...prev, [opt.imgKey]: reader.result }));
+                                                          }
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                      }
+                                                    }}
+                                                    className="hidden"
+                                                  />
+                                                </label>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setMcqForm({ ...mcqForm, [opt.imgKey]: '' })}
+                                                  className="px-2 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 rounded text-[9px] font-bold transition-colors"
+                                                >
+                                                  Remove
+                                                </button>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-3">
@@ -8376,9 +8555,7 @@ export default function App() {
                     <button
                       onClick={() => {
                         if (isExamLocked) return;
-                        if (window.confirm("Are you sure you want to submit your assessment? Your current answers will be evaluated.")) {
-                          submitEntireExam();
-                        }
+                        submitEntireExam();
                       }}
                       disabled={isExamLocked}
                       className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs uppercase tracking-wider transition-all border border-rose-500/30 shadow-lg shadow-rose-600/25"
@@ -8538,9 +8715,16 @@ export default function App() {
                                 const targetSec = studentExamSections.find(s => s.id === targetSectionId);
                                 setActiveQuestionIndex(sectionQuestionIndices[targetSectionId] || 0);
                                 if (targetSec?.duration_minutes) {
+<<<<<<< HEAD
                                   setSectionTimeLeft(parseInt(String(targetSec.duration_minutes)) * 60);
                                 } else {
                                   setSectionTimeLeft(null);
+=======
+                                  setSectionRemainingTimes(prevMap => {
+                                    if (prevMap[targetSectionId] !== undefined) return prevMap;
+                                    return { ...prevMap, [targetSectionId]: parseInt(targetSec.duration_minutes) * 60 };
+                                  });
+>>>>>>> 2be173b7ead49b6b4cf9ac0927c5e94199f788e6
                                 }
                                 return;
                               }
@@ -8573,9 +8757,11 @@ export default function App() {
                               const sTotal = sMcqs.length + sCodings.length;
                               
                               const navMode = currentExam?.navigation_mode || 'free';
-                              const isLocked = completedSections[sect.id] === true || (
-                                (navMode === 'locked' || navMode === 'sequential_locked') && 
-                                studentExamSections.findIndex(s => s.id === activeSectionId) > idx
+                              const isLocked = navMode !== 'free' && (
+                                completedSections[sect.id] === true || (
+                                  (navMode === 'locked' || navMode === 'sequential_locked') && 
+                                  studentExamSections.findIndex(s => s.id === activeSectionId) > idx
+                                )
                               );
 
                               let statusLabel = 'Pending';
@@ -8618,27 +8804,64 @@ export default function App() {
                             const isCurrent = sect.id === activeSectionId;
                             const navMode = currentExam?.navigation_mode || 'free';
                             const currentIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
-                            const isLocked = completedSections[sect.id] === true || (
-                              (navMode === 'locked' || navMode === 'sequential_locked') && currentIdx > idx
+                            const isLocked = navMode !== 'free' && (
+                              completedSections[sect.id] === true || (
+                                (navMode === 'locked' || navMode === 'sequential_locked') && currentIdx > idx
+                              )
                             );
 
                             return (
                               <button 
                                 key={sect.id || idx}
                                 onClick={() => {
-                                  if (isExamLocked || isLocked) return;
-                                  if (navMode === 'free') {
-                                    if (activeSectionId) {
-                                      setSectionQuestionIndices(prev => ({ ...prev, [activeSectionId]: activeQuestionIndex }));
+                                  const requestSectionSwitch = (targetSectionId: string) => {
+                                    if (isExamLocked || !targetSectionId || targetSectionId === activeSectionId) return;
+
+                                    const targetIdx = studentExamSections.findIndex(s => s.id === targetSectionId);
+                                    const currentIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
+                                    const navMode = currentExam?.navigation_mode || 'free';
+
+                                    // Free Navigation Mode: Completely ignore locking & confirmation modal
+                                    if (navMode === 'free') {
+                                      console.log(`[RuntimeController] Free navigation mode: switching to section "${targetSectionId}" without locking or popup modal`);
+                                      if (activeSectionId) {
+                                        setSectionQuestionIndices(prev => ({ ...prev, [activeSectionId]: activeQuestionIndex }));
+                                      }
+                                      saveCurrentCodeImmediately();
+                                      setActiveSectionId(targetSectionId);
+                                      const targetSec = studentExamSections.find(s => s.id === targetSectionId);
+                                      setActiveQuestionIndex(sectionQuestionIndices[targetSectionId] || 0);
+                                      if (targetSec?.duration_minutes) {
+                                        setSectionRemainingTimes(prevMap => {
+                                          if (prevMap[targetSectionId] !== undefined) return prevMap;
+                                          return { ...prevMap, [targetSectionId]: parseInt(targetSec.duration_minutes) * 60 };
+                                        });
+                                      }
+                                      return;
                                     }
+
+                                    // Check lock status for non-free modes
+                                    const isTargetLocked = completedSections[targetSectionId] === true || (
+                                      (navMode === 'locked' || navMode === 'sequential_locked') && currentIdx > targetIdx
+                                    );
+                                    if (isTargetLocked) {
+                                      console.log(`[RuntimeController] Section "${targetSectionId}" is locked in navigation mode "${navMode}"`);
+                                      return;
+                                    }
+
+                                    // Check sequential rule
+                                    if ((navMode === 'sequential' || navMode === 'sequential_locked') && targetIdx > currentIdx + 1) {
+                                      showToast("Sequential navigation: You cannot skip future sections. Please complete sections in order.", "warning");
+                                      return;
+                                    }
+
+                                    // Non-free modes: Open confirmation dialog
+                                    console.log(`[RuntimeController] Opening section confirmation modal for switch to "${targetSectionId}"`);
                                     saveCurrentCodeImmediately();
-                                    setActiveSectionId(sect.id);
-                                    setActiveQuestionIndex(sectionQuestionIndices[sect.id] || 0);
-                                  } else {
-                                    saveCurrentCodeImmediately();
-                                    setPendingTargetSectionId(sect.id);
+                                    setPendingTargetSectionId(targetSectionId);
                                     setIsSectionConfirmModalOpen(true);
-                                  }
+                                  };
+                                  requestSectionSwitch(sect.id);
                                 }}
                                 disabled={isExamLocked || isLocked}
                                 className={`p-2 rounded-lg border transition-all ${isCurrent ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400 font-bold' : 'border-transparent text-slate-400 hover:bg-slate-800'} ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
@@ -9702,7 +9925,6 @@ export default function App() {
                       onSubmitSection={() => {
                         saveCurrentCodeImmediately();
                         if (navMode === 'free') {
-                          setCompletedSections(prev => ({ ...prev, [activeSectionId]: true }));
                           if (curSecIdx >= 0 && curSecIdx < studentExamSections.length - 1) {
                             const nextSec = studentExamSections[curSecIdx + 1];
                             setActiveSectionId(nextSec.id);
@@ -9745,9 +9967,10 @@ export default function App() {
                           const targetSec = studentExamSections.find(s => s.id === targetId);
                           setActiveQuestionIndex(sectionQuestionIndices[targetId] || 0);
                           if (targetSec?.duration_minutes) {
-                            setSectionTimeLeft(parseInt(targetSec.duration_minutes) * 60);
-                          } else {
-                            setSectionTimeLeft(null);
+                            setSectionRemainingTimes(prevMap => {
+                              if (prevMap[targetId] !== undefined) return prevMap;
+                              return { ...prevMap, [targetId]: parseInt(targetSec.duration_minutes) * 60 };
+                            });
                           }
                         }
                         setIsSectionConfirmModalOpen(false);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Check, X, Code, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Check, X, Code, Image as ImageIcon, Upload, RefreshCw } from 'lucide-react';
 import { RichTextEditor } from './RichTextEditor';
 
 interface MCQQuestionData {
@@ -31,6 +31,7 @@ interface CodingQuestionData {
   time_limit: number;
   memory_limit: number;
   testCases?: Array<{ input: string; expected_output: string; isHidden?: boolean; is_hidden?: boolean }>;
+  content_blocks?: any[];
   images?: string[];
 }
 
@@ -79,6 +80,7 @@ export const QuestionInlineEditor: React.FC<QuestionInlineEditorProps> = ({
     difficulty: initialData.difficulty || 'medium',
     time_limit: initialData.time_limit || 2000,
     memory_limit: initialData.memory_limit || 512000,
+    content_blocks: initialData.content_blocks || [],
     images: initialData.images || []
   });
 
@@ -90,12 +92,32 @@ export const QuestionInlineEditor: React.FC<QuestionInlineEditorProps> = ({
     }))
   );
 
+  const handleOptionImageFileChange = (imgKey: keyof MCQQuestionData, file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setMcqForm(prev => ({ ...prev, [imgKey]: reader.result }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
       if (type === 'mcq') {
-        await onSave(mcqForm);
+        await onSave({
+          ...mcqForm,
+          option_a_image: mcqForm.option_a_image || '',
+          option_b_image: mcqForm.option_b_image || '',
+          option_c_image: mcqForm.option_c_image || '',
+          option_d_image: mcqForm.option_d_image || '',
+          optionAImage: mcqForm.option_a_image || '',
+          optionBImage: mcqForm.option_b_image || '',
+          optionCImage: mcqForm.option_c_image || '',
+          optionDImage: mcqForm.option_d_image || ''
+        });
       } else {
         await onSave({ ...codingForm, testCases: codingTestCases });
       }
@@ -134,10 +156,20 @@ export const QuestionInlineEditor: React.FC<QuestionInlineEditorProps> = ({
               />
             </div>
 
+            {/* Question Stem Rich Content Builder */}
+            <div>
+              <label className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Diagrams & Rich Content Blocks (Optional)</label>
+              <RichTextEditor
+                contentBlocks={mcqForm.content_blocks || []}
+                onChange={blocks => setMcqForm(prev => ({ ...prev, content_blocks: blocks }))}
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {['A', 'B', 'C', 'D'].map(opt => {
                 const optKey = `option_${opt.toLowerCase()}` as keyof MCQQuestionData;
                 const imgKey = `option_${opt.toLowerCase()}_image` as keyof MCQQuestionData;
+                const currentImg = String(mcqForm[imgKey] || '');
 
                 return (
                   <div key={opt} className="p-3 border rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 space-y-2">
@@ -161,15 +193,58 @@ export const QuestionInlineEditor: React.FC<QuestionInlineEditorProps> = ({
                       className="w-full p-2 border rounded-lg text-xs bg-transparent border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
                       required
                     />
-                    <div className="flex items-center gap-2 pt-1">
-                      <ImageIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                      <input
-                        type="text"
-                        value={String(mcqForm[imgKey] || '')}
-                        onChange={e => setMcqForm({ ...mcqForm, [imgKey]: e.target.value })}
-                        placeholder={`Option ${opt} Image URL (Optional)`}
-                        className="w-full p-1.5 border rounded-lg text-[10px] bg-transparent border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
-                      />
+                    
+                    {/* Option Image Upload & Preview Controls */}
+                    <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <ImageIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <input
+                          type="text"
+                          value={currentImg}
+                          onChange={e => setMcqForm({ ...mcqForm, [imgKey]: e.target.value })}
+                          placeholder={`Option ${opt} Image URL or Upload below`}
+                          className="w-full p-1.5 border rounded-lg text-[10px] bg-transparent border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                        />
+                        <label className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-colors flex items-center gap-1 shrink-0">
+                          <Upload className="h-3 w-3" />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={e => {
+                              const file = e.target.files?.[0];
+                              if (file) handleOptionImageFileChange(imgKey, file);
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+
+                      {currentImg && (
+                        <div className="p-2 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between gap-2">
+                          <img src={currentImg} alt={`Option ${opt} Preview`} className="max-h-16 object-contain rounded border border-white/10" />
+                          <div className="flex items-center gap-1">
+                            <label className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[9px] font-bold cursor-pointer transition-colors flex items-center gap-1">
+                              <RefreshCw className="h-3 w-3" /> Replace
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={e => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleOptionImageFileChange(imgKey, file);
+                                }}
+                                className="hidden"
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setMcqForm({ ...mcqForm, [imgKey]: '' })}
+                              className="px-2 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 rounded text-[9px] font-bold transition-colors"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
