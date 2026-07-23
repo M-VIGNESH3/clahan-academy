@@ -1000,7 +1000,7 @@ export default function App() {
       const isCurrentlyFullscreen = !!document.fullscreenElement;
       setIsExamFullscreen(isCurrentlyFullscreen);
 
-      if (!isCurrentlyFullscreen) {
+      if (!isCurrentlyFullscreen && !isSubmittingRef.current && currentPageRef.current === 'exam-env') {
         setProctorLogs(p => [`[Violation] Fullscreen mode exited! (${new Date().toLocaleTimeString()})`, ...p]);
         
         if (socketRef.current) {
@@ -2491,13 +2491,28 @@ export default function App() {
     e.preventDefault();
     if (!selectedExamIdForQuestions) return;
 
+    const payload = {
+      ...mcqForm,
+      sectionId: selectedSectionIdForMcq,
+      optionAImage: mcqForm.optionAImage,
+      optionBImage: mcqForm.optionBImage,
+      optionCImage: mcqForm.optionCImage,
+      optionDImage: mcqForm.optionDImage,
+      option_a_image: mcqForm.optionAImage,
+      option_b_image: mcqForm.optionBImage,
+      option_c_image: mcqForm.optionCImage,
+      option_d_image: mcqForm.optionDImage,
+      contentBlocks: mcqForm.contentBlocks,
+      content_blocks: mcqForm.contentBlocks
+    };
+
     if (editingMcqId) {
       // Edit / Update MCQ mode
       try {
         const res = await fetch(`${API_EXAMS}/mcq/${editingMcqId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ ...mcqForm, sectionId: selectedSectionIdForMcq })
+          body: JSON.stringify(payload)
         });
         if (res.ok) {
           showToast('MCQ Question updated successfully!');
@@ -2536,7 +2551,7 @@ export default function App() {
       const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/mcq`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ ...mcqForm, sectionId: selectedSectionIdForMcq })
+        body: JSON.stringify(payload)
       });
       if (res.ok) {
         showToast('MCQ Question added');
@@ -3333,9 +3348,6 @@ export default function App() {
     }
     window.removeEventListener('blur', stableTabSwitch);
     document.removeEventListener('visibilitychange', stableVisibilityChange);
-    if (document.exitFullscreen && document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
-    }
     // Reset Debug panel states
     setCameraConnected(false);
     setCameraStreamActive(false);
@@ -3493,8 +3505,22 @@ export default function App() {
       }
       return;
     }
-    cleanupProctoring();
+
     const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
+
+    const performPostSubmissionCleanup = async () => {
+      // 1. Stop timers & proctoring background tasks
+      cleanupProctoring();
+
+      // 2. Safely exit fullscreen without generating violations
+      if (document.exitFullscreen && document.fullscreenElement) {
+        try {
+          await document.exitFullscreen();
+        } catch {
+          // ignore potential user gesture restrictions
+        }
+      }
+    };
 
     try {
       const res = await fetch(`${API_EXAMS}/student/attempts/${currentAttemptRef.current?.id}/submit`, {
@@ -3507,6 +3533,7 @@ export default function App() {
       });
       if (res.ok) {
         const result = await res.json();
+        await performPostSubmissionCleanup();
         if (isAuto) {
           showToast("Time is up. Your exam has been automatically submitted successfully. Redirecting to dashboard...", "success");
           setTimeout(() => {
@@ -3524,6 +3551,7 @@ export default function App() {
         const data = await res.json();
         showToast(data.error || 'Failed to submit exam', 'error');
         if (isAuto) {
+          await performPostSubmissionCleanup();
           setTimeout(() => {
             setCurrentPage('student-dash');
             loadStudentDashboard();
@@ -3532,6 +3560,7 @@ export default function App() {
         }
       }
     } catch (err) {
+      await performPostSubmissionCleanup();
       // Mock result evaluation
       const mockResult = {
         attempt: {
@@ -7325,23 +7354,102 @@ export default function App() {
                                   <input type="text" value={mcqForm.question} onChange={e => setMcqForm({ ...mcqForm, question: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" placeholder="What is the runtime complexity of binary search?" required />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3">
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-muted-foreground">Option A</label>
-                                    <input type="text" value={mcqForm.optionA} onChange={e => setMcqForm({ ...mcqForm, optionA: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" required />
-                                  </div>
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-muted-foreground">Option B</label>
-                                    <input type="text" value={mcqForm.optionB} onChange={e => setMcqForm({ ...mcqForm, optionB: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" required />
-                                  </div>
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-muted-foreground">Option C</label>
-                                    <input type="text" value={mcqForm.optionC} onChange={e => setMcqForm({ ...mcqForm, optionC: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" required />
-                                  </div>
-                                  <div>
-                                    <label className="text-[10px] font-semibold text-muted-foreground">Option D</label>
-                                    <input type="text" value={mcqForm.optionD} onChange={e => setMcqForm({ ...mcqForm, optionD: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" required />
-                                  </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-semibold text-muted-foreground">Question Diagram / Rich Content Blocks</label>
+                                  <RichTextEditor
+                                    contentBlocks={mcqForm.contentBlocks || []}
+                                    onChange={blocks => setMcqForm(prev => ({ ...prev, contentBlocks: blocks }))}
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {[
+                                    { label: 'Option A', key: 'optionA', imgKey: 'optionAImage' },
+                                    { label: 'Option B', key: 'optionB', imgKey: 'optionBImage' },
+                                    { label: 'Option C', key: 'optionC', imgKey: 'optionCImage' },
+                                    { label: 'Option D', key: 'optionD', imgKey: 'optionDImage' },
+                                  ].map(opt => {
+                                    const currentVal = mcqForm[opt.key as keyof typeof mcqForm] as string;
+                                    const currentImg = (mcqForm[opt.imgKey as keyof typeof mcqForm] as string) || '';
+
+                                    return (
+                                      <div key={opt.key} className="p-3 border rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 space-y-2">
+                                        <label className="text-[10px] font-semibold text-muted-foreground">{opt.label}</label>
+                                        <input
+                                          type="text"
+                                          value={currentVal}
+                                          onChange={e => setMcqForm({ ...mcqForm, [opt.key]: e.target.value })}
+                                          className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent text-slate-900 dark:text-white"
+                                          required
+                                        />
+                                        <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800">
+                                          <div className="flex items-center gap-2">
+                                            <input
+                                              type="text"
+                                              value={currentImg}
+                                              onChange={e => setMcqForm({ ...mcqForm, [opt.imgKey]: e.target.value })}
+                                              placeholder={`${opt.label} Image URL or Upload below`}
+                                              className="w-full p-1.5 border rounded-lg text-[10px] bg-transparent border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                                            />
+                                            <label className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-colors flex items-center gap-1 shrink-0">
+                                              Upload
+                                              <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={e => {
+                                                  const file = e.target.files?.[0];
+                                                  if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onload = () => {
+                                                      if (typeof reader.result === 'string') {
+                                                        setMcqForm(prev => ({ ...prev, [opt.imgKey]: reader.result }));
+                                                      }
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                  }
+                                                }}
+                                                className="hidden"
+                                              />
+                                            </label>
+                                          </div>
+                                          {currentImg && (
+                                            <div className="p-2 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between gap-2">
+                                              <img src={currentImg} alt={`${opt.label} Preview`} className="max-h-14 object-contain rounded border border-white/10" />
+                                              <div className="flex items-center gap-1">
+                                                <label className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[9px] font-bold cursor-pointer transition-colors">
+                                                  Replace
+                                                  <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={e => {
+                                                      const file = e.target.files?.[0];
+                                                      if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onload = () => {
+                                                          if (typeof reader.result === 'string') {
+                                                            setMcqForm(prev => ({ ...prev, [opt.imgKey]: reader.result }));
+                                                          }
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                      }
+                                                    }}
+                                                    className="hidden"
+                                                  />
+                                                </label>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setMcqForm({ ...mcqForm, [opt.imgKey]: '' })}
+                                                  className="px-2 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 rounded text-[9px] font-bold transition-colors"
+                                                >
+                                                  Remove
+                                                </button>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-3">

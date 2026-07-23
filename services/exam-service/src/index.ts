@@ -463,9 +463,14 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
     for (const m of mcqs.rows) {
       const newSectId = m.section_id ? (sectionIdMap[m.section_id] || null) : null;
       await query(
-        `INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [newExamId, newSectId, m.question, m.option_a, m.option_b, m.option_c, m.option_d, m.correct_answer, m.marks, m.difficulty]
+        `INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty, content_blocks, images, option_a_image, option_b_image, option_c_image, option_d_image, question_type, word_limit, evaluation_method)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13, $14, $15, $16, $17, $18, $19)`,
+        [
+          newExamId, newSectId, m.question, m.option_a, m.option_b, m.option_c, m.option_d, m.correct_answer, m.marks, m.difficulty,
+          JSON.stringify(m.content_blocks || []), JSON.stringify(m.images || []),
+          m.option_a_image || '', m.option_b_image || '', m.option_c_image || '', m.option_d_image || '',
+          m.question_type || 'mcq', m.word_limit || 0, m.evaluation_method || 'manual'
+        ]
       );
     }
 
@@ -474,9 +479,12 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
     for (const c of codings.rows) {
       const newSectId = c.section_id ? (sectionIdMap[c.section_id] || null) : null;
       const newCq = await query(
-        `INSERT INTO coding_questions (exam_id, section_id, title, description, difficulty, marks, language, time_limit, memory_limit, starter_code)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
-        [newExamId, newSectId, c.title, c.description, c.difficulty, c.marks, c.language, c.time_limit, c.memory_limit, c.starter_code]
+        `INSERT INTO coding_questions (exam_id, section_id, title, description, difficulty, marks, language, time_limit, memory_limit, starter_code, content_blocks, images)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb) RETURNING id`,
+        [
+          newExamId, newSectId, c.title, c.description, c.difficulty, c.marks, c.language, c.time_limit, c.memory_limit, c.starter_code,
+          JSON.stringify(c.content_blocks || []), JSON.stringify(c.images || [])
+        ]
       );
       const newCqId = newCq.rows[0].id;
 
@@ -686,13 +694,18 @@ app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, r
       }
     }
 
+    const optAImage = optionAImage || req.body.option_a_image || '';
+    const optBImage = optionBImage || req.body.option_b_image || '';
+    const optCImage = optionCImage || req.body.option_c_image || '';
+    const optDImage = optionDImage || req.body.option_d_image || '';
+
     const result = await query(
       `INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty, content_blocks, images, option_a_image, option_b_image, option_c_image, option_d_image, question_type, word_limit, evaluation_method)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
       [
         id, finalSectionId, question, optionA || '', optionB || '', optionC || '', optionD || '', correctAnswer || '', marks || 1, difficulty || 'medium',
         JSON.stringify(contentBlocks || []), JSON.stringify(images || []),
-        optionAImage || '', optionBImage || '', optionCImage || '', optionDImage || '',
+        optAImage, optBImage, optCImage, optDImage,
         qType, wordLimit || 0, evaluationMethod || 'manual'
       ]
     );
@@ -911,6 +924,19 @@ app.put(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'
   try {
     const mcqId = req.params.mcqId || req.params.id;
     const { question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty, contentBlocks, images, optionAImage, optionBImage, optionCImage, optionDImage } = req.body;
+    
+    const optA = optionA ?? req.body.option_a;
+    const optB = optionB ?? req.body.option_b;
+    const optC = optionC ?? req.body.option_c;
+    const optD = optionD ?? req.body.option_d;
+    const corrAns = correctAnswer ?? req.body.correct_answer;
+
+    const optAImg = optionAImage ?? req.body.option_a_image;
+    const optBImg = optionBImage ?? req.body.option_b_image;
+    const optCImg = optionCImage ?? req.body.option_c_image;
+    const optDImg = optionDImage ?? req.body.option_d_image;
+    const cBlocks = contentBlocks ?? req.body.content_blocks;
+
     const result = await query(
       `UPDATE mcq_questions
        SET question = COALESCE($1, question),
@@ -929,10 +955,13 @@ app.put(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'
            option_d_image = COALESCE($14, option_d_image)
        WHERE id = $15 RETURNING *`,
       [
-        question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty,
-        contentBlocks ? JSON.stringify(contentBlocks) : null,
+        question, optA, optB, optC, optD, corrAns, marks, difficulty,
+        cBlocks ? JSON.stringify(cBlocks) : null,
         images ? JSON.stringify(images) : null,
-        optionAImage || '', optionBImage || '', optionCImage || '', optionDImage || '',
+        optAImg !== undefined ? optAImg : null,
+        optBImg !== undefined ? optBImg : null,
+        optCImg !== undefined ? optCImg : null,
+        optDImg !== undefined ? optDImg : null,
         mcqId
       ]
     );
@@ -1150,13 +1179,13 @@ app.get('/api/exams/student/attempts/:attemptId', authenticate, async (req, res)
 
     // Query MCQ questions (hide correct_answer during exam)
     const mcqsResult = await query(
-      'SELECT id, section_id, question, option_a, option_b, option_c, option_d, marks, difficulty FROM mcq_questions WHERE exam_id = $1',
+      'SELECT id, section_id, question, option_a, option_b, option_c, option_d, option_a_image, option_b_image, option_c_image, option_d_image, question_type, word_limit, evaluation_method, content_blocks, images, marks, difficulty FROM mcq_questions WHERE exam_id = $1',
       [examId]
     );
 
     // Query Coding questions
     const codingRaw = await query(
-      'SELECT id, section_id, title, description, difficulty, marks, language, starter_code FROM coding_questions WHERE exam_id = $1',
+      'SELECT id, section_id, title, description, difficulty, marks, language, starter_code, time_limit, memory_limit, content_blocks, images FROM coding_questions WHERE exam_id = $1',
       [examId]
     );
 
