@@ -1448,13 +1448,14 @@ export default function App() {
       return;
     }
     try {
-      const res = await fetch(`/api/exams/${targetExamId}/sections`, {
+      const res = await fetch(`${API_EXAMS}/${targetExamId}/sections`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           name: sectionForm.name,
           description: sectionForm.description,
           sectionType: sectionForm.sectionType,
+          section_type: sectionForm.sectionType,
           durationMinutes: sectionForm.durationMinutes ? parseInt(sectionForm.durationMinutes) : null,
           randomizeQuestions: sectionForm.randomizeQuestions,
           isMandatory: sectionForm.isMandatory,
@@ -1464,10 +1465,14 @@ export default function App() {
         })
       });
       if (res.ok) {
+        const createdSec = await res.json();
         showToast('Section created successfully');
         setIsSectionModalOpen(false);
         setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
         setSelectedExamIdForQuestions(targetExamId);
+        if (createdSec && createdSec.id) {
+          setAdminSelectedExamSections(prev => [...prev.filter(s => s.id !== createdSec.id), createdSec]);
+        }
         loadAdminExamQuestions(targetExamId);
       }
     } catch (err) {
@@ -1497,7 +1502,7 @@ export default function App() {
     const targetExamId = selectedExamIdForQuestions || editingExamId;
     if (!editingSectionId || !targetExamId) return;
     try {
-      const res = await fetch(`/api/sections/${editingSectionId}`, {
+      const res = await fetch(`${API_EXAMS}/sections/${editingSectionId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -1543,7 +1548,7 @@ export default function App() {
     if (!confirm('Are you sure you want to delete this section? All questions in it will be unassigned.')) return;
     const targetExamId = selectedExamIdForQuestions || editingExamId;
     try {
-      const res = await fetch(`/api/sections/${sectionId}`, {
+      const res = await fetch(`${API_EXAMS}/sections/${sectionId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -1573,7 +1578,7 @@ export default function App() {
 
     const sectionIds = newSections.map(s => s.id);
     try {
-      const res = await fetch(`/api/exams/${selectedExamIdForQuestions}/sections/reorder`, {
+      const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/sections/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ sectionIds })

@@ -837,11 +837,12 @@ app.get('/api/exams/:id/results', authenticate, requireRole('admin'), async (req
 // --- SECTION MANAGEMENT API ---
 
 // Create Section
-app.post(['/api/exams/:id/sections', '/api/assessments/:id/sections'], authenticate, requireRole('admin'), async (req, res) => {
+app.post(['/api/exams/:id/sections', '/api/assessments/:id/sections', '/api/exams/:examId/sections'], authenticate, requireRole('admin'), async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id || req.params.examId;
     const { name, description, sectionType, durationMinutes, randomizeQuestions, isMandatory, enableCutoff, cutoffPercentage, cutoffMarks } = req.body;
-    if (!name || !sectionType) {
+    const sType = sectionType || req.body.section_type;
+    if (!name || !sType) {
       return res.status(400).json({ error: 'Section name and sectionType are required' });
     }
 
@@ -852,7 +853,7 @@ app.post(['/api/exams/:id/sections', '/api/assessments/:id/sections'], authentic
       `INSERT INTO sections (exam_id, name, description, section_type, duration_minutes, randomize_questions, is_mandatory, sort_order, enable_cutoff, cutoff_percentage, cutoff_marks)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
       [
-        id, name, description || '', sectionType, durationMinutes || null,
+        id, name, description || '', sType, durationMinutes || null,
         randomizeQuestions === true, isMandatory !== false, sortOrder,
         enableCutoff === true, cutoffPercentage || null, cutoffMarks || null
       ]
@@ -1195,6 +1196,26 @@ app.get('/api/exams/student/attempts/:attemptId', authenticate, async (req, res)
         duration_minutes: null,
         sort_order: 0
       }];
+    }
+
+    // Automatically calculate section duration based on total exam duration / sections count (P0 BUG 8)
+    const examObj = exam.rows[0];
+    const totalExamMins = examObj?.duration_minutes || 60;
+    const secCount = sections.length;
+    if (secCount > 0 && totalExamMins > 0) {
+      const baseMins = Math.floor(totalExamMins / secCount);
+      let remainderMins = totalExamMins - (baseMins * secCount);
+      sections = sections.map((sec: any) => {
+        let extra = 0;
+        if (remainderMins > 0) {
+          extra = 1;
+          remainderMins--;
+        }
+        return {
+          ...sec,
+          duration_minutes: baseMins + extra
+        };
+      });
     }
 
     // Query MCQ questions (hide correct_answer during exam)
@@ -2263,92 +2284,6 @@ app.post('/api/exams/admin/generate-coding-question', authenticate, requireRole(
   } catch (err: any) {
     console.error('Failed to generate coding question:', err.message);
     res.status(500).json({ error: 'AI Question Generation failed. Please try again or fill the details manually.' });
-  }
-});
-
-
-// Section Management endpoints
-app.get('/api/exams/:examId/sections', authenticate, async (req, res) => {
-  try {
-    const { examId } = req.params;
-    const result = await query('SELECT * FROM sections WHERE exam_id = $1 ORDER BY sort_order ASC', [examId]);
-    res.json(result.rows);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/exams/:examId/sections', authenticate, requireRole('admin'), async (req, res) => {
-  try {
-    const { examId } = req.params;
-    const { name, description, sectionType, durationMinutes, randomizeQuestions, isMandatory, sortOrder, enableCutoff, cutoffPercentage, cutoffMarks } = req.body;
-    if (!name || !sectionType) {
-      return res.status(400).json({ error: 'Section Name and Section Type are required' });
-    }
-    const isCutoffEnabled = enableCutoff === true;
-    const finalPct = isCutoffEnabled && cutoffPercentage !== undefined && cutoffPercentage !== null && cutoffPercentage !== '' ? parseFloat(cutoffPercentage) : null;
-    const finalMarks = isCutoffEnabled && cutoffMarks !== undefined && cutoffMarks !== null && cutoffMarks !== '' ? parseFloat(cutoffMarks) : null;
-
-    const result = await query(
-      `INSERT INTO sections (exam_id, name, description, section_type, duration_minutes, randomize_questions, is_mandatory, sort_order, enable_cutoff, cutoff_percentage, cutoff_marks)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-      [examId, name, description || '', sectionType, durationMinutes || null, randomizeQuestions === true, isMandatory !== false, sortOrder || 0, isCutoffEnabled, finalPct, finalMarks]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.put('/api/sections/:id', authenticate, requireRole('admin'), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, description, durationMinutes, randomizeQuestions, isMandatory, sortOrder, enableCutoff, cutoffPercentage, cutoffMarks } = req.body;
-    if (!name) {
-      return res.status(400).json({ error: 'Section Name is required' });
-    }
-    const isCutoffEnabled = enableCutoff === true;
-    const finalPct = isCutoffEnabled && cutoffPercentage !== undefined && cutoffPercentage !== null && cutoffPercentage !== '' ? parseFloat(cutoffPercentage) : null;
-    const finalMarks = isCutoffEnabled && cutoffMarks !== undefined && cutoffMarks !== null && cutoffMarks !== '' ? parseFloat(cutoffMarks) : null;
-
-    const result = await query(
-      `UPDATE sections 
-       SET name = $1, description = $2, duration_minutes = $3, randomize_questions = $4, is_mandatory = $5, sort_order = $6,
-           enable_cutoff = $7, cutoff_percentage = $8, cutoff_marks = $9
-       WHERE id = $10 RETURNING *`,
-      [name, description || '', durationMinutes || null, randomizeQuestions === true, isMandatory !== false, sortOrder || 0, isCutoffEnabled, finalPct, finalMarks, id]
-    );
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Section not found' });
-    res.json(result.rows[0]);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/api/sections/:id', authenticate, requireRole('admin'), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await query('DELETE FROM sections WHERE id = $1 RETURNING *', [id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Section not found' });
-    res.json({ message: 'Section deleted successfully' });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/exams/:examId/sections/reorder', authenticate, requireRole('admin'), async (req, res) => {
-  try {
-    const { examId } = req.params;
-    const { sectionIds } = req.body;
-    if (!sectionIds || !Array.isArray(sectionIds)) {
-      return res.status(400).json({ error: 'sectionIds array is required' });
-    }
-    for (let i = 0; i < sectionIds.length; i++) {
-      await query('UPDATE sections SET sort_order = $1 WHERE id = $2 AND exam_id = $3', [i, sectionIds[i], examId]);
-    }
-    res.json({ message: 'Sections reordered successfully' });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
   }
 });
 
