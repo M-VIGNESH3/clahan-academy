@@ -110,9 +110,9 @@ export const AssessmentInstructions: React.FC<AssessmentInstructionsProps> = ({
 
       <button
         onClick={onProceed}
-        className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-2xl shadow-lg transition-all text-sm uppercase tracking-wide flex items-center justify-center gap-2 text-white"
+        className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-2xl shadow-lg transition-all text-sm uppercase tracking-wide flex items-center justify-center gap-2 text-white cursor-pointer"
       >
-        Validate Hardware & Permissions &rarr;
+        I Understand - Proceed to Hardware Validation &rarr;
       </button>
     </div>
   );

@@ -25,11 +25,36 @@ export const RichContentRenderer: React.FC<RichContentRendererProps> = ({
     setTimeout(() => setCopiedCodeId(null), 2000);
   };
 
+  let parsedBlocks: ContentBlock[] = [];
+  if (Array.isArray(blocks)) {
+    parsedBlocks = blocks;
+  } else if (typeof blocks === 'string' && (blocks as string).trim().length > 0) {
+    try {
+      const parsed = JSON.parse(blocks);
+      if (Array.isArray(parsed)) parsedBlocks = parsed;
+    } catch (e) {
+      parsedBlocks = [];
+    }
+  }
+
+  let parsedImages: string[] = [];
+  if (Array.isArray(legacyImages)) {
+    parsedImages = legacyImages.filter(img => typeof img === 'string' && img.trim().length > 0);
+  } else if (typeof legacyImages === 'string' && (legacyImages as string).trim().length > 0) {
+    try {
+      const parsed = JSON.parse(legacyImages);
+      if (Array.isArray(parsed)) parsedImages = parsed;
+    } catch (e) {
+      parsedImages = [legacyImages];
+    }
+  }
+
   // 1. If explicit content blocks exist and are non-empty
-  if (blocks && blocks.length > 0) {
+  if (parsedBlocks && parsedBlocks.length > 0) {
     return (
       <div className={`space-y-4 ${className}`}>
-        {blocks.map((block, index) => {
+        {parsedBlocks.map((block, index) => {
+          if (!block || typeof block !== 'object') return null;
           const key = block.id || `block-${index}`;
           switch (block.type) {
             case 'text':
@@ -164,9 +189,9 @@ export const RichContentRenderer: React.FC<RichContentRendererProps> = ({
         </div>
       )}
 
-      {legacyImages && legacyImages.length > 0 && (
+      {parsedImages && parsedImages.length > 0 && (
         <div className="flex flex-wrap gap-4 pt-2">
-          {legacyImages.map((imgUrl, i) => (
+          {parsedImages.map((imgUrl, i) => (
             <div 
               key={i} 
               onClick={() => onImageClick && onImageClick(imgUrl, `Question Attachment #${i + 1}`)}

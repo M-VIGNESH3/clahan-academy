@@ -3522,16 +3522,15 @@ export default function App() {
       return;
     }
 
-    console.log('[RuntimeController] [Submit Step 2/9] Confirmation accepted, unbinding window focus listeners');
+    console.log('[RuntimeController] [Submit Step 2/9] Confirmation accepted, unbinding window focus listeners and stopping proctoring');
+    cleanupProctoring();
+
     console.log('[RuntimeController] [Submit Step 3/9] Saving candidate answers and code solutions');
+    await saveCurrentCodeImmediately();
 
     const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
 
     const performPostSubmissionCleanup = async () => {
-      console.log('[RuntimeController] [Submit Step 6/9] Stopping proctoring intervals and disconnecting socket');
-      cleanupProctoring();
-      console.log('[RuntimeController] [Submit Step 7/9] Removing window event listeners');
-
       if (document.exitFullscreen && document.fullscreenElement) {
         try {
           console.log('[RuntimeController] [Submit Step 8/9] Exiting browser fullscreen mode');

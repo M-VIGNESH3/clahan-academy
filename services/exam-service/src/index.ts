@@ -671,8 +671,14 @@ app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, r
     const { id } = req.params;
     const { question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty, contentBlocks, images, optionAImage, optionBImage, optionCImage, optionDImage, questionType, wordLimit, evaluationMethod } = req.body;
     
+    const optA = optionA ?? req.body.option_a;
+    const optB = optionB ?? req.body.option_b;
+    const optC = optionC ?? req.body.option_c;
+    const optD = optionD ?? req.body.option_d;
+    const corrAns = correctAnswer ?? req.body.correct_answer;
+
     const qType = questionType || 'mcq';
-    if (qType === 'mcq' && (!question || !optionA || !optionB || !optionC || !optionD || !correctAnswer)) {
+    if (qType === 'mcq' && (!question || !optA || !optB || !optC || !optD || !corrAns)) {
       return res.status(400).json({ error: 'Required MCQ fields missing' });
     }
     if (qType === 'descriptive' && !question) {
@@ -702,7 +708,7 @@ app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, r
       `INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty, content_blocks, images, option_a_image, option_b_image, option_c_image, option_d_image, question_type, word_limit, evaluation_method)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
       [
-        id, finalSectionId, question, optionA || '', optionB || '', optionC || '', optionD || '', correctAnswer || '', marks || 1, difficulty || 'medium',
+        id, finalSectionId, question, optA, optB, optC, optD, corrAns, marks || 1, difficulty || 'medium',
         JSON.stringify(contentBlocks || []), JSON.stringify(images || []),
         optAImage, optBImage, optCImage, optDImage,
         qType, wordLimit || 0, evaluationMethod || 'manual'
