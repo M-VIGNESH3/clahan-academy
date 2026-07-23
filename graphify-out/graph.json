@@ -2442,7 +2442,7 @@
       "label": "validateAttemptNotExpired()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L42",
+      "source_location": "L62",
       "id": "src_index_validateattemptnotexpired",
       "community": 76,
       "norm_label": "validateattemptnotexpired()"
@@ -2451,7 +2451,7 @@
       "label": "seededShuffle()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L66",
+      "source_location": "L86",
       "id": "src_index_seededshuffle",
       "community": 7,
       "norm_label": "seededshuffle()"
@@ -2460,7 +2460,7 @@
       "label": "redisClient",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L87",
+      "source_location": "L107",
       "id": "services_exam_service_src_index_ts_src_index_redisclient",
       "community": 7,
       "norm_label": "redisclient"
@@ -2469,7 +2469,7 @@
       "label": "parsed",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L104",
+      "source_location": "L124",
       "id": "services_exam_service_src_index_ts_src_index_parsed",
       "community": 7,
       "norm_label": "parsed"
@@ -2478,7 +2478,7 @@
       "label": "notificationQueue",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L111",
+      "source_location": "L131",
       "id": "services_exam_service_src_index_ts_src_index_notificationqueue",
       "community": 7,
       "norm_label": "notificationqueue"
@@ -2487,7 +2487,7 @@
       "label": "queueNotification()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L118",
+      "source_location": "L138",
       "id": "services_exam_service_src_index_ts_src_index_queuenotification",
       "community": 7,
       "norm_label": "queuenotification()"
@@ -2496,7 +2496,7 @@
       "label": "queueNotificationsBulk()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L136",
+      "source_location": "L156",
       "id": "services_exam_service_src_index_ts_src_index_queuenotificationsbulk",
       "community": 7,
       "norm_label": "queuenotificationsbulk()"
@@ -2505,7 +2505,7 @@
       "label": "limiter",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L175",
+      "source_location": "L195",
       "id": "services_exam_service_src_index_ts_src_index_limiter",
       "community": 7,
       "norm_label": "limiter"
@@ -2514,7 +2514,7 @@
       "label": "AuthenticatedRequest",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L183",
+      "source_location": "L203",
       "id": "services_exam_service_src_index_ts_src_index_authenticatedrequest",
       "community": 7,
       "norm_label": "authenticatedrequest"
@@ -2523,8 +2523,8 @@
       "label": "authenticate()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L194",
-      "id": "src_index_authenticate",
+      "source_location": "L214",
+      "id": "services_exam_service_src_index_ts_src_index_authenticate",
       "community": 7,
       "norm_label": "authenticate()"
     },
@@ -2532,16 +2532,25 @@
       "label": "requireRole()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L207",
+      "source_location": "L227",
       "id": "src_index_requirerole",
       "community": 7,
       "norm_label": "requirerole()"
     },
     {
+      "label": "finalDeptIds",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L283",
+      "id": "src_index_finaldeptids",
+      "community": 7,
+      "norm_label": "finaldeptids"
+    },
+    {
       "label": "codingQuestions",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L330",
+      "source_location": "L343",
       "id": "src_index_codingquestions",
       "community": 7,
       "norm_label": "codingquestions"
@@ -2550,7 +2559,7 @@
       "label": "sectionIdMap",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L430",
+      "source_location": "L451",
       "id": "src_index_sectionidmap",
       "community": 7,
       "norm_label": "sectionidmap"
@@ -2559,7 +2568,7 @@
       "label": "notificationPayloads",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L510",
+      "source_location": "L539",
       "id": "services_exam_service_src_index_ts_src_index_notificationpayloads",
       "community": 7,
       "norm_label": "notificationpayloads"
@@ -2568,7 +2577,7 @@
       "label": "parseCsvLine()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L547",
+      "source_location": "L576",
       "id": "src_index_parsecsvline",
       "community": 7,
       "norm_label": "parsecsvline()"
@@ -2577,7 +2586,7 @@
       "label": "lines",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L592",
+      "source_location": "L621",
       "id": "services_exam_service_src_index_ts_src_index_lines",
       "community": 7,
       "norm_label": "lines"
@@ -2586,7 +2595,7 @@
       "label": "dataRows",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L593",
+      "source_location": "L622",
       "id": "services_exam_service_src_index_ts_src_index_datarows",
       "community": 7,
       "norm_label": "datarows"
@@ -2595,7 +2604,7 @@
       "label": "parts",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L597",
+      "source_location": "L626",
       "id": "services_exam_service_src_index_ts_src_index_parts",
       "community": 7,
       "norm_label": "parts"
@@ -2604,7 +2613,7 @@
       "label": "cleanCorrect",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L610",
+      "source_location": "L639",
       "id": "src_index_cleancorrect",
       "community": 7,
       "norm_label": "cleancorrect"
@@ -2613,7 +2622,7 @@
       "label": "insertedCases",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L705",
+      "source_location": "L798",
       "id": "src_index_insertedcases",
       "community": 7,
       "norm_label": "insertedcases"
@@ -2622,7 +2631,7 @@
       "label": "{ college_id, department_id, year, batch_id, trainer_id, id: studentId }",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L749",
+      "source_location": "L1057",
       "id": "src_index_college_id_department_id_year_batch_id_trainer_id_id_studentid",
       "community": 7,
       "norm_label": "{ college_id, department_id, year, batch_id, trainer_id, id: studentid }"
@@ -2631,7 +2640,7 @@
       "label": "eligible",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L768",
+      "source_location": "L1076",
       "id": "src_index_eligible",
       "community": 7,
       "norm_label": "eligible"
@@ -2640,7 +2649,7 @@
       "label": "now",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L785",
+      "source_location": "L1093",
       "id": "src_index_now",
       "community": 76,
       "norm_label": "now"
@@ -2649,7 +2658,7 @@
       "label": "sched",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L786",
+      "source_location": "L1094",
       "id": "src_index_sched",
       "community": 7,
       "norm_label": "sched"
@@ -2658,7 +2667,7 @@
       "label": "windowClose",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L788",
+      "source_location": "L1096",
       "id": "src_index_windowclose",
       "community": 7,
       "norm_label": "windowclose"
@@ -2667,16 +2676,25 @@
       "label": "attemptsMade",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L801",
+      "source_location": "L1109",
       "id": "src_index_attemptsmade",
       "community": 7,
       "norm_label": "attemptsmade"
     },
     {
+      "label": "baseMins",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1206",
+      "id": "src_index_basemins",
+      "community": 7,
+      "norm_label": "basemins"
+    },
+    {
       "label": "finalMcqs",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L909",
+      "source_location": "L1247",
       "id": "src_index_finalmcqs",
       "community": 7,
       "norm_label": "finalmcqs"
@@ -2685,7 +2703,7 @@
       "label": "finalCodings",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L910",
+      "source_location": "L1248",
       "id": "src_index_finalcodings",
       "community": 7,
       "norm_label": "finalcodings"
@@ -2694,7 +2712,7 @@
       "label": "sectMcqs",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L916",
+      "source_location": "L1256",
       "id": "src_index_sectmcqs",
       "community": 7,
       "norm_label": "sectmcqs"
@@ -2703,34 +2721,16 @@
       "label": "sectCodings",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L922",
+      "source_location": "L1262",
       "id": "src_index_sectcodings",
       "community": 7,
       "norm_label": "sectcodings"
     },
     {
-      "label": "residualMcqs",
-      "file_type": "code",
-      "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L930",
-      "id": "src_index_residualmcqs",
-      "community": 7,
-      "norm_label": "residualmcqs"
-    },
-    {
-      "label": "residualCodings",
-      "file_type": "code",
-      "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L933",
-      "id": "src_index_residualcodings",
-      "community": 7,
-      "norm_label": "residualcodings"
-    },
-    {
       "label": "correctAnswer",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L979",
+      "source_location": "L1312",
       "id": "src_index_correctanswer",
       "community": 7,
       "norm_label": "correctanswer"
@@ -2739,7 +2739,7 @@
       "label": "cleanSelected",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L980",
+      "source_location": "L1313",
       "id": "src_index_cleanselected",
       "community": 7,
       "norm_label": "cleanselected"
@@ -2748,7 +2748,7 @@
       "label": "cleanOptionText",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1003",
+      "source_location": "L1336",
       "id": "src_index_cleanoptiontext",
       "community": 7,
       "norm_label": "cleanoptiontext"
@@ -2757,7 +2757,7 @@
       "label": "encodeBase64()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1026",
+      "source_location": "L1359",
       "id": "src_index_encodebase64",
       "community": 7,
       "norm_label": "encodebase64()"
@@ -2766,7 +2766,7 @@
       "label": "decodeBase64()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1030",
+      "source_location": "L1363",
       "id": "src_index_decodebase64",
       "community": 7,
       "norm_label": "decodebase64()"
@@ -2775,7 +2775,7 @@
       "label": "results",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1071",
+      "source_location": "L1404",
       "id": "src_index_results",
       "community": 7,
       "norm_label": "results"
@@ -2784,7 +2784,7 @@
       "label": "langIdMap",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1072",
+      "source_location": "L1405",
       "id": "src_index_langidmap",
       "community": 7,
       "norm_label": "langidmap"
@@ -2793,7 +2793,7 @@
       "label": "scoreObtained",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1126",
+      "source_location": "L1459",
       "id": "src_index_scoreobtained",
       "community": 7,
       "norm_label": "scoreobtained"
@@ -2802,7 +2802,7 @@
       "label": "testCaseResults",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1259",
+      "source_location": "L1592",
       "id": "src_index_testcaseresults",
       "community": 7,
       "norm_label": "testcaseresults"
@@ -2811,7 +2811,7 @@
       "label": "mcqRespMap",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1532",
+      "source_location": "L1865",
       "id": "src_index_mcqrespmap",
       "community": 7,
       "norm_label": "mcqrespmap"
@@ -2820,7 +2820,7 @@
       "label": "codingRespMap",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1535",
+      "source_location": "L1868",
       "id": "src_index_codingrespmap",
       "community": 7,
       "norm_label": "codingrespmap"
@@ -2829,7 +2829,7 @@
       "label": "mcqScore",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1540",
+      "source_location": "L1873",
       "id": "src_index_mcqscore",
       "community": 7,
       "norm_label": "mcqscore"
@@ -2838,7 +2838,7 @@
       "label": "codingScore",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1543",
+      "source_location": "L1876",
       "id": "src_index_codingscore",
       "community": 7,
       "norm_label": "codingscore"
@@ -2847,7 +2847,7 @@
       "label": "mcqMax",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1549",
+      "source_location": "L1882",
       "id": "src_index_mcqmax",
       "community": 7,
       "norm_label": "mcqmax"
@@ -2856,7 +2856,7 @@
       "label": "codingMax",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1550",
+      "source_location": "L1883",
       "id": "src_index_codingmax",
       "community": 7,
       "norm_label": "codingmax"
@@ -2865,7 +2865,7 @@
       "label": "failedSectionReasons",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1557",
+      "source_location": "L1890",
       "id": "src_index_failedsectionreasons",
       "community": 7,
       "norm_label": "failedsectionreasons"
@@ -2874,7 +2874,7 @@
       "label": "sMcqs",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1563",
+      "source_location": "L1896",
       "id": "src_index_smcqs",
       "community": 7,
       "norm_label": "smcqs"
@@ -2883,7 +2883,7 @@
       "label": "sCodings",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1564",
+      "source_location": "L1897",
       "id": "src_index_scodings",
       "community": 7,
       "norm_label": "scodings"
@@ -2892,7 +2892,7 @@
       "label": "scheduleDate",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1821",
+      "source_location": "L2154",
       "id": "src_index_scheduledate",
       "community": 7,
       "norm_label": "scheduledate"
@@ -2901,7 +2901,7 @@
       "label": "examEndTime",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1824",
+      "source_location": "L2157",
       "id": "src_index_examendtime",
       "community": 7,
       "norm_label": "examendtime"
@@ -2910,7 +2910,7 @@
       "label": "userMcqMap",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1864",
+      "source_location": "L2197",
       "id": "src_index_usermcqmap",
       "community": 7,
       "norm_label": "usermcqmap"
@@ -2919,7 +2919,7 @@
       "label": "userCodingMap",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1867",
+      "source_location": "L2200",
       "id": "src_index_usercodingmap",
       "community": 7,
       "norm_label": "usercodingmap"
@@ -2928,7 +2928,7 @@
       "label": "sectionResults",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1870",
+      "source_location": "L2203",
       "id": "src_index_sectionresults",
       "community": 7,
       "norm_label": "sectionresults"
@@ -3387,7 +3387,7 @@
       "label": "College",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L13",
+      "source_location": "L29",
       "id": "src_app_college",
       "community": 19,
       "norm_label": "college"
@@ -3396,7 +3396,7 @@
       "label": "Department",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L14",
+      "source_location": "L30",
       "id": "src_app_department",
       "community": 19,
       "norm_label": "department"
@@ -3405,7 +3405,7 @@
       "label": "UserProfile",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L15",
+      "source_location": "L31",
       "id": "src_app_userprofile",
       "community": 19,
       "norm_label": "userprofile"
@@ -3414,7 +3414,7 @@
       "label": "Exam",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L26",
+      "source_location": "L42",
       "id": "src_app_exam",
       "community": 19,
       "norm_label": "exam"
@@ -3423,25 +3423,25 @@
       "label": "MCQQuestion",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L39",
+      "source_location": "L59",
       "id": "src_app_mcqquestion",
-      "community": 19,
+      "community": 80,
       "norm_label": "mcqquestion"
     },
     {
       "label": "CodingQuestion",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L44",
+      "source_location": "L76",
       "id": "src_app_codingquestion",
-      "community": 19,
+      "community": 80,
       "norm_label": "codingquestion"
     },
     {
       "label": "Attempt",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L50",
+      "source_location": "L83",
       "id": "src_app_attempt",
       "community": 19,
       "norm_label": "attempt"
@@ -3450,16 +3450,25 @@
       "label": "getLocalDatetimeString()",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L61",
+      "source_location": "L94",
       "id": "src_app_getlocaldatetimestring",
       "community": 19,
       "norm_label": "getlocaldatetimestring()"
     },
     {
+      "label": "formatTime()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L99",
+      "id": "src_app_formattime",
+      "community": 19,
+      "norm_label": "formattime()"
+    },
+    {
       "label": "STARTER_TEMPLATES",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L66",
+      "source_location": "L106",
       "id": "src_app_starter_templates",
       "community": 19,
       "norm_label": "starter_templates"
@@ -3468,7 +3477,7 @@
       "label": "getCustomTemplate()",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L73",
+      "source_location": "L113",
       "id": "src_app_getcustomtemplate",
       "community": 19,
       "norm_label": "getcustomtemplate()"
@@ -3477,7 +3486,7 @@
       "label": "App()",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L98",
+      "source_location": "L138",
       "id": "src_app_app",
       "community": 19,
       "norm_label": "app()"
@@ -3490,6 +3499,510 @@
       "id": "services_frontend_service_src_main_tsx",
       "community": 19,
       "norm_label": "main.tsx"
+    },
+    {
+      "label": "AssessmentInstructions.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/AssessmentInstructions.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_assessmentinstructions_tsx",
+      "community": 88,
+      "norm_label": "assessmentinstructions.tsx"
+    },
+    {
+      "label": "AssessmentInstructionsProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/AssessmentInstructions.tsx",
+      "source_location": "L4",
+      "id": "components_assessmentinstructions_assessmentinstructionsprops",
+      "community": 88,
+      "norm_label": "assessmentinstructionsprops"
+    },
+    {
+      "label": "AssessmentInstructions()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/AssessmentInstructions.tsx",
+      "source_location": "L22",
+      "id": "components_assessmentinstructions_assessmentinstructions",
+      "community": 88,
+      "norm_label": "assessmentinstructions()"
+    },
+    {
+      "label": "AssessmentTimingSettings.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_assessmenttimingsettings_tsx",
+      "community": 89,
+      "norm_label": "assessmenttimingsettings.tsx"
+    },
+    {
+      "label": "SectionTimingItem",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
+      "source_location": "L4",
+      "id": "components_assessmenttimingsettings_sectiontimingitem",
+      "community": 89,
+      "norm_label": "sectiontimingitem"
+    },
+    {
+      "label": "SectionTimingSummary",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
+      "source_location": "L12",
+      "id": "components_assessmenttimingsettings_sectiontimingsummary",
+      "community": 89,
+      "norm_label": "sectiontimingsummary"
+    },
+    {
+      "label": "computeSectionTimingSummary()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
+      "source_location": "L22",
+      "id": "components_assessmenttimingsettings_computesectiontimingsummary",
+      "community": 89,
+      "norm_label": "computesectiontimingsummary()"
+    },
+    {
+      "label": "AssessmentTimingSettingsProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
+      "source_location": "L111",
+      "id": "components_assessmenttimingsettings_assessmenttimingsettingsprops",
+      "community": 89,
+      "norm_label": "assessmenttimingsettingsprops"
+    },
+    {
+      "label": "AssessmentTimingSettings()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
+      "source_location": "L117",
+      "id": "components_assessmenttimingsettings_assessmenttimingsettings",
+      "community": 89,
+      "norm_label": "assessmenttimingsettings()"
+    },
+    {
+      "label": "ImageViewerModal.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/ImageViewerModal.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_imageviewermodal_tsx",
+      "community": 91,
+      "norm_label": "imageviewermodal.tsx"
+    },
+    {
+      "label": "ImageViewerModalProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/ImageViewerModal.tsx",
+      "source_location": "L4",
+      "id": "components_imageviewermodal_imageviewermodalprops",
+      "community": 91,
+      "norm_label": "imageviewermodalprops"
+    },
+    {
+      "label": "ImageViewerModal()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/ImageViewerModal.tsx",
+      "source_location": "L10",
+      "id": "components_imageviewermodal_imageviewermodal",
+      "community": 91,
+      "norm_label": "imageviewermodal()"
+    },
+    {
+      "label": "NavigationRuleSettings.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/NavigationRuleSettings.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_navigationrulesettings_tsx",
+      "community": 92,
+      "norm_label": "navigationrulesettings.tsx"
+    },
+    {
+      "label": "NavigationRuleSettingsProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/NavigationRuleSettings.tsx",
+      "source_location": "L3",
+      "id": "components_navigationrulesettings_navigationrulesettingsprops",
+      "community": 92,
+      "norm_label": "navigationrulesettingsprops"
+    },
+    {
+      "label": "NavigationRuleSettings()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/NavigationRuleSettings.tsx",
+      "source_location": "L8",
+      "id": "components_navigationrulesettings_navigationrulesettings",
+      "community": 92,
+      "norm_label": "navigationrulesettings()"
+    },
+    {
+      "label": "QuestionFooter.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/QuestionFooter.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_questionfooter_tsx",
+      "community": 19,
+      "norm_label": "questionfooter.tsx"
+    },
+    {
+      "label": "QuestionFooterProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/QuestionFooter.tsx",
+      "source_location": "L4",
+      "id": "components_questionfooter_questionfooterprops",
+      "community": 19,
+      "norm_label": "questionfooterprops"
+    },
+    {
+      "label": "QuestionFooter()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/QuestionFooter.tsx",
+      "source_location": "L21",
+      "id": "components_questionfooter_questionfooter",
+      "community": 19,
+      "norm_label": "questionfooter()"
+    },
+    {
+      "label": "QuestionInlineEditor.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_questioninlineeditor_tsx",
+      "community": 90,
+      "norm_label": "questioninlineeditor.tsx"
+    },
+    {
+      "label": "MCQQuestionData",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
+      "source_location": "L5",
+      "id": "components_questioninlineeditor_mcqquestiondata",
+      "community": 90,
+      "norm_label": "mcqquestiondata"
+    },
+    {
+      "label": "CodingQuestionData",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
+      "source_location": "L23",
+      "id": "components_questioninlineeditor_codingquestiondata",
+      "community": 90,
+      "norm_label": "codingquestiondata"
+    },
+    {
+      "label": "QuestionInlineEditorProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
+      "source_location": "L38",
+      "id": "components_questioninlineeditor_questioninlineeditorprops",
+      "community": 90,
+      "norm_label": "questioninlineeditorprops"
+    },
+    {
+      "label": "QuestionInlineEditor()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
+      "source_location": "L45",
+      "id": "components_questioninlineeditor_questioninlineeditor",
+      "community": 90,
+      "norm_label": "questioninlineeditor()"
+    },
+    {
+      "label": "QuestionPreview.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_questionpreview_tsx",
+      "community": 80,
+      "norm_label": "questionpreview.tsx"
+    },
+    {
+      "label": "QuestionPreviewProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
+      "source_location": "L6",
+      "id": "components_questionpreview_questionpreviewprops",
+      "community": 80,
+      "norm_label": "questionpreviewprops"
+    },
+    {
+      "label": "QuestionPreview()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
+      "source_location": "L12",
+      "id": "components_questionpreview_questionpreview",
+      "community": 80,
+      "norm_label": "questionpreview()"
+    },
+    {
+      "label": "RichContentRenderer.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_richcontentrenderer_tsx",
+      "community": 80,
+      "norm_label": "richcontentrenderer.tsx"
+    },
+    {
+      "label": "RichContentRendererProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
+      "source_location": "L5",
+      "id": "components_richcontentrenderer_richcontentrendererprops",
+      "community": 80,
+      "norm_label": "richcontentrendererprops"
+    },
+    {
+      "label": "RichContentRenderer()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
+      "source_location": "L13",
+      "id": "components_richcontentrenderer_richcontentrenderer",
+      "community": 85,
+      "norm_label": "richcontentrenderer()"
+    },
+    {
+      "label": "RichTextEditor.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_richtexteditor_tsx",
+      "community": 80,
+      "norm_label": "richtexteditor.tsx"
+    },
+    {
+      "label": "RichTextEditorProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
+      "source_location": "L8",
+      "id": "components_richtexteditor_richtexteditorprops",
+      "community": 80,
+      "norm_label": "richtexteditorprops"
+    },
+    {
+      "label": "RichTextEditor()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
+      "source_location": "L14",
+      "id": "components_richtexteditor_richtexteditor",
+      "community": 90,
+      "norm_label": "richtexteditor()"
+    },
+    {
+      "label": "SectionConfirmationModal.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/SectionConfirmationModal.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_sectionconfirmationmodal_tsx",
+      "community": 19,
+      "norm_label": "sectionconfirmationmodal.tsx"
+    },
+    {
+      "label": "SectionConfirmationModalProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/SectionConfirmationModal.tsx",
+      "source_location": "L4",
+      "id": "components_sectionconfirmationmodal_sectionconfirmationmodalprops",
+      "community": 19,
+      "norm_label": "sectionconfirmationmodalprops"
+    },
+    {
+      "label": "SectionConfirmationModal()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/SectionConfirmationModal.tsx",
+      "source_location": "L18",
+      "id": "components_sectionconfirmationmodal_sectionconfirmationmodal",
+      "community": 19,
+      "norm_label": "sectionconfirmationmodal()"
+    },
+    {
+      "label": "SubmissionPolicySettings.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/SubmissionPolicySettings.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_submissionpolicysettings_tsx",
+      "community": 19,
+      "norm_label": "submissionpolicysettings.tsx"
+    },
+    {
+      "label": "SubmissionPolicySettingsProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/SubmissionPolicySettings.tsx",
+      "source_location": "L3",
+      "id": "components_submissionpolicysettings_submissionpolicysettingsprops",
+      "community": 19,
+      "norm_label": "submissionpolicysettingsprops"
+    },
+    {
+      "label": "SubmissionPolicySettings()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/SubmissionPolicySettings.tsx",
+      "source_location": "L8",
+      "id": "components_submissionpolicysettings_submissionpolicysettings",
+      "community": 19,
+      "norm_label": "submissionpolicysettings()"
+    },
+    {
+      "label": "AssessmentPreExamStepper.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_assessment_assessmentpreexamstepper_tsx",
+      "community": 88,
+      "norm_label": "assessmentpreexamstepper.tsx"
+    },
+    {
+      "label": "PreExamValidationStep",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
+      "source_location": "L7",
+      "id": "assessment_assessmentpreexamstepper_preexamvalidationstep",
+      "community": 88,
+      "norm_label": "preexamvalidationstep"
+    },
+    {
+      "label": "AssessmentPreExamStepperProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
+      "source_location": "L9",
+      "id": "assessment_assessmentpreexamstepper_assessmentpreexamstepperprops",
+      "community": 88,
+      "norm_label": "assessmentpreexamstepperprops"
+    },
+    {
+      "label": "AssessmentPreExamStepper()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
+      "source_location": "L17",
+      "id": "assessment_assessmentpreexamstepper_assessmentpreexamstepper",
+      "community": 88,
+      "norm_label": "assessmentpreexamstepper()"
+    },
+    {
+      "label": "SafeQuestionRenderer.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
+      "community": 85,
+      "norm_label": "safequestionrenderer.tsx"
+    },
+    {
+      "label": "ErrorBoundaryProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L5",
+      "id": "assessment_safequestionrenderer_errorboundaryprops",
+      "community": 85,
+      "norm_label": "errorboundaryprops"
+    },
+    {
+      "label": "ErrorBoundaryState",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L10",
+      "id": "assessment_safequestionrenderer_errorboundarystate",
+      "community": 85,
+      "norm_label": "errorboundarystate"
+    },
+    {
+      "label": "QuestionErrorBoundary",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L15",
+      "id": "assessment_safequestionrenderer_questionerrorboundary",
+      "community": 85,
+      "norm_label": "questionerrorboundary"
+    },
+    {
+      "label": ".getDerivedStateFromError()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L21",
+      "id": "assessment_safequestionrenderer_questionerrorboundary_getderivedstatefromerror",
+      "community": 85,
+      "norm_label": ".getderivedstatefromerror()"
+    },
+    {
+      "label": ".componentDidCatch()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L25",
+      "id": "assessment_safequestionrenderer_questionerrorboundary_componentdidcatch",
+      "community": 85,
+      "norm_label": ".componentdidcatch()"
+    },
+    {
+      "label": ".render()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L29",
+      "id": "assessment_safequestionrenderer_questionerrorboundary_render",
+      "community": 85,
+      "norm_label": ".render()"
+    },
+    {
+      "label": "SafeOptionRendererProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L58",
+      "id": "assessment_safequestionrenderer_safeoptionrendererprops",
+      "community": 85,
+      "norm_label": "safeoptionrendererprops"
+    },
+    {
+      "label": "SafeOptionRenderer()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L68",
+      "id": "assessment_safequestionrenderer_safeoptionrenderer",
+      "community": 85,
+      "norm_label": "safeoptionrenderer()"
+    },
+    {
+      "label": "richQuestion.ts",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/types/richQuestion.ts",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_types_richquestion_ts",
+      "community": 80,
+      "norm_label": "richquestion.ts"
+    },
+    {
+      "label": "ContentBlockType",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/types/richQuestion.ts",
+      "source_location": "L1",
+      "id": "types_richquestion_contentblocktype",
+      "community": 80,
+      "norm_label": "contentblocktype"
+    },
+    {
+      "label": "ContentBlock",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/types/richQuestion.ts",
+      "source_location": "L12",
+      "id": "types_richquestion_contentblock",
+      "community": 80,
+      "norm_label": "contentblock"
+    },
+    {
+      "label": "MCQOptionData",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/types/richQuestion.ts",
+      "source_location": "L23",
+      "id": "types_richquestion_mcqoptiondata",
+      "community": 80,
+      "norm_label": "mcqoptiondata"
+    },
+    {
+      "label": "GenericQuestion",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/types/richQuestion.ts",
+      "source_location": "L30",
+      "id": "types_richquestion_genericquestion",
+      "community": 80,
+      "norm_label": "genericquestion"
     },
     {
       "label": "package.json",
@@ -3967,6 +4480,411 @@
       "id": "src_index_worker",
       "community": 23,
       "norm_label": "worker"
+    },
+    {
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L1",
+      "id": "services_placement_service_package_json",
+      "community": 77,
+      "norm_label": "package.json"
+    },
+    {
+      "label": "name",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L2",
+      "id": "placement_service_package_name",
+      "community": 77,
+      "norm_label": "name"
+    },
+    {
+      "label": "version",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L3",
+      "id": "placement_service_package_version",
+      "community": 77,
+      "norm_label": "version"
+    },
+    {
+      "label": "description",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L4",
+      "id": "placement_service_package_description",
+      "community": 77,
+      "norm_label": "description"
+    },
+    {
+      "label": "main",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L5",
+      "id": "placement_service_package_main",
+      "community": 77,
+      "norm_label": "main"
+    },
+    {
+      "label": "scripts",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L6",
+      "id": "placement_service_package_scripts",
+      "community": 77,
+      "norm_label": "scripts"
+    },
+    {
+      "label": "build",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L7",
+      "id": "placement_service_package_scripts_build",
+      "community": 77,
+      "norm_label": "build"
+    },
+    {
+      "label": "start",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L8",
+      "id": "placement_service_package_scripts_start",
+      "community": 77,
+      "norm_label": "start"
+    },
+    {
+      "label": "dev",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L9",
+      "id": "placement_service_package_scripts_dev",
+      "community": 77,
+      "norm_label": "dev"
+    },
+    {
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L11",
+      "id": "placement_service_package_dependencies",
+      "community": 77,
+      "norm_label": "dependencies"
+    },
+    {
+      "label": "cors",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L12",
+      "id": "placement_service_package_dependencies_cors",
+      "community": 77,
+      "norm_label": "cors"
+    },
+    {
+      "label": "dotenv",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L13",
+      "id": "placement_service_package_dependencies_dotenv",
+      "community": 77,
+      "norm_label": "dotenv"
+    },
+    {
+      "label": "express",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L14",
+      "id": "placement_service_package_dependencies_express",
+      "community": 77,
+      "norm_label": "express"
+    },
+    {
+      "label": "jsonwebtoken",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L15",
+      "id": "placement_service_package_dependencies_jsonwebtoken",
+      "community": 77,
+      "norm_label": "jsonwebtoken"
+    },
+    {
+      "label": "pg",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L16",
+      "id": "placement_service_package_dependencies_pg",
+      "community": 77,
+      "norm_label": "pg"
+    },
+    {
+      "label": "helmet",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L17",
+      "id": "placement_service_package_dependencies_helmet",
+      "community": 77,
+      "norm_label": "helmet"
+    },
+    {
+      "label": "express-rate-limit",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L18",
+      "id": "placement_service_package_dependencies_express_rate_limit",
+      "community": 77,
+      "norm_label": "express-rate-limit"
+    },
+    {
+      "label": "devDependencies",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L20",
+      "id": "placement_service_package_devdependencies",
+      "community": 77,
+      "norm_label": "devdependencies"
+    },
+    {
+      "label": "@types/cors",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L21",
+      "id": "placement_service_package_devdependencies_types_cors",
+      "community": 77,
+      "norm_label": "@types/cors"
+    },
+    {
+      "label": "@types/express",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L22",
+      "id": "placement_service_package_devdependencies_types_express",
+      "community": 77,
+      "norm_label": "@types/express"
+    },
+    {
+      "label": "@types/jsonwebtoken",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L23",
+      "id": "placement_service_package_devdependencies_types_jsonwebtoken",
+      "community": 77,
+      "norm_label": "@types/jsonwebtoken"
+    },
+    {
+      "label": "@types/pg",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L24",
+      "id": "placement_service_package_devdependencies_types_pg",
+      "community": 77,
+      "norm_label": "@types/pg"
+    },
+    {
+      "label": "@types/node",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L25",
+      "id": "placement_service_package_devdependencies_types_node",
+      "community": 77,
+      "norm_label": "@types/node"
+    },
+    {
+      "label": "ts-node-dev",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L26",
+      "id": "placement_service_package_devdependencies_ts_node_dev",
+      "community": 77,
+      "norm_label": "ts-node-dev"
+    },
+    {
+      "label": "typescript",
+      "file_type": "code",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L27",
+      "id": "placement_service_package_devdependencies_typescript",
+      "community": 77,
+      "norm_label": "typescript"
+    },
+    {
+      "label": "tsconfig.json",
+      "file_type": "code",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L1",
+      "id": "services_placement_service_tsconfig_json",
+      "community": 82,
+      "norm_label": "tsconfig.json"
+    },
+    {
+      "label": "compilerOptions",
+      "file_type": "code",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L2",
+      "id": "placement_service_tsconfig_compileroptions",
+      "community": 82,
+      "norm_label": "compileroptions"
+    },
+    {
+      "label": "target",
+      "file_type": "code",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L3",
+      "id": "placement_service_tsconfig_compileroptions_target",
+      "community": 82,
+      "norm_label": "target"
+    },
+    {
+      "label": "module",
+      "file_type": "code",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L4",
+      "id": "placement_service_tsconfig_compileroptions_module",
+      "community": 82,
+      "norm_label": "module"
+    },
+    {
+      "label": "rootDir",
+      "file_type": "code",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L5",
+      "id": "placement_service_tsconfig_compileroptions_rootdir",
+      "community": 82,
+      "norm_label": "rootdir"
+    },
+    {
+      "label": "outDir",
+      "file_type": "code",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L6",
+      "id": "placement_service_tsconfig_compileroptions_outdir",
+      "community": 82,
+      "norm_label": "outdir"
+    },
+    {
+      "label": "esModuleInterop",
+      "file_type": "code",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L7",
+      "id": "placement_service_tsconfig_compileroptions_esmoduleinterop",
+      "community": 82,
+      "norm_label": "esmoduleinterop"
+    },
+    {
+      "label": "forceConsistentCasingInFileNames",
+      "file_type": "code",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L8",
+      "id": "placement_service_tsconfig_compileroptions_forceconsistentcasinginfilenames",
+      "community": 82,
+      "norm_label": "forceconsistentcasinginfilenames"
+    },
+    {
+      "label": "strict",
+      "file_type": "code",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L9",
+      "id": "placement_service_tsconfig_compileroptions_strict",
+      "community": 82,
+      "norm_label": "strict"
+    },
+    {
+      "label": "skipLibCheck",
+      "file_type": "code",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L10",
+      "id": "placement_service_tsconfig_compileroptions_skiplibcheck",
+      "community": 82,
+      "norm_label": "skiplibcheck"
+    },
+    {
+      "label": "include",
+      "file_type": "code",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L12",
+      "id": "placement_service_tsconfig_include",
+      "community": 82,
+      "norm_label": "include"
+    },
+    {
+      "label": "index.ts",
+      "file_type": "code",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L1",
+      "id": "services_placement_service_src_index_ts",
+      "community": 86,
+      "norm_label": "index.ts"
+    },
+    {
+      "label": "app",
+      "file_type": "code",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L11",
+      "id": "services_placement_service_src_index_ts_src_index_app",
+      "community": 86,
+      "norm_label": "app"
+    },
+    {
+      "label": "pool",
+      "file_type": "code",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L17",
+      "id": "services_placement_service_src_index_ts_src_index_pool",
+      "community": 86,
+      "norm_label": "pool"
+    },
+    {
+      "label": "limiter",
+      "file_type": "code",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L27",
+      "id": "services_placement_service_src_index_ts_src_index_limiter",
+      "community": 86,
+      "norm_label": "limiter"
+    },
+    {
+      "label": "AuthenticatedRequest",
+      "file_type": "code",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L34",
+      "id": "services_placement_service_src_index_ts_src_index_authenticatedrequest",
+      "community": 86,
+      "norm_label": "authenticatedrequest"
+    },
+    {
+      "label": "authenticate()",
+      "file_type": "code",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L38",
+      "id": "services_placement_service_src_index_ts_src_index_authenticate",
+      "community": 86,
+      "norm_label": "authenticate()"
+    },
+    {
+      "label": "drives",
+      "file_type": "code",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L55",
+      "id": "src_index_drives",
+      "community": 86,
+      "norm_label": "drives"
+    },
+    {
+      "label": "companies",
+      "file_type": "code",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L70",
+      "id": "src_index_companies",
+      "community": 86,
+      "norm_label": "companies"
+    },
+    {
+      "label": "newCompany",
+      "file_type": "code",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L87",
+      "id": "src_index_newcompany",
+      "community": 86,
+      "norm_label": "newcompany"
     },
     {
       "label": "package.json",
@@ -4574,6 +5492,456 @@
     {
       "label": "package.json",
       "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L1",
+      "id": "services_report_service_package_json",
+      "community": 78,
+      "norm_label": "package.json"
+    },
+    {
+      "label": "name",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L2",
+      "id": "report_service_package_name",
+      "community": 78,
+      "norm_label": "name"
+    },
+    {
+      "label": "version",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L3",
+      "id": "report_service_package_version",
+      "community": 78,
+      "norm_label": "version"
+    },
+    {
+      "label": "description",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L4",
+      "id": "report_service_package_description",
+      "community": 78,
+      "norm_label": "description"
+    },
+    {
+      "label": "main",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L5",
+      "id": "report_service_package_main",
+      "community": 78,
+      "norm_label": "main"
+    },
+    {
+      "label": "scripts",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L6",
+      "id": "report_service_package_scripts",
+      "community": 78,
+      "norm_label": "scripts"
+    },
+    {
+      "label": "build",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L7",
+      "id": "report_service_package_scripts_build",
+      "community": 78,
+      "norm_label": "build"
+    },
+    {
+      "label": "start",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L8",
+      "id": "report_service_package_scripts_start",
+      "community": 78,
+      "norm_label": "start"
+    },
+    {
+      "label": "dev",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L9",
+      "id": "report_service_package_scripts_dev",
+      "community": 78,
+      "norm_label": "dev"
+    },
+    {
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L11",
+      "id": "report_service_package_dependencies",
+      "community": 78,
+      "norm_label": "dependencies"
+    },
+    {
+      "label": "cors",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L12",
+      "id": "report_service_package_dependencies_cors",
+      "community": 78,
+      "norm_label": "cors"
+    },
+    {
+      "label": "dotenv",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L13",
+      "id": "report_service_package_dependencies_dotenv",
+      "community": 78,
+      "norm_label": "dotenv"
+    },
+    {
+      "label": "express",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L14",
+      "id": "report_service_package_dependencies_express",
+      "community": 78,
+      "norm_label": "express"
+    },
+    {
+      "label": "jsonwebtoken",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L15",
+      "id": "report_service_package_dependencies_jsonwebtoken",
+      "community": 78,
+      "norm_label": "jsonwebtoken"
+    },
+    {
+      "label": "pg",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L16",
+      "id": "report_service_package_dependencies_pg",
+      "community": 78,
+      "norm_label": "pg"
+    },
+    {
+      "label": "helmet",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L17",
+      "id": "report_service_package_dependencies_helmet",
+      "community": 78,
+      "norm_label": "helmet"
+    },
+    {
+      "label": "express-rate-limit",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L18",
+      "id": "report_service_package_dependencies_express_rate_limit",
+      "community": 78,
+      "norm_label": "express-rate-limit"
+    },
+    {
+      "label": "devDependencies",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L20",
+      "id": "report_service_package_devdependencies",
+      "community": 78,
+      "norm_label": "devdependencies"
+    },
+    {
+      "label": "@types/cors",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L21",
+      "id": "report_service_package_devdependencies_types_cors",
+      "community": 78,
+      "norm_label": "@types/cors"
+    },
+    {
+      "label": "@types/express",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L22",
+      "id": "report_service_package_devdependencies_types_express",
+      "community": 78,
+      "norm_label": "@types/express"
+    },
+    {
+      "label": "@types/jsonwebtoken",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L23",
+      "id": "report_service_package_devdependencies_types_jsonwebtoken",
+      "community": 78,
+      "norm_label": "@types/jsonwebtoken"
+    },
+    {
+      "label": "@types/pg",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L24",
+      "id": "report_service_package_devdependencies_types_pg",
+      "community": 78,
+      "norm_label": "@types/pg"
+    },
+    {
+      "label": "@types/node",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L25",
+      "id": "report_service_package_devdependencies_types_node",
+      "community": 78,
+      "norm_label": "@types/node"
+    },
+    {
+      "label": "ts-node-dev",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L26",
+      "id": "report_service_package_devdependencies_ts_node_dev",
+      "community": 78,
+      "norm_label": "ts-node-dev"
+    },
+    {
+      "label": "typescript",
+      "file_type": "code",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L27",
+      "id": "report_service_package_devdependencies_typescript",
+      "community": 78,
+      "norm_label": "typescript"
+    },
+    {
+      "label": "tsconfig.json",
+      "file_type": "code",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L1",
+      "id": "services_report_service_tsconfig_json",
+      "community": 83,
+      "norm_label": "tsconfig.json"
+    },
+    {
+      "label": "compilerOptions",
+      "file_type": "code",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L2",
+      "id": "report_service_tsconfig_compileroptions",
+      "community": 83,
+      "norm_label": "compileroptions"
+    },
+    {
+      "label": "target",
+      "file_type": "code",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L3",
+      "id": "report_service_tsconfig_compileroptions_target",
+      "community": 83,
+      "norm_label": "target"
+    },
+    {
+      "label": "module",
+      "file_type": "code",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L4",
+      "id": "report_service_tsconfig_compileroptions_module",
+      "community": 83,
+      "norm_label": "module"
+    },
+    {
+      "label": "rootDir",
+      "file_type": "code",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L5",
+      "id": "report_service_tsconfig_compileroptions_rootdir",
+      "community": 83,
+      "norm_label": "rootdir"
+    },
+    {
+      "label": "outDir",
+      "file_type": "code",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L6",
+      "id": "report_service_tsconfig_compileroptions_outdir",
+      "community": 83,
+      "norm_label": "outdir"
+    },
+    {
+      "label": "esModuleInterop",
+      "file_type": "code",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L7",
+      "id": "report_service_tsconfig_compileroptions_esmoduleinterop",
+      "community": 83,
+      "norm_label": "esmoduleinterop"
+    },
+    {
+      "label": "forceConsistentCasingInFileNames",
+      "file_type": "code",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L8",
+      "id": "report_service_tsconfig_compileroptions_forceconsistentcasinginfilenames",
+      "community": 83,
+      "norm_label": "forceconsistentcasinginfilenames"
+    },
+    {
+      "label": "strict",
+      "file_type": "code",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L9",
+      "id": "report_service_tsconfig_compileroptions_strict",
+      "community": 83,
+      "norm_label": "strict"
+    },
+    {
+      "label": "skipLibCheck",
+      "file_type": "code",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L10",
+      "id": "report_service_tsconfig_compileroptions_skiplibcheck",
+      "community": 83,
+      "norm_label": "skiplibcheck"
+    },
+    {
+      "label": "include",
+      "file_type": "code",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L12",
+      "id": "report_service_tsconfig_include",
+      "community": 83,
+      "norm_label": "include"
+    },
+    {
+      "label": "index.ts",
+      "file_type": "code",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L1",
+      "id": "services_report_service_src_index_ts",
+      "community": 81,
+      "norm_label": "index.ts"
+    },
+    {
+      "label": "app",
+      "file_type": "code",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L11",
+      "id": "services_report_service_src_index_ts_src_index_app",
+      "community": 81,
+      "norm_label": "app"
+    },
+    {
+      "label": "pool",
+      "file_type": "code",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L17",
+      "id": "services_report_service_src_index_ts_src_index_pool",
+      "community": 81,
+      "norm_label": "pool"
+    },
+    {
+      "label": "query()",
+      "file_type": "code",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L22",
+      "id": "services_report_service_src_index_ts_src_index_query",
+      "community": 81,
+      "norm_label": "query()"
+    },
+    {
+      "label": "limiter",
+      "file_type": "code",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L28",
+      "id": "services_report_service_src_index_ts_src_index_limiter",
+      "community": 81,
+      "norm_label": "limiter"
+    },
+    {
+      "label": "AuthenticatedRequest",
+      "file_type": "code",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L35",
+      "id": "services_report_service_src_index_ts_src_index_authenticatedrequest",
+      "community": 81,
+      "norm_label": "authenticatedrequest"
+    },
+    {
+      "label": "authenticate()",
+      "file_type": "code",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L39",
+      "id": "services_report_service_src_index_ts_src_index_authenticate",
+      "community": 81,
+      "norm_label": "authenticate()"
+    },
+    {
+      "label": "summary",
+      "file_type": "code",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L56",
+      "id": "src_index_summary",
+      "community": 81,
+      "norm_label": "summary"
+    },
+    {
+      "label": "attemptsData",
+      "file_type": "code",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L81",
+      "id": "src_index_attemptsdata",
+      "community": 81,
+      "norm_label": "attemptsdata"
+    },
+    {
+      "label": "avgPercentage",
+      "file_type": "code",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L102",
+      "id": "src_index_avgpercentage",
+      "community": 81,
+      "norm_label": "avgpercentage"
+    },
+    {
+      "label": "overallScore",
+      "file_type": "code",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L108",
+      "id": "src_index_overallscore",
+      "community": 81,
+      "norm_label": "overallscore"
+    },
+    {
+      "label": "weakAreas",
+      "file_type": "code",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L110",
+      "id": "src_index_weakareas",
+      "community": 81,
+      "norm_label": "weakareas"
+    },
+    {
+      "label": "strongAreas",
+      "file_type": "code",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L111",
+      "id": "src_index_strongareas",
+      "community": 81,
+      "norm_label": "strongareas"
+    },
+    {
+      "label": "recommendedTraining",
+      "file_type": "code",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L112",
+      "id": "src_index_recommendedtraining",
+      "community": 81,
+      "norm_label": "recommendedtraining"
+    },
+    {
+      "label": "package.json",
+      "file_type": "code",
       "source_file": "services/student-service/package.json",
       "source_location": "L1",
       "id": "services_student_service_package_json",
@@ -5011,6 +6379,411 @@
       "id": "src_index_notifications",
       "community": 21,
       "norm_label": "notifications"
+    },
+    {
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L1",
+      "id": "services_training_service_package_json",
+      "community": 79,
+      "norm_label": "package.json"
+    },
+    {
+      "label": "name",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L2",
+      "id": "training_service_package_name",
+      "community": 79,
+      "norm_label": "name"
+    },
+    {
+      "label": "version",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L3",
+      "id": "training_service_package_version",
+      "community": 79,
+      "norm_label": "version"
+    },
+    {
+      "label": "description",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L4",
+      "id": "training_service_package_description",
+      "community": 79,
+      "norm_label": "description"
+    },
+    {
+      "label": "main",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L5",
+      "id": "training_service_package_main",
+      "community": 79,
+      "norm_label": "main"
+    },
+    {
+      "label": "scripts",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L6",
+      "id": "training_service_package_scripts",
+      "community": 79,
+      "norm_label": "scripts"
+    },
+    {
+      "label": "build",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L7",
+      "id": "training_service_package_scripts_build",
+      "community": 79,
+      "norm_label": "build"
+    },
+    {
+      "label": "start",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L8",
+      "id": "training_service_package_scripts_start",
+      "community": 79,
+      "norm_label": "start"
+    },
+    {
+      "label": "dev",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L9",
+      "id": "training_service_package_scripts_dev",
+      "community": 79,
+      "norm_label": "dev"
+    },
+    {
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L11",
+      "id": "training_service_package_dependencies",
+      "community": 79,
+      "norm_label": "dependencies"
+    },
+    {
+      "label": "cors",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L12",
+      "id": "training_service_package_dependencies_cors",
+      "community": 79,
+      "norm_label": "cors"
+    },
+    {
+      "label": "dotenv",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L13",
+      "id": "training_service_package_dependencies_dotenv",
+      "community": 79,
+      "norm_label": "dotenv"
+    },
+    {
+      "label": "express",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L14",
+      "id": "training_service_package_dependencies_express",
+      "community": 79,
+      "norm_label": "express"
+    },
+    {
+      "label": "jsonwebtoken",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L15",
+      "id": "training_service_package_dependencies_jsonwebtoken",
+      "community": 79,
+      "norm_label": "jsonwebtoken"
+    },
+    {
+      "label": "pg",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L16",
+      "id": "training_service_package_dependencies_pg",
+      "community": 79,
+      "norm_label": "pg"
+    },
+    {
+      "label": "helmet",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L17",
+      "id": "training_service_package_dependencies_helmet",
+      "community": 79,
+      "norm_label": "helmet"
+    },
+    {
+      "label": "express-rate-limit",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L18",
+      "id": "training_service_package_dependencies_express_rate_limit",
+      "community": 79,
+      "norm_label": "express-rate-limit"
+    },
+    {
+      "label": "devDependencies",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L20",
+      "id": "training_service_package_devdependencies",
+      "community": 79,
+      "norm_label": "devdependencies"
+    },
+    {
+      "label": "@types/cors",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L21",
+      "id": "training_service_package_devdependencies_types_cors",
+      "community": 79,
+      "norm_label": "@types/cors"
+    },
+    {
+      "label": "@types/express",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L22",
+      "id": "training_service_package_devdependencies_types_express",
+      "community": 79,
+      "norm_label": "@types/express"
+    },
+    {
+      "label": "@types/jsonwebtoken",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L23",
+      "id": "training_service_package_devdependencies_types_jsonwebtoken",
+      "community": 79,
+      "norm_label": "@types/jsonwebtoken"
+    },
+    {
+      "label": "@types/pg",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L24",
+      "id": "training_service_package_devdependencies_types_pg",
+      "community": 79,
+      "norm_label": "@types/pg"
+    },
+    {
+      "label": "@types/node",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L25",
+      "id": "training_service_package_devdependencies_types_node",
+      "community": 79,
+      "norm_label": "@types/node"
+    },
+    {
+      "label": "ts-node-dev",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L26",
+      "id": "training_service_package_devdependencies_ts_node_dev",
+      "community": 79,
+      "norm_label": "ts-node-dev"
+    },
+    {
+      "label": "typescript",
+      "file_type": "code",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L27",
+      "id": "training_service_package_devdependencies_typescript",
+      "community": 79,
+      "norm_label": "typescript"
+    },
+    {
+      "label": "tsconfig.json",
+      "file_type": "code",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L1",
+      "id": "services_training_service_tsconfig_json",
+      "community": 84,
+      "norm_label": "tsconfig.json"
+    },
+    {
+      "label": "compilerOptions",
+      "file_type": "code",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L2",
+      "id": "training_service_tsconfig_compileroptions",
+      "community": 84,
+      "norm_label": "compileroptions"
+    },
+    {
+      "label": "target",
+      "file_type": "code",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L3",
+      "id": "training_service_tsconfig_compileroptions_target",
+      "community": 84,
+      "norm_label": "target"
+    },
+    {
+      "label": "module",
+      "file_type": "code",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L4",
+      "id": "training_service_tsconfig_compileroptions_module",
+      "community": 84,
+      "norm_label": "module"
+    },
+    {
+      "label": "rootDir",
+      "file_type": "code",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L5",
+      "id": "training_service_tsconfig_compileroptions_rootdir",
+      "community": 84,
+      "norm_label": "rootdir"
+    },
+    {
+      "label": "outDir",
+      "file_type": "code",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L6",
+      "id": "training_service_tsconfig_compileroptions_outdir",
+      "community": 84,
+      "norm_label": "outdir"
+    },
+    {
+      "label": "esModuleInterop",
+      "file_type": "code",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L7",
+      "id": "training_service_tsconfig_compileroptions_esmoduleinterop",
+      "community": 84,
+      "norm_label": "esmoduleinterop"
+    },
+    {
+      "label": "forceConsistentCasingInFileNames",
+      "file_type": "code",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L8",
+      "id": "training_service_tsconfig_compileroptions_forceconsistentcasinginfilenames",
+      "community": 84,
+      "norm_label": "forceconsistentcasinginfilenames"
+    },
+    {
+      "label": "strict",
+      "file_type": "code",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L9",
+      "id": "training_service_tsconfig_compileroptions_strict",
+      "community": 84,
+      "norm_label": "strict"
+    },
+    {
+      "label": "skipLibCheck",
+      "file_type": "code",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L10",
+      "id": "training_service_tsconfig_compileroptions_skiplibcheck",
+      "community": 84,
+      "norm_label": "skiplibcheck"
+    },
+    {
+      "label": "include",
+      "file_type": "code",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L12",
+      "id": "training_service_tsconfig_include",
+      "community": 84,
+      "norm_label": "include"
+    },
+    {
+      "label": "index.ts",
+      "file_type": "code",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L1",
+      "id": "services_training_service_src_index_ts",
+      "community": 87,
+      "norm_label": "index.ts"
+    },
+    {
+      "label": "app",
+      "file_type": "code",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L11",
+      "id": "services_training_service_src_index_ts_src_index_app",
+      "community": 87,
+      "norm_label": "app"
+    },
+    {
+      "label": "pool",
+      "file_type": "code",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L17",
+      "id": "services_training_service_src_index_ts_src_index_pool",
+      "community": 87,
+      "norm_label": "pool"
+    },
+    {
+      "label": "query()",
+      "file_type": "code",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L22",
+      "id": "services_training_service_src_index_ts_src_index_query",
+      "community": 87,
+      "norm_label": "query()"
+    },
+    {
+      "label": "limiter",
+      "file_type": "code",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L28",
+      "id": "services_training_service_src_index_ts_src_index_limiter",
+      "community": 87,
+      "norm_label": "limiter"
+    },
+    {
+      "label": "AuthenticatedRequest",
+      "file_type": "code",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L35",
+      "id": "services_training_service_src_index_ts_src_index_authenticatedrequest",
+      "community": 87,
+      "norm_label": "authenticatedrequest"
+    },
+    {
+      "label": "authenticate()",
+      "file_type": "code",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L39",
+      "id": "services_training_service_src_index_ts_src_index_authenticate",
+      "community": 87,
+      "norm_label": "authenticate()"
+    },
+    {
+      "label": "tracks",
+      "file_type": "code",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L56",
+      "id": "src_index_tracks",
+      "community": 87,
+      "norm_label": "tracks"
+    },
+    {
+      "label": "newTrack",
+      "file_type": "code",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L74",
+      "id": "src_index_newtrack",
+      "community": 87,
+      "norm_label": "newtrack"
     },
     {
       "label": "bootstrap.sh",
@@ -8287,6 +10060,33 @@
       "id": "services_readme_contact",
       "community": 71,
       "norm_label": "\ud83d\udcde contact"
+    },
+    {
+      "label": "authenticate()",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L194",
+      "community": 7,
+      "norm_label": "authenticate()",
+      "id": "src_index_authenticate"
+    },
+    {
+      "label": "residualMcqs",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L930",
+      "community": 7,
+      "norm_label": "residualmcqs",
+      "id": "src_index_residualmcqs"
+    },
+    {
+      "label": "residualCodings",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L933",
+      "community": 7,
+      "norm_label": "residualcodings",
+      "id": "src_index_residualcodings"
     },
     {
       "label": "info()",
@@ -12624,6 +14424,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L214",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "services_exam_service_src_index_ts_src_index_authenticate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
       "source_location": "L163",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -12774,6 +14584,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L1206",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_basemins",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
       "source_location": "L531",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -12826,9 +14646,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L1535",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_codingrespmap",
-      "confidence_score": 1.0
+      "target": "src_index_codingrespmap"
     },
     {
       "relation": "contains",
@@ -12906,9 +14726,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L1557",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_failedsectionreasons",
-      "confidence_score": 1.0
+      "target": "src_index_failedsectionreasons"
     },
     {
       "relation": "contains",
@@ -12919,6 +14739,16 @@
       "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
       "target": "src_index_finalcodings"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L375",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_finaldeptids",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -12966,9 +14796,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L1532",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_mcqrespmap",
-      "confidence_score": 1.0
+      "target": "src_index_mcqrespmap"
     },
     {
       "relation": "contains",
@@ -13066,9 +14896,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L1564",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_scodings",
-      "confidence_score": 1.0
+      "target": "src_index_scodings"
     },
     {
       "relation": "contains",
@@ -13106,9 +14936,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L1870",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_sectionresults",
-      "confidence_score": 1.0
+      "target": "src_index_sectionresults"
     },
     {
       "relation": "contains",
@@ -13136,9 +14966,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L1563",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_smcqs",
-      "confidence_score": 1.0
+      "target": "src_index_smcqs"
     },
     {
       "relation": "contains",
@@ -13156,9 +14986,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L1867",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_usercodingmap",
-      "confidence_score": 1.0
+      "target": "src_index_usercodingmap"
     },
     {
       "relation": "contains",
@@ -13166,9 +14996,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L1864",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_usermcqmap",
-      "confidence_score": 1.0
+      "target": "src_index_usermcqmap"
     },
     {
       "relation": "contains",
@@ -13653,6 +15483,336 @@
       "target": "frontend_service_tsconfig_compileroptions_usedefineforclassfields"
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "assessment_assessmentpreexamstepper_assessmentpreexamstepper",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "assessment_assessmentpreexamstepper_preexamvalidationstep",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "assessment_safequestionrenderer_questionerrorboundary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "assessment_safequestionrenderer_safeoptionrenderer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "components_assessmentinstructions_assessmentinstructions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "components_assessmenttimingsettings_assessmenttimingsettings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "components_assessmenttimingsettings_computesectiontimingsummary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "components_imageviewermodal_imageviewermodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "components_navigationrulesettings_navigationrulesettings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "components_questionfooter_questionfooter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "components_questioninlineeditor_questioninlineeditor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "components_questionpreview_questionpreview",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "components_richcontentrenderer_richcontentrenderer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "components_richtexteditor_richtexteditor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "components_sectionconfirmationmodal_sectionconfirmationmodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "components_submissionpolicysettings_submissionpolicysettings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_assessment_assessmentpreexamstepper_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_assessmentinstructions_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_assessmenttimingsettings_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_imageviewermodal_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_navigationrulesettings_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_questionfooter_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_questioninlineeditor_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_questionpreview_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_richcontentrenderer_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_richtexteditor_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_sectionconfirmationmodal_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_submissionpolicysettings_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_types_richquestion_ts",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services/frontend-service/src/App.tsx",
@@ -13716,6 +15876,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L99",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "src_app_formattime",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L63",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -13763,6 +15933,28 @@
       "target": "src_app_userprofile"
     },
     {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "types_richquestion_contentblock",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "types_richquestion_genericquestion",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
@@ -13774,6 +15966,28 @@
       "target": "services_frontend_service_src_app_tsx"
     },
     {
+      "relation": "references",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L62",
+      "weight": 1.0,
+      "source": "src_app_mcqquestion",
+      "target": "types_richquestion_contentblock",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L78",
+      "weight": 1.0,
+      "source": "src_app_codingquestion",
+      "target": "types_richquestion_contentblock",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "calls",
       "context": "call",
       "confidence": "EXTRACTED",
@@ -13783,6 +15997,635 @@
       "confidence_score": 1.0,
       "source": "src_app_app",
       "target": "src_app_getlocaldatetimestring"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_assessmentpreexamstepper_tsx",
+      "target": "services_frontend_service_src_components_assessmentinstructions_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/AssessmentInstructions.tsx",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessmentinstructions_tsx",
+      "target": "components_assessmentinstructions_assessmentinstructions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/AssessmentInstructions.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessmentinstructions_tsx",
+      "target": "components_assessmentinstructions_assessmentinstructionsprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_assessmentpreexamstepper_tsx",
+      "target": "components_assessmentinstructions_assessmentinstructions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
+      "source_location": "L117",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessmenttimingsettings_tsx",
+      "target": "components_assessmenttimingsettings_assessmenttimingsettings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
+      "source_location": "L111",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessmenttimingsettings_tsx",
+      "target": "components_assessmenttimingsettings_assessmenttimingsettingsprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessmenttimingsettings_tsx",
+      "target": "components_assessmenttimingsettings_computesectiontimingsummary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessmenttimingsettings_tsx",
+      "target": "components_assessmenttimingsettings_sectiontimingitem",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessmenttimingsettings_tsx",
+      "target": "components_assessmenttimingsettings_sectiontimingsummary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
+      "source_location": "L122",
+      "weight": 1.0,
+      "source": "components_assessmenttimingsettings_assessmenttimingsettings",
+      "target": "components_assessmenttimingsettings_computesectiontimingsummary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/ImageViewerModal.tsx",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_imageviewermodal_tsx",
+      "target": "components_imageviewermodal_imageviewermodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/ImageViewerModal.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_imageviewermodal_tsx",
+      "target": "components_imageviewermodal_imageviewermodalprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/NavigationRuleSettings.tsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_navigationrulesettings_tsx",
+      "target": "components_navigationrulesettings_navigationrulesettings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/NavigationRuleSettings.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_navigationrulesettings_tsx",
+      "target": "components_navigationrulesettings_navigationrulesettingsprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionFooter.tsx",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_questionfooter_tsx",
+      "target": "components_questionfooter_questionfooter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionFooter.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_questionfooter_tsx",
+      "target": "components_questionfooter_questionfooterprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_questioninlineeditor_tsx",
+      "target": "components_questioninlineeditor_codingquestiondata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_questioninlineeditor_tsx",
+      "target": "components_questioninlineeditor_mcqquestiondata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
+      "source_location": "L45",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_questioninlineeditor_tsx",
+      "target": "components_questioninlineeditor_questioninlineeditor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_questioninlineeditor_tsx",
+      "target": "components_questioninlineeditor_questioninlineeditorprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_questioninlineeditor_tsx",
+      "target": "components_richtexteditor_richtexteditor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_questioninlineeditor_tsx",
+      "target": "services_frontend_service_src_components_richtexteditor_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_questionpreview_tsx",
+      "target": "components_questionpreview_questionpreview",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_questionpreview_tsx",
+      "target": "components_questionpreview_questionpreviewprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_questionpreview_tsx",
+      "target": "components_richcontentrenderer_richcontentrenderer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_questionpreview_tsx",
+      "target": "services_frontend_service_src_components_richcontentrenderer_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_questionpreview_tsx",
+      "target": "services_frontend_service_src_types_richquestion_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_questionpreview_tsx",
+      "target": "types_richquestion_genericquestion",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "components_questionpreview_questionpreviewprops",
+      "target": "types_richquestion_genericquestion",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
+      "target": "services_frontend_service_src_components_richcontentrenderer_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_richcontentrenderer_tsx",
+      "target": "components_richcontentrenderer_richcontentrenderer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_richcontentrenderer_tsx",
+      "target": "components_richcontentrenderer_richcontentrendererprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_richcontentrenderer_tsx",
+      "target": "services_frontend_service_src_types_richquestion_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_richcontentrenderer_tsx",
+      "target": "types_richquestion_contentblock",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "components_richcontentrenderer_richcontentrendererprops",
+      "target": "types_richquestion_contentblock",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
+      "target": "components_richcontentrenderer_richcontentrenderer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_richtexteditor_tsx",
+      "target": "components_richtexteditor_richtexteditor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_richtexteditor_tsx",
+      "target": "components_richtexteditor_richtexteditorprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_richtexteditor_tsx",
+      "target": "services_frontend_service_src_types_richquestion_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_richtexteditor_tsx",
+      "target": "types_richquestion_contentblock",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_richtexteditor_tsx",
+      "target": "types_richquestion_contentblocktype",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "context": "field",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "components_richtexteditor_richtexteditorprops",
+      "target": "types_richquestion_contentblock",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/SectionConfirmationModal.tsx",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_sectionconfirmationmodal_tsx",
+      "target": "components_sectionconfirmationmodal_sectionconfirmationmodal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/SectionConfirmationModal.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_sectionconfirmationmodal_tsx",
+      "target": "components_sectionconfirmationmodal_sectionconfirmationmodalprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/SubmissionPolicySettings.tsx",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_submissionpolicysettings_tsx",
+      "target": "components_submissionpolicysettings_submissionpolicysettings",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/SubmissionPolicySettings.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_submissionpolicysettings_tsx",
+      "target": "components_submissionpolicysettings_submissionpolicysettingsprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_assessmentpreexamstepper_tsx",
+      "target": "assessment_assessmentpreexamstepper_assessmentpreexamstepper",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_assessmentpreexamstepper_tsx",
+      "target": "assessment_assessmentpreexamstepper_assessmentpreexamstepperprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_assessmentpreexamstepper_tsx",
+      "target": "assessment_assessmentpreexamstepper_preexamvalidationstep",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
+      "target": "assessment_safequestionrenderer_errorboundaryprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
+      "target": "assessment_safequestionrenderer_errorboundarystate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
+      "target": "assessment_safequestionrenderer_questionerrorboundary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
+      "target": "assessment_safequestionrenderer_safeoptionrenderer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
+      "target": "assessment_safequestionrenderer_safeoptionrendererprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "assessment_safequestionrenderer_questionerrorboundary",
+      "target": "assessment_safequestionrenderer_questionerrorboundary_componentdidcatch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "assessment_safequestionrenderer_questionerrorboundary",
+      "target": "assessment_safequestionrenderer_questionerrorboundary_getderivedstatefromerror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "assessment_safequestionrenderer_questionerrorboundary",
+      "target": "assessment_safequestionrenderer_questionerrorboundary_render",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/types/richQuestion.ts",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_types_richquestion_ts",
+      "target": "types_richquestion_contentblock",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/types/richQuestion.ts",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_types_richquestion_ts",
+      "target": "types_richquestion_contentblocktype",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/types/richQuestion.ts",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_types_richquestion_ts",
+      "target": "types_richquestion_genericquestion",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/types/richQuestion.ts",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_types_richquestion_ts",
+      "target": "types_richquestion_mcqoptiondata",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -14283,6 +17126,426 @@
       "confidence_score": 1.0,
       "source": "services_notification_service_src_index_ts",
       "target": "src_index_worker"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "services_placement_service_package_json",
+      "target": "placement_service_package_dependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "services_placement_service_package_json",
+      "target": "placement_service_package_description",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "services_placement_service_package_json",
+      "target": "placement_service_package_devdependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "services_placement_service_package_json",
+      "target": "placement_service_package_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "services_placement_service_package_json",
+      "target": "placement_service_package_name",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "services_placement_service_package_json",
+      "target": "placement_service_package_scripts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_placement_service_package_json",
+      "target": "placement_service_package_version",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "placement_service_package_scripts",
+      "target": "placement_service_package_scripts_build",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "placement_service_package_scripts",
+      "target": "placement_service_package_scripts_dev",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "placement_service_package_scripts",
+      "target": "placement_service_package_scripts_start",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "placement_service_package_dependencies",
+      "target": "placement_service_package_dependencies_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "placement_service_package_dependencies",
+      "target": "placement_service_package_dependencies_dotenv",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "placement_service_package_dependencies",
+      "target": "placement_service_package_dependencies_express",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "placement_service_package_dependencies",
+      "target": "placement_service_package_dependencies_express_rate_limit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "placement_service_package_dependencies",
+      "target": "placement_service_package_dependencies_helmet",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "placement_service_package_dependencies",
+      "target": "placement_service_package_dependencies_jsonwebtoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "placement_service_package_dependencies",
+      "target": "placement_service_package_dependencies_pg",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "placement_service_package_devdependencies",
+      "target": "placement_service_package_devdependencies_ts_node_dev",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "placement_service_package_devdependencies",
+      "target": "placement_service_package_devdependencies_types_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "placement_service_package_devdependencies",
+      "target": "placement_service_package_devdependencies_types_express",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "placement_service_package_devdependencies",
+      "target": "placement_service_package_devdependencies_types_jsonwebtoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "placement_service_package_devdependencies",
+      "target": "placement_service_package_devdependencies_types_node",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "placement_service_package_devdependencies",
+      "target": "placement_service_package_devdependencies_types_pg",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/package.json",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "placement_service_package_devdependencies",
+      "target": "placement_service_package_devdependencies_typescript",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "services_placement_service_tsconfig_json",
+      "target": "placement_service_tsconfig_compileroptions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "services_placement_service_tsconfig_json",
+      "target": "placement_service_tsconfig_include",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "placement_service_tsconfig_compileroptions",
+      "target": "placement_service_tsconfig_compileroptions_esmoduleinterop",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "placement_service_tsconfig_compileroptions",
+      "target": "placement_service_tsconfig_compileroptions_forceconsistentcasinginfilenames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "placement_service_tsconfig_compileroptions",
+      "target": "placement_service_tsconfig_compileroptions_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "placement_service_tsconfig_compileroptions",
+      "target": "placement_service_tsconfig_compileroptions_outdir",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "placement_service_tsconfig_compileroptions",
+      "target": "placement_service_tsconfig_compileroptions_rootdir",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "placement_service_tsconfig_compileroptions",
+      "target": "placement_service_tsconfig_compileroptions_skiplibcheck",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "placement_service_tsconfig_compileroptions",
+      "target": "placement_service_tsconfig_compileroptions_strict",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/tsconfig.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "placement_service_tsconfig_compileroptions",
+      "target": "placement_service_tsconfig_compileroptions_target",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "services_placement_service_src_index_ts",
+      "target": "services_placement_service_src_index_ts_src_index_app",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "services_placement_service_src_index_ts",
+      "target": "services_placement_service_src_index_ts_src_index_authenticate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L34",
+      "weight": 1.0,
+      "source": "services_placement_service_src_index_ts",
+      "target": "services_placement_service_src_index_ts_src_index_authenticatedrequest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "services_placement_service_src_index_ts",
+      "target": "services_placement_service_src_index_ts_src_index_limiter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "services_placement_service_src_index_ts",
+      "target": "services_placement_service_src_index_ts_src_index_pool",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L70",
+      "weight": 1.0,
+      "source": "services_placement_service_src_index_ts",
+      "target": "src_index_companies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L55",
+      "weight": 1.0,
+      "source": "services_placement_service_src_index_ts",
+      "target": "src_index_drives",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/placement-service/src/index.ts",
+      "source_location": "L87",
+      "weight": 1.0,
+      "source": "services_placement_service_src_index_ts",
+      "target": "src_index_newcompany",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -14949,6 +18212,476 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "services_report_service_package_json",
+      "target": "report_service_package_dependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "services_report_service_package_json",
+      "target": "report_service_package_description",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "services_report_service_package_json",
+      "target": "report_service_package_devdependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "services_report_service_package_json",
+      "target": "report_service_package_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "services_report_service_package_json",
+      "target": "report_service_package_name",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "services_report_service_package_json",
+      "target": "report_service_package_scripts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_report_service_package_json",
+      "target": "report_service_package_version",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "report_service_package_scripts",
+      "target": "report_service_package_scripts_build",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "report_service_package_scripts",
+      "target": "report_service_package_scripts_dev",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "report_service_package_scripts",
+      "target": "report_service_package_scripts_start",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "report_service_package_dependencies",
+      "target": "report_service_package_dependencies_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "report_service_package_dependencies",
+      "target": "report_service_package_dependencies_dotenv",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "report_service_package_dependencies",
+      "target": "report_service_package_dependencies_express",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "report_service_package_dependencies",
+      "target": "report_service_package_dependencies_express_rate_limit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "report_service_package_dependencies",
+      "target": "report_service_package_dependencies_helmet",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "report_service_package_dependencies",
+      "target": "report_service_package_dependencies_jsonwebtoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "report_service_package_dependencies",
+      "target": "report_service_package_dependencies_pg",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "report_service_package_devdependencies",
+      "target": "report_service_package_devdependencies_ts_node_dev",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "report_service_package_devdependencies",
+      "target": "report_service_package_devdependencies_types_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "report_service_package_devdependencies",
+      "target": "report_service_package_devdependencies_types_express",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "report_service_package_devdependencies",
+      "target": "report_service_package_devdependencies_types_jsonwebtoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "report_service_package_devdependencies",
+      "target": "report_service_package_devdependencies_types_node",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "report_service_package_devdependencies",
+      "target": "report_service_package_devdependencies_types_pg",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/package.json",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "report_service_package_devdependencies",
+      "target": "report_service_package_devdependencies_typescript",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "services_report_service_tsconfig_json",
+      "target": "report_service_tsconfig_compileroptions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "services_report_service_tsconfig_json",
+      "target": "report_service_tsconfig_include",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "report_service_tsconfig_compileroptions",
+      "target": "report_service_tsconfig_compileroptions_esmoduleinterop",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "report_service_tsconfig_compileroptions",
+      "target": "report_service_tsconfig_compileroptions_forceconsistentcasinginfilenames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "report_service_tsconfig_compileroptions",
+      "target": "report_service_tsconfig_compileroptions_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "report_service_tsconfig_compileroptions",
+      "target": "report_service_tsconfig_compileroptions_outdir",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "report_service_tsconfig_compileroptions",
+      "target": "report_service_tsconfig_compileroptions_rootdir",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "report_service_tsconfig_compileroptions",
+      "target": "report_service_tsconfig_compileroptions_skiplibcheck",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "report_service_tsconfig_compileroptions",
+      "target": "report_service_tsconfig_compileroptions_strict",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/tsconfig.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "report_service_tsconfig_compileroptions",
+      "target": "report_service_tsconfig_compileroptions_target",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "services_report_service_src_index_ts",
+      "target": "services_report_service_src_index_ts_src_index_app",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L39",
+      "weight": 1.0,
+      "source": "services_report_service_src_index_ts",
+      "target": "services_report_service_src_index_ts_src_index_authenticate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "services_report_service_src_index_ts",
+      "target": "services_report_service_src_index_ts_src_index_authenticatedrequest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "services_report_service_src_index_ts",
+      "target": "services_report_service_src_index_ts_src_index_limiter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "services_report_service_src_index_ts",
+      "target": "services_report_service_src_index_ts_src_index_pool",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "services_report_service_src_index_ts",
+      "target": "services_report_service_src_index_ts_src_index_query",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L81",
+      "weight": 1.0,
+      "source": "services_report_service_src_index_ts",
+      "target": "src_index_attemptsdata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L102",
+      "weight": 1.0,
+      "source": "services_report_service_src_index_ts",
+      "target": "src_index_avgpercentage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L108",
+      "weight": 1.0,
+      "source": "services_report_service_src_index_ts",
+      "target": "src_index_overallscore",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L112",
+      "weight": 1.0,
+      "source": "services_report_service_src_index_ts",
+      "target": "src_index_recommendedtraining",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L111",
+      "weight": 1.0,
+      "source": "services_report_service_src_index_ts",
+      "target": "src_index_strongareas",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "services_report_service_src_index_ts",
+      "target": "src_index_summary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/report-service/src/index.ts",
+      "source_location": "L110",
+      "weight": 1.0,
+      "source": "services_report_service_src_index_ts",
+      "target": "src_index_weakareas",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "services/student-service/package.json",
       "source_location": "L11",
       "weight": 1.0,
@@ -15405,6 +19138,426 @@
       "confidence_score": 1.0,
       "source": "services_student_service_src_index_ts",
       "target": "src_index_notifications"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "services_training_service_package_json",
+      "target": "training_service_package_dependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "services_training_service_package_json",
+      "target": "training_service_package_description",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "services_training_service_package_json",
+      "target": "training_service_package_devdependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "services_training_service_package_json",
+      "target": "training_service_package_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "services_training_service_package_json",
+      "target": "training_service_package_name",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "services_training_service_package_json",
+      "target": "training_service_package_scripts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_training_service_package_json",
+      "target": "training_service_package_version",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "training_service_package_scripts",
+      "target": "training_service_package_scripts_build",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "training_service_package_scripts",
+      "target": "training_service_package_scripts_dev",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "training_service_package_scripts",
+      "target": "training_service_package_scripts_start",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "training_service_package_dependencies",
+      "target": "training_service_package_dependencies_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "training_service_package_dependencies",
+      "target": "training_service_package_dependencies_dotenv",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "training_service_package_dependencies",
+      "target": "training_service_package_dependencies_express",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "training_service_package_dependencies",
+      "target": "training_service_package_dependencies_express_rate_limit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "training_service_package_dependencies",
+      "target": "training_service_package_dependencies_helmet",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "training_service_package_dependencies",
+      "target": "training_service_package_dependencies_jsonwebtoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "training_service_package_dependencies",
+      "target": "training_service_package_dependencies_pg",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "training_service_package_devdependencies",
+      "target": "training_service_package_devdependencies_ts_node_dev",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "training_service_package_devdependencies",
+      "target": "training_service_package_devdependencies_types_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "training_service_package_devdependencies",
+      "target": "training_service_package_devdependencies_types_express",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "training_service_package_devdependencies",
+      "target": "training_service_package_devdependencies_types_jsonwebtoken",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "training_service_package_devdependencies",
+      "target": "training_service_package_devdependencies_types_node",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "training_service_package_devdependencies",
+      "target": "training_service_package_devdependencies_types_pg",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/package.json",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "training_service_package_devdependencies",
+      "target": "training_service_package_devdependencies_typescript",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "services_training_service_tsconfig_json",
+      "target": "training_service_tsconfig_compileroptions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "services_training_service_tsconfig_json",
+      "target": "training_service_tsconfig_include",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "training_service_tsconfig_compileroptions",
+      "target": "training_service_tsconfig_compileroptions_esmoduleinterop",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "training_service_tsconfig_compileroptions",
+      "target": "training_service_tsconfig_compileroptions_forceconsistentcasinginfilenames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "training_service_tsconfig_compileroptions",
+      "target": "training_service_tsconfig_compileroptions_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "training_service_tsconfig_compileroptions",
+      "target": "training_service_tsconfig_compileroptions_outdir",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "training_service_tsconfig_compileroptions",
+      "target": "training_service_tsconfig_compileroptions_rootdir",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "training_service_tsconfig_compileroptions",
+      "target": "training_service_tsconfig_compileroptions_skiplibcheck",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "training_service_tsconfig_compileroptions",
+      "target": "training_service_tsconfig_compileroptions_strict",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/tsconfig.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "training_service_tsconfig_compileroptions",
+      "target": "training_service_tsconfig_compileroptions_target",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "services_training_service_src_index_ts",
+      "target": "services_training_service_src_index_ts_src_index_app",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L39",
+      "weight": 1.0,
+      "source": "services_training_service_src_index_ts",
+      "target": "services_training_service_src_index_ts_src_index_authenticate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "services_training_service_src_index_ts",
+      "target": "services_training_service_src_index_ts_src_index_authenticatedrequest",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "services_training_service_src_index_ts",
+      "target": "services_training_service_src_index_ts_src_index_limiter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "services_training_service_src_index_ts",
+      "target": "services_training_service_src_index_ts_src_index_pool",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "services_training_service_src_index_ts",
+      "target": "services_training_service_src_index_ts_src_index_query",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L74",
+      "weight": 1.0,
+      "source": "services_training_service_src_index_ts",
+      "target": "src_index_newtrack",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/training-service/src/index.ts",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "services_training_service_src_index_ts",
+      "target": "src_index_tracks",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -20760,5 +24913,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "c9c38ffc11c859356aea15e9ebaaa43fa6e4ba81"
+  "built_at_commit": "9cecf7cf9abea635f6f095884c645e7244c77007"
 }

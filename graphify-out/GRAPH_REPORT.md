@@ -1,16 +1,16 @@
-# Graph Report - clahan academy  (2026-07-22)
+# Graph Report - clahan academy  (2026-07-23)
 
 ## Corpus Check
-- 56 files · ~115,508 words
+- 79 files · ~132,183 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1079 nodes · 1086 edges · 77 communities (70 shown, 7 thin omitted)
+- 1279 nodes · 1316 edges · 93 communities (84 shown, 9 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c9c38ffc`
+- Built from commit: `9cecf7cf`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -87,6 +87,22 @@
 - [[_COMMUNITY_Community 73|Community 73]]
 - [[_COMMUNITY_Community 74|Community 74]]
 - [[_COMMUNITY_Community 76|Community 76]]
+- [[_COMMUNITY_Community 77|Community 77]]
+- [[_COMMUNITY_Community 78|Community 78]]
+- [[_COMMUNITY_Community 79|Community 79]]
+- [[_COMMUNITY_Community 80|Community 80]]
+- [[_COMMUNITY_Community 81|Community 81]]
+- [[_COMMUNITY_Community 82|Community 82]]
+- [[_COMMUNITY_Community 83|Community 83]]
+- [[_COMMUNITY_Community 84|Community 84]]
+- [[_COMMUNITY_Community 85|Community 85]]
+- [[_COMMUNITY_Community 86|Community 86]]
+- [[_COMMUNITY_Community 87|Community 87]]
+- [[_COMMUNITY_Community 88|Community 88]]
+- [[_COMMUNITY_Community 89|Community 89]]
+- [[_COMMUNITY_Community 90|Community 90]]
+- [[_COMMUNITY_Community 91|Community 91]]
+- [[_COMMUNITY_Community 92|Community 92]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `compilerOptions` - 16 edges
@@ -101,9 +117,18 @@
 10. `compilerOptions` - 12 edges
 
 ## Surprising Connections (you probably didn't know these)
-- None detected - all connections are within the same source files.
+- `MCQQuestion` --references--> `ContentBlock`  [EXTRACTED]
+  services/frontend-service/src/App.tsx → services/frontend-service/src/types/richQuestion.ts
+- `CodingQuestion` --references--> `ContentBlock`  [EXTRACTED]
+  services/frontend-service/src/App.tsx → services/frontend-service/src/types/richQuestion.ts
+- `RichContentRendererProps` --references--> `ContentBlock`  [EXTRACTED]
+  services/frontend-service/src/components/RichContentRenderer.tsx → services/frontend-service/src/types/richQuestion.ts
+- `RichTextEditorProps` --references--> `ContentBlock`  [EXTRACTED]
+  services/frontend-service/src/components/RichTextEditor.tsx → services/frontend-service/src/types/richQuestion.ts
+- `QuestionPreviewProps` --references--> `GenericQuestion`  [EXTRACTED]
+  services/frontend-service/src/components/QuestionPreview.tsx → services/frontend-service/src/types/richQuestion.ts
 
-## Communities (77 total, 7 thin omitted)
+## Communities (93 total, 9 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
@@ -134,8 +159,8 @@ Cohesion: 0.08
 Nodes (24): dependencies, bullmq, cors, dotenv, express, helmet, nodemailer, redis (+16 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.04
-Nodes (47): app, AuthenticatedRequest, dataRows, limiter, lines, notificationPayloads, notificationQueue, parsed (+39 more)
+Cohesion: 0.03
+Nodes (49): app, AuthenticatedRequest, dataRows, limiter, lines, notificationPayloads, notificationQueue, parsed (+41 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.11
@@ -182,8 +207,8 @@ Cohesion: 0.20
 Nodes (9): Clahan Academy V2 Implementation Plan, code:mermaid (graph TD), code:mermaid (erDiagram), code:mermaid (sequenceDiagram), Database Schema, Key Technical Decisions, Service Breakdown, System Architecture (+1 more)
 
 ### Community 19 - "Community 19"
-Cohesion: 0.17
-Nodes (10): App(), Attempt, CodingQuestion, College, Department, Exam, getLocalDatetimeString(), MCQQuestion (+2 more)
+Cohesion: 0.11
+Nodes (14): QuestionFooter(), QuestionFooterProps, SectionConfirmationModal(), SectionConfirmationModalProps, SubmissionPolicySettings(), SubmissionPolicySettingsProps, App(), Attempt (+6 more)
 
 ### Community 20 - "Community 20"
 Cohesion: 0.08
@@ -365,20 +390,76 @@ Nodes (7): bootstrap.sh script, check_tool(), create_federated_credential(), err
 Cohesion: 0.67
 Nodes (3): query(), now, validateAttemptNotExpired()
 
+### Community 77 - "Community 77"
+Cohesion: 0.08
+Nodes (24): dependencies, cors, dotenv, express, express-rate-limit, helmet, jsonwebtoken, pg (+16 more)
+
+### Community 78 - "Community 78"
+Cohesion: 0.08
+Nodes (24): dependencies, cors, dotenv, express, express-rate-limit, helmet, jsonwebtoken, pg (+16 more)
+
+### Community 79 - "Community 79"
+Cohesion: 0.08
+Nodes (24): dependencies, cors, dotenv, express, express-rate-limit, helmet, jsonwebtoken, pg (+16 more)
+
+### Community 80 - "Community 80"
+Cohesion: 0.23
+Nodes (10): QuestionPreview(), QuestionPreviewProps, RichContentRendererProps, RichTextEditorProps, CodingQuestion, MCQQuestion, ContentBlock, ContentBlockType (+2 more)
+
+### Community 81 - "Community 81"
+Cohesion: 0.14
+Nodes (11): app, AuthenticatedRequest, limiter, pool, attemptsData, avgPercentage, overallScore, recommendedTraining (+3 more)
+
+### Community 82 - "Community 82"
+Cohesion: 0.18
+Nodes (10): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, module, outDir, rootDir, skipLibCheck, strict (+2 more)
+
+### Community 83 - "Community 83"
+Cohesion: 0.18
+Nodes (10): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, module, outDir, rootDir, skipLibCheck, strict (+2 more)
+
+### Community 84 - "Community 84"
+Cohesion: 0.18
+Nodes (10): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, module, outDir, rootDir, skipLibCheck, strict (+2 more)
+
+### Community 85 - "Community 85"
+Cohesion: 0.20
+Nodes (6): ErrorBoundaryProps, ErrorBoundaryState, QuestionErrorBoundary, SafeOptionRenderer(), SafeOptionRendererProps, RichContentRenderer()
+
+### Community 86 - "Community 86"
+Cohesion: 0.22
+Nodes (7): app, AuthenticatedRequest, limiter, pool, companies, drives, newCompany
+
+### Community 87 - "Community 87"
+Cohesion: 0.22
+Nodes (6): app, AuthenticatedRequest, limiter, pool, newTrack, tracks
+
+### Community 88 - "Community 88"
+Cohesion: 0.33
+Nodes (5): AssessmentPreExamStepper(), AssessmentPreExamStepperProps, PreExamValidationStep, AssessmentInstructions(), AssessmentInstructionsProps
+
+### Community 89 - "Community 89"
+Cohesion: 0.40
+Nodes (5): AssessmentTimingSettings(), AssessmentTimingSettingsProps, computeSectionTimingSummary(), SectionTimingItem, SectionTimingSummary
+
+### Community 90 - "Community 90"
+Cohesion: 0.33
+Nodes (5): CodingQuestionData, MCQQuestionData, QuestionInlineEditor(), QuestionInlineEditorProps, RichTextEditor()
+
 ## Knowledge Gaps
-- **670 isolated node(s):** `build-and-push.sh script`, `copy-env-examples.sh script`, `version`, `isEnabled`, `excludedTypes` (+665 more)
+- **801 isolated node(s):** `build-and-push.sh script`, `copy-env-examples.sh script`, `version`, `isEnabled`, `excludedTypes` (+796 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Clahan Academy V2 — Complete System Documentation & Architecture Guide` connect `Community 35` to `Community 36`?**
-  _High betweenness centrality (0.003) - this node is a cross-community bridge._
-- **Why does `⚡ 6. Detailed API Reference` connect `Community 36` to `Community 35`?**
   _High betweenness centrality (0.002) - this node is a cross-community bridge._
+- **Why does `🗄️ 3. Database Schema & Architecture` connect `Community 63` to `Community 64`?**
+  _High betweenness centrality (0.001) - this node is a cross-community bridge._
 - **What connects `build-and-push.sh script`, `copy-env-examples.sh script`, `version` to the rest of the system?**
-  _671 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _802 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**

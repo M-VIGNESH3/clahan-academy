@@ -1,7 +1,7 @@
 {
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\docker-compose.yml": {
-    "mtime": 1784646017.129632,
-    "ast_hash": "4b5cde052a072a596d22b5b0f5ee6900",
+    "mtime": 1784725239.266461,
+    "ast_hash": "9d71380f3f4aaf3bc16e1e52a03439af",
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\implementation_plan.md": {
@@ -70,8 +70,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\copy-env-examples.sh": {
-    "mtime": 1784646028.392632,
-    "ast_hash": "75bfe14fb79b8fcc321ec47c7f09cdbe",
+    "mtime": 1784725239.2644548,
+    "ast_hash": "3cd551a3ddcb52eddbabb586b822b4ba",
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\environment_migration_report.md": {
@@ -470,8 +470,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\exam-service\\src\\index.ts": {
-    "mtime": 1784688511.4714115,
-    "ast_hash": "2af00a0a2bfc646191884e5803180d42",
+    "mtime": 1784825128.1654723,
+    "ast_hash": "014c7969377da314023c9b0b1d1a8579",
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\package.json": {
@@ -495,13 +495,13 @@
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\vite.config.ts": {
-    "mtime": 1780762440.7372906,
-    "ast_hash": "7fb10ac9ca157699a840a8f79f781337",
+    "mtime": 1784725239.2811272,
+    "ast_hash": "ec37d08af2ebcdf375e755d99fa293fd",
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\App.tsx": {
-    "mtime": 1784688665.1685688,
-    "ast_hash": "26cc6a21c0fdee3947101fa98b1ffc3e",
+    "mtime": 1784826481.013678,
+    "ast_hash": "b776eb88d1a89fe335113a3df483f878",
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\main.tsx": {
@@ -1177,6 +1177,121 @@
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\.gemini\\antigravity\\brain\\f6905565-85a3-4a79-acd3-cd90d6fab191\\scratch\\search_starter_code.py": {
     "mtime": 1784653574.157447,
     "ast_hash": "ed515b6a0d411521ee52186e70b0f608",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\AssessmentInstructions.tsx": {
+    "mtime": 1784825128.1725135,
+    "ast_hash": "11fd4a396a611a8eddea7fe4b02d67a4",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\AssessmentTimingSettings.tsx": {
+    "mtime": 1784825287.943646,
+    "ast_hash": "d262cd58833dab3448fb09d2a7ce493d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\ImageViewerModal.tsx": {
+    "mtime": 1784727677.7024298,
+    "ast_hash": "c81966bd499d5ebf423b80be93d0395b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\NavigationRuleSettings.tsx": {
+    "mtime": 1784742838.759858,
+    "ast_hash": "ad67afc1dd1791e3673dc0a5b7a2fe7d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\QuestionFooter.tsx": {
+    "mtime": 1784736751.1836355,
+    "ast_hash": "94ac0e19515e6343f7739da778e94216",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\QuestionInlineEditor.tsx": {
+    "mtime": 1784825128.175547,
+    "ast_hash": "475930ed68bf97eae6056a93d1541541",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\QuestionPreview.tsx": {
+    "mtime": 1784727787.9355078,
+    "ast_hash": "a305e89c77de73be49472628d8122fef",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\RichContentRenderer.tsx": {
+    "mtime": 1784825128.175547,
+    "ast_hash": "23fb8ba8e99418ba7b5de52ca3e92918",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\RichTextEditor.tsx": {
+    "mtime": 1784727759.073359,
+    "ast_hash": "0634f37662ae5ffb0e8031d0a11f27a6",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\SectionConfirmationModal.tsx": {
+    "mtime": 1784732473.5591292,
+    "ast_hash": "1c2c35f8951f3631f22525a2e1c93157",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\SubmissionPolicySettings.tsx": {
+    "mtime": 1784742853.3242793,
+    "ast_hash": "be7e49a07348dd2fe1e9d747a5b1e910",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\assessment\\AssessmentPreExamStepper.tsx": {
+    "mtime": 1784824764.498688,
+    "ast_hash": "dfec9850ac593ec97104d3d9fc9a0f50",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\assessment\\SafeQuestionRenderer.tsx": {
+    "mtime": 1784824773.4235098,
+    "ast_hash": "7adcfc816e03dfab3ea3cfac75169392",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\types\\richQuestion.ts": {
+    "mtime": 1784730034.3341022,
+    "ast_hash": "43cfd53874dac38542a112095a5c88ad",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\placement-service\\package.json": {
+    "mtime": 1784725239.2822978,
+    "ast_hash": "755e9987c8a37aedbdf943150d7f15f9",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\placement-service\\tsconfig.json": {
+    "mtime": 1784725239.2843046,
+    "ast_hash": "67d2f4dcd2fefa2cfc9c03c7b1f09840",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\placement-service\\src\\index.ts": {
+    "mtime": 1784725239.2843046,
+    "ast_hash": "9a5793a9dfe63d23f24a0efc6e7bd65b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\report-service\\package.json": {
+    "mtime": 1784725239.2880654,
+    "ast_hash": "6adb249056537bd9b2359d5930e0fb08",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\report-service\\tsconfig.json": {
+    "mtime": 1784725239.292169,
+    "ast_hash": "67d2f4dcd2fefa2cfc9c03c7b1f09840",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\report-service\\src\\index.ts": {
+    "mtime": 1784725239.289934,
+    "ast_hash": "203b2e95a1ba685566c9c00641da72cc",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\training-service\\package.json": {
+    "mtime": 1784725239.2961376,
+    "ast_hash": "1ee3a62921dbd871f4992ee32c3e5c62",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\training-service\\tsconfig.json": {
+    "mtime": 1784725239.2999845,
+    "ast_hash": "67d2f4dcd2fefa2cfc9c03c7b1f09840",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\training-service\\src\\index.ts": {
+    "mtime": 1784725239.299044,
+    "ast_hash": "010804e7d651bb2194e00c7aecab421e",
     "semantic_hash": ""
   }
 }
