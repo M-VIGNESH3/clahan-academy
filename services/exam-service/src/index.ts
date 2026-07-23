@@ -39,7 +39,7 @@ pool.on('error', (err) => {
 });
 const query = (text: string, params?: any[]) => pool.query(text, params);
 
-pool.query(`ALTER TABLE exams ADD COLUMN IF NOT EXISTS navigation_mode VARCHAR(50) DEFAULT 'free'`).catch(err => {
+pool.query(`ALTER TABLE exams ADD COLUMN IF NOT EXISTS navigation_mode VARCHAR(50) DEFAULT 'free'; ALTER TABLE exams ADD COLUMN IF NOT EXISTS skip_instructions BOOLEAN DEFAULT FALSE;`).catch(err => {
   console.log('DB Column navigation_mode addition log:', err.message);
 });
 
@@ -930,10 +930,15 @@ app.put(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'
     const optD = optionD ?? req.body.option_d;
     const corrAns = correctAnswer ?? req.body.correct_answer;
 
-    const optAImg = optionAImage ?? req.body.option_a_image;
-    const optBImg = optionBImage ?? req.body.option_b_image;
-    const optCImg = optionCImage ?? req.body.option_c_image;
-    const optDImg = optionDImage ?? req.body.option_d_image;
+    const optAImgRaw = optionAImage !== undefined ? optionAImage : req.body.option_a_image;
+    const optBImgRaw = optionBImage !== undefined ? optionBImage : req.body.option_b_image;
+    const optCImgRaw = optionCImage !== undefined ? optionCImage : req.body.option_c_image;
+    const optDImgRaw = optionDImage !== undefined ? optionDImage : req.body.option_d_image;
+
+    const optAImg = optAImgRaw === undefined ? '__KEEP_EXISTING__' : (optAImgRaw || null);
+    const optBImg = optBImgRaw === undefined ? '__KEEP_EXISTING__' : (optBImgRaw || null);
+    const optCImg = optCImgRaw === undefined ? '__KEEP_EXISTING__' : (optCImgRaw || null);
+    const optDImg = optDImgRaw === undefined ? '__KEEP_EXISTING__' : (optDImgRaw || null);
     const cBlocks = contentBlocks ?? req.body.content_blocks;
 
     const result = await query(
@@ -948,19 +953,19 @@ app.put(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'
            difficulty = COALESCE($8, difficulty),
            content_blocks = COALESCE($9, content_blocks),
            images = COALESCE($10, images),
-           option_a_image = COALESCE($11, option_a_image),
-           option_b_image = COALESCE($12, option_b_image),
-           option_c_image = COALESCE($13, option_c_image),
-           option_d_image = COALESCE($14, option_d_image)
+           option_a_image = CASE WHEN $11::text = '__KEEP_EXISTING__' THEN option_a_image ELSE $11 END,
+           option_b_image = CASE WHEN $12::text = '__KEEP_EXISTING__' THEN option_b_image ELSE $12 END,
+           option_c_image = CASE WHEN $13::text = '__KEEP_EXISTING__' THEN option_c_image ELSE $13 END,
+           option_d_image = CASE WHEN $14::text = '__KEEP_EXISTING__' THEN option_d_image ELSE $14 END
        WHERE id = $15 RETURNING *`,
       [
         question, optA, optB, optC, optD, corrAns, marks, difficulty,
         cBlocks ? JSON.stringify(cBlocks) : null,
         images ? JSON.stringify(images) : null,
-        optAImg !== undefined ? optAImg : null,
-        optBImg !== undefined ? optBImg : null,
-        optCImg !== undefined ? optCImg : null,
-        optDImg !== undefined ? optDImg : null,
+        optAImg,
+        optBImg,
+        optCImg,
+        optDImg,
         mcqId
       ]
     );
@@ -1174,7 +1179,17 @@ app.get('/api/exams/student/attempts/:attemptId', authenticate, async (req, res)
 
     // Fetch Sections
     const sectionsResult = await query('SELECT * FROM sections WHERE exam_id = $1 ORDER BY sort_order ASC', [examId]);
-    const sections = sectionsResult.rows;
+    let sections = sectionsResult.rows;
+    if (sections.length === 0) {
+      sections = [{
+        id: 'default-section',
+        exam_id: examId,
+        name: 'General Assessment',
+        section_type: 'general',
+        duration_minutes: null,
+        sort_order: 0
+      }];
+    }
 
     // Query MCQ questions (hide correct_answer during exam)
     const mcqsResult = await query(
@@ -1207,27 +1222,22 @@ app.get('/api/exams/student/attempts/:attemptId', authenticate, async (req, res)
 
     const mcqRows = mcqsResult.rows;
     const codingRows = codingQuestions;
+    const defaultSecId = sections[0].id;
 
-    for (const sect of sections) {
-      let sectMcqs = mcqRows.filter((q: any) => q.section_id === sect.id);
+    for (let idx = 0; idx < sections.length; idx++) {
+      const sect = sections[idx];
+      let sectMcqs = mcqRows.filter((q: any) => q.section_id === sect.id || (!q.section_id && idx === 0) || (!sections.some((s: any) => s.id === q.section_id) && idx === 0));
       if (sect.randomize_questions) {
         sectMcqs = seededShuffle(sectMcqs, attemptId);
       }
-      finalMcqs.push(...sectMcqs);
+      finalMcqs.push(...sectMcqs.map((q: any) => ({ ...q, section_id: sect.id })));
 
-      let sectCodings = codingRows.filter((q: any) => q.section_id === sect.id);
+      let sectCodings = codingRows.filter((q: any) => q.section_id === sect.id || (!q.section_id && idx === 0) || (!sections.some((s: any) => s.id === q.section_id) && idx === 0));
       if (sect.randomize_questions) {
         sectCodings = seededShuffle(sectCodings, attemptId);
       }
-      finalCodings.push(...sectCodings);
+      finalCodings.push(...sectCodings.map((q: any) => ({ ...q, section_id: sect.id })));
     }
-
-    // Fallback for residual questions (if any exist without section_id or not mapped to existing sections)
-    const residualMcqs = mcqRows.filter((q: any) => !q.section_id || !sections.some((s: any) => s.id === q.section_id));
-    finalMcqs.push(...residualMcqs);
-
-    const residualCodings = codingRows.filter((q: any) => !q.section_id || !sections.some((s: any) => s.id === q.section_id));
-    finalCodings.push(...residualCodings);
 
     // Retrieve already recorded MCQ responses for this attempt
     const mcqResponses = await query('SELECT question_id, selected_option FROM mcq_responses WHERE attempt_id = $1', [attemptId]);

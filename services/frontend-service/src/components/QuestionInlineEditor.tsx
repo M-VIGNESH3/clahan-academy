@@ -109,10 +109,14 @@ export const QuestionInlineEditor: React.FC<QuestionInlineEditorProps> = ({
       if (type === 'mcq') {
         await onSave({
           ...mcqForm,
-          optionAImage: mcqForm.option_a_image,
-          optionBImage: mcqForm.option_b_image,
-          optionCImage: mcqForm.option_c_image,
-          optionDImage: mcqForm.option_d_image
+          option_a_image: mcqForm.option_a_image || '',
+          option_b_image: mcqForm.option_b_image || '',
+          option_c_image: mcqForm.option_c_image || '',
+          option_d_image: mcqForm.option_d_image || '',
+          optionAImage: mcqForm.option_a_image || '',
+          optionBImage: mcqForm.option_b_image || '',
+          optionCImage: mcqForm.option_c_image || '',
+          optionDImage: mcqForm.option_d_image || ''
         });
       } else {
         await onSave({ ...codingForm, testCases: codingTestCases });

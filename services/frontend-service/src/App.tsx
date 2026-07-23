@@ -634,16 +634,13 @@ export default function App() {
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
 
@@ -2771,13 +2768,13 @@ export default function App() {
         console.log(`[RuntimeController] Exam instructions retrieved: name="${examObj?.name}", navigation_mode="${examObj?.navigation_mode || 'free'}", submission_mode="${examObj?.submission_mode || 'manual'}"`);
         
         const skipInstructions = examObj?.skip_instructions === true || examObj?.skipInstructions === true;
+        setCurrentPage('exam-env');
         if (skipInstructions) {
           console.log('[RuntimeController] Admin explicitly enabled skip_instructions. Bypassing instructions stage.');
           requestHardwarePermissions();
         } else {
           console.log('[RuntimeController] Setting stage: instructions');
           setValidationStep('instructions');
-          setCurrentPage('exam-env');
         }
       } else {
         const data = await res.json();
@@ -3073,7 +3070,15 @@ export default function App() {
           console.warn('Failed to restore workspace settings:', e);
         }
 
-        setTimeLeft((examObj?.duration_minutes || 60) * 60);
+        const createdTimestamp = data.created_at || data.attempt?.created_at;
+        if (createdTimestamp) {
+          const startTime = new Date(createdTimestamp).getTime();
+          const elapsedSecs = Math.max(0, Math.floor((Date.now() - startTime) / 1000));
+          const totalSecs = (examObj?.duration_minutes || 60) * 60;
+          setTimeLeft(Math.max(0, totalSecs - elapsedSecs));
+        } else {
+          setTimeLeft((examObj?.duration_minutes || 60) * 60);
+        }
         setTabWarnings(0);
         setProctorLogs([]);
 
@@ -3281,8 +3286,7 @@ export default function App() {
       }
     }, 1000);
 
-    // Track tab switching browser events
-    window.addEventListener('blur', stableTabSwitch);
+    // Track tab switching browser events via visibilitychange
     document.addEventListener('visibilitychange', stableVisibilityChange);
   };
 
@@ -3359,7 +3363,6 @@ export default function App() {
       cameraStream.getTracks().forEach(track => track.stop());
       setCameraStream(null);
     }
-    window.removeEventListener('blur', stableTabSwitch);
     document.removeEventListener('visibilitychange', stableVisibilityChange);
     // Reset Debug panel states
     setCameraConnected(false);
@@ -3508,14 +3511,12 @@ export default function App() {
     console.log(`[RuntimeController] [Submit Step 1/9] Submit initiated by candidate (isAuto=${isAuto})`);
     isSubmittingRef.current = true;
     if (!isAuto) {
-      window.removeEventListener('blur', stableTabSwitch);
       document.removeEventListener('visibilitychange', stableVisibilityChange);
     }
     if (!isAuto && !confirm('Are you sure you want to finish and submit your exam?')) {
       console.log('[RuntimeController] Candidate cancelled submission dialog');
       isSubmittingRef.current = false;
       if (currentPage === 'exam-env') {
-        window.addEventListener('blur', stableTabSwitch);
         document.addEventListener('visibilitychange', stableVisibilityChange);
       }
       return;
@@ -8561,9 +8562,7 @@ export default function App() {
                     <button
                       onClick={() => {
                         if (isExamLocked) return;
-                        if (window.confirm("Are you sure you want to submit your assessment? Your current answers will be evaluated.")) {
-                          submitEntireExam();
-                        }
+                        submitEntireExam();
                       }}
                       disabled={isExamLocked}
                       className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg text-xs uppercase tracking-wider transition-all border border-rose-500/30 shadow-lg shadow-rose-600/25"
@@ -9945,7 +9944,6 @@ export default function App() {
                       onSubmitSection={() => {
                         saveCurrentCodeImmediately();
                         if (navMode === 'free') {
-                          setCompletedSections(prev => ({ ...prev, [activeSectionId]: true }));
                           if (curSecIdx >= 0 && curSecIdx < studentExamSections.length - 1) {
                             const nextSec = studentExamSections[curSecIdx + 1];
                             setActiveSectionId(nextSec.id);
