@@ -397,7 +397,11 @@ export default function App() {
   const [examCodings, setExamCodings] = useState<CodingQuestion[]>([]);
   const [studentExamSections, setStudentExamSections] = useState<any[]>([]);
   const [activeSectionId, setActiveSectionId] = useState<string>('');
-  const [sectionTimeLeft, setSectionTimeLeft] = useState<number | null>(null);
+  const [sectionRemainingTimes, setSectionRemainingTimes] = useState<Record<string, number>>({});
+  const activeSectionIdRef = useRef<string>('');
+  useEffect(() => { activeSectionIdRef.current = activeSectionId; }, [activeSectionId]);
+  const sectionTimeLeft = activeSectionId && sectionRemainingTimes[activeSectionId] !== undefined ? sectionRemainingTimes[activeSectionId] : null;
+
   const [selectedSection, setSelectedSection] = useState<'mcq' | 'coding'>('mcq');
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [sectionQuestionIndices, setSectionQuestionIndices] = useState<Record<string, number>>({});
@@ -2461,7 +2465,6 @@ export default function App() {
       marks: q.marks || 1,
       difficulty: q.difficulty || 'medium'
     });
-    setIsSectionModalOpen(true);
   };
 
   const startEditingCoding = (q: CodingQuestion) => {
@@ -2484,7 +2487,6 @@ export default function App() {
       expected_output: tc.expected_output || (tc as any).expectedOutput || '',
       isHidden: tc.is_hidden === true || (tc as any).isHidden === true
     })));
-    setIsCodingModalOpen(true);
   };
 
   const saveMcqQuestion = async (e: React.FormEvent) => {
@@ -2956,11 +2958,6 @@ export default function App() {
           const nextSec = prevSections[currentIdx + 1];
           showToast(`Time expired for section "${prevSections[currentIdx].name}". Moving to "${nextSec.name}".`, 'info');
           setActiveQuestionIndex(0);
-          if (nextSec.duration_minutes) {
-            setSectionTimeLeft(parseInt(nextSec.duration_minutes) * 60);
-          } else {
-            setSectionTimeLeft(null);
-          }
           return nextSec.id;
         } else {
           showToast('All section durations completed. Submitting assessment...', 'info');
@@ -3003,11 +3000,13 @@ export default function App() {
         setActiveSectionId(firstSecId);
         setActiveQuestionIndex(0);
 
-        if (sectionsList[0]?.duration_minutes) {
-          setSectionTimeLeft(parseInt(sectionsList[0].duration_minutes) * 60);
-        } else {
-          setSectionTimeLeft(null);
-        }
+        const initialTimesMap: Record<string, number> = {};
+        sectionsList.forEach((sec: any) => {
+          if (sec.duration_minutes) {
+            initialTimesMap[sec.id] = parseInt(sec.duration_minutes) * 60;
+          }
+        });
+        setSectionRemainingTimes(initialTimesMap);
 
         // Initialize default answers
         const mcqAns: Record<string, string> = {};
@@ -3093,15 +3092,16 @@ export default function App() {
         return prev - 1;
       });
 
-      setSectionTimeLeft(prevSec => {
-        if (prevSec !== null && prevSec !== undefined) {
-          if (prevSec <= 1) {
-            switchToNextSection();
-            return null;
-          }
-          return prevSec - 1;
+      setSectionRemainingTimes(prevMap => {
+        const activeId = activeSectionIdRef.current;
+        if (!activeId || prevMap[activeId] === undefined) return prevMap;
+        const currentRemaining = prevMap[activeId];
+        if (currentRemaining <= 1) {
+          const updated = { ...prevMap, [activeId]: 0 };
+          setTimeout(() => switchToNextSection(), 0);
+          return updated;
         }
-        return null;
+        return { ...prevMap, [activeId]: Math.max(0, currentRemaining - 1) };
       });
     }, 1000);
   };
@@ -8712,9 +8712,10 @@ export default function App() {
                                 const targetSec = studentExamSections.find(s => s.id === targetSectionId);
                                 setActiveQuestionIndex(sectionQuestionIndices[targetSectionId] || 0);
                                 if (targetSec?.duration_minutes) {
-                                  setSectionTimeLeft(parseInt(targetSec.duration_minutes) * 60);
-                                } else {
-                                  setSectionTimeLeft(null);
+                                  setSectionRemainingTimes(prevMap => {
+                                    if (prevMap[targetSectionId] !== undefined) return prevMap;
+                                    return { ...prevMap, [targetSectionId]: parseInt(targetSec.duration_minutes) * 60 };
+                                  });
                                 }
                                 return;
                               }
@@ -8785,19 +8786,49 @@ export default function App() {
                               <button 
                                 key={sect.id || idx}
                                 onClick={() => {
-                                  if (isExamLocked || isLocked) return;
-                                  if (navMode === 'free') {
-                                    if (activeSectionId) {
-                                      setSectionQuestionIndices(prev => ({ ...prev, [activeSectionId]: activeQuestionIndex }));
+                                  const requestSectionSwitch = (targetSectionId: string) => {
+                                    if (isExamLocked || !targetSectionId || targetSectionId === activeSectionId) return;
+
+                                    const targetIdx = studentExamSections.findIndex(s => s.id === targetSectionId);
+                                    const currentIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
+                                    const navMode = currentExam?.navigation_mode || 'free';
+
+                                    // Check lock status
+                                    const isTargetLocked = completedSections[targetSectionId] === true || (
+                                      (navMode === 'locked' || navMode === 'sequential_locked') && currentIdx > targetIdx
+                                    );
+                                    if (isTargetLocked) return;
+
+                                    // Check sequential rule
+                                    if ((navMode === 'sequential' || navMode === 'sequential_locked') && targetIdx > currentIdx + 1) {
+                                      showToast("Sequential navigation: You cannot skip future sections. Please complete sections in order.", "warning");
+                                      return;
                                     }
+
+                                    // Free Navigation Mode: Bypass modal
+                                    if (navMode === 'free') {
+                                      if (activeSectionId) {
+                                        setSectionQuestionIndices(prev => ({ ...prev, [activeSectionId]: activeQuestionIndex }));
+                                      }
+                                      saveCurrentCodeImmediately();
+                                      setActiveSectionId(targetSectionId);
+                                      const targetSec = studentExamSections.find(s => s.id === targetSectionId);
+                                      setActiveQuestionIndex(sectionQuestionIndices[targetSectionId] || 0);
+                                      if (targetSec?.duration_minutes) {
+                                        setSectionRemainingTimes(prevMap => {
+                                          if (prevMap[targetSectionId] !== undefined) return prevMap;
+                                          return { ...prevMap, [targetSectionId]: parseInt(targetSec.duration_minutes) * 60 };
+                                        });
+                                      }
+                                      return;
+                                    }
+
+                                    // Non-free modes: Open confirmation dialog
                                     saveCurrentCodeImmediately();
-                                    setActiveSectionId(sect.id);
-                                    setActiveQuestionIndex(sectionQuestionIndices[sect.id] || 0);
-                                  } else {
-                                    saveCurrentCodeImmediately();
-                                    setPendingTargetSectionId(sect.id);
+                                    setPendingTargetSectionId(targetSectionId);
                                     setIsSectionConfirmModalOpen(true);
-                                  }
+                                  };
+                                  requestSectionSwitch(sect.id);
                                 }}
                                 disabled={isExamLocked || isLocked}
                                 className={`p-2 rounded-lg border transition-all ${isCurrent ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400 font-bold' : 'border-transparent text-slate-400 hover:bg-slate-800'} ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
@@ -9923,9 +9954,10 @@ export default function App() {
                           const targetSec = studentExamSections.find(s => s.id === targetId);
                           setActiveQuestionIndex(sectionQuestionIndices[targetId] || 0);
                           if (targetSec?.duration_minutes) {
-                            setSectionTimeLeft(parseInt(targetSec.duration_minutes) * 60);
-                          } else {
-                            setSectionTimeLeft(null);
+                            setSectionRemainingTimes(prevMap => {
+                              if (prevMap[targetId] !== undefined) return prevMap;
+                              return { ...prevMap, [targetId]: parseInt(targetSec.duration_minutes) * 60 };
+                            });
                           }
                         }
                         setIsSectionConfirmModalOpen(false);

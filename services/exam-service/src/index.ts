@@ -681,15 +681,14 @@ app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, r
 
     let finalSectionId = req.body.sectionId || req.body.section_id;
     if (!finalSectionId) {
-      const targetType = qType === 'descriptive' ? 'descriptive' : 'mcq';
-      const sections = await query("SELECT id FROM sections WHERE exam_id = $1 AND section_type = $2 ORDER BY sort_order ASC LIMIT 1", [id, targetType]);
+      const sections = await query("SELECT id FROM sections WHERE exam_id = $1 ORDER BY sort_order ASC LIMIT 1", [id]);
       if (sections.rows.length > 0) {
         finalSectionId = sections.rows[0].id;
       } else {
         const newSect = await query(`
           INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
-          VALUES ($1, $2, $3, FALSE, TRUE, 0) RETURNING id
-        `, [id, qType === 'descriptive' ? 'Descriptive Section' : 'MCQ Section', targetType]);
+          VALUES ($1, 'General Section', 'general', FALSE, TRUE, 0) RETURNING id
+        `, [id]);
         finalSectionId = newSect.rows[0].id;
       }
     }
@@ -728,9 +727,9 @@ app.post('/api/exams/:id/descriptive', authenticate, requireRole('admin'), async
 
     let finalSectionId = req.body.sectionId || req.body.section_id;
     if (!finalSectionId) {
-      const descSections = await query("SELECT id FROM sections WHERE exam_id = $1 AND section_type = 'descriptive' ORDER BY sort_order ASC LIMIT 1", [id]);
-      if (descSections.rows.length > 0) {
-        finalSectionId = descSections.rows[0].id;
+      const sections = await query("SELECT id FROM sections WHERE exam_id = $1 ORDER BY sort_order ASC LIMIT 1", [id]);
+      if (sections.rows.length > 0) {
+        finalSectionId = sections.rows[0].id;
       } else {
         const newSect = await query(`
           INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
@@ -768,9 +767,9 @@ app.post('/api/exams/:id/coding', authenticate, requireRole('admin'), async (req
 
     let finalSectionId = req.body.sectionId || req.body.section_id;
     if (!finalSectionId) {
-      const codingSections = await query("SELECT id FROM sections WHERE exam_id = $1 AND section_type = 'coding' ORDER BY sort_order ASC LIMIT 1", [id]);
-      if (codingSections.rows.length > 0) {
-        finalSectionId = codingSections.rows[0].id;
+      const sections = await query("SELECT id FROM sections WHERE exam_id = $1 ORDER BY sort_order ASC LIMIT 1", [id]);
+      if (sections.rows.length > 0) {
+        finalSectionId = sections.rows[0].id;
       } else {
         const newSect = await query(`
           INSERT INTO sections (exam_id, name, section_type, randomize_questions, is_mandatory, sort_order)
