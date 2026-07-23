@@ -2760,19 +2760,32 @@ export default function App() {
   // --- EXAM ENVIRONMENT HANDLERS ---
   const checkInstructions = async (examId: string) => {
     try {
+      console.log(`[RuntimeController] Fetching exam instructions for examId: ${examId}`);
       const res = await fetch(`${API_EXAMS}/student/${examId}/instructions`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setCurrentExam(data.exam);
-        setValidationStep('instructions');
-        setCurrentPage('exam-env');
+        const examObj = data.exam;
+        setCurrentExam(examObj);
+        console.log(`[RuntimeController] Exam instructions retrieved: name="${examObj?.name}", navigation_mode="${examObj?.navigation_mode || 'free'}", submission_mode="${examObj?.submission_mode || 'manual'}"`);
+        
+        const skipInstructions = examObj?.skip_instructions === true || examObj?.skipInstructions === true;
+        if (skipInstructions) {
+          console.log('[RuntimeController] Admin explicitly enabled skip_instructions. Bypassing instructions stage.');
+          requestHardwarePermissions();
+        } else {
+          console.log('[RuntimeController] Setting stage: instructions');
+          setValidationStep('instructions');
+          setCurrentPage('exam-env');
+        }
       } else {
         const data = await res.json();
+        console.error('[RuntimeController] Access denied fetching instructions:', data.error);
         showToast(data.error || 'Access denied', 'error');
       }
     } catch (err: any) {
+      console.error('[RuntimeController] Network error in checkInstructions:', err);
       showToast('Network error: Unable to verify exam authorization. Please check your connection.', 'error');
     }
   };
@@ -3492,12 +3505,14 @@ export default function App() {
   };
 
   const submitEntireExam = async (isAuto = false) => {
+    console.log(`[RuntimeController] [Submit Step 1/9] Submit initiated by candidate (isAuto=${isAuto})`);
     isSubmittingRef.current = true;
     if (!isAuto) {
       window.removeEventListener('blur', stableTabSwitch);
       document.removeEventListener('visibilitychange', stableVisibilityChange);
     }
     if (!isAuto && !confirm('Are you sure you want to finish and submit your exam?')) {
+      console.log('[RuntimeController] Candidate cancelled submission dialog');
       isSubmittingRef.current = false;
       if (currentPage === 'exam-env') {
         window.addEventListener('blur', stableTabSwitch);
@@ -3506,15 +3521,19 @@ export default function App() {
       return;
     }
 
+    console.log('[RuntimeController] [Submit Step 2/9] Confirmation accepted, unbinding window focus listeners');
+    console.log('[RuntimeController] [Submit Step 3/9] Saving candidate answers and code solutions');
+
     const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
 
     const performPostSubmissionCleanup = async () => {
-      // 1. Stop timers & proctoring background tasks
+      console.log('[RuntimeController] [Submit Step 6/9] Stopping proctoring intervals and disconnecting socket');
       cleanupProctoring();
+      console.log('[RuntimeController] [Submit Step 7/9] Removing window event listeners');
 
-      // 2. Safely exit fullscreen without generating violations
       if (document.exitFullscreen && document.fullscreenElement) {
         try {
+          console.log('[RuntimeController] [Submit Step 8/9] Exiting browser fullscreen mode');
           await document.exitFullscreen();
         } catch {
           // ignore potential user gesture restrictions
@@ -3523,6 +3542,7 @@ export default function App() {
     };
 
     try {
+      console.log(`[RuntimeController] [Submit Step 4/9] Dispatching POST /api/exams/student/attempts/${currentAttemptRef.current?.id}/submit`);
       const res = await fetch(`${API_EXAMS}/student/attempts/${currentAttemptRef.current?.id}/submit`, {
         method: 'POST',
         headers: {
@@ -3532,8 +3552,10 @@ export default function App() {
         body: JSON.stringify({ timeTakenSeconds: timeTaken })
       });
       if (res.ok) {
+        console.log('[RuntimeController] [Submit Step 5/9] HTTP 200 OK response received from backend server');
         const result = await res.json();
         await performPostSubmissionCleanup();
+        console.log('[RuntimeController] [Submit Step 9/9] Navigating to result view');
         if (isAuto) {
           showToast("Time is up. Your exam has been automatically submitted successfully. Redirecting to dashboard...", "success");
           setTimeout(() => {
@@ -3549,6 +3571,7 @@ export default function App() {
         }
       } else {
         const data = await res.json();
+        console.error('[RuntimeController] Backend submit endpoint error:', data.error);
         showToast(data.error || 'Failed to submit exam', 'error');
         if (isAuto) {
           await performPostSubmissionCleanup();
@@ -3560,6 +3583,7 @@ export default function App() {
         }
       }
     } catch (err) {
+      console.warn('[RuntimeController] Network fallback triggered during submission');
       await performPostSubmissionCleanup();
       // Mock result evaluation
       const mockResult = {
@@ -3583,6 +3607,7 @@ export default function App() {
           { title: 'Two Sum Algorithm', code: 'def solve(): pass', status: 'Accepted', test_cases_passed: 1, total_test_cases: 1, marks_obtained: 10, marks: 10 }
         ]
       };
+      console.log('[RuntimeController] [Submit Step 9/9] Navigating to result-view page (simulated response)');
       if (isAuto) {
         showToast("Time is up. Your exam has been automatically submitted successfully. Redirecting to dashboard...", "success");
         setTimeout(() => {
@@ -8733,9 +8758,11 @@ export default function App() {
                               const sTotal = sMcqs.length + sCodings.length;
                               
                               const navMode = currentExam?.navigation_mode || 'free';
-                              const isLocked = completedSections[sect.id] === true || (
-                                (navMode === 'locked' || navMode === 'sequential_locked') && 
-                                studentExamSections.findIndex(s => s.id === activeSectionId) > idx
+                              const isLocked = navMode !== 'free' && (
+                                completedSections[sect.id] === true || (
+                                  (navMode === 'locked' || navMode === 'sequential_locked') && 
+                                  studentExamSections.findIndex(s => s.id === activeSectionId) > idx
+                                )
                               );
 
                               let statusLabel = 'Pending';
@@ -8778,8 +8805,10 @@ export default function App() {
                             const isCurrent = sect.id === activeSectionId;
                             const navMode = currentExam?.navigation_mode || 'free';
                             const currentIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
-                            const isLocked = completedSections[sect.id] === true || (
-                              (navMode === 'locked' || navMode === 'sequential_locked') && currentIdx > idx
+                            const isLocked = navMode !== 'free' && (
+                              completedSections[sect.id] === true || (
+                                (navMode === 'locked' || navMode === 'sequential_locked') && currentIdx > idx
+                              )
                             );
 
                             return (
@@ -8793,20 +8822,9 @@ export default function App() {
                                     const currentIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
                                     const navMode = currentExam?.navigation_mode || 'free';
 
-                                    // Check lock status
-                                    const isTargetLocked = completedSections[targetSectionId] === true || (
-                                      (navMode === 'locked' || navMode === 'sequential_locked') && currentIdx > targetIdx
-                                    );
-                                    if (isTargetLocked) return;
-
-                                    // Check sequential rule
-                                    if ((navMode === 'sequential' || navMode === 'sequential_locked') && targetIdx > currentIdx + 1) {
-                                      showToast("Sequential navigation: You cannot skip future sections. Please complete sections in order.", "warning");
-                                      return;
-                                    }
-
-                                    // Free Navigation Mode: Bypass modal
+                                    // Free Navigation Mode: Completely ignore locking & confirmation modal
                                     if (navMode === 'free') {
+                                      console.log(`[RuntimeController] Free navigation mode: switching to section "${targetSectionId}" without locking or popup modal`);
                                       if (activeSectionId) {
                                         setSectionQuestionIndices(prev => ({ ...prev, [activeSectionId]: activeQuestionIndex }));
                                       }
@@ -8823,7 +8841,23 @@ export default function App() {
                                       return;
                                     }
 
+                                    // Check lock status for non-free modes
+                                    const isTargetLocked = completedSections[targetSectionId] === true || (
+                                      (navMode === 'locked' || navMode === 'sequential_locked') && currentIdx > targetIdx
+                                    );
+                                    if (isTargetLocked) {
+                                      console.log(`[RuntimeController] Section "${targetSectionId}" is locked in navigation mode "${navMode}"`);
+                                      return;
+                                    }
+
+                                    // Check sequential rule
+                                    if ((navMode === 'sequential' || navMode === 'sequential_locked') && targetIdx > currentIdx + 1) {
+                                      showToast("Sequential navigation: You cannot skip future sections. Please complete sections in order.", "warning");
+                                      return;
+                                    }
+
                                     // Non-free modes: Open confirmation dialog
+                                    console.log(`[RuntimeController] Opening section confirmation modal for switch to "${targetSectionId}"`);
                                     saveCurrentCodeImmediately();
                                     setPendingTargetSectionId(targetSectionId);
                                     setIsSectionConfirmModalOpen(true);
