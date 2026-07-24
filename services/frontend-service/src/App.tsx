@@ -6682,7 +6682,7 @@ export default function App() {
           {/* Navigation Mode */}
           {isCreatingNewExam ? (
             /* Wizard steps indicator */
-            <div className="mb-8 bg-white dark:bg-slate-955 border border-slate-200/60 dark:border-slate-850/60 rounded-2xl p-4 shadow-sm">
+            <div className="mb-8 bg-white dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800/60 rounded-2xl p-4 shadow-sm">
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 {[
                   { step: 1, label: 'Details', desc: 'Title, type & passing marks', key: 'overview' },
@@ -8014,7 +8014,7 @@ export default function App() {
 
             {/* NAVIGATION RULES TAB / STEP 4 */}
             {examWorkspaceTab === 'navigation' && (
-              <div className="p-6 bg-white dark:bg-slate-955 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
+              <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
                 <div>
                   <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Step 4: Candidate Navigation Rules</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">Control how candidates move between questions and sections during the test.</p>

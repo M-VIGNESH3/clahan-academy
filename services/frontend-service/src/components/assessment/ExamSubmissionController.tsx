@@ -86,7 +86,7 @@ export const ExamSubmissionController: React.FC<ExamSubmissionControllerProps> =
 
       {/* 3. Submitted Success Confirmation Modal (STILL FULLSCREEN) */}
       {phase === 'submitted_success' && (
-        <div className="max-w-md w-full p-8 rounded-3xl bg-white dark:bg-slate-955 border border-emerald-500/30 shadow-2xl space-y-6 text-center">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-white dark:bg-slate-950 border border-emerald-500/30 shadow-2xl space-y-6 text-center">
           <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
             <CheckCircle className="h-8 w-8" />
           </div>
@@ -120,7 +120,7 @@ export const ExamSubmissionController: React.FC<ExamSubmissionControllerProps> =
 
       {/* 4. Error Phase */}
       {phase === 'error' && (
-        <div className="max-w-md w-full p-8 rounded-3xl bg-white dark:bg-slate-955 border border-rose-500/30 shadow-2xl space-y-6 text-center">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-white dark:bg-slate-950 border border-rose-500/30 shadow-2xl space-y-6 text-center">
           <div className="h-16 w-16 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto">
             <AlertTriangle className="h-8 w-8" />
           </div>

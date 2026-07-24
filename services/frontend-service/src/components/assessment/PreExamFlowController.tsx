@@ -62,7 +62,7 @@ export const PreExamFlowController: React.FC<PreExamFlowControllerProps> = ({
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 font-sans space-y-6 animate-in fade-in duration-300">
       {/* Step Indicator */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 shadow-sm flex justify-between items-center text-xs">
+      <div className="p-4 rounded-2xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-sm flex justify-between items-center text-xs">
         {[
           { id: 'instructions', label: '1. Instructions' },
           { id: 'hardware', label: '2. Hardware Check' },
@@ -106,7 +106,7 @@ export const PreExamFlowController: React.FC<PreExamFlowControllerProps> = ({
 
       {/* Step 2: Hardware Check */}
       {step === 'hardware' && (
-        <div className="p-8 rounded-3xl bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 shadow-xl text-center space-y-6">
+        <div className="p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-xl text-center space-y-6">
           <div className="h-16 w-16 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto">
             <Camera className="h-8 w-8" />
           </div>
@@ -156,7 +156,7 @@ export const PreExamFlowController: React.FC<PreExamFlowControllerProps> = ({
 
       {/* Step 3: Face Detection */}
       {step === 'face' && (
-        <div className="p-8 rounded-3xl bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 shadow-xl text-center space-y-6">
+        <div className="p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-xl text-center space-y-6">
           <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
             <Shield className="h-8 w-8" />
           </div>
@@ -185,7 +185,7 @@ export const PreExamFlowController: React.FC<PreExamFlowControllerProps> = ({
 
       {/* Step 4: Fullscreen Enforce */}
       {step === 'fullscreen' && (
-        <div className="p-8 rounded-3xl bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 shadow-xl text-center space-y-6">
+        <div className="p-8 rounded-3xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-xl text-center space-y-6">
           <div className="h-16 w-16 rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto">
             <Maximize2 className="h-8 w-8" />
           </div>

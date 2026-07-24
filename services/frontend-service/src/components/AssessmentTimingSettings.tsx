@@ -176,7 +176,7 @@ export const AssessmentTimingSettings: React.FC<AssessmentTimingSettingsProps> =
         {/* Remaining Time Summary */}
         <div className={`p-3 border rounded-xl ${
           summary.isValid 
-            ? 'bg-slate-100 dark:bg-slate-955 border-slate-200 dark:border-slate-800' 
+            ? 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-slate-800' 
             : 'bg-rose-500/10 border-rose-500/30'
         }`}>
           <label className={`text-[10px] uppercase font-bold block ${summary.isValid ? 'text-muted-foreground' : 'text-rose-500'}`}>
@@ -199,7 +199,7 @@ export const AssessmentTimingSettings: React.FC<AssessmentTimingSettingsProps> =
             {summary.items.map((item, idx) => (
               <div
                 key={item.id || idx}
-                className="p-2.5 rounded-xl border bg-white dark:bg-slate-955 border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs"
+                className="p-2.5 rounded-xl border bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs"
               >
                 <div className="truncate mr-2">
                   <span className="font-bold block text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
