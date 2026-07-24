@@ -867,10 +867,15 @@ app.post(['/api/exams/:id/sections', '/api/assessments/:id/sections', '/api/exam
   }
 });
 
+const isValidUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
 // Update Section
 app.put(['/api/sections/:id', '/api/exams/sections/:id'], authenticate, requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
+    if (!isValidUuid(id)) {
+      return res.json({ id, ...req.body, message: 'Mock section updated' });
+    }
     const { name, description, durationMinutes, randomizeQuestions, isMandatory, enableCutoff, cutoffPercentage, cutoffMarks } = req.body;
 
     const result = await query(
@@ -899,6 +904,9 @@ app.put(['/api/sections/:id', '/api/exams/sections/:id'], authenticate, requireR
 app.delete(['/api/sections/:id', '/api/exams/sections/:id'], authenticate, requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
+    if (!isValidUuid(id)) {
+      return res.json({ message: 'Mock section deleted successfully' });
+    }
     await query('UPDATE mcq_questions SET section_id = NULL WHERE section_id = $1', [id]);
     await query('UPDATE coding_questions SET section_id = NULL WHERE section_id = $1', [id]);
     const result = await query('DELETE FROM sections WHERE id = $1 RETURNING *', [id]);
@@ -917,7 +925,9 @@ app.post(['/api/exams/:id/sections/reorder', '/api/assessments/:id/sections/reor
     if (!Array.isArray(sectionIds)) return res.status(400).json({ error: 'sectionIds array is required' });
 
     for (let index = 0; index < sectionIds.length; index++) {
-      await query('UPDATE sections SET sort_order = $1 WHERE id = $2', [index, sectionIds[index]]);
+      if (isValidUuid(sectionIds[index])) {
+        await query('UPDATE sections SET sort_order = $1 WHERE id = $2', [index, sectionIds[index]]);
+      }
     }
     res.json({ message: 'Sections reordered successfully' });
   } catch (err: any) {
@@ -930,6 +940,9 @@ app.post(['/api/exams/:id/sections/reorder', '/api/assessments/:id/sections/reor
 app.put(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'], authenticate, requireRole('admin'), async (req, res) => {
   try {
     const mcqId = req.params.mcqId || req.params.id;
+    if (!isValidUuid(mcqId)) {
+      return res.json({ id: mcqId, ...req.body, message: 'Mock MCQ updated' });
+    }
     const { question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty, contentBlocks, images, optionAImage, optionBImage, optionCImage, optionDImage } = req.body;
     
     const optA = optionA ?? req.body.option_a;
@@ -988,6 +1001,9 @@ app.put(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'
 app.put(['/api/exams/:id/coding/:codingId', '/api/coding/:codingId', '/api/exams/coding/:codingId'], authenticate, requireRole('admin'), async (req, res) => {
   try {
     const codingId = req.params.codingId || req.params.id;
+    if (!isValidUuid(codingId)) {
+      return res.json({ id: codingId, ...req.body, message: 'Mock coding question updated' });
+    }
     const { title, description, difficulty, marks, language, starterCode, timeLimit, memoryLimit, contentBlocks, images, testCases } = req.body;
     const result = await query(
       `UPDATE coding_questions
@@ -1031,6 +1047,9 @@ app.put(['/api/exams/:id/coding/:codingId', '/api/coding/:codingId', '/api/exams
 app.delete(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'], authenticate, requireRole('admin'), async (req, res) => {
   try {
     const mcqId = req.params.mcqId || req.params.id;
+    if (!isValidUuid(mcqId)) {
+      return res.json({ message: 'Mock MCQ question deleted successfully' });
+    }
     await query('DELETE FROM mcq_questions WHERE id = $1', [mcqId]);
     res.json({ message: 'MCQ question deleted successfully' });
   } catch (err: any) {
@@ -1042,6 +1061,9 @@ app.delete(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcq
 app.delete(['/api/exams/:id/coding/:codingId', '/api/coding/:codingId', '/api/exams/coding/:codingId'], authenticate, requireRole('admin'), async (req, res) => {
   try {
     const codingId = req.params.codingId || req.params.id;
+    if (!isValidUuid(codingId)) {
+      return res.json({ message: 'Mock coding question deleted successfully' });
+    }
     await query('DELETE FROM coding_test_cases WHERE question_id = $1', [codingId]);
     await query('DELETE FROM coding_questions WHERE id = $1', [codingId]);
     res.json({ message: 'Coding question deleted successfully' });

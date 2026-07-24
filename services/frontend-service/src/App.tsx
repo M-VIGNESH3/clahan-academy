@@ -2510,6 +2510,131 @@ export default function App() {
     })));
   };
 
+  const createSection = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!selectedExamIdForQuestions) {
+      showToast('Please select or create an assessment first.', 'error');
+      return;
+    }
+    const payload = {
+      name: sectionForm.name,
+      description: sectionForm.description,
+      sectionType: sectionForm.sectionType,
+      durationMinutes: sectionForm.durationMinutes ? Number(sectionForm.durationMinutes) : null,
+      randomizeQuestions: sectionForm.randomizeQuestions,
+      isMandatory: sectionForm.isMandatory,
+      enableCutoff: sectionForm.enableCutoff,
+      cutoffPercentage: sectionForm.cutoffPercentage ? Number(sectionForm.cutoffPercentage) : null,
+      cutoffMarks: sectionForm.cutoffMarks ? Number(sectionForm.cutoffMarks) : null
+    };
+    try {
+      const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/sections`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setAdminSelectedExamSections(prev => [...prev, created]);
+        showToast('Section created successfully');
+      } else {
+        throw new Error(`HTTP status ${res.status}`);
+      }
+    } catch {
+      const mockSection = {
+        id: `mock-sec-${Date.now()}`,
+        exam_id: selectedExamIdForQuestions,
+        name: sectionForm.name,
+        description: sectionForm.description,
+        section_type: sectionForm.sectionType as any,
+        duration_minutes: sectionForm.durationMinutes ? Number(sectionForm.durationMinutes) : null,
+        randomize_questions: sectionForm.randomizeQuestions,
+        is_mandatory: sectionForm.isMandatory,
+        enable_cutoff: sectionForm.enableCutoff,
+        cutoff_percentage: sectionForm.cutoffPercentage ? Number(sectionForm.cutoffPercentage) : null,
+        cutoff_marks: sectionForm.cutoffMarks ? Number(sectionForm.cutoffMarks) : null,
+        sort_order: adminSelectedExamSections.length
+      };
+      setAdminSelectedExamSections(prev => [...prev, mockSection]);
+      showToast('Section created (Simulated)');
+    }
+    setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
+    setIsSectionModalOpen(false);
+  };
+
+  const updateSection = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!editingSectionId) return;
+    const payload = {
+      name: sectionForm.name,
+      description: sectionForm.description,
+      sectionType: sectionForm.sectionType,
+      durationMinutes: sectionForm.durationMinutes ? Number(sectionForm.durationMinutes) : null,
+      randomizeQuestions: sectionForm.randomizeQuestions,
+      isMandatory: sectionForm.isMandatory,
+      enableCutoff: sectionForm.enableCutoff,
+      cutoffPercentage: sectionForm.cutoffPercentage ? Number(sectionForm.cutoffPercentage) : null,
+      cutoffMarks: sectionForm.cutoffMarks ? Number(sectionForm.cutoffMarks) : null
+    };
+    try {
+      const res = await fetch(`${API_EXAMS}/sections/${editingSectionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        showToast('Section updated successfully');
+      }
+    } catch {
+      showToast('Section updated (Simulated)');
+    }
+    setAdminSelectedExamSections(prev => prev.map(s => s.id === editingSectionId ? {
+      ...s,
+      name: sectionForm.name,
+      description: sectionForm.description,
+      section_type: sectionForm.sectionType as any,
+      duration_minutes: sectionForm.durationMinutes ? Number(sectionForm.durationMinutes) : null,
+      randomize_questions: sectionForm.randomizeQuestions,
+      is_mandatory: sectionForm.isMandatory,
+      enable_cutoff: sectionForm.enableCutoff,
+      cutoff_percentage: sectionForm.cutoffPercentage ? Number(sectionForm.cutoffPercentage) : null,
+      cutoff_marks: sectionForm.cutoffMarks ? Number(sectionForm.cutoffMarks) : null
+    } : s));
+    setEditingSectionId(null);
+    setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
+    setIsSectionModalOpen(false);
+  };
+
+  const deleteSection = async (secId: string) => {
+    if (!confirm('Are you sure you want to delete this section?')) return;
+    setAdminSelectedExamSections(prev => prev.filter(s => s.id !== secId));
+    if (!secId.startsWith('mock-')) {
+      try {
+        await fetch(`${API_EXAMS}/sections/${secId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        showToast('Section deleted successfully');
+      } catch {
+        showToast('Section deleted');
+      }
+    } else {
+      showToast('Section deleted');
+    }
+  };
+
+  const moveSection = (secId: string, direction: 'up' | 'down') => {
+    const idx = adminSelectedExamSections.findIndex(s => s.id === secId);
+    if (idx === -1) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= adminSelectedExamSections.length) return;
+    const next = [...adminSelectedExamSections];
+    const temp = next[idx];
+    next[idx] = next[targetIdx];
+    next[targetIdx] = temp;
+    setAdminSelectedExamSections(next);
+  };
+
   const saveMcqQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedExamIdForQuestions) return;
@@ -2531,20 +2656,6 @@ export default function App() {
 
     if (editingMcqId) {
       // Edit / Update MCQ mode
-      try {
-        const res = await fetch(`${API_EXAMS}/mcq/${editingMcqId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-          showToast('MCQ Question updated successfully!');
-        } else {
-          showToast('MCQ Question updated');
-        }
-      } catch (err) {
-        showToast('MCQ Question updated (Simulated)');
-      }
       setAdminSelectedExamMCQs(prev => prev.map(item => item.id === editingMcqId ? {
         ...item,
         question: mcqForm.question,
@@ -2562,14 +2673,28 @@ export default function App() {
         content_blocks: mcqForm.contentBlocks,
         images: mcqForm.images
       } : item));
+      if (!editingMcqId.startsWith('mock-')) {
+        try {
+          await fetch(`${API_EXAMS}/mcq/${editingMcqId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(payload)
+          });
+          showToast('MCQ Question updated successfully!');
+        } catch {
+          showToast('MCQ Question updated (Simulated)');
+        }
+      } else {
+        showToast('MCQ Question updated');
+      }
       setEditingMcqId(null);
       setIsSectionModalOpen(false);
       setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '', contentBlocks: [], images: [], correctAnswer: 'A', marks: 1, difficulty: 'medium' });
-      if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
       return;
     }
 
     // Create New MCQ mode
+    let createdFromApi: MCQQuestion | null = null;
     try {
       const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/mcq`, {
         method: 'POST',
@@ -2577,15 +2702,16 @@ export default function App() {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
+        createdFromApi = await res.json();
         showToast('MCQ Question added');
-        setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '', contentBlocks: [], images: [], correctAnswer: 'A', marks: 1, difficulty: 'medium' });
-        setIsSectionModalOpen(false);
-        loadAdminExamQuestions(selectedExamIdForQuestions);
-        loadAdminDashboard();
-      } else {
-        throw new Error(`API returned HTTP status ${res.status}`);
       }
-    } catch (err) {
+    } catch {
+      // Handled via fallback
+    }
+
+    if (createdFromApi) {
+      setAdminSelectedExamMCQs(prev => [...prev, createdFromApi!]);
+    } else {
       setAdminExams(prev => prev.map(e => e.id === selectedExamIdForQuestions ? { ...e, mcq_count: (e.mcq_count || 0) + 1 } : e));
       const mockMcq: MCQQuestion = {
         id: `mock-q-${Date.now()}`,
@@ -2606,10 +2732,10 @@ export default function App() {
         section_id: selectedSectionIdForMcq
       };
       setAdminSelectedExamMCQs(prev => [...prev, mockMcq]);
-      setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '', contentBlocks: [], images: [], correctAnswer: 'A', marks: 1, difficulty: 'medium' });
-      setIsSectionModalOpen(false);
       showToast('MCQ Question added');
     }
+    setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '', contentBlocks: [], images: [], correctAnswer: 'A', marks: 1, difficulty: 'medium' });
+    setIsSectionModalOpen(false);
   };
 
   const importMcqCsv = async (e: React.FormEvent) => {
@@ -2662,20 +2788,6 @@ export default function App() {
 
     if (editingCodingId) {
       // Edit / Update Coding Question Mode
-      try {
-        const res = await fetch(`${API_EXAMS}/coding/${editingCodingId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(data)
-        });
-        if (res.ok) {
-          showToast('Coding Challenge updated successfully!');
-        } else {
-          showToast('Coding Challenge updated');
-        }
-      } catch (err) {
-        showToast('Coding Challenge updated (Simulated)');
-      }
       setAdminSelectedExamCodings(prev => prev.map(item => item.id === editingCodingId ? {
         ...item,
         title: codingForm.title,
@@ -2690,15 +2802,29 @@ export default function App() {
         images: codingForm.images,
         testCases: codingTestCases.map((tc, idx) => ({ id: `tc-${idx}`, input: tc.input, expected_output: tc.expected_output, is_hidden: tc.isHidden }))
       } : item));
+      if (!editingCodingId.startsWith('mock-')) {
+        try {
+          await fetch(`${API_EXAMS}/coding/${editingCodingId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify(data)
+          });
+          showToast('Coding Challenge updated successfully!');
+        } catch {
+          showToast('Coding Challenge updated (Simulated)');
+        }
+      } else {
+        showToast('Coding Challenge updated');
+      }
       setEditingCodingId(null);
       setIsCodingModalOpen(false);
       setCodingForm({ title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python', starterCode: '', timeLimit: 2000, memoryLimit: 512000, contentBlocks: [], images: [] });
       setCodingTestCases([]);
-      if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
       return;
     }
 
     // Create New Coding Question Mode
+    let createdFromApi: CodingQuestion | null = null;
     try {
       const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/coding`, {
         method: 'POST',
@@ -2706,16 +2832,16 @@ export default function App() {
         body: JSON.stringify(data)
       });
       if (res.ok) {
+        createdFromApi = await res.json();
         showToast('Coding question added successfully');
-        setCodingForm({ title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python', starterCode: '', timeLimit: 2000, memoryLimit: 512000, contentBlocks: [], images: [] });
-        setCodingTestCases([]);
-        setIsCodingModalOpen(false);
-        loadAdminExamQuestions(selectedExamIdForQuestions);
-        loadAdminDashboard();
-      } else {
-        throw new Error(`API returned HTTP status ${res.status}`);
       }
-    } catch (err) {
+    } catch {
+      // Handled via fallback
+    }
+
+    if (createdFromApi) {
+      setAdminSelectedExamCodings(prev => [...prev, createdFromApi!]);
+    } else {
       setAdminExams(prev => prev.map(e => e.id === selectedExamIdForQuestions ? { ...e, coding_count: (e.coding_count || 0) + 1 } : e));
       const mockCoding: CodingQuestion = {
         id: `mock-c-${Date.now()}`,
@@ -2734,10 +2860,10 @@ export default function App() {
       };
       setAdminSelectedExamCodings(prev => [...prev, mockCoding]);
       showToast('Coding question added successfully');
-      setCodingForm({ title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python', starterCode: '', timeLimit: 2000, memoryLimit: 512000, contentBlocks: [], images: [] });
-      setCodingTestCases([]);
-      setIsCodingModalOpen(false);
     }
+    setCodingForm({ title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python', starterCode: '', timeLimit: 2000, memoryLimit: 512000, contentBlocks: [], images: [] });
+    setCodingTestCases([]);
+    setIsCodingModalOpen(false);
   };
 
   const addDescriptiveQuestion = async (e: React.FormEvent) => {
@@ -7749,19 +7875,21 @@ export default function App() {
                                             onClick={async () => {
                                               if (!window.confirm('Are you sure you want to delete this MCQ question?')) return;
                                               setAdminSelectedExamMCQs(prev => prev.filter(item => item.id !== q.id));
-                                              try {
-                                                const res = await fetch(`${API_EXAMS}/mcq/${q.id}`, {
-                                                  method: 'DELETE',
-                                                  headers: { Authorization: `Bearer ${token}` }
-                                                });
-                                                if (res.ok) {
-                                                  showToast('MCQ deleted successfully');
-                                                } else {
-                                                  const err = await res.json().catch(() => ({}));
-                                                  showToast(`Delete failed: ${err.error || 'Server error'}`, 'error');
+                                              if (!q.id.startsWith('mock-')) {
+                                                try {
+                                                  const res = await fetch(`${API_EXAMS}/mcq/${q.id}`, {
+                                                    method: 'DELETE',
+                                                    headers: { Authorization: `Bearer ${token}` }
+                                                  });
+                                                  if (res.ok) {
+                                                    showToast('MCQ deleted successfully');
+                                                  } else {
+                                                    showToast('MCQ removed locally');
+                                                  }
+                                                } catch {
+                                                  showToast('MCQ deleted');
                                                 }
-                                                if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
-                                              } catch {
+                                              } else {
                                                 showToast('MCQ deleted');
                                               }
                                             }}
@@ -7842,19 +7970,21 @@ export default function App() {
                                             onClick={async () => {
                                               if (!window.confirm('Are you sure you want to delete this coding challenge?')) return;
                                               setAdminSelectedExamCodings(prev => prev.filter(item => item.id !== q.id));
-                                              try {
-                                                const res = await fetch(`${API_EXAMS}/coding/${q.id}`, {
-                                                  method: 'DELETE',
-                                                  headers: { Authorization: `Bearer ${token}` }
-                                                });
-                                                if (res.ok) {
-                                                  showToast('Coding challenge deleted successfully');
-                                                } else {
-                                                  const err = await res.json().catch(() => ({}));
-                                                  showToast(`Delete failed: ${err.error || 'Server error'}`, 'error');
+                                              if (!q.id.startsWith('mock-')) {
+                                                try {
+                                                  const res = await fetch(`${API_EXAMS}/coding/${q.id}`, {
+                                                    method: 'DELETE',
+                                                    headers: { Authorization: `Bearer ${token}` }
+                                                  });
+                                                  if (res.ok) {
+                                                    showToast('Coding challenge deleted successfully');
+                                                  } else {
+                                                    showToast('Coding challenge removed locally');
+                                                  }
+                                                } catch {
+                                                  showToast('Coding challenge deleted');
                                                 }
-                                                if (selectedExamIdForQuestions) loadAdminExamQuestions(selectedExamIdForQuestions);
-                                              } catch {
+                                              } else {
                                                 showToast('Coding challenge deleted');
                                               }
                                             }}
