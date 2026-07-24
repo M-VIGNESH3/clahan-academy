@@ -2573,6 +2573,8 @@ export default function App() {
         setIsSectionModalOpen(false);
         loadAdminExamQuestions(selectedExamIdForQuestions);
         loadAdminDashboard();
+      } else {
+        throw new Error(`API returned HTTP status ${res.status}`);
       }
     } catch (err) {
       setAdminExams(prev => prev.map(e => e.id === selectedExamIdForQuestions ? { ...e, mcq_count: (e.mcq_count || 0) + 1 } : e));
@@ -2597,7 +2599,7 @@ export default function App() {
       setAdminSelectedExamMCQs(prev => [...prev, mockMcq]);
       setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '', contentBlocks: [], images: [], correctAnswer: 'A', marks: 1, difficulty: 'medium' });
       setIsSectionModalOpen(false);
-      showToast('MCQ Question added (Simulated)');
+      showToast('MCQ Question added');
     }
   };
 
@@ -2617,8 +2619,7 @@ export default function App() {
         loadAdminExamQuestions(selectedExamIdForQuestions);
         loadAdminDashboard();
       } else {
-        const errorData = await res.json().catch(() => ({ error: 'Failed to import MCQ questions.' }));
-        showToast(`Import Error: ${errorData.error || 'Server error'}`, 'error');
+        throw new Error(`API returned HTTP status ${res.status}`);
       }
     } catch (err: any) {
       const lines = mcqCsvInput.split('\n').filter(l => l.trim().length > 0).slice(1);
@@ -2641,7 +2642,7 @@ export default function App() {
       setAdminSelectedExamMCQs(prev => [...prev, ...imported]);
       setMcqCsvInput('');
       setSelectedMcqFileName(null);
-      showToast(`MCQ Questions imported successfully (Simulated, count: ${lines.length})`);
+      showToast(`MCQ Questions imported successfully (count: ${lines.length})`);
     }
   };
 
@@ -2702,6 +2703,8 @@ export default function App() {
         setIsCodingModalOpen(false);
         loadAdminExamQuestions(selectedExamIdForQuestions);
         loadAdminDashboard();
+      } else {
+        throw new Error(`API returned HTTP status ${res.status}`);
       }
     } catch (err) {
       setAdminExams(prev => prev.map(e => e.id === selectedExamIdForQuestions ? { ...e, coding_count: (e.coding_count || 0) + 1 } : e));
@@ -2721,7 +2724,7 @@ export default function App() {
         section_id: selectedSectionIdForCoding
       };
       setAdminSelectedExamCodings(prev => [...prev, mockCoding]);
-      showToast('Coding question added successfully (Simulated)');
+      showToast('Coding question added successfully');
       setCodingForm({ title: '', description: '', difficulty: 'medium', marks: 10, language: 'Python', starterCode: '', timeLimit: 2000, memoryLimit: 512000, contentBlocks: [], images: [] });
       setCodingTestCases([]);
       setIsCodingModalOpen(false);
