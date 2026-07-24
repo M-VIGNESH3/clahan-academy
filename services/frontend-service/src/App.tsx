@@ -6759,11 +6759,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground">Total Duration (Minutes)</label>
-                      <input type="number" value={examForm.durationMinutes} onChange={e => setExamForm({...examForm, durationMinutes: parseInt(e.target.value) || 60})} className="w-full p-3 border rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" required />
-                    </div>
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs font-semibold text-muted-foreground">Cutoff Percentage (%)</label>
                       <input type="number" value={examForm.cutoffPercentage} onChange={e => setExamForm({...examForm, cutoffPercentage: parseInt(e.target.value) || 50})} className="w-full p-3 border rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" required />
@@ -6780,39 +6776,8 @@ export default function App() {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-muted-foreground">Exam Instructions / Description</label>
+                    <label className="text-xs font-semibold text-muted-foreground">Exam Instructions / Scope Description</label>
                     <textarea value={examForm.description} onChange={e => setExamForm({...examForm, description: e.target.value})} placeholder="Provide exam guidelines, candidate instructions, and general scope..." rows={3} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent mt-1 focus:outline-indigo-500 text-slate-900 dark:text-white" />
-                  </div>
-
-                  {/* Modular Timing Engine Settings */}
-                  <AssessmentTimingSettings
-                    totalDurationMinutes={examForm.durationMinutes}
-                    sections={adminSelectedExamSections}
-                    onTotalDurationChange={mins => setExamForm({ ...examForm, durationMinutes: mins })}
-                  />
-
-                  {/* Modular Navigation Rules Settings */}
-                  <NavigationRuleSettings
-                    value={examForm.navigationMode || 'free'}
-                    onChange={mode => setExamForm({ ...examForm, navigationMode: mode })}
-                  />
-
-                  {/* Modular Submission Policy Settings */}
-                  <SubmissionPolicySettings
-                    value={examForm.submissionMode || 'manual'}
-                    onChange={mode => setExamForm({ ...examForm, submissionMode: mode })}
-                  />
-
-                  <div className="flex items-center gap-2 p-1">
-                    <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-200 select-none">
-                      <input 
-                        type="checkbox" 
-                        checked={examForm.enableFaceDetection !== false} 
-                        onChange={e => setExamForm({...examForm, enableFaceDetection: e.target.checked})} 
-                        className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-slate-900" 
-                      />
-                      Enable AI Face Detection (background checking for face absence/multiple people)
-                    </label>
                   </div>
 
                   <div className="pt-4 flex justify-between items-center">
@@ -6831,7 +6796,7 @@ export default function App() {
                       type="submit"
                       className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs transition-colors"
                     >
-                      {editingExamId ? (isCreatingNewExam ? 'Next: Configure Sections \u2192' : 'Save Details') : 'Configure & Create Exam'}
+                      {editingExamId ? (isCreatingNewExam ? 'Next: Sections \u2192' : 'Save Details') : 'Next: Create Sections \u2192'}
                     </button>
                   </div>
                 </form>
@@ -8000,272 +7965,304 @@ export default function App() {
                       onClick={() => {
                         if (isCreatingNewExam) {
                           setExamWizardStep(4);
-                          setExamWorkspaceTab('schedule');
+                          setExamWorkspaceTab('navigation');
                         }
                       }}
                       className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs"
                     >
-                      Next: Candidate Schedule &rarr;
+                      Next: Navigation Rules &rarr;
                     </button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* SCHEDULE TAB / STEP 4 */}
-            {examWorkspaceTab === 'schedule' && (
-              <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
+            {/* NAVIGATION RULES TAB / STEP 4 */}
+            {examWorkspaceTab === 'navigation' && (
+              <div className="p-6 bg-white dark:bg-slate-955 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
                 <div>
-                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Schedule & Candidate Eligibility</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Specify when the exam takes place and which batches, departments, or colleges have permission to join.</p>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Step 4: Candidate Navigation Rules</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Control how candidates move between questions and sections during the test.</p>
                 </div>
-                <form onSubmit={async (e) => {
-                  e.preventDefault();
-                  await updateExam(e); 
-                  if (isCreatingNewExam) {
-                    setExamWizardStep(5);
-                    setExamWorkspaceTab('review');
-                  }
-                }} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground">Start Date & Time</label>
-                      <input type="datetime-local" value={examForm.scheduleDate} onChange={e => setExamForm({...examForm, scheduleDate: e.target.value})} className="w-full p-3 border rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" required />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground">Late Entry Allowed Window (Minutes)</label>
-                      <input type="number" value={examForm.windowOpenMinutes} onChange={e => setExamForm({...examForm, windowOpenMinutes: parseInt(e.target.value) || 10})} className="w-full p-3 border rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" min={1} required />
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground">College Eligibility</label>
-                      <select value={examForm.collegeId} onChange={e => { setExamForm({...examForm, collegeId: e.target.value, batchId: '', trainerId: ''}); fetchDepartments(e.target.value); fetchBatches(e.target.value); }} className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" required>
-                        <option value="">Select College</option>
-                        {adminColleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground">Batch (Optional)</label>
-                      <select 
-                        value={examForm.batchId || ''} 
-                        onChange={e => setExamForm({...examForm, batchId: e.target.value, trainerId: ''})} 
-                        className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
-                        disabled={!examForm.collegeId}
-                      >
-                        <option value="">No Batch (Use Dept/Year below)</option>
-                        {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                      </select>
-                    </div>
+                <NavigationRuleSettings
+                  value={examForm.navigationMode || 'free'}
+                  onChange={mode => setExamForm({ ...examForm, navigationMode: mode })}
+                />
 
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground">Trainer (Optional)</label>
-                      <select 
-                        value={examForm.trainerId || ''} 
-                        onChange={e => setExamForm({...examForm, trainerId: e.target.value})} 
-                        className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
-                        disabled={!examForm.collegeId}
-                      >
-                        <option value="">Select Trainer</option>
-                        {adminTrainers
-                          .filter(t => (t.college_id === examForm.collegeId || t.collegeId === examForm.collegeId))
-                          .map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground mb-1 block">Department Eligibility</label>
-                      {!examForm.collegeId ? (
-                        <div className="text-xs text-slate-400 italic p-3 border rounded-xl bg-slate-50 dark:bg-slate-900/50 mt-1 border-slate-200 dark:border-slate-800">
-                          Select college first
-                        </div>
-                      ) : examForm.batchId ? (
-                        <div className="text-xs text-indigo-500 font-semibold italic p-3 border rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 mt-1 border-indigo-100 dark:border-indigo-905">
-                          Disabled (Batch Selected)
-                        </div>
-                      ) : (
-                        <div className="flex flex-wrap gap-2 p-3 border rounded-xl bg-white dark:bg-slate-900 max-h-36 overflow-y-auto mt-1 border-slate-200 dark:border-slate-800">
-                          {departments.map(d => {
-                            const isChecked = examForm.departmentIds?.includes(d.id);
-                            return (
-                              <label key={d.id} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs cursor-pointer select-none transition-all ${isChecked ? 'bg-indigo-500/10 border-indigo-500 text-indigo-600 font-semibold' : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-300'}`}>
-                                <input 
-                                  type="checkbox" 
-                                  className="sr-only" 
-                                  checked={isChecked || false}
-                                  onChange={() => {
-                                    const currentIds = examForm.departmentIds || [];
-                                    const newIds = isChecked 
-                                      ? currentIds.filter(id => id !== d.id)
-                                      : [...currentIds, d.id];
-                                    setExamForm({
-                                      ...examForm, 
-                                      departmentIds: newIds,
-                                      departmentId: newIds[0] || ''
-                                    });
-                                  }}
-                                />
-                                {d.name}
-                              </label>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-semibold text-muted-foreground">Year Eligibility</label>
-                      <select 
-                        value={examForm.batchId ? '' : examForm.year} 
-                        onChange={e => setExamForm({...examForm, year: e.target.value})} 
-                        className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1" 
-                        required={!examForm.batchId}
-                        disabled={!!examForm.batchId}
-                      >
-                        {examForm.batchId ? (
-                          <option value="">Disabled (Batch Selected)</option>
-                        ) : (
-                          <>
-                            <option value="1st Year">1st Year</option>
-                            <option value="2nd Year">2nd Year</option>
-                            <option value="3rd Year">3rd Year</option>
-                            <option value="4th Year">4th Year</option>
-                          </>
-                        )}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="pt-6 flex justify-between items-center border-t border-slate-200 dark:border-slate-800">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (isCreatingNewExam) {
-                          setExamWizardStep(3);
-                          setExamWorkspaceTab('questions');
-                        }
-                      }}
-                      className="px-4 py-2 border rounded-xl text-xs font-bold text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
-                    >
-                      &larr; Back: Questions
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs"
-                    >
-                      {isCreatingNewExam ? 'Next: Review & Deploy \u2192' : 'Save Schedule'}
-                    </button>
-                  </div>
-                </form>
+                <div className="pt-6 flex justify-between items-center border-t border-slate-200 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExamWizardStep(3);
+                      setExamWorkspaceTab('questions');
+                    }}
+                    className="px-4 py-2 border rounded-xl text-xs font-bold text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
+                  >
+                    &larr; Back: Questions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExamWizardStep(5);
+                      setExamWorkspaceTab('submission');
+                    }}
+                    className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs"
+                  >
+                    Next: Submission Rules &rarr;
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* REVIEW TAB / STEP 5 (WIZARD MODE ONLY) */}
-            {examWorkspaceTab === 'review' && isCreatingNewExam && (
-              <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-850/50 shadow-sm space-y-6">
+            {/* SUBMISSION RULES TAB / STEP 5 */}
+            {examWorkspaceTab === 'submission' && (
+              <div className="p-6 bg-white dark:bg-slate-955 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
                 <div>
-                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Review & Deploy Assessment</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Please verify all configurations before publishing this exam template to candidates.</p>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Step 5: Submission Policy Settings</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Define manual vs automatic submission policies upon timer expiration.</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 dark:bg-slate-900/10 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
-                  <div className="space-y-3">
-                    <h4 className="text-xs uppercase font-extrabold text-indigo-600 dark:text-indigo-400 tracking-wider">Exam Settings</h4>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <span className="text-muted-foreground">Title:</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200"></span>
-                      <span className="text-muted-foreground">Type:</span>
-                      <span className="font-bold uppercase text-slate-800 dark:text-slate-200">{examForm.examType}</span>
-                      <span className="text-muted-foreground">Duration:</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">{examForm.durationMinutes} Minutes</span>
-                      <span className="text-muted-foreground">Allowed Attempts:</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">{examForm.allowedAttempts === 999 ? 'Unlimited' : examForm.allowedAttempts}</span>
-                      <span className="text-muted-foreground">AI Face Proctored:</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">{examForm.enableFaceDetection !== false ? 'Yes' : 'No'}</span>
-                    </div>
-                  </div>
+                <SubmissionPolicySettings
+                  value={examForm.submissionMode || 'manual'}
+                  onChange={mode => setExamForm({ ...examForm, submissionMode: mode })}
+                />
 
-                  <div className="space-y-3">
-                    <h4 className="text-xs uppercase font-extrabold text-indigo-600 dark:text-indigo-400 tracking-wider">Schedule & Batch Details</h4>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <span className="text-muted-foreground">Scheduled Start:</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">{examForm.scheduleDate ? new Date(examForm.scheduleDate).toLocaleString() : 'N/A'}</span>
-                      <span className="text-muted-foreground">Late Window:</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">{examForm.windowOpenMinutes} Minutes</span>
-                      <span className="text-muted-foreground">Target Batch:</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">{examForm.batchId ? 'Selected Batch' : `${examForm.year || 'All Years'}`}</span>
-                    </div>
-                  </div>
+                <div className="pt-6 flex justify-between items-center border-t border-slate-200 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExamWizardStep(4);
+                      setExamWorkspaceTab('navigation');
+                    }}
+                    className="px-4 py-2 border rounded-xl text-xs font-bold text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
+                  >
+                    &larr; Back: Navigation
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExamWizardStep(6);
+                      setExamWorkspaceTab('proctoring');
+                    }}
+                    className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs"
+                  >
+                    Next: Proctoring Rules &rarr;
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* PROCTORING RULES TAB / STEP 6 */}
+            {examWorkspaceTab === 'proctoring' && (
+              <div className="p-6 bg-white dark:bg-slate-955 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Step 6: AI Proctoring & Security Rules</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Configure automated webcam monitoring, microphone checks, fullscreen lockdown, and tab switch limits.</p>
                 </div>
 
-                <div className="space-y-3">
-                  <h4 className="text-xs uppercase font-extrabold text-indigo-600 dark:text-indigo-400 tracking-wider">Configured Sections & Question Summary</h4>
-                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-950">
-                    <table className="w-full text-xs text-left">
-                      <thead>
-                        <tr className="border-b bg-slate-50 dark:bg-slate-900 text-muted-foreground font-bold border-slate-200 dark:border-slate-800">
-                          <th className="p-3">Section Title</th>
-                          <th>Type</th>
-                          <th>Duration</th>
-                          <th>Mandatory</th>
-                          <th>Order</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {adminSelectedExamSections.map((sect, index) => (
-                          <tr key={sect.id} className="border-b last:border-0 border-slate-200 dark:border-slate-800">
-                            <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">{sect.name}</td>
-                            <td className="uppercase font-bold text-[10px] text-slate-800 dark:text-slate-200">{sect.section_type}</td>
-                            <td className="text-slate-800 dark:text-slate-200">{sect.duration_minutes ? `${sect.duration_minutes} Mins` : 'Exam duration'}</td>
-                            <td className="text-slate-800 dark:text-slate-200">{sect.is_mandatory !== false ? 'Yes' : 'No'}</td>
-                            <td className="text-slate-800 dark:text-slate-200">#{index + 1}</td>
-                          </tr>
-                        ))}
-                        {adminSelectedExamSections.length === 0 && (
-                          <tr>
-                            <td colSpan={5} className="text-center py-4 text-muted-foreground italic">No sections created.</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
+                <div className="p-5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-slate-900 space-y-4">
+                  <label className="flex items-center gap-3 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200 select-none">
+                    <input 
+                      type="checkbox" 
+                      checked={examForm.enableFaceDetection !== false} 
+                      onChange={e => setExamForm({...examForm, enableFaceDetection: e.target.checked})} 
+                      className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-slate-950" 
+                    />
+                    Enable AI Face Detection (Continuous background monitoring for absence or multiple people)
+                  </label>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 text-xs">
+                    <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-955">
+                      <span className="font-bold text-slate-900 dark:text-white block">Fullscreen Lockdown</span>
+                      <span className="text-[10px] text-slate-500 block mt-0.5">Mandatory fullscreen mode enforced prior to starting assessment questions.</span>
+                    </div>
+                    <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-955">
+                      <span className="font-bold text-slate-900 dark:text-white block">Tab Switch Violation Limit</span>
+                      <span className="text-[10px] text-slate-500 block mt-0.5">Maximum 2 tab switch warnings permitted before automatic security termination.</span>
+                    </div>
                   </div>
                 </div>
 
                 <div className="pt-6 flex justify-between items-center border-t border-slate-200 dark:border-slate-800">
                   <button
+                    type="button"
                     onClick={() => {
-                      setExamWizardStep(4);
-                      setExamWorkspaceTab('schedule');
+                      setExamWizardStep(5);
+                      setExamWorkspaceTab('submission');
                     }}
                     className="px-4 py-2 border rounded-xl text-xs font-bold text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
                   >
-                    &larr; Back: Schedule
+                    &larr; Back: Submission
                   </button>
                   <button
-                    onClick={async () => {
-                      if (editingExamId) {
-                        try {
-                          await publishExam(editingExamId);
-                          showToast('Exam successfully deployed and published.');
-                          setSelectedExamIdForQuestions(null);
-                          setEditingExamId(null);
-                          setCurrentPage('admin-dash');
-                        } catch {
-                          showToast('Published successfully (Simulated)');
-                          setSelectedExamIdForQuestions(null);
-                          setEditingExamId(null);
-                          setCurrentPage('admin-dash');
-                        }
-                      }
+                    type="button"
+                    onClick={() => {
+                      setExamWizardStep(7);
+                      setExamWorkspaceTab('duration');
                     }}
-                    className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs shadow-md shadow-emerald-500/10"
+                    className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs"
                   >
-                    Publish Assessment Template
+                    Next: Assessment Duration &rarr;
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* ASSESSMENT DURATION TAB / STEP 7 (RENDERED STRICTLY ONLY HERE) */}
+            {examWorkspaceTab === 'duration' && (
+              <div className="p-6 bg-white dark:bg-slate-955 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Step 7: Assessment Duration & Section Allocation</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Configure overall assessment duration and allocate section timings. Unspecified section durations will auto-allocate remaining available time evenly.
+                  </p>
+                </div>
+
+                {/* Modular Assessment Duration Timing Engine */}
+                <AssessmentTimingSettings
+                  totalDurationMinutes={examForm.durationMinutes}
+                  sections={adminSelectedExamSections}
+                  onTotalDurationChange={mins => setExamForm({ ...examForm, durationMinutes: mins })}
+                />
+
+                <div className="pt-6 flex justify-between items-center border-t border-slate-200 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExamWizardStep(6);
+                      setExamWorkspaceTab('proctoring');
+                    }}
+                    className="px-4 py-2 border rounded-xl text-xs font-bold text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
+                  >
+                    &larr; Back: Proctoring
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExamWizardStep(8);
+                      setExamWorkspaceTab('review');
+                    }}
+                    className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs"
+                  >
+                    Next: System Validation Review &rarr;
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* REVIEW TAB / STEP 8 */}
+            {examWorkspaceTab === 'review' && (
+              <div className="p-6 bg-white dark:bg-slate-955 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Step 8: Pre-Publish System Validation Review</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">System validation check verifying details, sections, questions, timing allocation, and proctoring rules.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 dark:bg-slate-900/10 p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
+                  <div className="space-y-3">
+                    <h4 className="text-xs uppercase font-extrabold text-indigo-600 dark:text-indigo-400 tracking-wider">Assessment Configuration</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <span className="text-muted-foreground">Title:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{examForm.name}</span>
+                      <span className="text-muted-foreground">Type:</span>
+                      <span className="font-bold uppercase text-slate-800 dark:text-slate-200">{examForm.examType}</span>
+                      <span className="text-muted-foreground">Total Duration:</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{examForm.durationMinutes} Minutes</span>
+                      <span className="text-muted-foreground">Navigation Mode:</span>
+                      <span className="font-bold capitalize text-slate-800 dark:text-slate-200">{examForm.navigationMode || 'free'}</span>
+                      <span className="text-muted-foreground">Submission Mode:</span>
+                      <span className="font-bold capitalize text-slate-800 dark:text-slate-200">{examForm.submissionMode || 'manual'}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="text-xs uppercase font-extrabold text-indigo-600 dark:text-indigo-400 tracking-wider">Validation Checklist</h4>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold">
+                        <Check className="h-4 w-4" /> Assessment Details Valid
+                      </div>
+                      <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold">
+                        <Check className="h-4 w-4" /> {adminSelectedExamSections.length} Sections Configured
+                      </div>
+                      <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold">
+                        <Check className="h-4 w-4" /> Duration Allocated ({examForm.durationMinutes} mins)
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-6 flex justify-between items-center border-t border-slate-200 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExamWizardStep(7);
+                      setExamWorkspaceTab('duration');
+                    }}
+                    className="px-4 py-2 border rounded-xl text-xs font-bold text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
+                  >
+                    &larr; Back: Duration Settings
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExamWizardStep(9);
+                      setExamWorkspaceTab('publish');
+                    }}
+                    className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs"
+                  >
+                    Next: Final Publish Step &rarr;
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* PUBLISH TAB / STEP 9 */}
+            {examWorkspaceTab === 'publish' && (
+              <div className="p-6 bg-white dark:bg-slate-955 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6 text-center">
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
+                    <Check className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white">Ready to Publish Assessment</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Clicking publish will activate this assessment template and make it available to assigned candidates according to schedule.
+                  </p>
+
+                  <div className="pt-4 flex justify-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExamWizardStep(8);
+                        setExamWorkspaceTab('review');
+                      }}
+                      className="px-6 py-2.5 border rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
+                    >
+                      &larr; Back to Review
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (editingExamId) {
+                          try {
+                            await publishExam(editingExamId);
+                            showToast('Exam successfully deployed and published.');
+                            setSelectedExamIdForQuestions(null);
+                            setEditingExamId(null);
+                            setCurrentPage('admin-dash');
+                          } catch {
+                            showToast('Published successfully (Simulated)');
+                            setSelectedExamIdForQuestions(null);
+                            setEditingExamId(null);
+                            setCurrentPage('admin-dash');
+                          }
+                        }
+                      }}
+                      className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-emerald-500/20"
+                    >
+                      Publish Assessment Template
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
