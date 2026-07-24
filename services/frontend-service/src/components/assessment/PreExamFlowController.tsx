@@ -89,17 +89,17 @@ export const PreExamFlowController: React.FC<PreExamFlowControllerProps> = ({
       {step === 'instructions' && (
         <div className="space-y-6">
           <AssessmentInstructions
-            examName={exam?.name || 'Assessment Environment'}
-            durationMinutes={exam?.duration_minutes || 60}
-            cutoffPercentage={exam?.cutoff_percentage || 50}
-            negativeMarkingRules="No negative marking applied unless specified per question."
-            navigationRules={exam?.navigation_mode === 'locked' ? 'Locked (Sequential question progression)' : 'Free Navigation (Jump between questions allowed)'}
-            submissionRules={exam?.submission_mode === 'auto' ? 'Auto-submit on timer expiry' : 'Manual submission with confirm dialog'}
-            proctoringWarnings="Webcam, microphone, and fullscreen focus monitored. Tab switching triggers fraud warnings."
-            customInstructions={exam?.description || 'Ensure stable internet connectivity and clean physical workspace environment.'}
-            accepted={acceptedTerms}
-            onAcceptChange={setAcceptedTerms}
-            onStart={() => setStep('hardware')}
+            exam={{
+              name: exam?.name || 'Assessment Environment',
+              duration_minutes: exam?.duration_minutes || 60,
+              cutoff_percentage: exam?.cutoff_percentage || 50,
+              navigation_mode: exam?.navigation_mode || 'free',
+              submission_mode: exam?.submission_mode || 'manual',
+              enable_face_detection: exam?.enable_face_detection !== false
+            }}
+            sectionsCount={exam?.sections?.length || 1}
+            totalQuestionsCount={exam?.total_questions_count || 10}
+            onProceed={() => setStep('hardware')}
           />
         </div>
       )}
