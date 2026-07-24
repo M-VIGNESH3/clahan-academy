@@ -6797,17 +6797,20 @@ export default function App() {
 
                       {/* Target Department */}
                       <div>
-                        <label className="text-xs font-semibold text-muted-foreground">Target Department</label>
+                        <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
+                          <span>Target Department</span>
+                          {examForm.batchId && <span className="text-[10px] text-amber-500 font-bold">(Batch Selected)</span>}
+                        </label>
                         <select
-                          value={examForm.departmentId}
+                          value={examForm.batchId ? '' : examForm.departmentId}
                           onChange={e => {
                             const dId = e.target.value;
                             setExamForm({ ...examForm, departmentId: dId, departmentIds: dId ? [dId] : [] });
                           }}
-                          disabled={!examForm.collegeId}
+                          disabled={!examForm.collegeId || Boolean(examForm.batchId)}
                           className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
                         >
-                          <option value="">All Departments</option>
+                          <option value="">{examForm.batchId ? 'Auto-scoped by Batch' : 'All Departments'}</option>
                           {departments.map(d => (
                             <option key={d.id} value={d.id}>{d.name}</option>
                           ))}
@@ -6819,7 +6822,10 @@ export default function App() {
                         <label className="text-xs font-semibold text-muted-foreground">Target Batch</label>
                         <select
                           value={examForm.batchId}
-                          onChange={e => setExamForm({ ...examForm, batchId: e.target.value })}
+                          onChange={e => {
+                            const bId = e.target.value;
+                            setExamForm({ ...examForm, batchId: bId, ...(bId ? { departmentId: '', departmentIds: [] } : {}) });
+                          }}
                           disabled={!examForm.collegeId}
                           className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
                         >
@@ -6832,13 +6838,17 @@ export default function App() {
 
                       {/* Target Academic Year */}
                       <div>
-                        <label className="text-xs font-semibold text-muted-foreground">Target Academic Year</label>
+                        <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
+                          <span>Target Academic Year</span>
+                          {examForm.batchId && <span className="text-[10px] text-amber-500 font-bold">(Batch Selected)</span>}
+                        </label>
                         <select
-                          value={examForm.year}
+                          value={examForm.batchId ? 'All Years' : examForm.year}
                           onChange={e => setExamForm({ ...examForm, year: e.target.value })}
-                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                          disabled={Boolean(examForm.batchId)}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
                         >
-                          <option value="All Years">All Academic Years</option>
+                          <option value="All Years">{examForm.batchId ? 'Auto-scoped by Batch' : 'All Academic Years'}</option>
                           <option value="1st Year">1st Year</option>
                           <option value="2nd Year">2nd Year</option>
                           <option value="3rd Year">3rd Year</option>
@@ -7059,17 +7069,20 @@ export default function App() {
 
                       {/* Target Department */}
                       <div>
-                        <label className="text-xs font-semibold text-muted-foreground">Target Department</label>
+                        <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
+                          <span>Target Department</span>
+                          {examForm.batchId && <span className="text-[10px] text-amber-500 font-bold">(Batch Selected)</span>}
+                        </label>
                         <select
-                          value={examForm.departmentId}
+                          value={examForm.batchId ? '' : examForm.departmentId}
                           onChange={e => {
                             const dId = e.target.value;
                             setExamForm({ ...examForm, departmentId: dId, departmentIds: dId ? [dId] : [] });
                           }}
-                          disabled={!examForm.collegeId}
+                          disabled={!examForm.collegeId || Boolean(examForm.batchId)}
                           className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
                         >
-                          <option value="">All Departments</option>
+                          <option value="">{examForm.batchId ? 'Auto-scoped by Batch' : 'All Departments'}</option>
                           {departments.map(d => (
                             <option key={d.id} value={d.id}>{d.name}</option>
                           ))}
@@ -7081,7 +7094,10 @@ export default function App() {
                         <label className="text-xs font-semibold text-muted-foreground">Target Batch</label>
                         <select
                           value={examForm.batchId}
-                          onChange={e => setExamForm({ ...examForm, batchId: e.target.value })}
+                          onChange={e => {
+                            const bId = e.target.value;
+                            setExamForm({ ...examForm, batchId: bId, ...(bId ? { departmentId: '', departmentIds: [] } : {}) });
+                          }}
                           disabled={!examForm.collegeId}
                           className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
                         >
@@ -7094,13 +7110,17 @@ export default function App() {
 
                       {/* Target Academic Year */}
                       <div>
-                        <label className="text-xs font-semibold text-muted-foreground">Target Academic Year</label>
+                        <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
+                          <span>Target Academic Year</span>
+                          {examForm.batchId && <span className="text-[10px] text-amber-500 font-bold">(Batch Selected)</span>}
+                        </label>
                         <select
-                          value={examForm.year}
+                          value={examForm.batchId ? 'All Years' : examForm.year}
                           onChange={e => setExamForm({ ...examForm, year: e.target.value })}
-                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                          disabled={Boolean(examForm.batchId)}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
                         >
-                          <option value="All Years">All Academic Years</option>
+                          <option value="All Years">{examForm.batchId ? 'Auto-scoped by Batch' : 'All Academic Years'}</option>
                           <option value="1st Year">1st Year</option>
                           <option value="2nd Year">2nd Year</option>
                           <option value="3rd Year">3rd Year</option>
