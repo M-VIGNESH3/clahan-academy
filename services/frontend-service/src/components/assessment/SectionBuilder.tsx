@@ -232,7 +232,7 @@ export const SectionBuilder: React.FC<SectionBuilderProps> = ({
                     value={form.cutoff_percentage || ''}
                     onChange={e => setForm({ ...form, cutoff_percentage: e.target.value })}
                     placeholder="e.g. 40"
-                    className="w-full p-2.5 border rounded-lg text-xs bg-white dark:bg-slate-955 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800 mt-1"
+                    className="w-full p-2.5 border rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800 mt-1"
                     min={0}
                     max={100}
                   />
@@ -244,7 +244,7 @@ export const SectionBuilder: React.FC<SectionBuilderProps> = ({
                     value={form.cutoff_marks || ''}
                     onChange={e => setForm({ ...form, cutoff_marks: e.target.value })}
                     placeholder="e.g. 10"
-                    className="w-full p-2.5 border rounded-lg text-xs bg-white dark:bg-slate-955 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800 mt-1"
+                    className="w-full p-2.5 border rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800 mt-1"
                     min={0}
                   />
                 </div>

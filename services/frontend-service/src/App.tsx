@@ -2460,6 +2460,41 @@ export default function App() {
     }
   };
 
+  const startEditingExam = (ex: any) => {
+    setEditingExamId(ex.id);
+    setSelectedExamIdForQuestions(ex.id);
+    setExamForm({
+      name: ex.name || '',
+      description: ex.description || '',
+      examType: ex.exam_type || ex.examType || 'custom',
+      durationMinutes: ex.duration_minutes || ex.durationMinutes || 60,
+      cutoffPercentage: ex.cutoff_percentage || ex.cutoffPercentage || 50,
+      allowedAttempts: ex.allowed_attempts || ex.allowedAttempts || 1,
+      scheduleDate: ex.schedule_date || ex.scheduleDate || getLocalDatetimeString(),
+      windowOpenMinutes: ex.window_open_minutes || ex.windowOpenMinutes || 10,
+      collegeId: ex.college_id || ex.collegeId || '',
+      departmentId: ex.department_id || ex.departmentId || '',
+      departmentIds: ex.department_ids || ex.departmentIds || [],
+      batchId: ex.batch_id || ex.batchId || '',
+      trainerId: ex.trainer_id || ex.trainerId || '',
+      year: ex.year || '1st Year',
+      enableFaceDetection: ex.enable_face_detection !== false,
+      enableSectionCutoff: ex.enable_section_cutoff === true,
+      mcqCutoffPercentage: ex.mcq_cutoff_percentage || 50,
+      codingCutoffPercentage: ex.coding_cutoff_percentage || 50,
+      mcqCutoffMarks: ex.mcq_cutoff_marks || 0,
+      codingCutoffMarks: ex.coding_cutoff_marks || 0,
+      navigationMode: ex.navigation_mode || ex.navigationMode || 'free',
+      submissionMode: ex.submission_mode || ex.submissionMode || 'manual',
+      timingMode: ex.timing_mode || ex.timingMode || 'overall'
+    });
+    loadAdminExamQuestions(ex.id);
+    setIsCreatingNewExam(true);
+    setExamWizardStep(1);
+    setExamWorkspaceTab('overview');
+    setCurrentPage('exam-workspace');
+  };
+
   const [editingMcqId, setEditingMcqId] = useState<string | null>(null);
   const [editingCodingId, setEditingCodingId] = useState<string | null>(null);
 
@@ -6665,7 +6700,7 @@ export default function App() {
                   return (
                     <div key={s.step} className="flex-1 flex items-center w-full min-w-[120px]">
                       <button 
-                        disabled={s.step > 1 && !editingExamId} 
+                        disabled={s.step > 1 && !editingExamId && !selectedExamIdForQuestions && !isCreatingNewExam} 
                         onClick={() => {
                           setExamWizardStep(s.step);
                           setExamWorkspaceTab(s.key as any);

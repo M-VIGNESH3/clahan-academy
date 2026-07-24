@@ -191,11 +191,11 @@ export const ResultReportView: React.FC<ResultReportProps> = ({
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
               <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Coding Execution Test Cases</h4>
               <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="flex justify-between items-center p-2 rounded-xl bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800">
+                <div className="flex justify-between items-center p-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                   <span className="text-slate-500 font-semibold">Visible Test Cases:</span>
                   <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">{visibleTestCasesPassed} / {totalVisibleTestCases}</span>
                 </div>
-                <div className="flex justify-between items-center p-2 rounded-xl bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800">
+                <div className="flex justify-between items-center p-2 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                   <span className="text-slate-500 font-semibold">Hidden Test Cases:</span>
                   <span className="font-bold font-mono text-indigo-600 dark:text-indigo-400">{hiddenTestCasesPassed} / {totalHiddenTestCases}</span>
                 </div>

@@ -137,7 +137,7 @@ export const AssessmentTimingSettings: React.FC<AssessmentTimingSettingsProps> =
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         {/* Total Duration Control */}
-        <div className="p-3 bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl">
+        <div className="p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
           <label className="text-[10px] uppercase font-bold text-muted-foreground block">
             Overall Duration (Mins)
           </label>
