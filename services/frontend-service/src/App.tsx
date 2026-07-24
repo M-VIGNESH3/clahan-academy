@@ -9312,7 +9312,14 @@ export default function App() {
                           className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap mt-4"
                           style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
                         >
-                        style={{ width: (isFullscreenEditor || isDescriptionCollapsed) ? 'auto' : `${editorWidth}px` }} 
+                          Problem Statement
+                        </span>
+                      </button>
+                    )}
+
+                    {/* 3. CENTER: RESIZABLE MONACO CODE EDITOR */}
+                    <div 
+                      style={{ width: (isFullscreenEditor || isDescriptionCollapsed) ? 'auto' : `${editorWidth}px` }} 
                       className={`flex-1 lg:flex-initial flex flex-col bg-slate-950 border-r border-white/10 overflow-hidden relative transition-all duration-100 ${
                         isFullscreenEditor ? 'fixed inset-0 z-50 bg-slate-950 p-6' : ''
                       }`}
@@ -9372,6 +9379,7 @@ export default function App() {
                           </select>
                         </div>
 
+                        <div className="flex items-center gap-3">
                           {/* Compiler Language Selection */}
                           <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-white/5">
                             <select
@@ -9399,7 +9407,7 @@ export default function App() {
                                 setCodingSolutions(updatedSolutions);
                                 saveCurrentCodeImmediately(updatedSolutions);
                               }}
-                              className="bg-transparent border-0 text-[10px] font-bold px-2 py-0.5 text-slate-205 outline-none cursor-pointer"
+                              className="bg-transparent border-0 text-[10px] font-bold px-2 py-0.5 text-slate-200 outline-none cursor-pointer"
                             >
                               <option value="Python">Python</option>
                               <option value="Java">Java</option>
@@ -9606,7 +9614,7 @@ export default function App() {
                                 onClick={() => setOutputTab(tab)}
                                 className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
                                   outputTab === tab 
-                                    ? 'bg-indigo-600/10 border-indigo-500/35 text-indigo-405' 
+                                    ? 'bg-indigo-600/10 border-indigo-500/35 text-indigo-400' 
                                     : 'bg-transparent border-transparent text-slate-500 hover:text-slate-300'
                                 }`}
                               >
@@ -9619,7 +9627,7 @@ export default function App() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => setIsFullscreenOutput(!isFullscreenOutput)}
-                            className="p-1 hover:bg-slate-805 rounded text-slate-400 hover:text-white transition-colors"
+                            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors"
                             title={isFullscreenOutput ? "Exit Fullscreen" : "Fullscreen Output"}
                           >
                             {isFullscreenOutput ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
