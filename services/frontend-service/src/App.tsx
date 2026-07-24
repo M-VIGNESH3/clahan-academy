@@ -6767,19 +6767,23 @@ export default function App() {
                   </div>
 
                   {/* Target Audience & Allocation Controls */}
-                  <div className="p-4 rounded-xl border border-indigo-200/60 dark:border-indigo-900/40 bg-indigo-50/20 dark:bg-indigo-950/10 space-y-3">
-                    <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Target College & Batch Allocation</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-5 rounded-2xl border border-indigo-200/60 dark:border-indigo-900/40 bg-indigo-50/20 dark:bg-indigo-950/10 space-y-4">
+                    <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Users className="h-4 w-4" /> Target Audience & Institution Allocation
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Target College */}
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground">Target College</label>
                         <select
                           value={examForm.collegeId}
                           onChange={e => {
                             const cId = e.target.value;
-                            setExamForm({ ...examForm, collegeId: cId, batchId: '', departmentId: '' });
+                            setExamForm({ ...examForm, collegeId: cId, batchId: '', departmentId: '', departmentIds: [], trainerId: '' });
                             if (cId) {
                               fetchDepartments(cId);
                               fetchBatches(cId);
+                              fetchRegisterTrainers(cId);
                             }
                           }}
                           className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
@@ -6791,6 +6795,26 @@ export default function App() {
                         </select>
                       </div>
 
+                      {/* Target Department */}
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Target Department</label>
+                        <select
+                          value={examForm.departmentId}
+                          onChange={e => {
+                            const dId = e.target.value;
+                            setExamForm({ ...examForm, departmentId: dId, departmentIds: dId ? [dId] : [] });
+                          }}
+                          disabled={!examForm.collegeId}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
+                        >
+                          <option value="">All Departments</option>
+                          {departments.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Target Batch */}
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground">Target Batch</label>
                         <select
@@ -6806,6 +6830,7 @@ export default function App() {
                         </select>
                       </div>
 
+                      {/* Target Academic Year */}
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground">Target Academic Year</label>
                         <select
@@ -6819,6 +6844,70 @@ export default function App() {
                           <option value="3rd Year">3rd Year</option>
                           <option value="4th Year">4th Year</option>
                         </select>
+                      </div>
+                    </div>
+
+                    {/* Assigned Trainer Selection */}
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">Assigned Trainer / Exam Supervisor (Optional)</label>
+                      <select
+                        value={examForm.trainerId}
+                        onChange={e => setExamForm({ ...examForm, trainerId: e.target.value })}
+                        disabled={!examForm.collegeId && registerTrainers.length === 0 && adminTrainers.length === 0}
+                        className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
+                      >
+                        <option value="">Unassigned (Open Supervision)</option>
+                        {(registerTrainers.length > 0 ? registerTrainers : adminTrainers).map(t => (
+                          <option key={t.id} value={t.id}>{t.name} ({t.email})</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Date, Time & Window Scheduling Controls */}
+                  <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 space-y-4">
+                    <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-indigo-500" /> Start Date, Entry Window & Duration Rules
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Schedule Start Date & Time *</label>
+                        <input
+                          type="datetime-local"
+                          value={examForm.scheduleDate}
+                          onChange={e => setExamForm({ ...examForm, scheduleDate: e.target.value })}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Entry Window Open (Minutes)</label>
+                        <select
+                          value={examForm.windowOpenMinutes}
+                          onChange={e => setExamForm({ ...examForm, windowOpenMinutes: parseInt(e.target.value) || 10 })}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                        >
+                          <option value="5">5 Minutes Strict Entry</option>
+                          <option value="10">10 Minutes Window (Standard)</option>
+                          <option value="15">15 Minutes Window</option>
+                          <option value="30">30 Minutes Window</option>
+                          <option value="60">1 Hour Window</option>
+                          <option value="120">2 Hours Window</option>
+                          <option value="1440">24 Hours / 1 Day Window</option>
+                          <option value="999999">Always Open / Flexible Entry</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Assessment Duration (Minutes)</label>
+                        <input
+                          type="number"
+                          value={examForm.durationMinutes}
+                          onChange={e => setExamForm({ ...examForm, durationMinutes: parseInt(e.target.value) || 60 })}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white"
+                          required
+                        />
                       </div>
                     </div>
                   </div>
@@ -6861,6 +6950,195 @@ export default function App() {
                       className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs transition-colors"
                     >
                       {editingExamId ? (isCreatingNewExam ? 'Next: Sections \u2192' : 'Save Details') : 'Next: Create Sections \u2192'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* DEDICATED SCHEDULE & ALLOCATION TAB */}
+            {examWorkspaceTab === 'schedule' && (
+              <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    Assessment Schedule & Target Audience Allocation
+                  </h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Configure schedule start dates, entry window timeouts, target colleges, departments, batches, and assigned trainers.
+                  </p>
+                </div>
+
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (editingExamId) {
+                    await updateExam(e);
+                  } else {
+                    await createExam(e);
+                  }
+                }} className="space-y-6">
+                  {/* Schedule Timing & Entry Window */}
+                  <div className="p-5 rounded-2xl border border-indigo-200/60 dark:border-indigo-900/40 bg-indigo-50/20 dark:bg-indigo-950/10 space-y-4">
+                    <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Clock className="h-4 w-4" /> Start Date, Time & Entry Window
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Schedule Start Date & Time *</label>
+                        <input
+                          type="datetime-local"
+                          value={examForm.scheduleDate}
+                          onChange={e => setExamForm({ ...examForm, scheduleDate: e.target.value })}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Entry Window Open (Minutes)</label>
+                        <select
+                          value={examForm.windowOpenMinutes}
+                          onChange={e => setExamForm({ ...examForm, windowOpenMinutes: parseInt(e.target.value) || 10 })}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                        >
+                          <option value="5">5 Minutes Strict Entry</option>
+                          <option value="10">10 Minutes Window (Standard)</option>
+                          <option value="15">15 Minutes Window</option>
+                          <option value="30">30 Minutes Window</option>
+                          <option value="60">1 Hour Window</option>
+                          <option value="120">2 Hours Window</option>
+                          <option value="1440">24 Hours / 1 Day Window</option>
+                          <option value="999999">Always Open / Flexible Entry</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Allowed Attempt Limit</label>
+                        <select
+                          value={examForm.allowedAttempts}
+                          onChange={e => setExamForm({ ...examForm, allowedAttempts: parseInt(e.target.value) || 1 })}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                        >
+                          <option value="1">1 Attempt Only</option>
+                          <option value="2">2 Attempts</option>
+                          <option value="3">3 Attempts</option>
+                          <option value="999">Unlimited Attempts</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Target Audience & Institution Allocation */}
+                  <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 space-y-4">
+                    <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                      <Users className="h-4 w-4 text-indigo-500" /> Target Institution, Department & Batch Allocation
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Target College */}
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Target College</label>
+                        <select
+                          value={examForm.collegeId}
+                          onChange={e => {
+                            const cId = e.target.value;
+                            setExamForm({ ...examForm, collegeId: cId, batchId: '', departmentId: '', departmentIds: [], trainerId: '' });
+                            if (cId) {
+                              fetchDepartments(cId);
+                              fetchBatches(cId);
+                              fetchRegisterTrainers(cId);
+                            }
+                          }}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                        >
+                          <option value="">All Colleges (Global Access)</option>
+                          {colleges.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Target Department */}
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Target Department</label>
+                        <select
+                          value={examForm.departmentId}
+                          onChange={e => {
+                            const dId = e.target.value;
+                            setExamForm({ ...examForm, departmentId: dId, departmentIds: dId ? [dId] : [] });
+                          }}
+                          disabled={!examForm.collegeId}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
+                        >
+                          <option value="">All Departments</option>
+                          {departments.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Target Batch */}
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Target Batch</label>
+                        <select
+                          value={examForm.batchId}
+                          onChange={e => setExamForm({ ...examForm, batchId: e.target.value })}
+                          disabled={!examForm.collegeId}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
+                        >
+                          <option value="">All Batches in College</option>
+                          {batches.map(b => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Target Academic Year */}
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Target Academic Year</label>
+                        <select
+                          value={examForm.year}
+                          onChange={e => setExamForm({ ...examForm, year: e.target.value })}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                        >
+                          <option value="All Years">All Academic Years</option>
+                          <option value="1st Year">1st Year</option>
+                          <option value="2nd Year">2nd Year</option>
+                          <option value="3rd Year">3rd Year</option>
+                          <option value="4th Year">4th Year</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Assigned Trainer Selection */}
+                    <div>
+                      <label className="text-xs font-semibold text-muted-foreground">Assigned Trainer / Exam Supervisor (Optional)</label>
+                      <select
+                        value={examForm.trainerId}
+                        onChange={e => setExamForm({ ...examForm, trainerId: e.target.value })}
+                        disabled={!examForm.collegeId && registerTrainers.length === 0 && adminTrainers.length === 0}
+                        className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
+                      >
+                        <option value="">Unassigned (Open Supervision)</option>
+                        {(registerTrainers.length > 0 ? registerTrainers : adminTrainers).map(t => (
+                          <option key={t.id} value={t.id}>{t.name} ({t.email})</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setExamWorkspaceTab('overview')}
+                      className="px-4 py-2 border rounded-xl text-xs font-bold text-muted-foreground hover:bg-slate-100 dark:hover:bg-slate-900 border-slate-200 dark:border-slate-800"
+                    >
+                      &larr; Back to Overview
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs flex items-center gap-2"
+                    >
+                      <Check className="h-4 w-4" /> Save Schedule & Allocation
                     </button>
                   </div>
                 </form>
