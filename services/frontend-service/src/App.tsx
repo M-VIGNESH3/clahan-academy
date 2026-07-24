@@ -2182,33 +2182,34 @@ export default function App() {
     }
   };
 
-  const startEditingExam = (ex: Exam) => {
+  const startEditingExam = (ex: any) => {
     let localSched = '';
-    if (ex.schedule_date) {
+    if (ex.schedule_date || ex.scheduleDate) {
       try {
-        const d = new Date(ex.schedule_date);
+        const raw = ex.schedule_date || ex.scheduleDate;
+        const d = new Date(raw);
         const tzoffset = d.getTimezoneOffset() * 60000;
         localSched = new Date(d.getTime() - tzoffset).toISOString().slice(0, 16);
       } catch (err) {
-        localSched = ex.schedule_date.slice(0, 16);
+        localSched = (ex.schedule_date || ex.scheduleDate).slice(0, 16);
       }
     } else {
       localSched = getLocalDatetimeString();
     }
     setExamForm({
-      name: ex.name,
+      name: ex.name || '',
       description: ex.description || '',
-      examType: ex.exam_type,
-      durationMinutes: ex.duration_minutes,
-      cutoffPercentage: ex.cutoff_percentage,
-      allowedAttempts: ex.allowed_attempts || 1,
+      examType: ex.exam_type || ex.examType || 'custom',
+      durationMinutes: ex.duration_minutes || ex.durationMinutes || 60,
+      cutoffPercentage: ex.cutoff_percentage || ex.cutoffPercentage || 50,
+      allowedAttempts: ex.allowed_attempts || ex.allowedAttempts || 1,
       scheduleDate: localSched,
-      windowOpenMinutes: ex.window_open_minutes !== undefined ? ex.window_open_minutes : 10,
-      collegeId: ex.college_id || '',
-      departmentId: ex.department_id || '',
-      departmentIds: ex.department_ids || (ex.department_id ? [ex.department_id] : []),
-      batchId: ex.batch_id || '',
-      trainerId: ex.trainer_id || '',
+      windowOpenMinutes: ex.window_open_minutes !== undefined ? ex.window_open_minutes : (ex.windowOpenMinutes !== undefined ? ex.windowOpenMinutes : 10),
+      collegeId: ex.college_id || ex.collegeId || '',
+      departmentId: ex.department_id || ex.departmentId || '',
+      departmentIds: ex.department_ids || ex.departmentIds || (ex.department_id ? [ex.department_id] : []),
+      batchId: ex.batch_id || ex.batchId || '',
+      trainerId: ex.trainer_id || ex.trainerId || '',
       year: ex.year || '1st Year',
       enableFaceDetection: ex.enable_face_detection !== false,
       enableSectionCutoff: ex.enable_section_cutoff === true || ex.enableSectionCutoff === true,
@@ -2216,16 +2217,19 @@ export default function App() {
       codingCutoffPercentage: ex.coding_cutoff_percentage !== undefined ? Number(ex.coding_cutoff_percentage) : (ex.codingCutoffPercentage !== undefined ? Number(ex.codingCutoffPercentage) : 50),
       mcqCutoffMarks: ex.mcq_cutoff_marks !== undefined ? Number(ex.mcq_cutoff_marks) : (ex.mcqCutoffMarks !== undefined ? Number(ex.mcqCutoffMarks) : 0),
       codingCutoffMarks: ex.coding_cutoff_marks !== undefined ? Number(ex.coding_cutoff_marks) : (ex.codingCutoffMarks !== undefined ? Number(ex.codingCutoffMarks) : 0),
-      navigationMode: ex.navigation_mode || ex.navigationMode || 'free'
+      navigationMode: ex.navigation_mode || ex.navigationMode || 'free',
+      submissionMode: ex.submission_mode || ex.submissionMode || 'manual',
+      timingMode: ex.timing_mode || ex.timingMode || 'overall'
     });
-    if (ex.college_id) {
-      fetchDepartments(ex.college_id);
-      fetchBatches(ex.college_id);
+    if (ex.college_id || ex.collegeId) {
+      fetchDepartments(ex.college_id || ex.collegeId);
+      fetchBatches(ex.college_id || ex.collegeId);
     }
     setEditingExamId(ex.id);
     setSelectedExamIdForQuestions(ex.id);
     loadAdminExamQuestions(ex.id);
-    setIsCreatingNewExam(false);
+    setIsCreatingNewExam(true);
+    setExamWizardStep(1);
     setExamWorkspaceTab('overview');
     setCurrentPage('exam-workspace');
   };
@@ -2458,41 +2462,6 @@ export default function App() {
       setAdminExams(prev => prev.filter(e => e.id !== id));
       showToast('Exam deleted (Simulated)');
     }
-  };
-
-  const startEditingExam = (ex: any) => {
-    setEditingExamId(ex.id);
-    setSelectedExamIdForQuestions(ex.id);
-    setExamForm({
-      name: ex.name || '',
-      description: ex.description || '',
-      examType: ex.exam_type || ex.examType || 'custom',
-      durationMinutes: ex.duration_minutes || ex.durationMinutes || 60,
-      cutoffPercentage: ex.cutoff_percentage || ex.cutoffPercentage || 50,
-      allowedAttempts: ex.allowed_attempts || ex.allowedAttempts || 1,
-      scheduleDate: ex.schedule_date || ex.scheduleDate || getLocalDatetimeString(),
-      windowOpenMinutes: ex.window_open_minutes || ex.windowOpenMinutes || 10,
-      collegeId: ex.college_id || ex.collegeId || '',
-      departmentId: ex.department_id || ex.departmentId || '',
-      departmentIds: ex.department_ids || ex.departmentIds || [],
-      batchId: ex.batch_id || ex.batchId || '',
-      trainerId: ex.trainer_id || ex.trainerId || '',
-      year: ex.year || '1st Year',
-      enableFaceDetection: ex.enable_face_detection !== false,
-      enableSectionCutoff: ex.enable_section_cutoff === true,
-      mcqCutoffPercentage: ex.mcq_cutoff_percentage || 50,
-      codingCutoffPercentage: ex.coding_cutoff_percentage || 50,
-      mcqCutoffMarks: ex.mcq_cutoff_marks || 0,
-      codingCutoffMarks: ex.coding_cutoff_marks || 0,
-      navigationMode: ex.navigation_mode || ex.navigationMode || 'free',
-      submissionMode: ex.submission_mode || ex.submissionMode || 'manual',
-      timingMode: ex.timing_mode || ex.timingMode || 'overall'
-    });
-    loadAdminExamQuestions(ex.id);
-    setIsCreatingNewExam(true);
-    setExamWizardStep(1);
-    setExamWorkspaceTab('overview');
-    setCurrentPage('exam-workspace');
   };
 
   const [editingMcqId, setEditingMcqId] = useState<string | null>(null);
