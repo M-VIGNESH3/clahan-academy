@@ -4,30 +4,35 @@
 
 @layer base {
   :root {
-    --background: 220 33% 98%;
-    --foreground: 224 71.4% 4.1%;
+    --background: 210 40% 98%; /* #F8FAFC */
+    --foreground: 222 47% 11%; /* #111827 */
     
-    --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 222 47% 11%; /* #111827 */
  
-    --primary: 243 75% 59%;
-    --primary-foreground: 210 20% 98%;
+    --primary: 221.2 83.2% 53.3%; /* #2563EB */
+    --primary-foreground: 210 40% 98%;
  
     --secondary: 220 14.3% 95.9%;
     --secondary-foreground: 220.9 39.3% 11%;
+
+    --success: 142 72% 36%; /* #16A34A */
+    --warning: 38 92% 50%; /* #F59E0B */
+    --danger: 0 72% 51%; /* #DC2626 */
+    --info: 199 89% 48%; /* #0EA5E9 */
  
     --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
+    --muted-foreground: 215 16% 34%; /* #4B5563 */
  
-    --accent: 220 14.3% 95.9%;
-    --accent-foreground: 220.9 39.3% 11%;
+    --accent: 214 100% 97%; /* #EFF6FF */
+    --accent-foreground: 221.2 83.2% 53.3%;
  
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 210 20% 98%;
 
-    --border: 220 13% 91%;
+    --border: 220 13% 91%; /* #E5E7EB */
     --input: 220 13% 91%;
-    --ring: 262.1 83.3% 57.8%;
+    --ring: 221.2 83.2% 53.3%;
  
     --radius: 0.75rem;
   }
@@ -36,17 +41,17 @@
     --background: 224 71% 4%;
     --foreground: 210 20% 98%;
  
-    --card: 224 71% 4%;
+    --card: 224 71% 6%;
     --card-foreground: 210 20% 98%;
  
-    --primary: 250 89% 65%;
+    --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 20% 98%;
  
     --secondary: 215 27.9% 16.9%;
     --secondary-foreground: 210 20% 98%;
  
     --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
+    --muted-foreground: 217.9 10.6% 70%;
  
     --accent: 215 27.9% 16.9%;
     --accent-foreground: 210 20% 98%;
@@ -56,7 +61,7 @@
  
     --border: 215 27.9% 16.9%;
     --input: 215 27.9% 16.9%;
-    --ring: 263.4 70% 50.4%;
+    --ring: 221.2 83.2% 53.3%;
   }
 }
 

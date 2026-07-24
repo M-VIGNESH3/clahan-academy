@@ -320,7 +320,7 @@ export default function App() {
   const [isEvaluationRulesOpen, setIsEvaluationRulesOpen] = useState(true);
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
-  const [examWorkspaceTab, setExamWorkspaceTab] = useState<'overview' | 'sections' | 'questions' | 'schedule' | 'results' | 'reports' | 'review'>('overview');
+  const [examWorkspaceTab, setExamWorkspaceTab] = useState<'overview' | 'sections' | 'questions' | 'navigation' | 'submission' | 'proctoring' | 'duration' | 'review' | 'publish' | 'schedule' | 'results' | 'reports'>('overview');
   const [examWizardStep, setExamWizardStep] = useState<number>(1);
   const [isCreatingNewExam, setIsCreatingNewExam] = useState<boolean>(false);
   const [adminDraftModalOpen, setAdminDraftModalOpen] = useState(false);
@@ -6618,37 +6618,41 @@ export default function App() {
             <div className="mb-8 bg-white dark:bg-slate-955 border border-slate-200/60 dark:border-slate-850/60 rounded-2xl p-4 shadow-sm">
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 {[
-                  { step: 1, label: 'Basic Details', desc: 'Title, type & duration', key: 'overview' },
-                  { step: 2, label: 'Sections', desc: 'Structure & order', key: 'sections' },
-                  { step: 3, label: 'Questions', desc: 'MCQs & coding challenges', key: 'questions' },
-                  { step: 4, label: 'Schedule', desc: 'Date, window & batch eligibility', key: 'schedule' },
-                  { step: 5, label: 'Review & Publish', desc: 'Verification & deployment', key: 'review' }
+                  { step: 1, label: 'Details', desc: 'Title, type & passing marks', key: 'overview' },
+                  { step: 2, label: 'Sections', desc: 'Structure & section management', key: 'sections' },
+                  { step: 3, label: 'Questions', desc: 'MCQs, images & coding', key: 'questions' },
+                  { step: 4, label: 'Navigation', desc: 'Free, locked or sequential', key: 'navigation' },
+                  { step: 5, label: 'Submission', desc: 'Manual or auto submission', key: 'submission' },
+                  { step: 6, label: 'Proctoring', desc: 'Camera, mic & AI rules', key: 'proctoring' },
+                  { step: 7, label: 'Duration', desc: 'Dynamic timing allocation', key: 'duration' },
+                  { step: 8, label: 'Review', desc: 'Complete validation check', key: 'review' },
+                  { step: 9, label: 'Publish', desc: 'Publish assessment', key: 'publish' }
                 ].map((s, idx) => {
                   const isCompleted = examWizardStep > s.step;
                   const isActive = examWizardStep === s.step;
                   return (
-                    <div key={s.step} className="flex-1 flex items-center w-full">
+                    <div key={s.step} className="flex-1 flex items-center w-full min-w-[120px]">
                       <button 
                         disabled={s.step > 1 && !editingExamId} 
                         onClick={() => {
                           setExamWizardStep(s.step);
                           setExamWorkspaceTab(s.key as any);
                         }}
-                        className="flex items-center gap-3 text-left focus:outline-none disabled:opacity-50"
+                        className="flex items-center gap-2.5 text-left focus:outline-none disabled:opacity-50"
                       >
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
-                          isCompleted ? 'bg-indigo-600 text-white' : 
-                          isActive ? 'bg-indigo-500 text-white shadow-md ring-4 ring-indigo-500/25' : 
-                          'bg-slate-100 dark:bg-slate-900 text-muted-foreground'
+                        <div className={`h-7 w-7 rounded-full flex items-center justify-center font-bold text-[11px] shrink-0 transition-all ${
+                          isCompleted ? 'bg-emerald-600 text-white' : 
+                          isActive ? 'bg-indigo-600 text-white ring-4 ring-indigo-500/25 shadow-md' : 
+                          'bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800'
                         }`}>
-                          {isCompleted ? <Check className="h-4 w-4" /> : s.step}
+                          {isCompleted ? <Check className="h-3.5 w-3.5" /> : s.step}
                         </div>
                         <div>
-                          <div className={`text-xs font-bold ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-foreground'}`}>{s.label}</div>
-                          <div className="text-[10px] text-muted-foreground">{s.desc}</div>
+                          <div className={`text-xs font-bold truncate max-w-[110px] ${isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-800 dark:text-slate-200'}`}>{s.label}</div>
+                          <div className="text-[9px] text-slate-500 dark:text-slate-400 truncate max-w-[110px]">{s.desc}</div>
                         </div>
                       </button>
-                      {idx < 4 && <div className="hidden md:block flex-1 h-0.5 bg-slate-200 dark:bg-slate-800 mx-4" />}
+                      {idx < 8 && <div className="hidden lg:block flex-1 h-0.5 bg-slate-200 dark:bg-slate-800 mx-2" />}
                     </div>
                   );
                 })}
