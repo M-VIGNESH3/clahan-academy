@@ -88,7 +88,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <button
             type="button"
             onClick={() => addBlock('text')}
-            className="px-2.5 py-1 bg-slate-850 hover:bg-slate-800 border border-white/10 text-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
           >
             <Type className="h-3.5 w-3.5 text-indigo-400" /> Text Block
           </button>
@@ -96,7 +96,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <button
             type="button"
             onClick={() => addBlock('image')}
-            className="px-2.5 py-1 bg-slate-850 hover:bg-slate-800 border border-white/10 text-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
           >
             <ImageIcon className="h-3.5 w-3.5 text-emerald-400" /> Image
           </button>
@@ -104,7 +104,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <button
             type="button"
             onClick={() => addBlock('code')}
-            className="px-2.5 py-1 bg-slate-850 hover:bg-slate-800 border border-white/10 text-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
           >
             <Code className="h-3.5 w-3.5 text-amber-400" /> Code
           </button>
@@ -112,7 +112,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
           <button
             type="button"
             onClick={() => addBlock('table')}
-            className="px-2.5 py-1 bg-slate-850 hover:bg-slate-800 border border-white/10 text-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-white/10 text-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
           >
             <TableIcon className="h-3.5 w-3.5 text-purple-400" /> Table
           </button>

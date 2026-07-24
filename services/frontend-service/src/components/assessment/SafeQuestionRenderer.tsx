@@ -87,7 +87,7 @@ export const SafeOptionRenderer: React.FC<SafeOptionRendererProps> = ({
       className={`w-full text-left p-4 rounded-xl text-xs md:text-sm font-medium transition-all border flex items-start md:items-center gap-4 ${
         isSelected
           ? 'bg-indigo-600/30 border-indigo-500 text-white shadow-lg shadow-indigo-600/15 ring-2 ring-indigo-500/40 font-bold'
-          : 'bg-slate-955 border-white/5 text-slate-300 hover:border-white/20 hover:bg-slate-850'
+          : 'bg-slate-950 border-white/5 text-slate-300 hover:border-white/20 hover:bg-slate-800'
       } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     >
       <span className={`h-7 w-7 rounded-lg flex items-center justify-center border font-mono font-black text-xs transition-colors flex-shrink-0 mt-0.5 md:mt-0 ${

@@ -110,7 +110,7 @@ export const AssessmentPreExamStepper: React.FC<AssessmentPreExamStepperProps> =
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-extrabold transition-all ${
                     isCurrent
                       ? 'bg-indigo-600/30 border-indigo-500 text-indigo-300 ring-2 ring-indigo-500/30'
-                      : 'bg-slate-955 border-white/5 text-slate-500'
+                      : 'bg-slate-950 border-white/5 text-slate-500'
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -145,7 +145,7 @@ export const AssessmentPreExamStepper: React.FC<AssessmentPreExamStepperProps> =
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-              <div className="h-56 bg-slate-955 border border-white/10 rounded-xl overflow-hidden relative flex items-center justify-center">
+              <div className="h-56 bg-slate-950 border border-white/10 rounded-xl overflow-hidden relative flex items-center justify-center">
                 {stream ? (
                   <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
                 ) : (
@@ -162,7 +162,7 @@ export const AssessmentPreExamStepper: React.FC<AssessmentPreExamStepperProps> =
               </div>
 
               <div className="space-y-4">
-                <div className="p-4 bg-slate-955 border border-white/5 rounded-xl space-y-2 text-xs">
+                <div className="p-4 bg-slate-950 border border-white/5 rounded-xl space-y-2 text-xs">
                   <span className="font-bold text-indigo-400 uppercase tracking-wider block text-[10px]">Verification Checklist</span>
                   <div className="flex items-center justify-between text-slate-300">
                     <span>Webcam Permission</span>

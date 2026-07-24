@@ -121,7 +121,7 @@ export const ResultReportView: React.FC<ResultReportProps> = ({
                 cx="88"
                 cy="88"
                 r={radius}
-                className="stroke-slate-100 dark:stroke-slate-850"
+                className="stroke-slate-100 dark:stroke-slate-800"
                 strokeWidth="12"
                 fill="transparent"
               />

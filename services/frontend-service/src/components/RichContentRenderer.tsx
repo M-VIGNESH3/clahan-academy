@@ -136,7 +136,7 @@ export const RichContentRenderer: React.FC<RichContentRendererProps> = ({
                       </thead>
                       <tbody>
                         {block.tableData.slice(1).map((row, rIdx) => (
-                          <tr key={rIdx} className="border-b last:border-b-0 border-white/5 hover:bg-slate-850/50">
+                          <tr key={rIdx} className="border-b last:border-b-0 border-white/5 hover:bg-slate-800/50">
                             {row.map((cell, cIdx) => (
                               <td key={cIdx} className="p-3 border-r last:border-r-0 border-white/5 font-mono">{cell}</td>
                             ))}

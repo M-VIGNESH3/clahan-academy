@@ -4466,7 +4466,7 @@ export default function App() {
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground">Year *</label>
-                    <select value={regForm.year} onChange={e => setRegForm({...regForm, year: e.target.value})} className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-850 rounded-xl text-sm focus:outline-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
+                    <select value={regForm.year} onChange={e => setRegForm({...regForm, year: e.target.value})} className="w-full p-3 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm focus:outline-indigo-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
                       <option value="1st Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">1st Year</option>
                       <option value="2nd Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">2nd Year</option>
                       <option value="3rd Year" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">3rd Year</option>
@@ -7148,7 +7148,7 @@ export default function App() {
                   </div>
 
                   {/* Navigation buttons */}
-                  <div className="pt-6 flex justify-between items-center border-t border-slate-100 dark:border-slate-850">
+                  <div className="pt-6 flex justify-between items-center border-t border-slate-100 dark:border-slate-800">
                     <button
                       onClick={() => {
                         if (isCreatingNewExam) {
@@ -7208,7 +7208,7 @@ export default function App() {
                         const isCodingFormOpen = selectedSectionIdForCoding === sect.id && isCodingModalOpen && isCodingSec;
 
                         return (
-                          <div key={sect.id} className="p-6 border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950 rounded-2xl shadow-sm space-y-4">
+                          <div key={sect.id} className="p-6 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 rounded-2xl shadow-sm space-y-4">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 pb-3 border-b border-slate-200/50 dark:border-slate-800/50">
                               <div>
                                 <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-indigo-100 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
@@ -7748,7 +7748,7 @@ export default function App() {
                                         onCancel={() => setEditingMcqId(null)}
                                       />
                                     ) : (
-                                      <div key={q.id} className="p-3 border border-slate-100 dark:border-slate-850 rounded-xl hover:bg-slate-50/50 dark:hover:bg-slate-900/20 flex justify-between items-start gap-4">
+                                      <div key={q.id} className="p-3 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50/50 dark:hover:bg-slate-900/20 flex justify-between items-start gap-4">
                                         <div>
                                           <div className="font-semibold text-xs flex items-center gap-2">
                                             <span className="text-[10px] text-indigo-500 dark:text-indigo-400 font-extrabold">Q{idx + 1}.</span>
@@ -7845,7 +7845,7 @@ export default function App() {
                                         onCancel={() => setEditingCodingId(null)}
                                       />
                                     ) : (
-                                      <div key={q.id} className="p-3 border border-slate-100 dark:border-slate-850 rounded-xl hover:bg-slate-50/50 dark:hover:bg-slate-900/20 flex justify-between items-start gap-4">
+                                      <div key={q.id} className="p-3 border border-slate-100 dark:border-slate-800 rounded-xl hover:bg-slate-50/50 dark:hover:bg-slate-900/20 flex justify-between items-start gap-4">
                                         <div>
                                           <div className="font-semibold text-xs flex items-center gap-2">
                                             <span className="text-[10px] text-emerald-500 dark:text-emerald-400 font-extrabold">C{idx + 1}.</span>
@@ -7984,7 +7984,7 @@ export default function App() {
                   })()}
 
                   {/* Navigation buttons */}
-                  <div className="pt-6 flex justify-between items-center border-t border-slate-100 dark:border-slate-850">
+                  <div className="pt-6 flex justify-between items-center border-t border-slate-100 dark:border-slate-800">
                     <button
                       onClick={() => {
                         if (isCreatingNewExam) {
@@ -8052,7 +8052,7 @@ export default function App() {
 
             {/* SUBMISSION RULES TAB / STEP 5 */}
             {examWorkspaceTab === 'submission' && (
-              <div className="p-6 bg-white dark:bg-slate-955 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
+              <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
                 <div>
                   <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Step 5: Submission Policy Settings</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">Define manual vs automatic submission policies upon timer expiration.</p>
@@ -8090,7 +8090,7 @@ export default function App() {
 
             {/* PROCTORING RULES TAB / STEP 6 */}
             {examWorkspaceTab === 'proctoring' && (
-              <div className="p-6 bg-white dark:bg-slate-955 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
+              <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
                 <div>
                   <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Step 6: AI Proctoring & Security Rules</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">Configure automated webcam monitoring, microphone checks, fullscreen lockdown, and tab switch limits.</p>
@@ -8108,11 +8108,11 @@ export default function App() {
                   </label>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 text-xs">
-                    <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-955">
+                    <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
                       <span className="font-bold text-slate-900 dark:text-white block">Fullscreen Lockdown</span>
                       <span className="text-[10px] text-slate-500 block mt-0.5">Mandatory fullscreen mode enforced prior to starting assessment questions.</span>
                     </div>
-                    <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-955">
+                    <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
                       <span className="font-bold text-slate-900 dark:text-white block">Tab Switch Violation Limit</span>
                       <span className="text-[10px] text-slate-500 block mt-0.5">Maximum 2 tab switch warnings permitted before automatic security termination.</span>
                     </div>
@@ -8146,7 +8146,7 @@ export default function App() {
 
             {/* ASSESSMENT DURATION TAB / STEP 7 (RENDERED STRICTLY ONLY HERE) */}
             {examWorkspaceTab === 'duration' && (
-              <div className="p-6 bg-white dark:bg-slate-955 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
+              <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
                 <div>
                   <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Step 7: Assessment Duration & Section Allocation</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -8188,7 +8188,7 @@ export default function App() {
 
             {/* REVIEW TAB / STEP 8 */}
             {examWorkspaceTab === 'review' && (
-              <div className="p-6 bg-white dark:bg-slate-955 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
+              <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6">
                 <div>
                   <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Step 8: Pre-Publish System Validation Review</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">System validation check verifying details, sections, questions, timing allocation, and proctoring rules.</p>
@@ -8254,7 +8254,7 @@ export default function App() {
 
             {/* PUBLISH TAB / STEP 9 */}
             {examWorkspaceTab === 'publish' && (
-              <div className="p-6 bg-white dark:bg-slate-955 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6 text-center">
+              <div className="p-6 bg-white dark:bg-slate-950 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm space-y-6 text-center">
                 <div className="max-w-md mx-auto space-y-4">
                   <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
                     <Check className="h-8 w-8" />
@@ -8404,7 +8404,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="p-5 border rounded-2xl space-y-3 border-slate-200 dark:border-slate-800 bg-slate-50/10 dark:bg-slate-955">
+                  <div className="p-5 border rounded-2xl space-y-3 border-slate-200 dark:border-slate-800 bg-slate-50/10 dark:bg-slate-950">
                     <h4 className="font-bold text-xs">Standard CSV Export</h4>
                     <p className="text-xs text-muted-foreground">Download a complete tabular dataset containing roll numbers, candidate profiles, individual section scores, percentages, and status.</p>
                     <button
@@ -8415,7 +8415,7 @@ export default function App() {
                     </button>
                   </div>
 
-                  <div className="p-5 border rounded-2xl space-y-3 border-slate-200 dark:border-slate-800 bg-slate-50/10 dark:bg-slate-955">
+                  <div className="p-5 border rounded-2xl space-y-3 border-slate-200 dark:border-slate-800 bg-slate-50/10 dark:bg-slate-950">
                     <h4 className="font-bold text-xs">Assessment Performance Insights</h4>
                     <div className="space-y-2 text-xs text-slate-700 dark:text-slate-300">
                       <div className="flex justify-between">
@@ -8773,7 +8773,7 @@ export default function App() {
                                       ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 font-bold shadow-sm' 
                                       : isLocked
                                         ? 'bg-slate-950/20 border-white/5 text-slate-600 opacity-60 cursor-not-allowed'
-                                        : 'bg-slate-950/40 border-white/5 text-slate-400 hover:bg-slate-850 hover:text-white'
+                                        : 'bg-slate-950/40 border-white/5 text-slate-400 hover:bg-slate-800 hover:text-white'
                                   }`}
                                 >
                                   <div className="flex justify-between items-center text-xs">
@@ -9059,7 +9059,7 @@ export default function App() {
                               disabled={isExamLocked}
                               rows={8}
                               placeholder="Type your descriptive response here..."
-                              className="w-full bg-slate-955 border border-white/10 rounded-xl p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-sans leading-relaxed resize-y"
+                              className="w-full bg-slate-950 border border-white/10 rounded-xl p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-sans leading-relaxed resize-y"
                             />
                           </div>
 
@@ -9312,14 +9312,9 @@ export default function App() {
                           className="text-[9px] font-black uppercase tracking-widest whitespace-nowrap mt-4"
                           style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}
                         >
-                          Problem Statement
-                        </span>
-                      </button>
-                    )}
-                    <div 
-                      style={{ width: (isFullscreenEditor || isDescriptionCollapsed) ? 'auto' : `${editorWidth}px` }} 
+                        style={{ width: (isFullscreenEditor || isDescriptionCollapsed) ? 'auto' : `${editorWidth}px` }} 
                       className={`flex-1 lg:flex-initial flex flex-col bg-slate-950 border-r border-white/10 overflow-hidden relative transition-all duration-100 ${
-                        isFullscreenEditor ? 'fixed inset-0 z-50 bg-slate-955 p-6' : ''
+                        isFullscreenEditor ? 'fixed inset-0 z-50 bg-slate-950 p-6' : ''
                       }`}
                     >
                       {/* Editor Toolbar */}
@@ -9337,7 +9332,7 @@ export default function App() {
                           )}
                           
                           {/* Font Size controls */}
-                          <div className="flex items-center gap-1 bg-slate-955 p-1 rounded-lg border border-white/5">
+                          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-white/5">
                             <button 
                               onClick={() => setEditorFontSize(f => Math.max(10, f - 1))}
                               className="w-6 h-6 flex items-center justify-center hover:bg-slate-800 text-[10px] font-black rounded text-slate-400 transition-all"
@@ -9348,7 +9343,7 @@ export default function App() {
                             <select
                               value={editorFontSize}
                               onChange={e => setEditorFontSize(parseInt(e.target.value))}
-                              className="bg-transparent border-0 text-[10px] font-bold px-1 text-slate-305 outline-none cursor-pointer text-center"
+                              className="bg-transparent border-0 text-[10px] font-bold px-1 text-slate-300 outline-none cursor-pointer text-center"
                             >
                               {[10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20].map(sz => (
                                 <option key={sz} value={sz} className="bg-slate-900">{sz}px</option>
@@ -9367,7 +9362,7 @@ export default function App() {
                           <select
                             value={editorTheme}
                             onChange={e => setEditorTheme(e.target.value)}
-                            className="bg-slate-955 border border-white/5 text-[10px] font-bold px-2 py-1 rounded-lg text-slate-355 outline-none cursor-pointer"
+                            className="bg-slate-950 border border-white/5 text-[10px] font-bold px-2 py-1 rounded-lg text-slate-300 outline-none cursor-pointer"
                           >
                             <option value="vs-dark">VS Code Dark</option>
                             <option value="vs-dark-custom">Slate Dark</option>
@@ -9377,9 +9372,8 @@ export default function App() {
                           </select>
                         </div>
 
-                        <div className="flex items-center gap-3">
                           {/* Compiler Language Selection */}
-                          <div className="flex items-center gap-1 bg-slate-955 p-1 rounded-lg border border-white/5">
+                          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-white/5">
                             <select
                               value={codingSolutions[currentCoding.id]?.language || currentCoding.language}
                               onChange={e => {
@@ -9437,12 +9431,11 @@ export default function App() {
                             const qId = currentCoding.id;
                             const lang = codingSolutions[qId]?.language || currentCoding.language || 'Python';
                             setCodingSolutions(prev => ({
-                              ...prev,
                               [qId]: { code: getCustomTemplate(currentCoding, lang), language: lang }
                             }));
                             showToast('Reset editor to starter template.', 'info');
                           }}
-                          className="text-[9px] text-slate-500 hover:text-indigo-405 font-semibold transition-all px-2 py-0.5 rounded border border-white/5 hover:border-indigo-500/30 bg-slate-955"
+                          className="text-[9px] text-slate-500 hover:text-indigo-400 font-semibold transition-all px-2 py-0.5 rounded border border-white/5 hover:border-indigo-500/30 bg-slate-950"
                         >
                           Reset Starter Code
                         </button>
@@ -9490,7 +9483,7 @@ export default function App() {
                                 'editor.lineHighlightBackground': '#3E3D32',
                                 'editorLineNumber.foreground': '#90908A',
                                 'editorLineNumber.activeForeground': '#C2C2BF',
-                              }
+                                }
                             });
                             monaco.editor.defineTheme('github-light', {
                               base: 'vs',
@@ -9565,7 +9558,7 @@ export default function App() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => { if (!isExamLocked) runCodeSample(currentCoding.id); }}
-                            className="px-4 py-2 bg-slate-955 hover:bg-slate-800 border border-white/10 rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 text-slate-350 transition-colors"
+                            className="px-4 py-2 bg-slate-950 hover:bg-slate-800 border border-white/10 rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 text-slate-300 transition-colors"
                             disabled={isExamLocked || isRunningCode}
                           >
                             <Play className="h-3.5 w-3.5 text-indigo-400" /> 
@@ -9595,11 +9588,11 @@ export default function App() {
                     {/* 4. RIGHT: RESIZABLE OUTPUT / TEST CASES PANEL */}
                     <div 
                       className={`flex-1 flex flex-col bg-slate-900 border-l border-white/10 overflow-hidden relative ${
-                        isFullscreenOutput ? 'fixed inset-0 z-50 bg-slate-955 p-6' : ''
+                        isFullscreenOutput ? 'fixed inset-0 z-50 bg-slate-950 p-6' : ''
                       }`}
                     >
                       {/* Tabbed Navigation Bar */}
-                      <div className="flex-shrink-0 flex items-center justify-between bg-slate-955 border-b border-white/5 sticky top-0 z-10 px-4 py-1.5">
+                      <div className="flex-shrink-0 flex items-center justify-between bg-slate-950 border-b border-white/5 sticky top-0 z-10 px-4 py-1.5">
                         <div className="flex gap-1">
                           {(['output', 'testcases', 'errors', 'details'] as const).map(tab => {
                             let label = 'Output';
@@ -9827,31 +9820,31 @@ export default function App() {
                         {/* Tab 4: Execution Details */}
                         {outputTab === 'details' && (
                           <div className="space-y-4">
-                            <div className="bg-slate-955 p-4 rounded-xl border border-white/5 space-y-3.5 text-[10px] font-mono">
+                            <div className="bg-slate-950 p-4 rounded-xl border border-white/5 space-y-3.5 text-[10px] font-mono">
                               <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest block font-black border-b border-white/5 pb-1.5">Profile Diagnostics</span>
                               
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
                                   <span className="text-slate-500 uppercase tracking-wider block text-[8px]">Language Profile:</span>
-                                  <span className="text-slate-202 font-bold">{codingSolutions[currentCoding.id]?.language || currentCoding.language}</span>
+                                  <span className="text-slate-200 font-bold">{codingSolutions[currentCoding.id]?.language || currentCoding.language}</span>
                                 </div>
                                 <div>
-                                  <span className="text-slate-505 uppercase tracking-wider block text-[8px]">Time Metric (Max Limit):</span>
-                                  <span className="text-slate-202 font-bold">{currentCoding.time_limit || 2} seconds</span>
+                                  <span className="text-slate-500 uppercase tracking-wider block text-[8px]">Time Metric (Max Limit):</span>
+                                  <span className="text-slate-200 font-bold">{currentCoding.time_limit || 2} seconds</span>
                                 </div>
                                 <div>
-                                  <span className="text-slate-505 uppercase tracking-wider block text-[8px]">Memory Metric (Max Limit):</span>
-                                  <span className="text-slate-202 font-bold">{currentCoding.memory_limit || 256} MB</span>
+                                  <span className="text-slate-500 uppercase tracking-wider block text-[8px]">Memory Metric (Max Limit):</span>
+                                  <span className="text-slate-200 font-bold">{currentCoding.memory_limit || 256} MB</span>
                                 </div>
                                 <div>
-                                  <span className="text-slate-505 uppercase tracking-wider block text-[8px]">Attempt Status:</span>
+                                  <span className="text-slate-500 uppercase tracking-wider block text-[8px]">Attempt Status:</span>
                                   <span className="text-indigo-400 font-bold">Ongoing Attempt #{currentAttempt?.attempt_number || 1}</span>
                                 </div>
                               </div>
                             </div>
 
                             {codeExecutionResults.length > 0 && (
-                              <div className="bg-slate-955 p-4 rounded-xl border border-white/5 space-y-3.5 text-[10px] font-mono">
+                              <div className="bg-slate-950 p-4 rounded-xl border border-white/5 space-y-3.5 text-[10px] font-mono">
                                 <span className="text-[10px] font-mono text-indigo-400 uppercase tracking-widest block font-black border-b border-white/5 pb-1.5">Performance Analysis</span>
                                 
                                 <div className="space-y-2.5">
@@ -10070,7 +10063,7 @@ export default function App() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {detailedResult.sectionResults && detailedResult.sectionResults.length > 0 ? (
                     detailedResult.sectionResults.map((sec: any) => (
-                      <div key={sec.id} className="p-4 rounded-xl bg-white dark:bg-slate-955 border border-slate-100 dark:border-slate-800/80 flex justify-between items-center shadow-sm">
+                      <div key={sec.id} className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800/80 flex justify-between items-center shadow-sm">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{sec.name}</span>
@@ -10411,7 +10404,7 @@ export default function App() {
             </div>
             
             <div className="py-2">
-              <p className="text-sm text-slate-800 dark:text-slate-200 font-medium leading-relaxed bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-850">
+              <p className="text-sm text-slate-800 dark:text-slate-200 font-medium leading-relaxed bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                 {studentWarningMessage}
               </p>
             </div>
@@ -10441,7 +10434,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50 dark:bg-slate-955 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-2">
+            <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-100 dark:border-slate-800 space-y-2">
               <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest block">Draft Details</span>
               <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">{adminDraftInfo.name}</h4>
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono">

@@ -130,7 +130,7 @@ export const QuestionPreview: React.FC<QuestionPreviewProps> = ({
                       }`}
                     >
                       <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs border ${
-                        isCorrect ? 'bg-emerald-500 text-white border-transparent' : 'bg-slate-850 border-white/10 text-slate-400'
+                        isCorrect ? 'bg-emerald-500 text-white border-transparent' : 'bg-slate-800 border-white/10 text-slate-400'
                       }`}>
                         {optKey}
                       </span>
