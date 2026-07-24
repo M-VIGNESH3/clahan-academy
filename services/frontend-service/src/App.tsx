@@ -24,6 +24,10 @@ import { SubmissionPolicySettings } from './components/SubmissionPolicySettings'
 import { NavigationRuleSettings } from './components/NavigationRuleSettings';
 import { QuestionErrorBoundary, SafeOptionRenderer } from './components/assessment/SafeQuestionRenderer';
 import { AssessmentPreExamStepper, PreExamValidationStep } from './components/assessment/AssessmentPreExamStepper';
+import { SectionBuilder } from './components/assessment/SectionBuilder';
+import { ResultReportView } from './components/ResultReportView';
+import { PreExamFlowController } from './components/assessment/PreExamFlowController';
+import { ExamSubmissionController } from './components/assessment/ExamSubmissionController';
 
 // Core Types
 interface College { id: string; name: string; }
@@ -413,6 +417,7 @@ export default function App() {
   const [descriptiveAnswers, setDescriptiveAnswers] = useState<Record<string, string>>({});
   const [codingSolutions, setCodingSolutions] = useState<Record<string, { code: string; language: string }>>({}); // { questionId: { code, lang } }
   const [markedForReview, setMarkedForReview] = useState<Record<string, boolean>>({});
+  const [activeResultReport, setActiveResultReport] = useState<any>(null);
 
   // Dev Debug Panel States
   const [cameraConnected, setCameraConnected] = useState(false);
@@ -4987,6 +4992,30 @@ export default function App() {
             </div>
           </div>
         </main>
+      )}
+
+      {/* RESULT PAGE ROUTE */}
+      {currentPage === 'result-view' && activeResultReport && (
+        <ResultReportView
+          examName={activeResultReport.examName || 'Assessment Report'}
+          candidateName={activeResultReport.candidateName || currentUser?.fullName || currentUser?.full_name || 'Candidate'}
+          rollNumber={activeResultReport.rollNumber || currentUser?.rollNumber || currentUser?.roll_number || 'N/A'}
+          submissionTime={activeResultReport.submissionTime || new Date().toISOString()}
+          timeTakenSeconds={activeResultReport.timeTakenSeconds || 0}
+          score={activeResultReport.score || 0}
+          maxScore={activeResultReport.maxScore || 100}
+          percentage={activeResultReport.percentage || 0}
+          passed={activeResultReport.passed === true}
+          cutoffPercentage={activeResultReport.cutoffPercentage || 50}
+          answeredCount={activeResultReport.answeredCount || 0}
+          skippedCount={activeResultReport.skippedCount || 0}
+          correctCount={activeResultReport.correctCount || 0}
+          wrongCount={activeResultReport.wrongCount || 0}
+          totalQuestions={activeResultReport.totalQuestions || 0}
+          sectionBreakdown={activeResultReport.sectionBreakdown || []}
+          feedback={activeResultReport.feedback}
+          onExit={() => setCurrentPage(currentUser?.role === 'admin' ? 'admin-dash' : 'student-dash')}
+        />
       )}
 
       {/* ADMIN DASHBOARD ROUTE */}
