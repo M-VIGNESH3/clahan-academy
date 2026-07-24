@@ -189,9 +189,9 @@ export const QuestionInlineEditor: React.FC<QuestionInlineEditorProps> = ({
                       type="text"
                       value={String(mcqForm[optKey] || '')}
                       onChange={e => setMcqForm({ ...mcqForm, [optKey]: e.target.value })}
-                      placeholder={`Option ${opt} text`}
+                      placeholder={currentImg ? `Option ${opt} text (Optional if image provided)` : `Option ${opt} text`}
                       className="w-full p-2 border rounded-lg text-xs bg-transparent border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
-                      required
+                      required={!currentImg}
                     />
                     
                     {/* Option Image Upload & Preview Controls */}

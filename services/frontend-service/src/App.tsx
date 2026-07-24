@@ -6766,6 +6766,63 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Target Audience & Allocation Controls */}
+                  <div className="p-4 rounded-xl border border-indigo-200/60 dark:border-indigo-900/40 bg-indigo-50/20 dark:bg-indigo-950/10 space-y-3">
+                    <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Target College & Batch Allocation</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Target College</label>
+                        <select
+                          value={examForm.collegeId}
+                          onChange={e => {
+                            const cId = e.target.value;
+                            setExamForm({ ...examForm, collegeId: cId, batchId: '', departmentId: '' });
+                            if (cId) {
+                              fetchDepartments(cId);
+                              fetchBatches(cId);
+                            }
+                          }}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                        >
+                          <option value="">All Colleges (Global Access)</option>
+                          {colleges.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Target Batch</label>
+                        <select
+                          value={examForm.batchId}
+                          onChange={e => setExamForm({ ...examForm, batchId: e.target.value })}
+                          disabled={!examForm.collegeId}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
+                        >
+                          <option value="">All Batches in College</option>
+                          {batches.map(b => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Target Academic Year</label>
+                        <select
+                          value={examForm.year}
+                          onChange={e => setExamForm({ ...examForm, year: e.target.value })}
+                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                        >
+                          <option value="All Years">All Academic Years</option>
+                          <option value="1st Year">1st Year</option>
+                          <option value="2nd Year">2nd Year</option>
+                          <option value="3rd Year">3rd Year</option>
+                          <option value="4th Year">4th Year</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs font-semibold text-muted-foreground">Cutoff Percentage (%)</label>
@@ -7388,8 +7445,9 @@ export default function App() {
                                           type="text"
                                           value={currentVal}
                                           onChange={e => setMcqForm({ ...mcqForm, [opt.key]: e.target.value })}
+                                          placeholder={currentImg ? `${opt.label} text (Optional if image provided)` : `${opt.label} text`}
                                           className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent text-slate-900 dark:text-white"
-                                          required
+                                          required={!currentImg}
                                         />
                                         <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-800">
                                           <div className="flex items-center gap-2">
