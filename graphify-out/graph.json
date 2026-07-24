@@ -2505,7 +2505,7 @@
       "label": "limiter",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L195",
+      "source_location": "L196",
       "id": "services_exam_service_src_index_ts_src_index_limiter",
       "community": 7,
       "norm_label": "limiter"
@@ -2514,7 +2514,7 @@
       "label": "AuthenticatedRequest",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L203",
+      "source_location": "L204",
       "id": "services_exam_service_src_index_ts_src_index_authenticatedrequest",
       "community": 7,
       "norm_label": "authenticatedrequest"
@@ -2523,7 +2523,7 @@
       "label": "authenticate()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L214",
+      "source_location": "L215",
       "id": "services_exam_service_src_index_ts_src_index_authenticate",
       "community": 7,
       "norm_label": "authenticate()"
@@ -2532,7 +2532,7 @@
       "label": "requireRole()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L227",
+      "source_location": "L228",
       "id": "src_index_requirerole",
       "community": 7,
       "norm_label": "requirerole()"
@@ -2541,7 +2541,7 @@
       "label": "finalDeptIds",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L283",
+      "source_location": "L284",
       "id": "src_index_finaldeptids",
       "community": 7,
       "norm_label": "finaldeptids"
@@ -2550,7 +2550,7 @@
       "label": "codingQuestions",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L343",
+      "source_location": "L344",
       "id": "src_index_codingquestions",
       "community": 7,
       "norm_label": "codingquestions"
@@ -2559,7 +2559,7 @@
       "label": "sectionIdMap",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L451",
+      "source_location": "L452",
       "id": "src_index_sectionidmap",
       "community": 7,
       "norm_label": "sectionidmap"
@@ -2568,7 +2568,7 @@
       "label": "notificationPayloads",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L539",
+      "source_location": "L540",
       "id": "services_exam_service_src_index_ts_src_index_notificationpayloads",
       "community": 7,
       "norm_label": "notificationpayloads"
@@ -2577,7 +2577,7 @@
       "label": "parseCsvLine()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L576",
+      "source_location": "L577",
       "id": "src_index_parsecsvline",
       "community": 7,
       "norm_label": "parsecsvline()"
@@ -2586,7 +2586,7 @@
       "label": "lines",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L621",
+      "source_location": "L622",
       "id": "services_exam_service_src_index_ts_src_index_lines",
       "community": 7,
       "norm_label": "lines"
@@ -2595,7 +2595,7 @@
       "label": "dataRows",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L622",
+      "source_location": "L623",
       "id": "services_exam_service_src_index_ts_src_index_datarows",
       "community": 7,
       "norm_label": "datarows"
@@ -2604,7 +2604,7 @@
       "label": "parts",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L626",
+      "source_location": "L627",
       "id": "services_exam_service_src_index_ts_src_index_parts",
       "community": 7,
       "norm_label": "parts"
@@ -2613,7 +2613,7 @@
       "label": "cleanCorrect",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L639",
+      "source_location": "L640",
       "id": "src_index_cleancorrect",
       "community": 7,
       "norm_label": "cleancorrect"
@@ -2622,16 +2622,25 @@
       "label": "insertedCases",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L798",
+      "source_location": "L799",
       "id": "src_index_insertedcases",
       "community": 7,
       "norm_label": "insertedcases"
     },
     {
+      "label": "isValidUuid()",
+      "file_type": "code",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L870",
+      "id": "src_index_isvaliduuid",
+      "community": 7,
+      "norm_label": "isvaliduuid()"
+    },
+    {
       "label": "{ college_id, department_id, year, batch_id, trainer_id, id: studentId }",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1057",
+      "source_location": "L1080",
       "id": "src_index_college_id_department_id_year_batch_id_trainer_id_id_studentid",
       "community": 7,
       "norm_label": "{ college_id, department_id, year, batch_id, trainer_id, id: studentid }"
@@ -2640,7 +2649,7 @@
       "label": "eligible",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1076",
+      "source_location": "L1099",
       "id": "src_index_eligible",
       "community": 7,
       "norm_label": "eligible"
@@ -2649,7 +2658,7 @@
       "label": "now",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1093",
+      "source_location": "L1116",
       "id": "src_index_now",
       "community": 76,
       "norm_label": "now"
@@ -2658,7 +2667,7 @@
       "label": "sched",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1094",
+      "source_location": "L1117",
       "id": "src_index_sched",
       "community": 7,
       "norm_label": "sched"
@@ -2667,7 +2676,7 @@
       "label": "windowClose",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1096",
+      "source_location": "L1119",
       "id": "src_index_windowclose",
       "community": 7,
       "norm_label": "windowclose"
@@ -2676,7 +2685,7 @@
       "label": "attemptsMade",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1109",
+      "source_location": "L1132",
       "id": "src_index_attemptsmade",
       "community": 7,
       "norm_label": "attemptsmade"
@@ -2685,7 +2694,7 @@
       "label": "baseMins",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1206",
+      "source_location": "L1229",
       "id": "src_index_basemins",
       "community": 7,
       "norm_label": "basemins"
@@ -2694,7 +2703,7 @@
       "label": "finalMcqs",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1247",
+      "source_location": "L1270",
       "id": "src_index_finalmcqs",
       "community": 7,
       "norm_label": "finalmcqs"
@@ -2703,7 +2712,7 @@
       "label": "finalCodings",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1248",
+      "source_location": "L1271",
       "id": "src_index_finalcodings",
       "community": 7,
       "norm_label": "finalcodings"
@@ -2712,7 +2721,7 @@
       "label": "sectMcqs",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1256",
+      "source_location": "L1279",
       "id": "src_index_sectmcqs",
       "community": 7,
       "norm_label": "sectmcqs"
@@ -2721,7 +2730,7 @@
       "label": "sectCodings",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1262",
+      "source_location": "L1285",
       "id": "src_index_sectcodings",
       "community": 7,
       "norm_label": "sectcodings"
@@ -2730,7 +2739,7 @@
       "label": "correctAnswer",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1312",
+      "source_location": "L1335",
       "id": "src_index_correctanswer",
       "community": 7,
       "norm_label": "correctanswer"
@@ -2739,7 +2748,7 @@
       "label": "cleanSelected",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1313",
+      "source_location": "L1336",
       "id": "src_index_cleanselected",
       "community": 7,
       "norm_label": "cleanselected"
@@ -2748,7 +2757,7 @@
       "label": "cleanOptionText",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1336",
+      "source_location": "L1359",
       "id": "src_index_cleanoptiontext",
       "community": 7,
       "norm_label": "cleanoptiontext"
@@ -2757,7 +2766,7 @@
       "label": "encodeBase64()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1359",
+      "source_location": "L1382",
       "id": "src_index_encodebase64",
       "community": 7,
       "norm_label": "encodebase64()"
@@ -2766,7 +2775,7 @@
       "label": "decodeBase64()",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1363",
+      "source_location": "L1386",
       "id": "src_index_decodebase64",
       "community": 7,
       "norm_label": "decodebase64()"
@@ -2775,7 +2784,7 @@
       "label": "results",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1404",
+      "source_location": "L1427",
       "id": "src_index_results",
       "community": 7,
       "norm_label": "results"
@@ -2784,7 +2793,7 @@
       "label": "langIdMap",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1405",
+      "source_location": "L1428",
       "id": "src_index_langidmap",
       "community": 7,
       "norm_label": "langidmap"
@@ -2793,7 +2802,7 @@
       "label": "scoreObtained",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1459",
+      "source_location": "L1482",
       "id": "src_index_scoreobtained",
       "community": 7,
       "norm_label": "scoreobtained"
@@ -2802,7 +2811,7 @@
       "label": "testCaseResults",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1592",
+      "source_location": "L1615",
       "id": "src_index_testcaseresults",
       "community": 7,
       "norm_label": "testcaseresults"
@@ -2811,7 +2820,7 @@
       "label": "mcqRespMap",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1865",
+      "source_location": "L1888",
       "id": "src_index_mcqrespmap",
       "community": 7,
       "norm_label": "mcqrespmap"
@@ -2820,7 +2829,7 @@
       "label": "codingRespMap",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1868",
+      "source_location": "L1891",
       "id": "src_index_codingrespmap",
       "community": 7,
       "norm_label": "codingrespmap"
@@ -2829,7 +2838,7 @@
       "label": "mcqScore",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1873",
+      "source_location": "L1896",
       "id": "src_index_mcqscore",
       "community": 7,
       "norm_label": "mcqscore"
@@ -2838,7 +2847,7 @@
       "label": "codingScore",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1876",
+      "source_location": "L1899",
       "id": "src_index_codingscore",
       "community": 7,
       "norm_label": "codingscore"
@@ -2847,7 +2856,7 @@
       "label": "mcqMax",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1882",
+      "source_location": "L1905",
       "id": "src_index_mcqmax",
       "community": 7,
       "norm_label": "mcqmax"
@@ -2856,7 +2865,7 @@
       "label": "codingMax",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1883",
+      "source_location": "L1906",
       "id": "src_index_codingmax",
       "community": 7,
       "norm_label": "codingmax"
@@ -2865,7 +2874,7 @@
       "label": "failedSectionReasons",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1890",
+      "source_location": "L1913",
       "id": "src_index_failedsectionreasons",
       "community": 7,
       "norm_label": "failedsectionreasons"
@@ -2874,7 +2883,7 @@
       "label": "sMcqs",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1896",
+      "source_location": "L1919",
       "id": "src_index_smcqs",
       "community": 7,
       "norm_label": "smcqs"
@@ -2883,7 +2892,7 @@
       "label": "sCodings",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L1897",
+      "source_location": "L1920",
       "id": "src_index_scodings",
       "community": 7,
       "norm_label": "scodings"
@@ -2892,7 +2901,7 @@
       "label": "scheduleDate",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L2154",
+      "source_location": "L2177",
       "id": "src_index_scheduledate",
       "community": 7,
       "norm_label": "scheduledate"
@@ -2901,7 +2910,7 @@
       "label": "examEndTime",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L2157",
+      "source_location": "L2180",
       "id": "src_index_examendtime",
       "community": 7,
       "norm_label": "examendtime"
@@ -2910,7 +2919,7 @@
       "label": "userMcqMap",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L2197",
+      "source_location": "L2220",
       "id": "src_index_usermcqmap",
       "community": 7,
       "norm_label": "usermcqmap"
@@ -2919,7 +2928,7 @@
       "label": "userCodingMap",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L2200",
+      "source_location": "L2223",
       "id": "src_index_usercodingmap",
       "community": 7,
       "norm_label": "usercodingmap"
@@ -2928,7 +2937,7 @@
       "label": "sectionResults",
       "file_type": "code",
       "source_file": "services/exam-service/src/index.ts",
-      "source_location": "L2203",
+      "source_location": "L2226",
       "id": "src_index_sectionresults",
       "community": 7,
       "norm_label": "sectionresults"
@@ -3387,7 +3396,7 @@
       "label": "College",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L29",
+      "source_location": "L33",
       "id": "src_app_college",
       "community": 19,
       "norm_label": "college"
@@ -3396,7 +3405,7 @@
       "label": "Department",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L30",
+      "source_location": "L34",
       "id": "src_app_department",
       "community": 19,
       "norm_label": "department"
@@ -3405,7 +3414,7 @@
       "label": "UserProfile",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L31",
+      "source_location": "L35",
       "id": "src_app_userprofile",
       "community": 19,
       "norm_label": "userprofile"
@@ -3414,7 +3423,7 @@
       "label": "Exam",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L42",
+      "source_location": "L46",
       "id": "src_app_exam",
       "community": 19,
       "norm_label": "exam"
@@ -3423,7 +3432,7 @@
       "label": "MCQQuestion",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L59",
+      "source_location": "L63",
       "id": "src_app_mcqquestion",
       "community": 80,
       "norm_label": "mcqquestion"
@@ -3432,7 +3441,7 @@
       "label": "CodingQuestion",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L76",
+      "source_location": "L80",
       "id": "src_app_codingquestion",
       "community": 80,
       "norm_label": "codingquestion"
@@ -3441,7 +3450,7 @@
       "label": "Attempt",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L83",
+      "source_location": "L87",
       "id": "src_app_attempt",
       "community": 19,
       "norm_label": "attempt"
@@ -3450,7 +3459,7 @@
       "label": "getLocalDatetimeString()",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L94",
+      "source_location": "L98",
       "id": "src_app_getlocaldatetimestring",
       "community": 19,
       "norm_label": "getlocaldatetimestring()"
@@ -3459,16 +3468,16 @@
       "label": "formatTime()",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L99",
+      "source_location": "L103",
       "id": "src_app_formattime",
-      "community": 19,
+      "community": 93,
       "norm_label": "formattime()"
     },
     {
       "label": "STARTER_TEMPLATES",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L106",
+      "source_location": "L110",
       "id": "src_app_starter_templates",
       "community": 19,
       "norm_label": "starter_templates"
@@ -3477,7 +3486,7 @@
       "label": "getCustomTemplate()",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L113",
+      "source_location": "L117",
       "id": "src_app_getcustomtemplate",
       "community": 19,
       "norm_label": "getcustomtemplate()"
@@ -3486,7 +3495,7 @@
       "label": "App()",
       "file_type": "code",
       "source_file": "services/frontend-service/src/App.tsx",
-      "source_location": "L138",
+      "source_location": "L142",
       "id": "src_app_app",
       "community": 19,
       "norm_label": "app()"
@@ -3614,7 +3623,7 @@
       "source_file": "services/frontend-service/src/components/NavigationRuleSettings.tsx",
       "source_location": "L1",
       "id": "services_frontend_service_src_components_navigationrulesettings_tsx",
-      "community": 92,
+      "community": 19,
       "norm_label": "navigationrulesettings.tsx"
     },
     {
@@ -3623,7 +3632,7 @@
       "source_file": "services/frontend-service/src/components/NavigationRuleSettings.tsx",
       "source_location": "L3",
       "id": "components_navigationrulesettings_navigationrulesettingsprops",
-      "community": 92,
+      "community": 19,
       "norm_label": "navigationrulesettingsprops"
     },
     {
@@ -3632,7 +3641,7 @@
       "source_file": "services/frontend-service/src/components/NavigationRuleSettings.tsx",
       "source_location": "L8",
       "id": "components_navigationrulesettings_navigationrulesettings",
-      "community": 92,
+      "community": 19,
       "norm_label": "navigationrulesettings()"
     },
     {
@@ -3735,6 +3744,33 @@
       "norm_label": "questionpreview()"
     },
     {
+      "label": "ResultReportView.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/ResultReportView.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_resultreportview_tsx",
+      "community": 93,
+      "norm_label": "resultreportview.tsx"
+    },
+    {
+      "label": "ResultReportProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/ResultReportView.tsx",
+      "source_location": "L4",
+      "id": "components_resultreportview_resultreportprops",
+      "community": 93,
+      "norm_label": "resultreportprops"
+    },
+    {
+      "label": "ResultReportView()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/ResultReportView.tsx",
+      "source_location": "L38",
+      "id": "components_resultreportview_resultreportview",
+      "community": 93,
+      "norm_label": "resultreportview()"
+    },
+    {
       "label": "RichContentRenderer.tsx",
       "file_type": "code",
       "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
@@ -3758,7 +3794,7 @@
       "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
       "source_location": "L13",
       "id": "components_richcontentrenderer_richcontentrenderer",
-      "community": 85,
+      "community": 80,
       "norm_label": "richcontentrenderer()"
     },
     {
@@ -3794,7 +3830,7 @@
       "source_file": "services/frontend-service/src/components/SectionConfirmationModal.tsx",
       "source_location": "L1",
       "id": "services_frontend_service_src_components_sectionconfirmationmodal_tsx",
-      "community": 19,
+      "community": 94,
       "norm_label": "sectionconfirmationmodal.tsx"
     },
     {
@@ -3803,7 +3839,7 @@
       "source_file": "services/frontend-service/src/components/SectionConfirmationModal.tsx",
       "source_location": "L4",
       "id": "components_sectionconfirmationmodal_sectionconfirmationmodalprops",
-      "community": 19,
+      "community": 94,
       "norm_label": "sectionconfirmationmodalprops"
     },
     {
@@ -3812,7 +3848,7 @@
       "source_file": "services/frontend-service/src/components/SectionConfirmationModal.tsx",
       "source_location": "L18",
       "id": "components_sectionconfirmationmodal_sectionconfirmationmodal",
-      "community": 19,
+      "community": 94,
       "norm_label": "sectionconfirmationmodal()"
     },
     {
@@ -3877,6 +3913,60 @@
       "id": "assessment_assessmentpreexamstepper_assessmentpreexamstepper",
       "community": 88,
       "norm_label": "assessmentpreexamstepper()"
+    },
+    {
+      "label": "ExamSubmissionController.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/ExamSubmissionController.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_assessment_examsubmissioncontroller_tsx",
+      "community": 19,
+      "norm_label": "examsubmissioncontroller.tsx"
+    },
+    {
+      "label": "ExamSubmissionControllerProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/ExamSubmissionController.tsx",
+      "source_location": "L4",
+      "id": "assessment_examsubmissioncontroller_examsubmissioncontrollerprops",
+      "community": 19,
+      "norm_label": "examsubmissioncontrollerprops"
+    },
+    {
+      "label": "ExamSubmissionController()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/ExamSubmissionController.tsx",
+      "source_location": "L10",
+      "id": "assessment_examsubmissioncontroller_examsubmissioncontroller",
+      "community": 19,
+      "norm_label": "examsubmissioncontroller()"
+    },
+    {
+      "label": "PreExamFlowController.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/PreExamFlowController.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_assessment_preexamflowcontroller_tsx",
+      "community": 88,
+      "norm_label": "preexamflowcontroller.tsx"
+    },
+    {
+      "label": "PreExamFlowControllerProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/PreExamFlowController.tsx",
+      "source_location": "L5",
+      "id": "assessment_preexamflowcontroller_preexamflowcontrollerprops",
+      "community": 88,
+      "norm_label": "preexamflowcontrollerprops"
+    },
+    {
+      "label": "PreExamFlowController()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/PreExamFlowController.tsx",
+      "source_location": "L11",
+      "id": "assessment_preexamflowcontroller_preexamflowcontroller",
+      "community": 88,
+      "norm_label": "preexamflowcontroller()"
     },
     {
       "label": "SafeQuestionRenderer.tsx",
@@ -3958,6 +4048,42 @@
       "id": "assessment_safequestionrenderer_safeoptionrenderer",
       "community": 85,
       "norm_label": "safeoptionrenderer()"
+    },
+    {
+      "label": "SectionBuilder.tsx",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/SectionBuilder.tsx",
+      "source_location": "L1",
+      "id": "services_frontend_service_src_components_assessment_sectionbuilder_tsx",
+      "community": 92,
+      "norm_label": "sectionbuilder.tsx"
+    },
+    {
+      "label": "SectionItem",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/SectionBuilder.tsx",
+      "source_location": "L4",
+      "id": "assessment_sectionbuilder_sectionitem",
+      "community": 92,
+      "norm_label": "sectionitem"
+    },
+    {
+      "label": "SectionBuilderProps",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/SectionBuilder.tsx",
+      "source_location": "L19",
+      "id": "assessment_sectionbuilder_sectionbuilderprops",
+      "community": 92,
+      "norm_label": "sectionbuilderprops"
+    },
+    {
+      "label": "SectionBuilder()",
+      "file_type": "code",
+      "source_file": "services/frontend-service/src/components/assessment/SectionBuilder.tsx",
+      "source_location": "L27",
+      "id": "assessment_sectionbuilder_sectionbuilder",
+      "community": 92,
+      "norm_label": "sectionbuilder()"
     },
     {
       "label": "richQuestion.ts",
@@ -14426,9 +14552,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L214",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "services_exam_service_src_index_ts_src_index_authenticate",
-      "confidence_score": 1.0
+      "target": "services_exam_service_src_index_ts_src_index_authenticate"
     },
     {
       "relation": "contains",
@@ -14586,9 +14712,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L1206",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_basemins",
-      "confidence_score": 1.0
+      "target": "src_index_basemins"
     },
     {
       "relation": "contains",
@@ -14746,9 +14872,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L375",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_finaldeptids",
-      "confidence_score": 1.0
+      "target": "src_index_finaldeptids"
     },
     {
       "relation": "contains",
@@ -14769,6 +14895,16 @@
       "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
       "target": "src_index_insertedcases"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/exam-service/src/index.ts",
+      "source_location": "L870",
+      "weight": 1.0,
+      "source": "services_exam_service_src_index_ts",
+      "target": "src_index_isvaliduuid",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -15489,9 +15625,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L26",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "assessment_assessmentpreexamstepper_assessmentpreexamstepper",
-      "confidence_score": 1.0
+      "target": "assessment_assessmentpreexamstepper_assessmentpreexamstepper"
     },
     {
       "relation": "imports",
@@ -15500,8 +15636,30 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L26",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "assessment_assessmentpreexamstepper_preexamvalidationstep",
+      "target": "assessment_assessmentpreexamstepper_preexamvalidationstep"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "assessment_examsubmissioncontroller_examsubmissioncontroller",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "assessment_preexamflowcontroller_preexamflowcontroller",
       "confidence_score": 1.0
     },
     {
@@ -15511,9 +15669,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "assessment_safequestionrenderer_questionerrorboundary",
-      "confidence_score": 1.0
+      "target": "assessment_safequestionrenderer_questionerrorboundary"
     },
     {
       "relation": "imports",
@@ -15522,8 +15680,19 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "assessment_safequestionrenderer_safeoptionrenderer",
+      "target": "assessment_safequestionrenderer_safeoptionrenderer"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "assessment_sectionbuilder_sectionbuilder",
       "confidence_score": 1.0
     },
     {
@@ -15533,9 +15702,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "components_assessmentinstructions_assessmentinstructions",
-      "confidence_score": 1.0
+      "target": "components_assessmentinstructions_assessmentinstructions"
     },
     {
       "relation": "imports",
@@ -15544,9 +15713,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "components_assessmenttimingsettings_assessmenttimingsettings",
-      "confidence_score": 1.0
+      "target": "components_assessmenttimingsettings_assessmenttimingsettings"
     },
     {
       "relation": "imports",
@@ -15555,9 +15724,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "components_assessmenttimingsettings_computesectiontimingsummary",
-      "confidence_score": 1.0
+      "target": "components_assessmenttimingsettings_computesectiontimingsummary"
     },
     {
       "relation": "imports",
@@ -15566,9 +15735,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "components_imageviewermodal_imageviewermodal",
-      "confidence_score": 1.0
+      "target": "components_imageviewermodal_imageviewermodal"
     },
     {
       "relation": "imports",
@@ -15577,9 +15746,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "components_navigationrulesettings_navigationrulesettings",
-      "confidence_score": 1.0
+      "target": "components_navigationrulesettings_navigationrulesettings"
     },
     {
       "relation": "imports",
@@ -15588,9 +15757,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "components_questionfooter_questionfooter",
-      "confidence_score": 1.0
+      "target": "components_questionfooter_questionfooter"
     },
     {
       "relation": "imports",
@@ -15599,9 +15768,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "components_questioninlineeditor_questioninlineeditor",
-      "confidence_score": 1.0
+      "target": "components_questioninlineeditor_questioninlineeditor"
     },
     {
       "relation": "imports",
@@ -15610,8 +15779,19 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L19",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "components_questionpreview_questionpreview",
+      "target": "components_questionpreview_questionpreview"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "components_resultreportview_resultreportview",
       "confidence_score": 1.0
     },
     {
@@ -15621,9 +15801,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "components_richcontentrenderer_richcontentrenderer",
-      "confidence_score": 1.0
+      "target": "components_richcontentrenderer_richcontentrenderer"
     },
     {
       "relation": "imports",
@@ -15632,9 +15812,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "components_richtexteditor_richtexteditor",
-      "confidence_score": 1.0
+      "target": "components_richtexteditor_richtexteditor"
     },
     {
       "relation": "imports",
@@ -15643,9 +15823,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "components_sectionconfirmationmodal_sectionconfirmationmodal",
-      "confidence_score": 1.0
+      "target": "components_sectionconfirmationmodal_sectionconfirmationmodal"
     },
     {
       "relation": "imports",
@@ -15654,9 +15834,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "components_submissionpolicysettings_submissionpolicysettings",
-      "confidence_score": 1.0
+      "target": "components_submissionpolicysettings_submissionpolicysettings"
     },
     {
       "relation": "imports_from",
@@ -15665,8 +15845,30 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L26",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "services_frontend_service_src_components_assessment_assessmentpreexamstepper_tsx",
+      "target": "services_frontend_service_src_components_assessment_assessmentpreexamstepper_tsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_assessment_examsubmissioncontroller_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_assessment_preexamflowcontroller_tsx",
       "confidence_score": 1.0
     },
     {
@@ -15676,8 +15878,19 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
+      "target": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_assessment_sectionbuilder_tsx",
       "confidence_score": 1.0
     },
     {
@@ -15687,9 +15900,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "services_frontend_service_src_components_assessmentinstructions_tsx",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_components_assessmentinstructions_tsx"
     },
     {
       "relation": "imports_from",
@@ -15698,9 +15911,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "services_frontend_service_src_components_assessmenttimingsettings_tsx",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_components_assessmenttimingsettings_tsx"
     },
     {
       "relation": "imports_from",
@@ -15709,9 +15922,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "services_frontend_service_src_components_imageviewermodal_tsx",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_components_imageviewermodal_tsx"
     },
     {
       "relation": "imports_from",
@@ -15720,9 +15933,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "services_frontend_service_src_components_navigationrulesettings_tsx",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_components_navigationrulesettings_tsx"
     },
     {
       "relation": "imports_from",
@@ -15731,9 +15944,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "services_frontend_service_src_components_questionfooter_tsx",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_components_questionfooter_tsx"
     },
     {
       "relation": "imports_from",
@@ -15742,9 +15955,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "services_frontend_service_src_components_questioninlineeditor_tsx",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_components_questioninlineeditor_tsx"
     },
     {
       "relation": "imports_from",
@@ -15753,8 +15966,19 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L19",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "services_frontend_service_src_components_questionpreview_tsx",
+      "target": "services_frontend_service_src_components_questionpreview_tsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/App.tsx",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_app_tsx",
+      "target": "services_frontend_service_src_components_resultreportview_tsx",
       "confidence_score": 1.0
     },
     {
@@ -15764,9 +15988,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "services_frontend_service_src_components_richcontentrenderer_tsx",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_components_richcontentrenderer_tsx"
     },
     {
       "relation": "imports_from",
@@ -15775,9 +15999,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "services_frontend_service_src_components_richtexteditor_tsx",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_components_richtexteditor_tsx"
     },
     {
       "relation": "imports_from",
@@ -15786,9 +16010,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "services_frontend_service_src_components_sectionconfirmationmodal_tsx",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_components_sectionconfirmationmodal_tsx"
     },
     {
       "relation": "imports_from",
@@ -15797,9 +16021,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "services_frontend_service_src_components_submissionpolicysettings_tsx",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_components_submissionpolicysettings_tsx"
     },
     {
       "relation": "imports_from",
@@ -15808,9 +16032,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "services_frontend_service_src_types_richquestion_ts",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_types_richquestion_ts"
     },
     {
       "relation": "contains",
@@ -15878,9 +16102,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L99",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "src_app_formattime",
-      "confidence_score": 1.0
+      "target": "src_app_formattime"
     },
     {
       "relation": "contains",
@@ -15939,9 +16163,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "types_richquestion_contentblock",
-      "confidence_score": 1.0
+      "target": "types_richquestion_contentblock"
     },
     {
       "relation": "imports",
@@ -15950,9 +16174,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_app_tsx",
-      "target": "types_richquestion_genericquestion",
-      "confidence_score": 1.0
+      "target": "types_richquestion_genericquestion"
     },
     {
       "relation": "imports_from",
@@ -15972,9 +16196,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L62",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_mcqquestion",
-      "target": "types_richquestion_contentblock",
-      "confidence_score": 1.0
+      "target": "types_richquestion_contentblock"
     },
     {
       "relation": "references",
@@ -15983,9 +16207,9 @@
       "source_file": "services/frontend-service/src/App.tsx",
       "source_location": "L78",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_app_codingquestion",
-      "target": "types_richquestion_contentblock",
-      "confidence_score": 1.0
+      "target": "types_richquestion_contentblock"
     },
     {
       "relation": "calls",
@@ -15999,13 +16223,35 @@
       "target": "src_app_getlocaldatetimestring"
     },
     {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "services/frontend-service/src/components/ResultReportView.tsx",
+      "source_location": "L99",
+      "weight": 1.0,
+      "source": "components_resultreportview_resultreportview",
+      "target": "src_app_formattime"
+    },
+    {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
       "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessment_assessmentpreexamstepper_tsx",
+      "target": "services_frontend_service_src_components_assessmentinstructions_tsx"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/PreExamFlowController.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_preexamflowcontroller_tsx",
       "target": "services_frontend_service_src_components_assessmentinstructions_tsx",
       "confidence_score": 1.0
     },
@@ -16015,9 +16261,9 @@
       "source_file": "services/frontend-service/src/components/AssessmentInstructions.tsx",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessmentinstructions_tsx",
-      "target": "components_assessmentinstructions_assessmentinstructions",
-      "confidence_score": 1.0
+      "target": "components_assessmentinstructions_assessmentinstructions"
     },
     {
       "relation": "contains",
@@ -16025,9 +16271,9 @@
       "source_file": "services/frontend-service/src/components/AssessmentInstructions.tsx",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessmentinstructions_tsx",
-      "target": "components_assessmentinstructions_assessmentinstructionsprops",
-      "confidence_score": 1.0
+      "target": "components_assessmentinstructions_assessmentinstructionsprops"
     },
     {
       "relation": "imports",
@@ -16036,7 +16282,18 @@
       "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessment_assessmentpreexamstepper_tsx",
+      "target": "components_assessmentinstructions_assessmentinstructions"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/PreExamFlowController.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_preexamflowcontroller_tsx",
       "target": "components_assessmentinstructions_assessmentinstructions",
       "confidence_score": 1.0
     },
@@ -16046,9 +16303,9 @@
       "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
       "source_location": "L117",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessmenttimingsettings_tsx",
-      "target": "components_assessmenttimingsettings_assessmenttimingsettings",
-      "confidence_score": 1.0
+      "target": "components_assessmenttimingsettings_assessmenttimingsettings"
     },
     {
       "relation": "contains",
@@ -16056,9 +16313,9 @@
       "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
       "source_location": "L111",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessmenttimingsettings_tsx",
-      "target": "components_assessmenttimingsettings_assessmenttimingsettingsprops",
-      "confidence_score": 1.0
+      "target": "components_assessmenttimingsettings_assessmenttimingsettingsprops"
     },
     {
       "relation": "contains",
@@ -16066,9 +16323,9 @@
       "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessmenttimingsettings_tsx",
-      "target": "components_assessmenttimingsettings_computesectiontimingsummary",
-      "confidence_score": 1.0
+      "target": "components_assessmenttimingsettings_computesectiontimingsummary"
     },
     {
       "relation": "contains",
@@ -16076,9 +16333,9 @@
       "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessmenttimingsettings_tsx",
-      "target": "components_assessmenttimingsettings_sectiontimingitem",
-      "confidence_score": 1.0
+      "target": "components_assessmenttimingsettings_sectiontimingitem"
     },
     {
       "relation": "contains",
@@ -16086,9 +16343,9 @@
       "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessmenttimingsettings_tsx",
-      "target": "components_assessmenttimingsettings_sectiontimingsummary",
-      "confidence_score": 1.0
+      "target": "components_assessmenttimingsettings_sectiontimingsummary"
     },
     {
       "relation": "calls",
@@ -16097,9 +16354,9 @@
       "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
       "source_location": "L122",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "components_assessmenttimingsettings_assessmenttimingsettings",
-      "target": "components_assessmenttimingsettings_computesectiontimingsummary",
-      "confidence_score": 1.0
+      "target": "components_assessmenttimingsettings_computesectiontimingsummary"
     },
     {
       "relation": "contains",
@@ -16107,9 +16364,9 @@
       "source_file": "services/frontend-service/src/components/ImageViewerModal.tsx",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_imageviewermodal_tsx",
-      "target": "components_imageviewermodal_imageviewermodal",
-      "confidence_score": 1.0
+      "target": "components_imageviewermodal_imageviewermodal"
     },
     {
       "relation": "contains",
@@ -16117,9 +16374,9 @@
       "source_file": "services/frontend-service/src/components/ImageViewerModal.tsx",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_imageviewermodal_tsx",
-      "target": "components_imageviewermodal_imageviewermodalprops",
-      "confidence_score": 1.0
+      "target": "components_imageviewermodal_imageviewermodalprops"
     },
     {
       "relation": "contains",
@@ -16127,9 +16384,9 @@
       "source_file": "services/frontend-service/src/components/NavigationRuleSettings.tsx",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_navigationrulesettings_tsx",
-      "target": "components_navigationrulesettings_navigationrulesettings",
-      "confidence_score": 1.0
+      "target": "components_navigationrulesettings_navigationrulesettings"
     },
     {
       "relation": "contains",
@@ -16137,9 +16394,9 @@
       "source_file": "services/frontend-service/src/components/NavigationRuleSettings.tsx",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_navigationrulesettings_tsx",
-      "target": "components_navigationrulesettings_navigationrulesettingsprops",
-      "confidence_score": 1.0
+      "target": "components_navigationrulesettings_navigationrulesettingsprops"
     },
     {
       "relation": "contains",
@@ -16147,9 +16404,9 @@
       "source_file": "services/frontend-service/src/components/QuestionFooter.tsx",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_questionfooter_tsx",
-      "target": "components_questionfooter_questionfooter",
-      "confidence_score": 1.0
+      "target": "components_questionfooter_questionfooter"
     },
     {
       "relation": "contains",
@@ -16157,9 +16414,9 @@
       "source_file": "services/frontend-service/src/components/QuestionFooter.tsx",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_questionfooter_tsx",
-      "target": "components_questionfooter_questionfooterprops",
-      "confidence_score": 1.0
+      "target": "components_questionfooter_questionfooterprops"
     },
     {
       "relation": "contains",
@@ -16167,9 +16424,9 @@
       "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_questioninlineeditor_tsx",
-      "target": "components_questioninlineeditor_codingquestiondata",
-      "confidence_score": 1.0
+      "target": "components_questioninlineeditor_codingquestiondata"
     },
     {
       "relation": "contains",
@@ -16177,9 +16434,9 @@
       "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_questioninlineeditor_tsx",
-      "target": "components_questioninlineeditor_mcqquestiondata",
-      "confidence_score": 1.0
+      "target": "components_questioninlineeditor_mcqquestiondata"
     },
     {
       "relation": "contains",
@@ -16187,9 +16444,9 @@
       "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
       "source_location": "L45",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_questioninlineeditor_tsx",
-      "target": "components_questioninlineeditor_questioninlineeditor",
-      "confidence_score": 1.0
+      "target": "components_questioninlineeditor_questioninlineeditor"
     },
     {
       "relation": "contains",
@@ -16197,9 +16454,9 @@
       "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
       "source_location": "L38",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_questioninlineeditor_tsx",
-      "target": "components_questioninlineeditor_questioninlineeditorprops",
-      "confidence_score": 1.0
+      "target": "components_questioninlineeditor_questioninlineeditorprops"
     },
     {
       "relation": "imports",
@@ -16208,9 +16465,9 @@
       "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_questioninlineeditor_tsx",
-      "target": "components_richtexteditor_richtexteditor",
-      "confidence_score": 1.0
+      "target": "components_richtexteditor_richtexteditor"
     },
     {
       "relation": "imports_from",
@@ -16219,9 +16476,9 @@
       "source_file": "services/frontend-service/src/components/QuestionInlineEditor.tsx",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_questioninlineeditor_tsx",
-      "target": "services_frontend_service_src_components_richtexteditor_tsx",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_components_richtexteditor_tsx"
     },
     {
       "relation": "contains",
@@ -16229,9 +16486,9 @@
       "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_questionpreview_tsx",
-      "target": "components_questionpreview_questionpreview",
-      "confidence_score": 1.0
+      "target": "components_questionpreview_questionpreview"
     },
     {
       "relation": "contains",
@@ -16239,9 +16496,9 @@
       "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_questionpreview_tsx",
-      "target": "components_questionpreview_questionpreviewprops",
-      "confidence_score": 1.0
+      "target": "components_questionpreview_questionpreviewprops"
     },
     {
       "relation": "imports",
@@ -16250,9 +16507,9 @@
       "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_questionpreview_tsx",
-      "target": "components_richcontentrenderer_richcontentrenderer",
-      "confidence_score": 1.0
+      "target": "components_richcontentrenderer_richcontentrenderer"
     },
     {
       "relation": "imports_from",
@@ -16261,9 +16518,9 @@
       "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_questionpreview_tsx",
-      "target": "services_frontend_service_src_components_richcontentrenderer_tsx",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_components_richcontentrenderer_tsx"
     },
     {
       "relation": "imports_from",
@@ -16272,9 +16529,9 @@
       "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_questionpreview_tsx",
-      "target": "services_frontend_service_src_types_richquestion_ts",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_types_richquestion_ts"
     },
     {
       "relation": "imports",
@@ -16283,9 +16540,9 @@
       "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_questionpreview_tsx",
-      "target": "types_richquestion_genericquestion",
-      "confidence_score": 1.0
+      "target": "types_richquestion_genericquestion"
     },
     {
       "relation": "references",
@@ -16294,8 +16551,28 @@
       "source_file": "services/frontend-service/src/components/QuestionPreview.tsx",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "components_questionpreview_questionpreviewprops",
-      "target": "types_richquestion_genericquestion",
+      "target": "types_richquestion_genericquestion"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/ResultReportView.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_resultreportview_tsx",
+      "target": "components_resultreportview_resultreportprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/ResultReportView.tsx",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_resultreportview_tsx",
+      "target": "components_resultreportview_resultreportview",
       "confidence_score": 1.0
     },
     {
@@ -16305,9 +16582,9 @@
       "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
-      "target": "services_frontend_service_src_components_richcontentrenderer_tsx",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_components_richcontentrenderer_tsx"
     },
     {
       "relation": "contains",
@@ -16315,9 +16592,9 @@
       "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_richcontentrenderer_tsx",
-      "target": "components_richcontentrenderer_richcontentrenderer",
-      "confidence_score": 1.0
+      "target": "components_richcontentrenderer_richcontentrenderer"
     },
     {
       "relation": "contains",
@@ -16325,9 +16602,9 @@
       "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_richcontentrenderer_tsx",
-      "target": "components_richcontentrenderer_richcontentrendererprops",
-      "confidence_score": 1.0
+      "target": "components_richcontentrenderer_richcontentrendererprops"
     },
     {
       "relation": "imports_from",
@@ -16336,9 +16613,9 @@
       "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_richcontentrenderer_tsx",
-      "target": "services_frontend_service_src_types_richquestion_ts",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_types_richquestion_ts"
     },
     {
       "relation": "imports",
@@ -16347,9 +16624,9 @@
       "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_richcontentrenderer_tsx",
-      "target": "types_richquestion_contentblock",
-      "confidence_score": 1.0
+      "target": "types_richquestion_contentblock"
     },
     {
       "relation": "references",
@@ -16358,9 +16635,9 @@
       "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "components_richcontentrenderer_richcontentrendererprops",
-      "target": "types_richquestion_contentblock",
-      "confidence_score": 1.0
+      "target": "types_richquestion_contentblock"
     },
     {
       "relation": "imports",
@@ -16369,9 +16646,9 @@
       "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
-      "target": "components_richcontentrenderer_richcontentrenderer",
-      "confidence_score": 1.0
+      "target": "components_richcontentrenderer_richcontentrenderer"
     },
     {
       "relation": "contains",
@@ -16379,9 +16656,9 @@
       "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_richtexteditor_tsx",
-      "target": "components_richtexteditor_richtexteditor",
-      "confidence_score": 1.0
+      "target": "components_richtexteditor_richtexteditor"
     },
     {
       "relation": "contains",
@@ -16389,9 +16666,9 @@
       "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_richtexteditor_tsx",
-      "target": "components_richtexteditor_richtexteditorprops",
-      "confidence_score": 1.0
+      "target": "components_richtexteditor_richtexteditorprops"
     },
     {
       "relation": "imports_from",
@@ -16400,9 +16677,9 @@
       "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_richtexteditor_tsx",
-      "target": "services_frontend_service_src_types_richquestion_ts",
-      "confidence_score": 1.0
+      "target": "services_frontend_service_src_types_richquestion_ts"
     },
     {
       "relation": "imports",
@@ -16411,9 +16688,9 @@
       "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_richtexteditor_tsx",
-      "target": "types_richquestion_contentblock",
-      "confidence_score": 1.0
+      "target": "types_richquestion_contentblock"
     },
     {
       "relation": "imports",
@@ -16422,9 +16699,9 @@
       "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_richtexteditor_tsx",
-      "target": "types_richquestion_contentblocktype",
-      "confidence_score": 1.0
+      "target": "types_richquestion_contentblocktype"
     },
     {
       "relation": "references",
@@ -16433,9 +16710,9 @@
       "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "components_richtexteditor_richtexteditorprops",
-      "target": "types_richquestion_contentblock",
-      "confidence_score": 1.0
+      "target": "types_richquestion_contentblock"
     },
     {
       "relation": "contains",
@@ -16443,9 +16720,9 @@
       "source_file": "services/frontend-service/src/components/SectionConfirmationModal.tsx",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_sectionconfirmationmodal_tsx",
-      "target": "components_sectionconfirmationmodal_sectionconfirmationmodal",
-      "confidence_score": 1.0
+      "target": "components_sectionconfirmationmodal_sectionconfirmationmodal"
     },
     {
       "relation": "contains",
@@ -16453,9 +16730,9 @@
       "source_file": "services/frontend-service/src/components/SectionConfirmationModal.tsx",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_sectionconfirmationmodal_tsx",
-      "target": "components_sectionconfirmationmodal_sectionconfirmationmodalprops",
-      "confidence_score": 1.0
+      "target": "components_sectionconfirmationmodal_sectionconfirmationmodalprops"
     },
     {
       "relation": "contains",
@@ -16463,9 +16740,9 @@
       "source_file": "services/frontend-service/src/components/SubmissionPolicySettings.tsx",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_submissionpolicysettings_tsx",
-      "target": "components_submissionpolicysettings_submissionpolicysettings",
-      "confidence_score": 1.0
+      "target": "components_submissionpolicysettings_submissionpolicysettings"
     },
     {
       "relation": "contains",
@@ -16473,9 +16750,9 @@
       "source_file": "services/frontend-service/src/components/SubmissionPolicySettings.tsx",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_submissionpolicysettings_tsx",
-      "target": "components_submissionpolicysettings_submissionpolicysettingsprops",
-      "confidence_score": 1.0
+      "target": "components_submissionpolicysettings_submissionpolicysettingsprops"
     },
     {
       "relation": "contains",
@@ -16483,9 +16760,9 @@
       "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessment_assessmentpreexamstepper_tsx",
-      "target": "assessment_assessmentpreexamstepper_assessmentpreexamstepper",
-      "confidence_score": 1.0
+      "target": "assessment_assessmentpreexamstepper_assessmentpreexamstepper"
     },
     {
       "relation": "contains",
@@ -16493,9 +16770,9 @@
       "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessment_assessmentpreexamstepper_tsx",
-      "target": "assessment_assessmentpreexamstepper_assessmentpreexamstepperprops",
-      "confidence_score": 1.0
+      "target": "assessment_assessmentpreexamstepper_assessmentpreexamstepperprops"
     },
     {
       "relation": "contains",
@@ -16503,8 +16780,48 @@
       "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessment_assessmentpreexamstepper_tsx",
-      "target": "assessment_assessmentpreexamstepper_preexamvalidationstep",
+      "target": "assessment_assessmentpreexamstepper_preexamvalidationstep"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/ExamSubmissionController.tsx",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_examsubmissioncontroller_tsx",
+      "target": "assessment_examsubmissioncontroller_examsubmissioncontroller",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/ExamSubmissionController.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_examsubmissioncontroller_tsx",
+      "target": "assessment_examsubmissioncontroller_examsubmissioncontrollerprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/PreExamFlowController.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_preexamflowcontroller_tsx",
+      "target": "assessment_preexamflowcontroller_preexamflowcontroller",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/PreExamFlowController.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_preexamflowcontroller_tsx",
+      "target": "assessment_preexamflowcontroller_preexamflowcontrollerprops",
       "confidence_score": 1.0
     },
     {
@@ -16513,9 +16830,9 @@
       "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
-      "target": "assessment_safequestionrenderer_errorboundaryprops",
-      "confidence_score": 1.0
+      "target": "assessment_safequestionrenderer_errorboundaryprops"
     },
     {
       "relation": "contains",
@@ -16523,9 +16840,9 @@
       "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
-      "target": "assessment_safequestionrenderer_errorboundarystate",
-      "confidence_score": 1.0
+      "target": "assessment_safequestionrenderer_errorboundarystate"
     },
     {
       "relation": "contains",
@@ -16533,9 +16850,9 @@
       "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
-      "target": "assessment_safequestionrenderer_questionerrorboundary",
-      "confidence_score": 1.0
+      "target": "assessment_safequestionrenderer_questionerrorboundary"
     },
     {
       "relation": "contains",
@@ -16543,9 +16860,9 @@
       "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
       "source_location": "L68",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
-      "target": "assessment_safequestionrenderer_safeoptionrenderer",
-      "confidence_score": 1.0
+      "target": "assessment_safequestionrenderer_safeoptionrenderer"
     },
     {
       "relation": "contains",
@@ -16553,9 +16870,9 @@
       "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
       "source_location": "L58",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_components_assessment_safequestionrenderer_tsx",
-      "target": "assessment_safequestionrenderer_safeoptionrendererprops",
-      "confidence_score": 1.0
+      "target": "assessment_safequestionrenderer_safeoptionrendererprops"
     },
     {
       "relation": "method",
@@ -16563,9 +16880,9 @@
       "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "assessment_safequestionrenderer_questionerrorboundary",
-      "target": "assessment_safequestionrenderer_questionerrorboundary_componentdidcatch",
-      "confidence_score": 1.0
+      "target": "assessment_safequestionrenderer_questionerrorboundary_componentdidcatch"
     },
     {
       "relation": "method",
@@ -16573,9 +16890,9 @@
       "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "assessment_safequestionrenderer_questionerrorboundary",
-      "target": "assessment_safequestionrenderer_questionerrorboundary_getderivedstatefromerror",
-      "confidence_score": 1.0
+      "target": "assessment_safequestionrenderer_questionerrorboundary_getderivedstatefromerror"
     },
     {
       "relation": "method",
@@ -16583,8 +16900,38 @@
       "source_file": "services/frontend-service/src/components/assessment/SafeQuestionRenderer.tsx",
       "source_location": "L29",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "assessment_safequestionrenderer_questionerrorboundary",
-      "target": "assessment_safequestionrenderer_questionerrorboundary_render",
+      "target": "assessment_safequestionrenderer_questionerrorboundary_render"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/SectionBuilder.tsx",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_sectionbuilder_tsx",
+      "target": "assessment_sectionbuilder_sectionbuilder",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/SectionBuilder.tsx",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_sectionbuilder_tsx",
+      "target": "assessment_sectionbuilder_sectionbuilderprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "services/frontend-service/src/components/assessment/SectionBuilder.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "services_frontend_service_src_components_assessment_sectionbuilder_tsx",
+      "target": "assessment_sectionbuilder_sectionitem",
       "confidence_score": 1.0
     },
     {
@@ -16593,9 +16940,9 @@
       "source_file": "services/frontend-service/src/types/richQuestion.ts",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_types_richquestion_ts",
-      "target": "types_richquestion_contentblock",
-      "confidence_score": 1.0
+      "target": "types_richquestion_contentblock"
     },
     {
       "relation": "contains",
@@ -16603,9 +16950,9 @@
       "source_file": "services/frontend-service/src/types/richQuestion.ts",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_types_richquestion_ts",
-      "target": "types_richquestion_contentblocktype",
-      "confidence_score": 1.0
+      "target": "types_richquestion_contentblocktype"
     },
     {
       "relation": "contains",
@@ -16613,9 +16960,9 @@
       "source_file": "services/frontend-service/src/types/richQuestion.ts",
       "source_location": "L30",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_types_richquestion_ts",
-      "target": "types_richquestion_genericquestion",
-      "confidence_score": 1.0
+      "target": "types_richquestion_genericquestion"
     },
     {
       "relation": "contains",
@@ -16623,9 +16970,9 @@
       "source_file": "services/frontend-service/src/types/richQuestion.ts",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_frontend_service_src_types_richquestion_ts",
-      "target": "types_richquestion_mcqoptiondata",
-      "confidence_score": 1.0
+      "target": "types_richquestion_mcqoptiondata"
     },
     {
       "relation": "contains",
@@ -17133,9 +17480,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_package_json",
-      "target": "placement_service_package_dependencies",
-      "confidence_score": 1.0
+      "target": "placement_service_package_dependencies"
     },
     {
       "relation": "contains",
@@ -17143,9 +17490,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_package_json",
-      "target": "placement_service_package_description",
-      "confidence_score": 1.0
+      "target": "placement_service_package_description"
     },
     {
       "relation": "contains",
@@ -17153,9 +17500,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_package_json",
-      "target": "placement_service_package_devdependencies",
-      "confidence_score": 1.0
+      "target": "placement_service_package_devdependencies"
     },
     {
       "relation": "contains",
@@ -17163,9 +17510,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_package_json",
-      "target": "placement_service_package_main",
-      "confidence_score": 1.0
+      "target": "placement_service_package_main"
     },
     {
       "relation": "contains",
@@ -17173,9 +17520,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_package_json",
-      "target": "placement_service_package_name",
-      "confidence_score": 1.0
+      "target": "placement_service_package_name"
     },
     {
       "relation": "contains",
@@ -17183,9 +17530,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_package_json",
-      "target": "placement_service_package_scripts",
-      "confidence_score": 1.0
+      "target": "placement_service_package_scripts"
     },
     {
       "relation": "contains",
@@ -17193,9 +17540,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_package_json",
-      "target": "placement_service_package_version",
-      "confidence_score": 1.0
+      "target": "placement_service_package_version"
     },
     {
       "relation": "contains",
@@ -17203,9 +17550,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_scripts",
-      "target": "placement_service_package_scripts_build",
-      "confidence_score": 1.0
+      "target": "placement_service_package_scripts_build"
     },
     {
       "relation": "contains",
@@ -17213,9 +17560,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_scripts",
-      "target": "placement_service_package_scripts_dev",
-      "confidence_score": 1.0
+      "target": "placement_service_package_scripts_dev"
     },
     {
       "relation": "contains",
@@ -17223,9 +17570,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_scripts",
-      "target": "placement_service_package_scripts_start",
-      "confidence_score": 1.0
+      "target": "placement_service_package_scripts_start"
     },
     {
       "relation": "contains",
@@ -17233,9 +17580,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_dependencies",
-      "target": "placement_service_package_dependencies_cors",
-      "confidence_score": 1.0
+      "target": "placement_service_package_dependencies_cors"
     },
     {
       "relation": "contains",
@@ -17243,9 +17590,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_dependencies",
-      "target": "placement_service_package_dependencies_dotenv",
-      "confidence_score": 1.0
+      "target": "placement_service_package_dependencies_dotenv"
     },
     {
       "relation": "contains",
@@ -17253,9 +17600,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_dependencies",
-      "target": "placement_service_package_dependencies_express",
-      "confidence_score": 1.0
+      "target": "placement_service_package_dependencies_express"
     },
     {
       "relation": "contains",
@@ -17263,9 +17610,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_dependencies",
-      "target": "placement_service_package_dependencies_express_rate_limit",
-      "confidence_score": 1.0
+      "target": "placement_service_package_dependencies_express_rate_limit"
     },
     {
       "relation": "contains",
@@ -17273,9 +17620,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_dependencies",
-      "target": "placement_service_package_dependencies_helmet",
-      "confidence_score": 1.0
+      "target": "placement_service_package_dependencies_helmet"
     },
     {
       "relation": "contains",
@@ -17283,9 +17630,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_dependencies",
-      "target": "placement_service_package_dependencies_jsonwebtoken",
-      "confidence_score": 1.0
+      "target": "placement_service_package_dependencies_jsonwebtoken"
     },
     {
       "relation": "contains",
@@ -17293,9 +17640,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_dependencies",
-      "target": "placement_service_package_dependencies_pg",
-      "confidence_score": 1.0
+      "target": "placement_service_package_dependencies_pg"
     },
     {
       "relation": "contains",
@@ -17303,9 +17650,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L26",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_devdependencies",
-      "target": "placement_service_package_devdependencies_ts_node_dev",
-      "confidence_score": 1.0
+      "target": "placement_service_package_devdependencies_ts_node_dev"
     },
     {
       "relation": "contains",
@@ -17313,9 +17660,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_devdependencies",
-      "target": "placement_service_package_devdependencies_types_cors",
-      "confidence_score": 1.0
+      "target": "placement_service_package_devdependencies_types_cors"
     },
     {
       "relation": "contains",
@@ -17323,9 +17670,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_devdependencies",
-      "target": "placement_service_package_devdependencies_types_express",
-      "confidence_score": 1.0
+      "target": "placement_service_package_devdependencies_types_express"
     },
     {
       "relation": "contains",
@@ -17333,9 +17680,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_devdependencies",
-      "target": "placement_service_package_devdependencies_types_jsonwebtoken",
-      "confidence_score": 1.0
+      "target": "placement_service_package_devdependencies_types_jsonwebtoken"
     },
     {
       "relation": "contains",
@@ -17343,9 +17690,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_devdependencies",
-      "target": "placement_service_package_devdependencies_types_node",
-      "confidence_score": 1.0
+      "target": "placement_service_package_devdependencies_types_node"
     },
     {
       "relation": "contains",
@@ -17353,9 +17700,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_devdependencies",
-      "target": "placement_service_package_devdependencies_types_pg",
-      "confidence_score": 1.0
+      "target": "placement_service_package_devdependencies_types_pg"
     },
     {
       "relation": "contains",
@@ -17363,9 +17710,9 @@
       "source_file": "services/placement-service/package.json",
       "source_location": "L27",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_package_devdependencies",
-      "target": "placement_service_package_devdependencies_typescript",
-      "confidence_score": 1.0
+      "target": "placement_service_package_devdependencies_typescript"
     },
     {
       "relation": "contains",
@@ -17373,9 +17720,9 @@
       "source_file": "services/placement-service/tsconfig.json",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_tsconfig_json",
-      "target": "placement_service_tsconfig_compileroptions",
-      "confidence_score": 1.0
+      "target": "placement_service_tsconfig_compileroptions"
     },
     {
       "relation": "contains",
@@ -17383,9 +17730,9 @@
       "source_file": "services/placement-service/tsconfig.json",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_tsconfig_json",
-      "target": "placement_service_tsconfig_include",
-      "confidence_score": 1.0
+      "target": "placement_service_tsconfig_include"
     },
     {
       "relation": "contains",
@@ -17393,9 +17740,9 @@
       "source_file": "services/placement-service/tsconfig.json",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_tsconfig_compileroptions",
-      "target": "placement_service_tsconfig_compileroptions_esmoduleinterop",
-      "confidence_score": 1.0
+      "target": "placement_service_tsconfig_compileroptions_esmoduleinterop"
     },
     {
       "relation": "contains",
@@ -17403,9 +17750,9 @@
       "source_file": "services/placement-service/tsconfig.json",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_tsconfig_compileroptions",
-      "target": "placement_service_tsconfig_compileroptions_forceconsistentcasinginfilenames",
-      "confidence_score": 1.0
+      "target": "placement_service_tsconfig_compileroptions_forceconsistentcasinginfilenames"
     },
     {
       "relation": "contains",
@@ -17413,9 +17760,9 @@
       "source_file": "services/placement-service/tsconfig.json",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_tsconfig_compileroptions",
-      "target": "placement_service_tsconfig_compileroptions_module",
-      "confidence_score": 1.0
+      "target": "placement_service_tsconfig_compileroptions_module"
     },
     {
       "relation": "contains",
@@ -17423,9 +17770,9 @@
       "source_file": "services/placement-service/tsconfig.json",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_tsconfig_compileroptions",
-      "target": "placement_service_tsconfig_compileroptions_outdir",
-      "confidence_score": 1.0
+      "target": "placement_service_tsconfig_compileroptions_outdir"
     },
     {
       "relation": "contains",
@@ -17433,9 +17780,9 @@
       "source_file": "services/placement-service/tsconfig.json",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_tsconfig_compileroptions",
-      "target": "placement_service_tsconfig_compileroptions_rootdir",
-      "confidence_score": 1.0
+      "target": "placement_service_tsconfig_compileroptions_rootdir"
     },
     {
       "relation": "contains",
@@ -17443,9 +17790,9 @@
       "source_file": "services/placement-service/tsconfig.json",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_tsconfig_compileroptions",
-      "target": "placement_service_tsconfig_compileroptions_skiplibcheck",
-      "confidence_score": 1.0
+      "target": "placement_service_tsconfig_compileroptions_skiplibcheck"
     },
     {
       "relation": "contains",
@@ -17453,9 +17800,9 @@
       "source_file": "services/placement-service/tsconfig.json",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_tsconfig_compileroptions",
-      "target": "placement_service_tsconfig_compileroptions_strict",
-      "confidence_score": 1.0
+      "target": "placement_service_tsconfig_compileroptions_strict"
     },
     {
       "relation": "contains",
@@ -17463,9 +17810,9 @@
       "source_file": "services/placement-service/tsconfig.json",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "placement_service_tsconfig_compileroptions",
-      "target": "placement_service_tsconfig_compileroptions_target",
-      "confidence_score": 1.0
+      "target": "placement_service_tsconfig_compileroptions_target"
     },
     {
       "relation": "contains",
@@ -17473,9 +17820,9 @@
       "source_file": "services/placement-service/src/index.ts",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_src_index_ts",
-      "target": "services_placement_service_src_index_ts_src_index_app",
-      "confidence_score": 1.0
+      "target": "services_placement_service_src_index_ts_src_index_app"
     },
     {
       "relation": "contains",
@@ -17483,9 +17830,9 @@
       "source_file": "services/placement-service/src/index.ts",
       "source_location": "L38",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_src_index_ts",
-      "target": "services_placement_service_src_index_ts_src_index_authenticate",
-      "confidence_score": 1.0
+      "target": "services_placement_service_src_index_ts_src_index_authenticate"
     },
     {
       "relation": "contains",
@@ -17493,9 +17840,9 @@
       "source_file": "services/placement-service/src/index.ts",
       "source_location": "L34",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_src_index_ts",
-      "target": "services_placement_service_src_index_ts_src_index_authenticatedrequest",
-      "confidence_score": 1.0
+      "target": "services_placement_service_src_index_ts_src_index_authenticatedrequest"
     },
     {
       "relation": "contains",
@@ -17503,9 +17850,9 @@
       "source_file": "services/placement-service/src/index.ts",
       "source_location": "L27",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_src_index_ts",
-      "target": "services_placement_service_src_index_ts_src_index_limiter",
-      "confidence_score": 1.0
+      "target": "services_placement_service_src_index_ts_src_index_limiter"
     },
     {
       "relation": "contains",
@@ -17513,9 +17860,9 @@
       "source_file": "services/placement-service/src/index.ts",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_src_index_ts",
-      "target": "services_placement_service_src_index_ts_src_index_pool",
-      "confidence_score": 1.0
+      "target": "services_placement_service_src_index_ts_src_index_pool"
     },
     {
       "relation": "contains",
@@ -17523,9 +17870,9 @@
       "source_file": "services/placement-service/src/index.ts",
       "source_location": "L70",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_src_index_ts",
-      "target": "src_index_companies",
-      "confidence_score": 1.0
+      "target": "src_index_companies"
     },
     {
       "relation": "contains",
@@ -17533,9 +17880,9 @@
       "source_file": "services/placement-service/src/index.ts",
       "source_location": "L55",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_src_index_ts",
-      "target": "src_index_drives",
-      "confidence_score": 1.0
+      "target": "src_index_drives"
     },
     {
       "relation": "contains",
@@ -17543,9 +17890,9 @@
       "source_file": "services/placement-service/src/index.ts",
       "source_location": "L87",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_placement_service_src_index_ts",
-      "target": "src_index_newcompany",
-      "confidence_score": 1.0
+      "target": "src_index_newcompany"
     },
     {
       "relation": "contains",
@@ -18215,9 +18562,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_package_json",
-      "target": "report_service_package_dependencies",
-      "confidence_score": 1.0
+      "target": "report_service_package_dependencies"
     },
     {
       "relation": "contains",
@@ -18225,9 +18572,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_package_json",
-      "target": "report_service_package_description",
-      "confidence_score": 1.0
+      "target": "report_service_package_description"
     },
     {
       "relation": "contains",
@@ -18235,9 +18582,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_package_json",
-      "target": "report_service_package_devdependencies",
-      "confidence_score": 1.0
+      "target": "report_service_package_devdependencies"
     },
     {
       "relation": "contains",
@@ -18245,9 +18592,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_package_json",
-      "target": "report_service_package_main",
-      "confidence_score": 1.0
+      "target": "report_service_package_main"
     },
     {
       "relation": "contains",
@@ -18255,9 +18602,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_package_json",
-      "target": "report_service_package_name",
-      "confidence_score": 1.0
+      "target": "report_service_package_name"
     },
     {
       "relation": "contains",
@@ -18265,9 +18612,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_package_json",
-      "target": "report_service_package_scripts",
-      "confidence_score": 1.0
+      "target": "report_service_package_scripts"
     },
     {
       "relation": "contains",
@@ -18275,9 +18622,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_package_json",
-      "target": "report_service_package_version",
-      "confidence_score": 1.0
+      "target": "report_service_package_version"
     },
     {
       "relation": "contains",
@@ -18285,9 +18632,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_scripts",
-      "target": "report_service_package_scripts_build",
-      "confidence_score": 1.0
+      "target": "report_service_package_scripts_build"
     },
     {
       "relation": "contains",
@@ -18295,9 +18642,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_scripts",
-      "target": "report_service_package_scripts_dev",
-      "confidence_score": 1.0
+      "target": "report_service_package_scripts_dev"
     },
     {
       "relation": "contains",
@@ -18305,9 +18652,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_scripts",
-      "target": "report_service_package_scripts_start",
-      "confidence_score": 1.0
+      "target": "report_service_package_scripts_start"
     },
     {
       "relation": "contains",
@@ -18315,9 +18662,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_dependencies",
-      "target": "report_service_package_dependencies_cors",
-      "confidence_score": 1.0
+      "target": "report_service_package_dependencies_cors"
     },
     {
       "relation": "contains",
@@ -18325,9 +18672,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_dependencies",
-      "target": "report_service_package_dependencies_dotenv",
-      "confidence_score": 1.0
+      "target": "report_service_package_dependencies_dotenv"
     },
     {
       "relation": "contains",
@@ -18335,9 +18682,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_dependencies",
-      "target": "report_service_package_dependencies_express",
-      "confidence_score": 1.0
+      "target": "report_service_package_dependencies_express"
     },
     {
       "relation": "contains",
@@ -18345,9 +18692,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_dependencies",
-      "target": "report_service_package_dependencies_express_rate_limit",
-      "confidence_score": 1.0
+      "target": "report_service_package_dependencies_express_rate_limit"
     },
     {
       "relation": "contains",
@@ -18355,9 +18702,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_dependencies",
-      "target": "report_service_package_dependencies_helmet",
-      "confidence_score": 1.0
+      "target": "report_service_package_dependencies_helmet"
     },
     {
       "relation": "contains",
@@ -18365,9 +18712,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_dependencies",
-      "target": "report_service_package_dependencies_jsonwebtoken",
-      "confidence_score": 1.0
+      "target": "report_service_package_dependencies_jsonwebtoken"
     },
     {
       "relation": "contains",
@@ -18375,9 +18722,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_dependencies",
-      "target": "report_service_package_dependencies_pg",
-      "confidence_score": 1.0
+      "target": "report_service_package_dependencies_pg"
     },
     {
       "relation": "contains",
@@ -18385,9 +18732,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L26",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_devdependencies",
-      "target": "report_service_package_devdependencies_ts_node_dev",
-      "confidence_score": 1.0
+      "target": "report_service_package_devdependencies_ts_node_dev"
     },
     {
       "relation": "contains",
@@ -18395,9 +18742,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_devdependencies",
-      "target": "report_service_package_devdependencies_types_cors",
-      "confidence_score": 1.0
+      "target": "report_service_package_devdependencies_types_cors"
     },
     {
       "relation": "contains",
@@ -18405,9 +18752,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_devdependencies",
-      "target": "report_service_package_devdependencies_types_express",
-      "confidence_score": 1.0
+      "target": "report_service_package_devdependencies_types_express"
     },
     {
       "relation": "contains",
@@ -18415,9 +18762,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_devdependencies",
-      "target": "report_service_package_devdependencies_types_jsonwebtoken",
-      "confidence_score": 1.0
+      "target": "report_service_package_devdependencies_types_jsonwebtoken"
     },
     {
       "relation": "contains",
@@ -18425,9 +18772,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_devdependencies",
-      "target": "report_service_package_devdependencies_types_node",
-      "confidence_score": 1.0
+      "target": "report_service_package_devdependencies_types_node"
     },
     {
       "relation": "contains",
@@ -18435,9 +18782,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_devdependencies",
-      "target": "report_service_package_devdependencies_types_pg",
-      "confidence_score": 1.0
+      "target": "report_service_package_devdependencies_types_pg"
     },
     {
       "relation": "contains",
@@ -18445,9 +18792,9 @@
       "source_file": "services/report-service/package.json",
       "source_location": "L27",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_package_devdependencies",
-      "target": "report_service_package_devdependencies_typescript",
-      "confidence_score": 1.0
+      "target": "report_service_package_devdependencies_typescript"
     },
     {
       "relation": "contains",
@@ -18455,9 +18802,9 @@
       "source_file": "services/report-service/tsconfig.json",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_tsconfig_json",
-      "target": "report_service_tsconfig_compileroptions",
-      "confidence_score": 1.0
+      "target": "report_service_tsconfig_compileroptions"
     },
     {
       "relation": "contains",
@@ -18465,9 +18812,9 @@
       "source_file": "services/report-service/tsconfig.json",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_tsconfig_json",
-      "target": "report_service_tsconfig_include",
-      "confidence_score": 1.0
+      "target": "report_service_tsconfig_include"
     },
     {
       "relation": "contains",
@@ -18475,9 +18822,9 @@
       "source_file": "services/report-service/tsconfig.json",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_tsconfig_compileroptions",
-      "target": "report_service_tsconfig_compileroptions_esmoduleinterop",
-      "confidence_score": 1.0
+      "target": "report_service_tsconfig_compileroptions_esmoduleinterop"
     },
     {
       "relation": "contains",
@@ -18485,9 +18832,9 @@
       "source_file": "services/report-service/tsconfig.json",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_tsconfig_compileroptions",
-      "target": "report_service_tsconfig_compileroptions_forceconsistentcasinginfilenames",
-      "confidence_score": 1.0
+      "target": "report_service_tsconfig_compileroptions_forceconsistentcasinginfilenames"
     },
     {
       "relation": "contains",
@@ -18495,9 +18842,9 @@
       "source_file": "services/report-service/tsconfig.json",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_tsconfig_compileroptions",
-      "target": "report_service_tsconfig_compileroptions_module",
-      "confidence_score": 1.0
+      "target": "report_service_tsconfig_compileroptions_module"
     },
     {
       "relation": "contains",
@@ -18505,9 +18852,9 @@
       "source_file": "services/report-service/tsconfig.json",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_tsconfig_compileroptions",
-      "target": "report_service_tsconfig_compileroptions_outdir",
-      "confidence_score": 1.0
+      "target": "report_service_tsconfig_compileroptions_outdir"
     },
     {
       "relation": "contains",
@@ -18515,9 +18862,9 @@
       "source_file": "services/report-service/tsconfig.json",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_tsconfig_compileroptions",
-      "target": "report_service_tsconfig_compileroptions_rootdir",
-      "confidence_score": 1.0
+      "target": "report_service_tsconfig_compileroptions_rootdir"
     },
     {
       "relation": "contains",
@@ -18525,9 +18872,9 @@
       "source_file": "services/report-service/tsconfig.json",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_tsconfig_compileroptions",
-      "target": "report_service_tsconfig_compileroptions_skiplibcheck",
-      "confidence_score": 1.0
+      "target": "report_service_tsconfig_compileroptions_skiplibcheck"
     },
     {
       "relation": "contains",
@@ -18535,9 +18882,9 @@
       "source_file": "services/report-service/tsconfig.json",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_tsconfig_compileroptions",
-      "target": "report_service_tsconfig_compileroptions_strict",
-      "confidence_score": 1.0
+      "target": "report_service_tsconfig_compileroptions_strict"
     },
     {
       "relation": "contains",
@@ -18545,9 +18892,9 @@
       "source_file": "services/report-service/tsconfig.json",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "report_service_tsconfig_compileroptions",
-      "target": "report_service_tsconfig_compileroptions_target",
-      "confidence_score": 1.0
+      "target": "report_service_tsconfig_compileroptions_target"
     },
     {
       "relation": "contains",
@@ -18555,9 +18902,9 @@
       "source_file": "services/report-service/src/index.ts",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_src_index_ts",
-      "target": "services_report_service_src_index_ts_src_index_app",
-      "confidence_score": 1.0
+      "target": "services_report_service_src_index_ts_src_index_app"
     },
     {
       "relation": "contains",
@@ -18565,9 +18912,9 @@
       "source_file": "services/report-service/src/index.ts",
       "source_location": "L39",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_src_index_ts",
-      "target": "services_report_service_src_index_ts_src_index_authenticate",
-      "confidence_score": 1.0
+      "target": "services_report_service_src_index_ts_src_index_authenticate"
     },
     {
       "relation": "contains",
@@ -18575,9 +18922,9 @@
       "source_file": "services/report-service/src/index.ts",
       "source_location": "L35",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_src_index_ts",
-      "target": "services_report_service_src_index_ts_src_index_authenticatedrequest",
-      "confidence_score": 1.0
+      "target": "services_report_service_src_index_ts_src_index_authenticatedrequest"
     },
     {
       "relation": "contains",
@@ -18585,9 +18932,9 @@
       "source_file": "services/report-service/src/index.ts",
       "source_location": "L28",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_src_index_ts",
-      "target": "services_report_service_src_index_ts_src_index_limiter",
-      "confidence_score": 1.0
+      "target": "services_report_service_src_index_ts_src_index_limiter"
     },
     {
       "relation": "contains",
@@ -18595,9 +18942,9 @@
       "source_file": "services/report-service/src/index.ts",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_src_index_ts",
-      "target": "services_report_service_src_index_ts_src_index_pool",
-      "confidence_score": 1.0
+      "target": "services_report_service_src_index_ts_src_index_pool"
     },
     {
       "relation": "contains",
@@ -18605,9 +18952,9 @@
       "source_file": "services/report-service/src/index.ts",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_src_index_ts",
-      "target": "services_report_service_src_index_ts_src_index_query",
-      "confidence_score": 1.0
+      "target": "services_report_service_src_index_ts_src_index_query"
     },
     {
       "relation": "contains",
@@ -18615,9 +18962,9 @@
       "source_file": "services/report-service/src/index.ts",
       "source_location": "L81",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_src_index_ts",
-      "target": "src_index_attemptsdata",
-      "confidence_score": 1.0
+      "target": "src_index_attemptsdata"
     },
     {
       "relation": "contains",
@@ -18625,9 +18972,9 @@
       "source_file": "services/report-service/src/index.ts",
       "source_location": "L102",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_src_index_ts",
-      "target": "src_index_avgpercentage",
-      "confidence_score": 1.0
+      "target": "src_index_avgpercentage"
     },
     {
       "relation": "contains",
@@ -18635,9 +18982,9 @@
       "source_file": "services/report-service/src/index.ts",
       "source_location": "L108",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_src_index_ts",
-      "target": "src_index_overallscore",
-      "confidence_score": 1.0
+      "target": "src_index_overallscore"
     },
     {
       "relation": "contains",
@@ -18645,9 +18992,9 @@
       "source_file": "services/report-service/src/index.ts",
       "source_location": "L112",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_src_index_ts",
-      "target": "src_index_recommendedtraining",
-      "confidence_score": 1.0
+      "target": "src_index_recommendedtraining"
     },
     {
       "relation": "contains",
@@ -18655,9 +19002,9 @@
       "source_file": "services/report-service/src/index.ts",
       "source_location": "L111",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_src_index_ts",
-      "target": "src_index_strongareas",
-      "confidence_score": 1.0
+      "target": "src_index_strongareas"
     },
     {
       "relation": "contains",
@@ -18665,9 +19012,9 @@
       "source_file": "services/report-service/src/index.ts",
       "source_location": "L56",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_src_index_ts",
-      "target": "src_index_summary",
-      "confidence_score": 1.0
+      "target": "src_index_summary"
     },
     {
       "relation": "contains",
@@ -18675,9 +19022,9 @@
       "source_file": "services/report-service/src/index.ts",
       "source_location": "L110",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_report_service_src_index_ts",
-      "target": "src_index_weakareas",
-      "confidence_score": 1.0
+      "target": "src_index_weakareas"
     },
     {
       "relation": "contains",
@@ -19145,9 +19492,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_package_json",
-      "target": "training_service_package_dependencies",
-      "confidence_score": 1.0
+      "target": "training_service_package_dependencies"
     },
     {
       "relation": "contains",
@@ -19155,9 +19502,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_package_json",
-      "target": "training_service_package_description",
-      "confidence_score": 1.0
+      "target": "training_service_package_description"
     },
     {
       "relation": "contains",
@@ -19165,9 +19512,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_package_json",
-      "target": "training_service_package_devdependencies",
-      "confidence_score": 1.0
+      "target": "training_service_package_devdependencies"
     },
     {
       "relation": "contains",
@@ -19175,9 +19522,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_package_json",
-      "target": "training_service_package_main",
-      "confidence_score": 1.0
+      "target": "training_service_package_main"
     },
     {
       "relation": "contains",
@@ -19185,9 +19532,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_package_json",
-      "target": "training_service_package_name",
-      "confidence_score": 1.0
+      "target": "training_service_package_name"
     },
     {
       "relation": "contains",
@@ -19195,9 +19542,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_package_json",
-      "target": "training_service_package_scripts",
-      "confidence_score": 1.0
+      "target": "training_service_package_scripts"
     },
     {
       "relation": "contains",
@@ -19205,9 +19552,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_package_json",
-      "target": "training_service_package_version",
-      "confidence_score": 1.0
+      "target": "training_service_package_version"
     },
     {
       "relation": "contains",
@@ -19215,9 +19562,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_scripts",
-      "target": "training_service_package_scripts_build",
-      "confidence_score": 1.0
+      "target": "training_service_package_scripts_build"
     },
     {
       "relation": "contains",
@@ -19225,9 +19572,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_scripts",
-      "target": "training_service_package_scripts_dev",
-      "confidence_score": 1.0
+      "target": "training_service_package_scripts_dev"
     },
     {
       "relation": "contains",
@@ -19235,9 +19582,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_scripts",
-      "target": "training_service_package_scripts_start",
-      "confidence_score": 1.0
+      "target": "training_service_package_scripts_start"
     },
     {
       "relation": "contains",
@@ -19245,9 +19592,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_dependencies",
-      "target": "training_service_package_dependencies_cors",
-      "confidence_score": 1.0
+      "target": "training_service_package_dependencies_cors"
     },
     {
       "relation": "contains",
@@ -19255,9 +19602,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_dependencies",
-      "target": "training_service_package_dependencies_dotenv",
-      "confidence_score": 1.0
+      "target": "training_service_package_dependencies_dotenv"
     },
     {
       "relation": "contains",
@@ -19265,9 +19612,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L14",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_dependencies",
-      "target": "training_service_package_dependencies_express",
-      "confidence_score": 1.0
+      "target": "training_service_package_dependencies_express"
     },
     {
       "relation": "contains",
@@ -19275,9 +19622,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_dependencies",
-      "target": "training_service_package_dependencies_express_rate_limit",
-      "confidence_score": 1.0
+      "target": "training_service_package_dependencies_express_rate_limit"
     },
     {
       "relation": "contains",
@@ -19285,9 +19632,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_dependencies",
-      "target": "training_service_package_dependencies_helmet",
-      "confidence_score": 1.0
+      "target": "training_service_package_dependencies_helmet"
     },
     {
       "relation": "contains",
@@ -19295,9 +19642,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_dependencies",
-      "target": "training_service_package_dependencies_jsonwebtoken",
-      "confidence_score": 1.0
+      "target": "training_service_package_dependencies_jsonwebtoken"
     },
     {
       "relation": "contains",
@@ -19305,9 +19652,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_dependencies",
-      "target": "training_service_package_dependencies_pg",
-      "confidence_score": 1.0
+      "target": "training_service_package_dependencies_pg"
     },
     {
       "relation": "contains",
@@ -19315,9 +19662,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L26",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_devdependencies",
-      "target": "training_service_package_devdependencies_ts_node_dev",
-      "confidence_score": 1.0
+      "target": "training_service_package_devdependencies_ts_node_dev"
     },
     {
       "relation": "contains",
@@ -19325,9 +19672,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L21",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_devdependencies",
-      "target": "training_service_package_devdependencies_types_cors",
-      "confidence_score": 1.0
+      "target": "training_service_package_devdependencies_types_cors"
     },
     {
       "relation": "contains",
@@ -19335,9 +19682,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_devdependencies",
-      "target": "training_service_package_devdependencies_types_express",
-      "confidence_score": 1.0
+      "target": "training_service_package_devdependencies_types_express"
     },
     {
       "relation": "contains",
@@ -19345,9 +19692,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L23",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_devdependencies",
-      "target": "training_service_package_devdependencies_types_jsonwebtoken",
-      "confidence_score": 1.0
+      "target": "training_service_package_devdependencies_types_jsonwebtoken"
     },
     {
       "relation": "contains",
@@ -19355,9 +19702,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_devdependencies",
-      "target": "training_service_package_devdependencies_types_node",
-      "confidence_score": 1.0
+      "target": "training_service_package_devdependencies_types_node"
     },
     {
       "relation": "contains",
@@ -19365,9 +19712,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L24",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_devdependencies",
-      "target": "training_service_package_devdependencies_types_pg",
-      "confidence_score": 1.0
+      "target": "training_service_package_devdependencies_types_pg"
     },
     {
       "relation": "contains",
@@ -19375,9 +19722,9 @@
       "source_file": "services/training-service/package.json",
       "source_location": "L27",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_package_devdependencies",
-      "target": "training_service_package_devdependencies_typescript",
-      "confidence_score": 1.0
+      "target": "training_service_package_devdependencies_typescript"
     },
     {
       "relation": "contains",
@@ -19385,9 +19732,9 @@
       "source_file": "services/training-service/tsconfig.json",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_tsconfig_json",
-      "target": "training_service_tsconfig_compileroptions",
-      "confidence_score": 1.0
+      "target": "training_service_tsconfig_compileroptions"
     },
     {
       "relation": "contains",
@@ -19395,9 +19742,9 @@
       "source_file": "services/training-service/tsconfig.json",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_tsconfig_json",
-      "target": "training_service_tsconfig_include",
-      "confidence_score": 1.0
+      "target": "training_service_tsconfig_include"
     },
     {
       "relation": "contains",
@@ -19405,9 +19752,9 @@
       "source_file": "services/training-service/tsconfig.json",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_tsconfig_compileroptions",
-      "target": "training_service_tsconfig_compileroptions_esmoduleinterop",
-      "confidence_score": 1.0
+      "target": "training_service_tsconfig_compileroptions_esmoduleinterop"
     },
     {
       "relation": "contains",
@@ -19415,9 +19762,9 @@
       "source_file": "services/training-service/tsconfig.json",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_tsconfig_compileroptions",
-      "target": "training_service_tsconfig_compileroptions_forceconsistentcasinginfilenames",
-      "confidence_score": 1.0
+      "target": "training_service_tsconfig_compileroptions_forceconsistentcasinginfilenames"
     },
     {
       "relation": "contains",
@@ -19425,9 +19772,9 @@
       "source_file": "services/training-service/tsconfig.json",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_tsconfig_compileroptions",
-      "target": "training_service_tsconfig_compileroptions_module",
-      "confidence_score": 1.0
+      "target": "training_service_tsconfig_compileroptions_module"
     },
     {
       "relation": "contains",
@@ -19435,9 +19782,9 @@
       "source_file": "services/training-service/tsconfig.json",
       "source_location": "L6",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_tsconfig_compileroptions",
-      "target": "training_service_tsconfig_compileroptions_outdir",
-      "confidence_score": 1.0
+      "target": "training_service_tsconfig_compileroptions_outdir"
     },
     {
       "relation": "contains",
@@ -19445,9 +19792,9 @@
       "source_file": "services/training-service/tsconfig.json",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_tsconfig_compileroptions",
-      "target": "training_service_tsconfig_compileroptions_rootdir",
-      "confidence_score": 1.0
+      "target": "training_service_tsconfig_compileroptions_rootdir"
     },
     {
       "relation": "contains",
@@ -19455,9 +19802,9 @@
       "source_file": "services/training-service/tsconfig.json",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_tsconfig_compileroptions",
-      "target": "training_service_tsconfig_compileroptions_skiplibcheck",
-      "confidence_score": 1.0
+      "target": "training_service_tsconfig_compileroptions_skiplibcheck"
     },
     {
       "relation": "contains",
@@ -19465,9 +19812,9 @@
       "source_file": "services/training-service/tsconfig.json",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_tsconfig_compileroptions",
-      "target": "training_service_tsconfig_compileroptions_strict",
-      "confidence_score": 1.0
+      "target": "training_service_tsconfig_compileroptions_strict"
     },
     {
       "relation": "contains",
@@ -19475,9 +19822,9 @@
       "source_file": "services/training-service/tsconfig.json",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "training_service_tsconfig_compileroptions",
-      "target": "training_service_tsconfig_compileroptions_target",
-      "confidence_score": 1.0
+      "target": "training_service_tsconfig_compileroptions_target"
     },
     {
       "relation": "contains",
@@ -19485,9 +19832,9 @@
       "source_file": "services/training-service/src/index.ts",
       "source_location": "L11",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_src_index_ts",
-      "target": "services_training_service_src_index_ts_src_index_app",
-      "confidence_score": 1.0
+      "target": "services_training_service_src_index_ts_src_index_app"
     },
     {
       "relation": "contains",
@@ -19495,9 +19842,9 @@
       "source_file": "services/training-service/src/index.ts",
       "source_location": "L39",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_src_index_ts",
-      "target": "services_training_service_src_index_ts_src_index_authenticate",
-      "confidence_score": 1.0
+      "target": "services_training_service_src_index_ts_src_index_authenticate"
     },
     {
       "relation": "contains",
@@ -19505,9 +19852,9 @@
       "source_file": "services/training-service/src/index.ts",
       "source_location": "L35",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_src_index_ts",
-      "target": "services_training_service_src_index_ts_src_index_authenticatedrequest",
-      "confidence_score": 1.0
+      "target": "services_training_service_src_index_ts_src_index_authenticatedrequest"
     },
     {
       "relation": "contains",
@@ -19515,9 +19862,9 @@
       "source_file": "services/training-service/src/index.ts",
       "source_location": "L28",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_src_index_ts",
-      "target": "services_training_service_src_index_ts_src_index_limiter",
-      "confidence_score": 1.0
+      "target": "services_training_service_src_index_ts_src_index_limiter"
     },
     {
       "relation": "contains",
@@ -19525,9 +19872,9 @@
       "source_file": "services/training-service/src/index.ts",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_src_index_ts",
-      "target": "services_training_service_src_index_ts_src_index_pool",
-      "confidence_score": 1.0
+      "target": "services_training_service_src_index_ts_src_index_pool"
     },
     {
       "relation": "contains",
@@ -19535,9 +19882,9 @@
       "source_file": "services/training-service/src/index.ts",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_src_index_ts",
-      "target": "services_training_service_src_index_ts_src_index_query",
-      "confidence_score": 1.0
+      "target": "services_training_service_src_index_ts_src_index_query"
     },
     {
       "relation": "contains",
@@ -19545,9 +19892,9 @@
       "source_file": "services/training-service/src/index.ts",
       "source_location": "L74",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_src_index_ts",
-      "target": "src_index_newtrack",
-      "confidence_score": 1.0
+      "target": "src_index_newtrack"
     },
     {
       "relation": "contains",
@@ -19555,9 +19902,9 @@
       "source_file": "services/training-service/src/index.ts",
       "source_location": "L56",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_training_service_src_index_ts",
-      "target": "src_index_tracks",
-      "confidence_score": 1.0
+      "target": "src_index_tracks"
     },
     {
       "relation": "contains",
@@ -24913,5 +25260,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "9cecf7cf9abea635f6f095884c645e7244c77007"
+  "built_at_commit": "de156990695e7afe8fd47ead85dd1cf4aec2357c"
 }
