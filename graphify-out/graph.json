@@ -4026,7 +4026,7 @@
       "label": "AssessmentPreExamStepper()",
       "file_type": "code",
       "source_file": "services/frontend-service/src/components/assessment/AssessmentPreExamStepper.tsx",
-      "source_location": "L17",
+      "source_location": "L19",
       "id": "assessment_assessmentpreexamstepper_assessmentpreexamstepper",
       "community": 88,
       "norm_label": "assessmentpreexamstepper()"
@@ -14802,9 +14802,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L2284",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "services_exam_service_src_index_ts_src_index_now",
-      "confidence_score": 1.0
+      "target": "services_exam_service_src_index_ts_src_index_now"
     },
     {
       "relation": "contains",
@@ -15494,9 +15494,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L77",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_index_validateattemptnotexpired",
-      "target": "services_exam_service_src_index_ts_src_index_now",
-      "confidence_score": 1.0
+      "target": "services_exam_service_src_index_ts_src_index_now"
     },
     {
       "relation": "calls",
@@ -18621,9 +18621,9 @@
       "source_file": "services/proctoring-service/src/index.ts",
       "source_location": "L171",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_proctoring_service_src_index_ts",
-      "target": "services_proctoring_service_src_index_ts_src_index_now",
-      "confidence_score": 1.0
+      "target": "services_proctoring_service_src_index_ts_src_index_now"
     },
     {
       "relation": "contains",
@@ -18965,9 +18965,9 @@
       "source_file": "services/proctoring-service/src/index.ts",
       "source_location": "L390",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_index_processviolation",
-      "target": "services_proctoring_service_src_index_ts_src_index_now",
-      "confidence_score": 1.0
+      "target": "services_proctoring_service_src_index_ts_src_index_now"
     },
     {
       "relation": "contains",
@@ -25673,5 +25673,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "4cf9e3d0d8eac96eda47a8dba2abfdaee3175dc1"
+  "built_at_commit": "6be42a471d118b8460a551002bc63b12cbb009a0"
 }

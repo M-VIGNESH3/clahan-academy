@@ -12,6 +12,8 @@ interface AssessmentPreExamStepperProps {
   onStepChange: (step: PreExamValidationStep) => void;
   onStartExam: () => Promise<boolean | void>;
   showToast: (msg: string, type?: 'info' | 'success' | 'error' | 'warning') => void;
+  sharedStream?: MediaStream | null;
+  onRequestHardwareCheck?: () => Promise<void>;
 }
 
 export const AssessmentPreExamStepper: React.FC<AssessmentPreExamStepperProps> = ({
@@ -19,36 +21,40 @@ export const AssessmentPreExamStepper: React.FC<AssessmentPreExamStepperProps> =
   currentStep,
   onStepChange,
   onStartExam,
-  showToast
+  showToast,
+  sharedStream,
+  onRequestHardwareCheck
 }) => {
   const [hardwarePassed, setHardwarePassed] = useState(false);
   const [isTestingCamera, setIsTestingCamera] = useState(false);
-  const [stream, setStream] = useState<MediaStream | null>(null);
   const [faceCheckPassed, setFaceCheckPassed] = useState(false);
   const [isFullscreenActive, setIsFullscreenActive] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Clean up media stream on unmount or step transition to active
+  // Clean up media stream reference without stopping hardware tracks
   useEffect(() => {
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(t => t.stop());
+      // DO NOT stop tracks here. App.tsx owns the stream lifecycle.
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
       }
     };
-  }, [stream]);
+  }, []);
 
-  // Handle Video preview attachment
+  // Handle Video preview attachment using sharedStream from App.tsx
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
+    if (videoRef.current && sharedStream) {
+      videoRef.current.srcObject = sharedStream;
+      videoRef.current.play().catch(() => {});
     }
-  }, [stream, currentStep]);
+  }, [sharedStream, currentStep]);
 
   const requestHardwareCheck = async () => {
     setIsTestingCamera(true);
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      setStream(mediaStream);
+      if (onRequestHardwareCheck) {
+        await onRequestHardwareCheck();
+      }
       setHardwarePassed(true);
       showToast('Webcam and Microphone successfully verified.', 'success');
     } catch (err) {
@@ -146,7 +152,7 @@ export const AssessmentPreExamStepper: React.FC<AssessmentPreExamStepperProps> =
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
               <div className="h-56 bg-slate-950 border border-white/10 rounded-xl overflow-hidden relative flex items-center justify-center">
-                {stream ? (
+                {sharedStream ? (
                   <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
                 ) : (
                   <div className="text-center p-4 space-y-2 text-slate-500">
@@ -227,7 +233,7 @@ export const AssessmentPreExamStepper: React.FC<AssessmentPreExamStepperProps> =
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
               {/* Video Preview Feed */}
               <div className="h-60 bg-slate-950 border border-indigo-500/30 rounded-2xl overflow-hidden relative flex items-center justify-center shadow-inner">
-                {stream ? (
+                {sharedStream ? (
                   <>
                     <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
                     <div className="absolute inset-0 border-2 border-dashed border-indigo-400/50 rounded-2xl pointer-events-none flex items-center justify-center">
@@ -264,7 +270,7 @@ export const AssessmentPreExamStepper: React.FC<AssessmentPreExamStepperProps> =
                   <p className="flex items-center gap-2">✔ Ensure no secondary persons are visible in frame.</p>
                 </div>
 
-                {stream && (
+                {sharedStream && (
                   <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 font-bold flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-emerald-400 flex-shrink-0" />
                     <span>Face Video Feed Verified. Ready to proceed.</span>

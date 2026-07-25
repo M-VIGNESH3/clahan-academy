@@ -3601,14 +3601,14 @@ export default function App() {
     loadStudentDashboard();
   };
 
+  // Only cleanup on true unmount if exam was active
   useEffect(() => {
-    if (currentPage !== 'exam-env') {
-      cleanupExamSession();
-    }
     return () => {
-      cleanupExamSession();
+      if (currentPageRef.current === 'exam-env') {
+        cleanupExamSession();
+      }
     };
-  }, [currentPage, cleanupExamSession]);
+  }, [cleanupExamSession]);
 
   const cleanupProctoring = () => {
     cleanupExamSession();
@@ -9045,6 +9045,8 @@ export default function App() {
                 await startExamAttempt();
               }}
               showToast={showToast}
+              sharedStream={cameraStream}
+              onRequestHardwareCheck={requestHardwarePermissions}
             />
           )}
 
