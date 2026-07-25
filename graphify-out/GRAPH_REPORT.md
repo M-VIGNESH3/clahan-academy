@@ -1,16 +1,16 @@
 # Graph Report - clahan academy  (2026-07-25)
 
 ## Corpus Check
-- 83 files · ~139,303 words
+- 83 files · ~139,363 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1303 nodes · 1347 edges · 95 communities (86 shown, 9 thin omitted)
+- 1303 nodes · 1348 edges · 95 communities (86 shown, 9 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ba22b768`
+- Built from commit: `30091b27`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

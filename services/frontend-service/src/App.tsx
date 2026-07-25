@@ -811,6 +811,9 @@ export default function App() {
       if (videoRef.current.srcObject !== cameraStream) {
         videoRef.current.srcObject = cameraStream;
       }
+      videoRef.current.play().catch(err => {
+        console.warn("webcam video.play() auto-play catch:", err);
+      });
     }
   }, [currentPage, validationStep, cameraStream]);
 
@@ -3129,7 +3132,7 @@ export default function App() {
         setExamMCQs(data.mcqQuestions || []);
         setExamCodings(data.codingQuestions || []);
         if (data.exam) {
-          setCurrentExam(data.exam);
+          setCurrentExam(formatExamItem(data.exam));
         }
         
         let sectionsList: any[] = data.sections || [];
@@ -3368,6 +3371,9 @@ export default function App() {
       if (currentPageRef.current === 'exam-env' && videoRef.current && socketRef.current) {
         try {
           const video = videoRef.current;
+          if (video.paused || video.readyState < 2) {
+            video.play().catch(() => {});
+          }
           const canvas = document.createElement('canvas');
           canvas.width = 640;
           canvas.height = 480;

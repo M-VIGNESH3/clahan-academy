@@ -5682,7 +5682,7 @@
       "label": "confStr",
       "file_type": "code",
       "source_file": "services/proctoring-service/src/index.ts",
-      "source_location": "L600",
+      "source_location": "L608",
       "id": "src_index_confstr",
       "community": 20,
       "norm_label": "confstr"
@@ -5691,7 +5691,7 @@
       "label": "confListStr",
       "file_type": "code",
       "source_file": "services/proctoring-service/src/index.ts",
-      "source_location": "L608",
+      "source_location": "L616",
       "id": "src_index_confliststr",
       "community": 20,
       "norm_label": "confliststr"
@@ -5700,7 +5700,7 @@
       "label": "counts",
       "file_type": "code",
       "source_file": "services/proctoring-service/src/index.ts",
-      "source_location": "L749",
+      "source_location": "L757",
       "id": "src_index_counts",
       "community": 20,
       "norm_label": "counts"
@@ -18747,6 +18747,17 @@
       "target": "services_proctoring_service_src_index_ts_src_index_query"
     },
     {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "services/proctoring-service/src/index.ts",
+      "source_location": "L250",
+      "weight": 1.0,
+      "source": "src_index_processviolation",
+      "target": "src_index_isfacedetectionenabled",
+      "confidence_score": 1.0
+    },
+    {
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "services/report-service/package.json",
@@ -25450,5 +25461,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "ba22b76841361263cc5d624443e3624ed095ded8"
+  "built_at_commit": "30091b273e33725addaa489f68e083008e1df05d"
 }

@@ -246,6 +246,14 @@ io.on('connection', (socket: Socket) => {
         return;
       }
 
+      // Check if AI face detection is enabled for this exam
+      const faceDetectionEnabled = await isFaceDetectionEnabled(examId);
+      const isFaceRelatedEvent = ['NO_FACE_DETECTED', 'MULTIPLE_FACES_DETECTED', 'CAMERA_DISABLED'].includes(eventType);
+      if (!faceDetectionEnabled && isFaceRelatedEvent) {
+        console.log(`[PROCTORING BYPASS] Skipping ${eventType} for exam ${examId} because enable_face_detection is disabled.`);
+        return;
+      }
+
       // Save violation log to database
       await query(
         `INSERT INTO proctoring_logs (attempt_id, event_type, details, severity, screenshot)
