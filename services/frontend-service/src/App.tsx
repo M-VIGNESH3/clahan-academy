@@ -447,6 +447,10 @@ export default function App() {
   const [codingSolutions, setCodingSolutions] = useState<Record<string, { code: string; language: string }>>({}); // { questionId: { code, lang } }
   const [markedForReview, setMarkedForReview] = useState<Record<string, boolean>>({});
   const [activeResultReport, setActiveResultReport] = useState<any>(null);
+  // Auto-submit early completion tracking
+  const [allSectionsCompleted, setAllSectionsCompleted] = useState(false);
+  // Read-only locked section state (allows viewing submitted sections)
+  const [readOnlySections, setReadOnlySections] = useState<Record<string, boolean>>({}); 
 
   // Question Upload & Save States
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -1082,7 +1086,23 @@ export default function App() {
   useEffect(() => {
     timeLeftRef.current = timeLeft;
   }, [timeLeft]);
-  
+
+  // Track whether ALL sections have been completed (for auto-submit early-exit UX)
+  useEffect(() => {
+    if (!studentExamSections || studentExamSections.length === 0) return;
+    const subMode = String(
+      currentExam?.submission_mode || currentExam?.submissionMode || 'manual'
+    ).toLowerCase();
+    if (subMode !== 'auto') {
+      setAllSectionsCompleted(false);
+      return;
+    }
+    const allDone = studentExamSections.every(
+      section => completedSections[section.id] === true
+    );
+    setAllSectionsCompleted(allDone);
+  }, [completedSections, studentExamSections, currentExam]);
+
   // Toast notifications
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }>>([]);
   const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
@@ -9028,6 +9048,10 @@ export default function App() {
                   totalDurationMinutes={examForm.durationMinutes}
                   sections={adminSelectedExamSections}
                   onTotalDurationChange={mins => setExamForm({ ...examForm, durationMinutes: mins })}
+                  onOverallDurationChange={(newDuration) => {
+                    setExamForm(prev => ({ ...prev, durationMinutes: newDuration }));
+                    showToast(`Total duration updated to ${newDuration} mins`, 'success');
+                  }}
                 />
 
                 <div className="pt-6 flex justify-between items-center border-t border-slate-200 dark:border-slate-800">
@@ -9163,6 +9187,32 @@ export default function App() {
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     Clicking publish will activate this assessment template and make it available to assigned candidates according to schedule.
                   </p>
+
+                  {/* Duration Mismatch Warning */}
+                  {(() => {
+                    const sections = adminSelectedExamSections || [];
+                    const manualTotal = sections
+                      .filter(s => s.duration_minutes && parseInt(String(s.duration_minutes), 10) > 0)
+                      .reduce((sum, s) => sum + parseInt(String(s.duration_minutes), 10), 0);
+                    const overall = examForm.durationMinutes || 60;
+                    if (manualTotal > overall) {
+                      return (
+                        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl mb-4 text-left">
+                          <p className="text-xs text-amber-400 font-bold">
+                            ⚠️ Section durations ({manualTotal} mins) exceed total duration ({overall} mins). Publishing will be blocked.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setExamForm(prev => ({ ...prev, durationMinutes: manualTotal }))}
+                            className="mt-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-extrabold rounded-lg"
+                          >
+                            ⚡ Auto-Fix: Set Total to {manualTotal} mins
+                          </button>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   <div className="pt-4 flex justify-center gap-4">
                     <button
@@ -9497,6 +9547,32 @@ export default function App() {
                     >
                       Submit Assessment
                     </button>
+                  ) : allSectionsCompleted ? (
+                    /* Early completion state: all sections done, show submit override */
+                    <div className="flex items-center gap-2">
+                      <div className="px-3.5 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-right">
+                        <span className="text-[10px] text-emerald-300 font-extrabold uppercase block">
+                          All Sections Complete
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-medium block">
+                          Auto-submits when timer ends
+                        </span>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const confirmed = window.confirm(
+                            'You have completed all sections. Do you want to submit now instead of waiting for the timer to expire?'
+                          );
+                          if (confirmed) {
+                            await submitEntireExam();
+                          }
+                        }}
+                        disabled={isExamLocked}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-extrabold rounded-lg transition-all shadow-md"
+                      >
+                        Submit Early
+                      </button>
+                    </div>
                   ) : (
                     <div className="px-3.5 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-right">
                       <span className="text-[10px] text-amber-300 font-extrabold uppercase block">Auto-Submit Mode</span>
@@ -9665,15 +9741,48 @@ export default function App() {
                               const isTargetLocked = completedSections[targetSectionId] === true || (
                                 (navMode === 'locked' || navMode === 'sequential_locked') && currentIdx > targetIdx
                               );
-                              if (isTargetLocked) return;
 
-                              // Check sequential rule
+                              // LOCKED SECTION: Allow read-only viewing instead of silently blocking
+                              if (isTargetLocked) {
+                                if (activeSectionId) {
+                                  setSectionQuestionIndices(prev => ({ ...prev, [activeSectionId]: activeQuestionIndex }));
+                                }
+                                saveCurrentCodeImmediately();
+                                // Clear read-only flag for current active section if we're leaving to view
+                                setReadOnlySections(prev => ({ ...prev, [targetSectionId]: true }));
+                                setActiveSectionId(targetSectionId);
+                                setActiveQuestionIndex(sectionQuestionIndices[targetSectionId] || 0);
+                                showToast('This section is locked. Viewing in read-only mode.', 'info');
+                                return;
+                              }
+
+                              // Clear read-only flag when switching to an unlocked section
+                              if (!completedSections[targetSectionId]) {
+                                setReadOnlySections(prev => {
+                                  const updated = { ...prev };
+                                  delete updated[targetSectionId];
+                                  return updated;
+                                });
+                              }
+
+                              // Check sequential rule: cannot SKIP FORWARD more than 1 step
                               if ((navMode === 'sequential' || navMode === 'sequential_locked') && targetIdx > currentIdx + 1) {
                                 showToast("Sequential navigation: You cannot skip future sections. Please complete sections in order.", "warning");
                                 return;
                               }
 
-                              // Non-free modes: Open confirmation dialog
+                              // In SEQUENTIAL (non-locked) mode: going BACK is allowed freely, no confirmation needed
+                              if (navMode === 'sequential' && targetIdx < currentIdx) {
+                                if (activeSectionId) {
+                                  setSectionQuestionIndices(prev => ({ ...prev, [activeSectionId]: activeQuestionIndex }));
+                                }
+                                saveCurrentCodeImmediately();
+                                setActiveSectionId(targetSectionId);
+                                setActiveQuestionIndex(sectionQuestionIndices[targetSectionId] || 0);
+                                return;
+                              }
+
+                              // Non-free modes going FORWARD: Open confirmation dialog
                               saveCurrentCodeImmediately();
                               setPendingTargetSectionId(targetSectionId);
                               setIsSectionConfirmModalOpen(true);
@@ -9692,31 +9801,41 @@ export default function App() {
                                   studentExamSections.findIndex(s => s.id === activeSectionId) > idx
                                 )
                               );
+                              const isViewingReadOnly = readOnlySections[sect.id] === true;
 
                               let statusLabel = 'Pending';
-                              if (isCurrent) statusLabel = 'Current';
+                              if (isCurrent && isViewingReadOnly) statusLabel = 'Read-Only';
+                              else if (isCurrent) statusLabel = 'Current';
                               else if (isLocked) statusLabel = 'Locked';
 
                               return (
                                 <button
                                   key={sect.id || idx}
                                   onClick={() => requestSectionSwitch(sect.id)}
-                                  disabled={isExamLocked || isLocked}
+                                  disabled={isExamLocked}
                                   className={`w-full py-2.5 px-3 text-left rounded-xl transition-all border flex flex-col gap-1 ${
-                                    isCurrent 
-                                      ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 font-bold shadow-sm' 
-                                      : isLocked
-                                        ? 'bg-slate-950/20 border-white/5 text-slate-600 opacity-60 cursor-not-allowed'
-                                        : 'bg-slate-950/40 border-white/5 text-slate-400 hover:bg-slate-800 hover:text-white'
+                                    isCurrent && isViewingReadOnly
+                                      ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 font-bold shadow-sm'
+                                      : isCurrent 
+                                        ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/40 font-bold shadow-sm' 
+                                        : isLocked
+                                          ? 'bg-slate-950/20 border-amber-500/20 text-slate-500 opacity-80 hover:bg-amber-500/5 cursor-pointer'
+                                          : 'bg-slate-950/40 border-white/5 text-slate-400 hover:bg-slate-800 hover:text-white'
                                   }`}
                                 >
                                   <div className="flex justify-between items-center text-xs">
-                                    <span className="font-extrabold truncate max-w-[130px]">{sect.name}</span>
-                                    <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${
-                                      isCurrent ? 'bg-indigo-500 text-white' : isLocked ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-800 text-slate-400'
-                                    }`}>
-                                      {statusLabel}
-                                    </span>
+                                    <span className="font-extrabold truncate max-w-[110px]">{sect.name}</span>
+                                    <div className="flex items-center gap-1">
+                                      {isLocked && !isCurrent && <span className="text-[8px] text-amber-400">👁</span>}
+                                      <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${
+                                        isCurrent && isViewingReadOnly ? 'bg-amber-500/20 text-amber-400'
+                                        : isCurrent ? 'bg-indigo-500 text-white' 
+                                        : isLocked ? 'bg-amber-500/20 text-amber-400' 
+                                        : 'bg-slate-800 text-slate-400'
+                                      }`}>
+                                        {statusLabel}
+                                      </span>
+                                    </div>
                                   </div>
                                   <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono">
                                     <span>{sTotal} Questions</span>
@@ -9935,6 +10054,9 @@ export default function App() {
 
                   const currentItem = currentSectionQuestions[activeQuestionIndex];
 
+                  // Read-only mode: student is viewing a locked (completed) section
+                  const isCurrentSectionReadOnly = readOnlySections[activeSectionId] === true;
+
                   if (!currentItem) {
                     return (
                       <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-950 text-slate-400">
@@ -9952,7 +10074,18 @@ export default function App() {
                     const wordLimit = currentDesc.word_limit || 0;
 
                     return (
-                      <div className="flex-1 flex flex-col bg-slate-950 p-4 md:p-6 overflow-y-auto w-full">
+                      <div className="flex-1 flex flex-col bg-slate-950 overflow-y-auto w-full">
+                        {/* Read-Only Mode Banner */}
+                        {isCurrentSectionReadOnly && (
+                          <div className="w-full px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/30 flex items-center gap-2 flex-shrink-0">
+                            <span className="text-amber-400 text-lg">🔒</span>
+                            <div>
+                              <span className="text-xs font-extrabold text-amber-300 block">Read-Only Mode</span>
+                              <span className="text-[10px] text-slate-400">This section has been submitted and locked. You can view your answers but cannot make changes.</span>
+                            </div>
+                          </div>
+                        )}
+                        <div className="p-4 md:p-6">
                         <div className="w-full space-y-6 bg-slate-900 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
                           <div className="flex flex-wrap justify-between items-center border-b border-white/10 pb-4 gap-4">
                             <div className="flex items-center gap-3">
@@ -9998,7 +10131,7 @@ export default function App() {
                                   return next;
                                 });
                               }}
-                              disabled={isExamLocked}
+                              disabled={isExamLocked || isCurrentSectionReadOnly}
                               rows={8}
                               placeholder="Type your descriptive response here..."
                               className="w-full bg-slate-950 border border-white/10 rounded-xl p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-sans leading-relaxed resize-y"
@@ -10058,6 +10191,7 @@ export default function App() {
                             </button>
                           </div>
                         </div>
+                        </div>{/* close p-4 md:p-6 */}
                       </div>
                     );
                   }
@@ -10065,7 +10199,18 @@ export default function App() {
                   if (currentItem.kind === 'mcq') {
                     const currentMcq = currentItem.data;
                     return (
-                      <div className="flex-1 flex flex-col bg-slate-950 p-4 md:p-6 overflow-y-auto w-full">
+                      <div className="flex-1 flex flex-col bg-slate-950 overflow-y-auto w-full">
+                        {/* Read-Only Mode Banner */}
+                        {isCurrentSectionReadOnly && (
+                          <div className="w-full px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/30 flex items-center gap-2 flex-shrink-0">
+                            <span className="text-amber-400 text-lg">🔒</span>
+                            <div>
+                              <span className="text-xs font-extrabold text-amber-300 block">Read-Only Mode</span>
+                              <span className="text-[10px] text-slate-400">This section has been submitted and locked. You can view your answers but cannot make changes.</span>
+                            </div>
+                          </div>
+                        )}
+                        <div className="p-4 md:p-6">
                         <div className="w-full space-y-6 bg-slate-900 border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
                           <div className="flex flex-wrap justify-between items-center border-b border-white/10 pb-4 gap-4">
                             <div className="flex items-center gap-3">
@@ -10108,8 +10253,8 @@ export default function App() {
                                     optionText={optionText}
                                     optionImage={optionImg}
                                     isSelected={isSelected}
-                                    isDisabled={isExamLocked}
-                                    onSelect={() => { if (!isExamLocked) saveMcqChoice(currentMcq.id, opt); }}
+                                    isDisabled={isExamLocked || isCurrentSectionReadOnly}
+                                    onSelect={() => { if (!isExamLocked && !isCurrentSectionReadOnly) saveMcqChoice(currentMcq.id, opt); }}
                                     onImageClick={(url, alt) => setLightboxImage({ url, alt })}
                                   />
                                 );
@@ -10185,6 +10330,7 @@ export default function App() {
                             </div>
                           </div>
                         </div>
+                        </div>{/* close p-4 md:p-6 */}
                       </div>
                     );
                   }

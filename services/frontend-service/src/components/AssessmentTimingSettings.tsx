@@ -112,12 +112,15 @@ interface AssessmentTimingSettingsProps {
   totalDurationMinutes: number;
   sections: Array<{ id: string; name: string; duration_minutes?: number | string | null }>;
   onTotalDurationChange: (mins: number) => void;
+  /** Optional: called when user clicks Auto-Fix to sync overall duration = manualTotal */
+  onOverallDurationChange?: (newDuration: number) => void;
 }
 
 export const AssessmentTimingSettings: React.FC<AssessmentTimingSettingsProps> = ({
   totalDurationMinutes,
   sections,
-  onTotalDurationChange
+  onTotalDurationChange,
+  onOverallDurationChange
 }) => {
   const summary = computeSectionTimingSummary(totalDurationMinutes, sections);
 
@@ -224,9 +227,20 @@ export const AssessmentTimingSettings: React.FC<AssessmentTimingSettingsProps> =
 
       {/* Validation Error Banner */}
       {!summary.isValid && (
-        <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-500 text-xs font-bold flex items-center gap-2">
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-          <span>{summary.validationError}</span>
+        <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl space-y-2">
+          <div className="flex items-center gap-2 text-rose-500 text-xs font-bold">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span>{summary.validationError}</span>
+          </div>
+          {onOverallDurationChange && (
+            <button
+              type="button"
+              onClick={() => onOverallDurationChange(summary.manualTotal)}
+              className="mt-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-extrabold rounded-lg transition-all"
+            >
+              ⚡ Auto-Fix: Set Total Duration to {summary.manualTotal} mins
+            </button>
+          )}
         </div>
       )}
     </div>
