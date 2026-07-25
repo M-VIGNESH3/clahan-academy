@@ -419,7 +419,7 @@ export default function App() {
   // Exam Attempt state (Ongoing Exam Environment)
   const [currentExam, setCurrentExam] = useState<Exam | null>(null);
   const [currentAttempt, setCurrentAttempt] = useState<Attempt | null>(null);
-  const [validationStep, setValidationStep] = useState<'instructions' | 'validation' | 'active'>('instructions');
+  const [validationStep, setValidationStep] = useState<'instructions' | 'hardware' | 'face' | 'fullscreen' | 'active'>('instructions');
   const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
   const [micPermission, setMicPermission] = useState<boolean | null>(null);
   const [faceCheck, setFaceCheck] = useState<boolean | null>(null);
@@ -1087,6 +1087,47 @@ export default function App() {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4000);
   };
+
+  const recoverCameraStream = useCallback(async () => {
+    try {
+      console.warn('Camera track ended. Attempting recovery...');
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          width: { ideal: 640 }, 
+          height: { ideal: 480 },
+          facingMode: 'user'
+        },
+        audio: true
+      });
+
+      // Stop audio tracks immediately
+      newStream.getAudioTracks().forEach(track => track.stop());
+
+      // Stop old stream tracks before replacing
+      if (cameraStreamRef.current) {
+        cameraStreamRef.current.getTracks().forEach(track => {
+          try { track.stop(); } catch {}
+        });
+      }
+
+      setCameraStream(newStream);
+      cameraStreamRef.current = newStream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = newStream;
+        await videoRef.current.play().catch(() => {});
+      }
+
+      // Re-attach ended listener on new stream
+      newStream.getVideoTracks().forEach(track => {
+        track.addEventListener('ended', recoverCameraStream);
+      });
+
+    } catch (err) {
+      console.error('Camera recovery failed:', err);
+      showToast('Camera disconnected. Please check your camera connection.', 'error');
+    }
+  }, [showToast]);
 
   // REST API URL helpers
   const API_AUTH = '/api/auth';
@@ -2959,8 +3000,8 @@ export default function App() {
         const skipInstructions = examObj?.skip_instructions === true || examObj?.skipInstructions === true;
         setCurrentPage('exam-env');
         if (skipInstructions) {
-          console.log('[RuntimeController] Admin explicitly enabled skip_instructions. Bypassing instructions stage.');
-          requestHardwarePermissions();
+          console.log('[RuntimeController] Admin explicitly enabled skip_instructions. Setting stage: hardware');
+          setValidationStep('hardware');
         } else {
           console.log('[RuntimeController] Setting stage: instructions');
           setValidationStep('instructions');
@@ -3068,7 +3109,6 @@ export default function App() {
   };
 
   const requestHardwarePermissions = async () => {
-    setValidationStep('validation');
     setHardwareProgress(10);
     setCameraPermission(false);
     setMicPermission(false);
@@ -3077,56 +3117,36 @@ export default function App() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       alert("Security Block: Browsers restrict camera/microphone access on non-secure (HTTP) connections. Please host over HTTPS or test on localhost.");
       setHardwareProgress(0);
-      return;
+      throw new Error("navigator.mediaDevices.getUserMedia unavailable");
     }
 
     try {
       setHardwareProgress(25);
-      const combinedStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const combinedStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          width: { ideal: 640 }, 
+          height: { ideal: 480 },
+          facingMode: 'user'
+        }, 
+        audio: true 
+      });
+
+      // Stop audio tracks - proctoring needs video track
+      combinedStream.getAudioTracks().forEach(track => {
+        track.stop();
+      });
+
       setCameraPermission(true);
       setMicPermission(true);
       setCameraStream(combinedStream);
+      cameraStreamRef.current = combinedStream;
+
       if (videoRef.current) {
         videoRef.current.srcObject = combinedStream;
         videoRef.current.play().catch(() => {});
       }
-      const recoverCameraStream = async () => {
-        try {
-          console.warn('Camera track ended. Attempting recovery...');
-          const newStream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-            audio: true
-          });
 
-          // Stop audio tracks immediately to prevent leak
-          newStream.getAudioTracks().forEach(track => {
-            track.stop();
-          });
-
-          // Stop all tracks on old stream before replacing
-          if (cameraStreamRef.current) {
-            cameraStreamRef.current.getTracks().forEach(track => {
-              try { track.stop(); } catch {}
-            });
-          }
-
-          setCameraStream(newStream);
-
-          if (videoRef.current) {
-            videoRef.current.srcObject = newStream;
-            await videoRef.current.play().catch(() => {});
-          }
-
-          newStream.getVideoTracks().forEach(track => {
-            track.addEventListener('ended', recoverCameraStream);
-          });
-
-        } catch (err) {
-          console.error('Camera recovery failed:', err);
-          showToast('Camera disconnected. Please check your camera connection.', 'error');
-        }
-      };
-
+      // Use the component-level recoverCameraStream
       combinedStream.getVideoTracks().forEach(track => {
         track.addEventListener('ended', recoverCameraStream);
       });
@@ -3139,8 +3159,8 @@ export default function App() {
 
     } catch (err: any) {
       console.error("Hardware permission denied:", err);
-      alert(`Hardware Access Denied: Please allow access to your camera and microphone in your browser settings to proceed with the proctored exam.\nDetails: ${err.message || err}`);
       setHardwareProgress(0);
+      throw err;
     }
   };
 
