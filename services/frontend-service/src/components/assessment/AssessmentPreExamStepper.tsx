@@ -220,14 +220,57 @@ export const AssessmentPreExamStepper: React.FC<AssessmentPreExamStepperProps> =
               <ShieldCheck className="h-6 w-6 text-indigo-400" />
               <div>
                 <h3 className="font-extrabold text-base text-white">Step 3: AI Proctoring & Face Verification</h3>
-                <p className="text-xs text-slate-400">Ensure your face is centered and clearly visible in lighting.</p>
+                <p className="text-xs text-slate-400">Ensure your face is centered and clearly visible in good lighting.</p>
               </div>
             </div>
 
-            <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-xs text-indigo-300 font-semibold space-y-1">
-              <p>✔ Place yourself in a well-lit room.</p>
-              <p>✔ Do not cover your face or wear sunglasses.</p>
-              <p>✔ Only one candidate must be visible in front of the camera.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+              {/* Video Preview Feed */}
+              <div className="h-60 bg-slate-950 border border-indigo-500/30 rounded-2xl overflow-hidden relative flex items-center justify-center shadow-inner">
+                {stream ? (
+                  <>
+                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 border-2 border-dashed border-indigo-400/50 rounded-2xl pointer-events-none flex items-center justify-center">
+                      <div className="w-36 h-44 border-2 border-indigo-500 rounded-full opacity-60 animate-pulse flex items-center justify-center">
+                        <span className="text-[9px] text-indigo-300 font-mono uppercase bg-slate-950/80 px-2 py-0.5 rounded">Center Face</span>
+                      </div>
+                    </div>
+                    <div className="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-sm border border-emerald-500/40 text-emerald-400 text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
+                      Live Video Feed Active
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center p-4 space-y-2 text-slate-400">
+                    <Video className="h-10 w-10 mx-auto text-amber-400 animate-pulse" />
+                    <p className="text-xs font-semibold">Webcam Feed Initializing...</p>
+                    <button
+                      onClick={requestHardwareCheck}
+                      className="px-3 py-1.5 bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 rounded-lg text-xs font-bold hover:bg-indigo-600/40"
+                    >
+                      Turn On Camera
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Guidelines & Status */}
+              <div className="space-y-4">
+                <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-xs text-indigo-200 font-semibold space-y-2">
+                  <span className="font-extrabold text-indigo-400 uppercase tracking-wider block text-[10px]">Verification Protocol</span>
+                  <p className="flex items-center gap-2">✔ Position yourself directly in front of the camera.</p>
+                  <p className="flex items-center gap-2">✔ Ensure adequate ambient lighting without glare.</p>
+                  <p className="flex items-center gap-2">✔ Do not wear hats, heavy sunglasses, or face coverings.</p>
+                  <p className="flex items-center gap-2">✔ Ensure no secondary persons are visible in frame.</p>
+                </div>
+
+                {stream && (
+                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 font-bold flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                    <span>Face Video Feed Verified. Ready to proceed.</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex justify-between items-center border-t border-white/10 pt-4">

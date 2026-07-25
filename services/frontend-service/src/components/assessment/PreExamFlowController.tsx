@@ -21,25 +21,40 @@ export const PreExamFlowController: React.FC<PreExamFlowControllerProps> = ({
   const [faceCheckOk, setFaceCheckOk] = useState<boolean | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const videoRef = React.useRef<HTMLVideoElement | null>(null);
+
+  React.useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream, step]);
+
+  React.useEffect(() => {
+    return () => {
+      // Clean up stream on unmount
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
+    };
+  }, [stream]);
+
   const requestHardwarePermissions = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      setStream(mediaStream);
       setCameraOk(true);
       setMicOk(true);
-      // Stop stream tracks after validation
-      stream.getTracks().forEach(t => t.stop());
       setStep('face');
     } catch (err) {
       console.warn('Hardware permission request failed:', err);
       setCameraOk(false);
       setMicOk(false);
-      // Allow simulated bypass for testing if hardware unavailable
       setStep('face');
     }
   };
 
   const runFaceDetection = () => {
-    // Simulate face detection check
     setFaceCheckOk(true);
     setStep('fullscreen');
   };
@@ -166,6 +181,24 @@ export const PreExamFlowController: React.FC<PreExamFlowControllerProps> = ({
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
               Ensure your face is clearly visible inside the camera frame. Avoid multiple people or low-light conditions.
             </p>
+          </div>
+
+          {/* Live Video Preview Box */}
+          <div className="h-56 max-w-sm mx-auto bg-slate-950 border border-indigo-500/30 rounded-2xl overflow-hidden relative flex items-center justify-center shadow-md">
+            {stream ? (
+              <>
+                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                <div className="absolute inset-0 border-2 border-dashed border-indigo-400/40 rounded-2xl pointer-events-none flex items-center justify-center">
+                  <div className="w-32 h-40 border-2 border-indigo-500 rounded-full opacity-60 animate-pulse flex items-center justify-center">
+                    <span className="text-[9px] text-indigo-300 font-mono uppercase bg-slate-950/80 px-2 py-0.5 rounded">Center Face</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-slate-400 text-xs font-semibold p-4">
+                Webcam Feed Initializing...
+              </div>
+            )}
           </div>
 
           <div className="p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 max-w-sm mx-auto flex items-center justify-center gap-2 text-xs font-extrabold text-emerald-600 dark:text-emerald-400">

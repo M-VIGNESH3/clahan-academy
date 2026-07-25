@@ -470,8 +470,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\exam-service\\src\\index.ts": {
-    "mtime": 1784903128.9236908,
-    "ast_hash": "b8b009fa6777e16ececfb9551e1a48b9",
+    "mtime": 1784958211.037687,
+    "ast_hash": "2e1c73c23516a7511f5f6b20a5e5c279",
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\package.json": {
@@ -500,8 +500,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\App.tsx": {
-    "mtime": 1784906315.4142957,
-    "ast_hash": "4eff1e479d6f7bab35d9c95b85f49619",
+    "mtime": 1784958924.5736992,
+    "ast_hash": "c44fef6fd28f112c27fe5a4b5950f249",
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\main.tsx": {
@@ -1180,8 +1180,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\AssessmentInstructions.tsx": {
-    "mtime": 1784825128.1725135,
-    "ast_hash": "11fd4a396a611a8eddea7fe4b02d67a4",
+    "mtime": 1784958223.525803,
+    "ast_hash": "4fd49bc82fdf604bc669a44aa23335b1",
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\AssessmentTimingSettings.tsx": {
@@ -1235,8 +1235,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\assessment\\AssessmentPreExamStepper.tsx": {
-    "mtime": 1784903128.9568667,
-    "ast_hash": "4b6e36b80ff09880d0c04c2fdc705c78",
+    "mtime": 1784958243.5679154,
+    "ast_hash": "1b104ee491266a95a11dfcdb3ea8ce39",
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\assessment\\SafeQuestionRenderer.tsx": {
@@ -1305,8 +1305,8 @@
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\assessment\\PreExamFlowController.tsx": {
-    "mtime": 1784903128.9588802,
-    "ast_hash": "e323fcab60ab458af98695fec640c4b1",
+    "mtime": 1784958276.209078,
+    "ast_hash": "9c74fa3818d4c4b5a32ae7d2689f02e4",
     "semantic_hash": ""
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\assessment\\SectionBuilder.tsx": {

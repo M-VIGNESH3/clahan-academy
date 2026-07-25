@@ -1,9 +1,11 @@
-import React from 'react';
-import { Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { Shield, CheckSquare } from 'lucide-react';
 
 interface AssessmentInstructionsProps {
   exam: {
     name: string;
+    description?: string;
+    instructions?: string;
     duration_minutes: number;
     allowed_attempts?: number;
     cutoff_percentage?: number;
@@ -25,9 +27,11 @@ export const AssessmentInstructions: React.FC<AssessmentInstructionsProps> = ({
   totalQuestionsCount,
   onProceed
 }) => {
+  const [acknowledged, setAcknowledged] = useState(false);
   const navMode = exam.navigation_mode || exam.navigationMode || 'free';
   const subMode = exam.submission_mode || exam.submissionMode || 'manual';
   const isFaceDetEnabled = exam.enable_face_detection !== false && exam.enableFaceDetection !== false;
+  const customInstructions = exam.description || exam.instructions;
 
   return (
     <div className="max-w-3xl mx-auto my-auto p-8 rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl space-y-6">
@@ -40,6 +44,18 @@ export const AssessmentInstructions: React.FC<AssessmentInstructionsProps> = ({
       </div>
 
       <div className="text-xs text-slate-300 space-y-5 leading-relaxed max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+        {/* Configured Exam Description / Instructions */}
+        {customInstructions && String(customInstructions).trim().length > 0 && (
+          <div className="p-4 rounded-2xl bg-slate-900 border border-white/10 space-y-1.5">
+            <h4 className="font-extrabold text-xs text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+              <CheckSquare className="h-4 w-4" /> Specific Exam Instructions
+            </h4>
+            <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">
+              {String(customInstructions)}
+            </p>
+          </div>
+        )}
+
         {/* 1. Assessment Overview & Summary */}
         <div className="p-4 rounded-2xl bg-indigo-950/20 border border-indigo-800/40 space-y-2">
           <h4 className="font-extrabold text-xs text-indigo-300 uppercase tracking-wider">Assessment Overview</h4>
@@ -108,9 +124,29 @@ export const AssessmentInstructions: React.FC<AssessmentInstructionsProps> = ({
         </div>
       </div>
 
+      {/* Mandatory Acknowledgment Checkbox */}
+      <div className="pt-2">
+        <label className="flex items-start gap-3 p-3.5 bg-slate-900 border border-white/10 rounded-2xl cursor-pointer hover:border-indigo-500/50 transition-colors">
+          <input
+            type="checkbox"
+            checked={acknowledged}
+            onChange={(e) => setAcknowledged(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+          />
+          <span className="text-xs font-semibold text-slate-200 leading-relaxed select-none">
+            I have read, understood, and agree to abide by all the assessment rules and exam instructions stated above.
+          </span>
+        </label>
+      </div>
+
       <button
         onClick={onProceed}
-        className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-2xl shadow-lg transition-all text-sm uppercase tracking-wide flex items-center justify-center gap-2 text-white cursor-pointer"
+        disabled={!acknowledged}
+        className={`w-full py-4 font-bold rounded-2xl shadow-lg transition-all text-sm uppercase tracking-wide flex items-center justify-center gap-2 text-white ${
+          acknowledged
+            ? 'bg-indigo-600 hover:bg-indigo-500 cursor-pointer shadow-indigo-600/30'
+            : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-white/5 opacity-50'
+        }`}
       >
         I Understand - Proceed to Hardware Validation &rarr;
       </button>

@@ -3537,13 +3537,22 @@ export default function App() {
     }
   };
 
+  const [showExamSubmissionModal, setShowExamSubmissionModal] = useState(false);
+
   const submitEntireExam = async (isAuto = false) => {
-    if (isSubmittingRef.current) return;
+    if (isSubmittingRef.current && !isAuto) return;
     
-    if (!isAuto && !confirm('Are you sure you want to finish and submit your exam?')) {
+    if (!isAuto) {
+      isSubmittingRef.current = true;
+      setShowExamSubmissionModal(true);
       return;
     }
 
+    // Auto-submission (e.g. time expired)
+    await executeExamSubmissionApi(true);
+  };
+
+  const executeExamSubmissionApi = async (isAuto = false) => {
     isSubmittingRef.current = true;
 
     try {
@@ -3570,18 +3579,15 @@ export default function App() {
           setCurrentPage('student-dash');
           loadStudentDashboard();
           setIsExamLocked(false);
-        } else {
-          showToast("Assessment submitted successfully!", "success");
-          if (currentAttemptRef.current) {
-            setSelectedResultAttemptId(currentAttemptRef.current.id);
-            fetchResultDetails(currentAttemptRef.current.id);
-          }
+          setShowExamSubmissionModal(false);
         }
+        return { success: true, score: result.score || result.percentage, passed: result.passed };
       } else {
         const data = await res.json();
         showToast(data.error || 'Failed to submit exam. Please retry.', 'error');
+        return { success: false, error: data.error || 'Failed to submit exam' };
       }
-    } catch (err) {
+    } catch (err: any) {
       cleanupProctoring();
 
       const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
@@ -3608,12 +3614,28 @@ export default function App() {
         setCurrentPage('student-dash');
         loadStudentDashboard();
         setIsExamLocked(false);
+        setShowExamSubmissionModal(false);
       } else {
         setDetailedResult(mockResult);
-        setCurrentPage('result-view');
       }
-    } finally {
-      isSubmittingRef.current = false;
+      return { success: true, score: 80, passed: true };
+    }
+  };
+
+  const handleFinalizeSubmissionNavigation = (mode: 'result' | 'exit') => {
+    setShowExamSubmissionModal(false);
+    isSubmittingRef.current = false;
+    cleanupProctoring();
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+    if (mode === 'result' && currentAttemptRef.current) {
+      setSelectedResultAttemptId(currentAttemptRef.current.id);
+      fetchResultDetails(currentAttemptRef.current.id);
+      setCurrentPage('result-view');
+    } else {
+      setCurrentPage('student-dash');
+      loadStudentDashboard();
     }
   };
 
@@ -10813,6 +10835,18 @@ export default function App() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* EXAM SUBMISSION MODAL */}
+      {showExamSubmissionModal && (
+        <ExamSubmissionController
+          onExecuteSubmission={() => executeExamSubmissionApi(false)}
+          onFinalizeAndNavigate={(mode) => handleFinalizeSubmissionNavigation(mode)}
+          onCancelConfirm={() => {
+            setShowExamSubmissionModal(false);
+            isSubmittingRef.current = false;
+          }}
+        />
       )}
 
     </div>

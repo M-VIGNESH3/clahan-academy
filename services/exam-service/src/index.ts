@@ -679,10 +679,30 @@ app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, r
     const corrAns = correctAnswer ?? req.body.correct_answer;
 
     const qType = questionType || 'mcq';
-    if (qType === 'mcq' && (!question || !optA || !optB || !optC || !optD || !corrAns)) {
-      return res.status(400).json({ error: 'Required MCQ fields missing' });
+    const hasQuestionText = Boolean((question && String(question).trim()) || (req.body.question && String(req.body.question).trim()));
+    const hasContentBlocks = Array.isArray(contentBlocks) && contentBlocks.length > 0;
+    const hasImages = Array.isArray(images) && images.length > 0;
+
+    const optAImg = optionAImage || req.body.option_a_image || '';
+    const optBImg = optionBImage || req.body.option_b_image || '';
+    const optCImg = optionCImage || req.body.option_c_image || '';
+    const optDImg = optionDImage || req.body.option_d_image || '';
+
+    const hasOptA = Boolean((optA && String(optA).trim()) || optAImg);
+    const hasOptB = Boolean((optB && String(optB).trim()) || optBImg);
+    const hasOptC = Boolean((optC && String(optC).trim()) || optCImg);
+    const hasOptD = Boolean((optD && String(optD).trim()) || optDImg);
+    const finalCorrAns = corrAns || 'A';
+
+    if (qType === 'mcq') {
+      if (!hasQuestionText && !hasContentBlocks && !hasImages) {
+        return res.status(400).json({ error: 'Question content (text or image) is required' });
+      }
+      if (!hasOptA || !hasOptB || !hasOptC || !hasOptD) {
+        return res.status(400).json({ error: 'All 4 MCQ options must have text or image content' });
+      }
     }
-    if (qType === 'descriptive' && !question) {
+    if (qType === 'descriptive' && !hasQuestionText && !hasContentBlocks && !hasImages) {
       return res.status(400).json({ error: 'Question statement is required for descriptive question' });
     }
 
@@ -709,9 +729,9 @@ app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, r
       `INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty, content_blocks, images, option_a_image, option_b_image, option_c_image, option_d_image, question_type, word_limit, evaluation_method)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
       [
-        id, finalSectionId, question, optA, optB, optC, optD, corrAns, marks || 1, difficulty || 'medium',
+        id, finalSectionId, question || '', optA || '', optB || '', optC || '', optD || '', finalCorrAns, marks || 1, difficulty || 'medium',
         JSON.stringify(contentBlocks || []), JSON.stringify(images || []),
-        optAImage, optBImage, optCImage, optDImage,
+        optAImg, optBImg, optCImg, optDImg,
         qType, wordLimit || 0, evaluationMethod || 'manual'
       ]
     );
