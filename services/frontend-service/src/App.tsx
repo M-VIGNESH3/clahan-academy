@@ -147,7 +147,7 @@ export default function App() {
   });
 
   // App Routing
-  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login'>(() => {
+  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login' | 'skill-gap'>(() => {
     const path = window.location.pathname.toLowerCase();
     if (path === '/admin-login' || path === '/admin-login/') {
       return 'admin-login';
@@ -196,6 +196,8 @@ export default function App() {
   const [activeExams, setActiveExams] = useState<Exam[]>([]);
   const [completedAttempts, setCompletedAttempts] = useState<Attempt[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [skillGapData, setSkillGapData] = useState<any>(null);
+  const [isLoadingSkillGap, setIsLoadingSkillGap] = useState(false);
   const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'colleges' | 'students' | 'trainers' | 'training' | 'exams' | 'placement' | 'companies' | 'reports' | 'settings' | 'live'>('metrics');
   const [adminTrainers, setAdminTrainers] = useState<any[]>([]);
   const [studentTrainers, setStudentTrainers] = useState<any[]>([]);
@@ -1101,7 +1103,12 @@ export default function App() {
       section => completedSections[section.id] === true
     );
     setAllSectionsCompleted(allDone);
-  }, [completedSections, studentExamSections, currentExam]);
+
+    // When all sections are done, mark the current active section as read-only immediately
+    if (allDone && activeSectionId) {
+      setReadOnlySections(prev => ({ ...prev, [activeSectionId]: true }));
+    }
+  }, [completedSections, studentExamSections, currentExam, activeSectionId]);
 
   // Toast notifications
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' | 'warning' | 'info' }>>([]);
@@ -1159,6 +1166,7 @@ export default function App() {
   const API_ADMIN = '/api/admin';
   const API_STUDENT = '/api/student';
   const API_EXAMS = '/api/exams';
+  const API_REPORTS = '/api/reports';
 
   // Toggle Dark/Light Mode
   useEffect(() => {
@@ -1380,6 +1388,31 @@ export default function App() {
     } catch (err: any) {
       console.error("Student dashboard APIs error:", err);
       showToast(`Error loading dashboard: ${err.message}`, 'error');
+    }
+  };
+
+  const loadSkillGapAnalysis = async () => {
+    if (!currentUser?.id) return;
+    setIsLoadingSkillGap(true);
+    try {
+      const res = await fetch(`${API_REPORTS}/skills/${currentUser.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const { overallScore, ...scores } = data.skillScores || {};
+        setSkillGapData({
+          studentId: data.studentId,
+          scores,
+          weakAreas: data.weakAreas || [],
+          strongAreas: data.strongAreas || [],
+          recommendations: data.recommendedTraining || []
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load skill gap:', err);
+    } finally {
+      setIsLoadingSkillGap(false);
     }
   };
 
@@ -5089,6 +5122,25 @@ export default function App() {
                     <h2 className="text-2xl font-extrabold tracking-tight">Attempt Performance</h2>
                     <p className="text-sm text-muted-foreground">Verify scorecards and review feedback reports.</p>
                   </div>
+
+                  <button
+                    onClick={() => {
+                      loadSkillGapAnalysis();
+                      setCurrentPage('skill-gap');
+                    }}
+                    className="w-full md:w-auto p-4 bg-slate-900 border border-white/10 rounded-2xl hover:border-indigo-500/30 transition-all text-left group"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="h-9 w-9 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                        <span className="text-lg">📊</span>
+                      </div>
+                      <span className="text-sm font-extrabold text-white">Skill Gap Analysis</span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      See your strengths, weaknesses and personalized training recommendations
+                    </p>
+                  </button>
+
                   {completedAttempts.length === 0 ? (
                     <div className="p-12 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-950/40">
                       <Award className="h-10 w-10 text-muted-foreground/60 mx-auto mb-3" />
@@ -9707,6 +9759,15 @@ export default function App() {
                             const requestSectionSwitch = (targetSectionId: string) => {
                               if (isExamLocked || !targetSectionId || targetSectionId === activeSectionId) return;
 
+                              // Auto-submit review mode: allow switching between sections, but keep them read-only
+                              if (isWaitingForAutoSubmit) {
+                                setReadOnlySections(prev => ({ ...prev, [targetSectionId]: true }));
+                                setActiveSectionId(targetSectionId);
+                                setActiveQuestionIndex(sectionQuestionIndices[targetSectionId] || 0);
+                                showToast('Viewing section in read-only mode.', 'info');
+                                return;
+                              }
+
                               const navMode = String(currentExam?.navigation_mode || currentExam?.navigationMode || 'free').toLowerCase();
 
                               // FREE NAVIGATION MODE: Pure section switch ignoring Visited, Submitted, Completed, Locked
@@ -9805,7 +9866,7 @@ export default function App() {
                                 <button
                                   key={sect.id || idx}
                                   onClick={() => requestSectionSwitch(sect.id)}
-                                  disabled={isExamLocked || isWaitingForAutoSubmit}
+                                  disabled={isExamLocked}
                                   className={`w-full py-2.5 px-3 text-left rounded-xl transition-all border flex flex-col gap-1 ${
                                     isCurrent && isViewingReadOnly
                                       ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 font-bold shadow-sm'
@@ -9817,7 +9878,12 @@ export default function App() {
                                   }`}
                                 >
                                   <div className="flex justify-between items-center text-xs">
-                                    <span className="font-extrabold truncate max-w-[110px]">{sect.name}</span>
+                                    <span className="font-extrabold truncate max-w-[110px] flex items-center gap-1">
+                                      {sect.name}
+                                      {isWaitingForAutoSubmit && completedSections[sect.id] && (
+                                        <span className="ml-1 text-emerald-400 text-[8px]">✓</span>
+                                      )}
+                                    </span>
                                     <div className="flex items-center gap-1">
                                       {isLocked && !isCurrent && <span className="text-[8px] text-amber-400">👁</span>}
                                       <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${
@@ -9857,6 +9923,15 @@ export default function App() {
                                 onClick={() => {
                                   const requestSectionSwitch = (targetSectionId: string) => {
                                     if (isExamLocked || !targetSectionId || targetSectionId === activeSectionId) return;
+
+                                    // Auto-submit review mode: allow switching between sections, but keep them read-only
+                                    if (isWaitingForAutoSubmit) {
+                                      setReadOnlySections(prev => ({ ...prev, [targetSectionId]: true }));
+                                      setActiveSectionId(targetSectionId);
+                                      setActiveQuestionIndex(sectionQuestionIndices[targetSectionId] || 0);
+                                      showToast('Viewing section in read-only mode.', 'info');
+                                      return;
+                                    }
 
                                     const targetIdx = studentExamSections.findIndex(s => s.id === targetSectionId);
                                     const currentIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
@@ -9904,11 +9979,14 @@ export default function App() {
                                   };
                                   requestSectionSwitch(sect.id);
                                 }}
-                                disabled={isExamLocked || isLocked || isWaitingForAutoSubmit}
-                                className={`p-2 rounded-lg border transition-all ${isCurrent ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400 font-bold' : 'border-transparent text-slate-400 hover:bg-slate-800'} ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                                disabled={isExamLocked || isLocked}
+                                className={`relative p-2 rounded-lg border transition-all ${isCurrent ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400 font-bold' : 'border-transparent text-slate-400 hover:bg-slate-800'} ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                                 title={`${sect.name} (${sect.section_type || 'General'})`}
                               >
                                 {sect.section_type === 'coding' ? <Code className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}
+                                {isWaitingForAutoSubmit && completedSections[sect.id] && (
+                                  <span className="absolute -top-1 -right-1 text-emerald-400 text-[8px]">✓</span>
+                                )}
                               </button>
                             );
                           })}
@@ -11458,6 +11536,154 @@ export default function App() {
             </button>
           </div>
         </main>
+      )}
+
+      {currentPage === 'skill-gap' && (
+        <div className="min-h-screen bg-slate-950 text-white p-6 md:p-8">
+
+          {/* Header */}
+          <div className="flex items-center gap-4 mb-8">
+            <button
+              onClick={() => setCurrentPage('student-dash')}
+              className="p-2 rounded-xl border border-white/10 hover:bg-slate-800"
+            >
+              ← Back
+            </button>
+            <div>
+              <h1 className="text-xl font-black text-white">Skill Gap Analysis</h1>
+              <p className="text-xs text-slate-400">Based on your assessment performance</p>
+            </div>
+          </div>
+
+          {isLoadingSkillGap ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center space-y-3">
+                <svg className="animate-spin h-8 w-8 text-indigo-400 mx-auto" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
+                <p className="text-slate-400 text-sm">Analyzing your performance...</p>
+              </div>
+            </div>
+          ) : !skillGapData ? (
+            <div className="text-center py-16">
+              <p className="text-slate-400">No assessment data found. Complete some exams first.</p>
+            </div>
+          ) : (
+            <div className="space-y-6 max-w-4xl mx-auto">
+
+              {/* Skill Score Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {Object.entries(skillGapData.scores || {}).map(([skill, score]: [string, any]) => {
+                  const pct = Math.round(score);
+                  const isWeak = skillGapData.weakAreas?.includes(skill);
+                  const isStrong = skillGapData.strongAreas?.includes(skill);
+                  return (
+                    <div key={skill}
+                      className={`p-4 rounded-2xl border text-center ${
+                        isStrong
+                          ? 'bg-emerald-500/10 border-emerald-500/30'
+                          : isWeak
+                            ? 'bg-red-500/10 border-red-500/30'
+                            : 'bg-slate-900 border-white/10'
+                      }`}>
+                      <div className={`text-2xl font-black mb-1 ${
+                        isStrong ? 'text-emerald-400' : isWeak ? 'text-red-400' : 'text-white'
+                      }`}>
+                        {pct}%
+                      </div>
+                      <div className="text-xs font-bold text-slate-300 capitalize">
+                        {skill}
+                      </div>
+                      {isStrong && (
+                        <div className="text-[9px] text-emerald-400 font-bold mt-1">
+                          Strong ✓
+                        </div>
+                      )}
+                      {isWeak && (
+                        <div className="text-[9px] text-red-400 font-bold mt-1">
+                          Needs Work ↑
+                        </div>
+                      )}
+
+                      {/* Progress bar */}
+                      <div className="w-full bg-slate-700 rounded-full h-1.5 mt-2">
+                        <div
+                          className={`h-1.5 rounded-full transition-all ${
+                            isStrong ? 'bg-emerald-500' : isWeak ? 'bg-red-500' : 'bg-indigo-500'
+                          }`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Weak Areas */}
+              {skillGapData.weakAreas?.length > 0 && (
+                <div className="p-5 bg-red-500/10 border border-red-500/30 rounded-2xl">
+                  <h3 className="font-extrabold text-sm text-red-400 mb-3">
+                    ⚠️ Areas Needing Improvement
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {skillGapData.weakAreas.map((area: string) => (
+                      <span key={area}
+                        className="px-3 py-1 bg-red-500/20 border border-red-500/40 rounded-lg text-xs text-red-300 font-bold capitalize">
+                        {area}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Strong Areas */}
+              {skillGapData.strongAreas?.length > 0 && (
+                <div className="p-5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl">
+                  <h3 className="font-extrabold text-sm text-emerald-400 mb-3">
+                    ✓ Your Strengths
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {skillGapData.strongAreas.map((area: string) => (
+                      <span key={area}
+                        className="px-3 py-1 bg-emerald-500/20 border border-emerald-500/40 rounded-lg text-xs text-emerald-300 font-bold capitalize">
+                        {area}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recommendations */}
+              {skillGapData.recommendations?.length > 0 && (
+                <div className="p-5 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl">
+                  <h3 className="font-extrabold text-sm text-indigo-400 mb-3">
+                    📚 Personalized Recommendations
+                  </h3>
+                  <div className="space-y-2">
+                    {skillGapData.recommendations.map((rec: string, i: number) => (
+                      <div key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                        <span className="text-indigo-400 font-bold shrink-0">{i + 1}.</span>
+                        <span>{rec}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Refresh Button */}
+              <div className="flex justify-center pt-4">
+                <button
+                  onClick={loadSkillGapAnalysis}
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold rounded-xl"
+                >
+                  Refresh Analysis
+                </button>
+              </div>
+
+            </div>
+          )}
+        </div>
       )}
 
       {terminationModal && (
