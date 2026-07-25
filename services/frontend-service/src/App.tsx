@@ -2120,25 +2120,12 @@ export default function App() {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
+        const updatedExam = await res.json();
         showToast('Assessment details updated successfully!');
         setSelectedExamIdForQuestions(editingExamId);
         await loadAdminExamQuestions(editingExamId);
-        if (!isCreatingNewExam) {
-          setEditingExamId(null);
-          setExamForm({
-            name: '', description: '', examType: 'crt',
-            durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
-            windowOpenMinutes: 10,
-            collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year',
-            enableFaceDetection: true,
-            enableSectionCutoff: false,
-            mcqCutoffPercentage: 50,
-            codingCutoffPercentage: 50,
-            mcqCutoffMarks: 0,
-            codingCutoffMarks: 0
-          });
-        }
-        loadAdminDashboard();
+        setAdminExams(prev => prev.map(e => e.id === editingExamId ? { ...e, ...updatedExam } : e));
+        await loadAdminDashboard();
       }
     } catch (err) {
       setAdminExams(prev => prev.map(e => e.id === editingExamId ? {
@@ -2436,8 +2423,10 @@ export default function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
-        showToast('Exam duplicated successfully');
-        loadAdminDashboard();
+        const duplicatedExam = await res.json();
+        showToast(`Exam duplicated: "${duplicatedExam.name}"`);
+        await loadAdminDashboard();
+        startEditingExam(duplicatedExam);
       }
     } catch (err) {
       const target = adminExams.find(e => e.id === id);
@@ -2445,6 +2434,7 @@ export default function App() {
         const copy = { ...target, id: `exam-${Date.now()}`, name: `Copy of ${target.name}`, is_published: false };
         setAdminExams(prev => [copy, ...prev]);
         showToast('Exam duplicated successfully (Simulated)');
+        startEditingExam(copy);
       }
     }
   };

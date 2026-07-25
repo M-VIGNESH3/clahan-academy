@@ -432,11 +432,11 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
     const ex = examCheck.rows[0];
 
     const newExam = await query(
-      `INSERT INTO exams (name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts, schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published, trainer_id, enable_face_detection, enable_section_cutoff, mcq_cutoff_percentage, coding_cutoff_percentage, mcq_cutoff_marks, coding_cutoff_marks)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE, $14, $15, $16, $17, $18, $19, $20) RETURNING *`,
+      `INSERT INTO exams (name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts, schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published, trainer_id, enable_face_detection, enable_section_cutoff, mcq_cutoff_percentage, coding_cutoff_percentage, mcq_cutoff_marks, coding_cutoff_marks, navigation_mode)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE, $14, $15, $16, $17, $18, $19, $20, $21) RETURNING *`,
       [
         `Copy of ${ex.name}`,
-        ex.description,
+        ex.description || '',
         ex.exam_type,
         ex.duration_minutes,
         ex.cutoff_percentage,
@@ -454,7 +454,8 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
         ex.mcq_cutoff_percentage !== null ? ex.mcq_cutoff_percentage : 50.00,
         ex.coding_cutoff_percentage !== null ? ex.coding_cutoff_percentage : 50.00,
         ex.mcq_cutoff_marks !== null ? ex.mcq_cutoff_marks : 0.00,
-        ex.coding_cutoff_marks !== null ? ex.coding_cutoff_marks : 0.00
+        ex.coding_cutoff_marks !== null ? ex.coding_cutoff_marks : 0.00,
+        ex.navigation_mode || 'free'
       ]
     );
     const newExamId = newExam.rows[0].id;

@@ -1,7 +1,7 @@
 # Graph Report - clahan academy  (2026-07-25)
 
 ## Corpus Check
-- 83 files · ~138,500 words
+- 83 files · ~138,487 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a0ac9d41`
+- Built from commit: `5b38f8cb`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
