@@ -1,16 +1,16 @@
 # Graph Report - clahan academy  (2026-07-25)
 
 ## Corpus Check
-- 83 files · ~139,597 words
+- 83 files · ~140,226 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1306 nodes · 1351 edges · 95 communities (86 shown, 9 thin omitted)
+- 1313 nodes · 1360 edges · 95 communities (86 shown, 9 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `1187d3ee`
+- Built from commit: `4cf9e3d0`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -213,8 +213,8 @@ Cohesion: 0.11
 Nodes (16): ExamSubmissionController(), ExamSubmissionControllerProps, NavigationRuleSettings(), NavigationRuleSettingsProps, QuestionFooter(), QuestionFooterProps, SubmissionPolicySettings(), SubmissionPolicySettingsProps (+8 more)
 
 ### Community 20 - "Community 20"
-Cohesion: 0.08
-Nodes (26): app, pool, query(), server, activeAttemptIds, activeOnly, activeSessions, BOOK_LIMIT (+18 more)
+Cohesion: 0.07
+Nodes (32): app, now, pool, query(), server, activeAttemptIds, activeOnly, activeSessions (+24 more)
 
 ### Community 21 - "Community 21"
 Cohesion: 0.20
@@ -389,8 +389,8 @@ Cohesion: 0.47
 Nodes (7): bootstrap.sh script, check_tool(), create_federated_credential(), error(), info(), print_banner(), success()
 
 ### Community 76 - "Community 76"
-Cohesion: 0.67
-Nodes (3): query(), now, validateAttemptNotExpired()
+Cohesion: 0.50
+Nodes (4): now, query(), now, validateAttemptNotExpired()
 
 ### Community 77 - "Community 77"
 Cohesion: 0.08
@@ -457,21 +457,21 @@ Cohesion: 0.50
 Nodes (3): ResultReportProps, ResultReportView(), formatTime()
 
 ## Knowledge Gaps
-- **818 isolated node(s):** `build-and-push.sh script`, `copy-env-examples.sh script`, `version`, `isEnabled`, `excludedTypes` (+813 more)
+- **823 isolated node(s):** `build-and-push.sh script`, `copy-env-examples.sh script`, `version`, `isEnabled`, `excludedTypes` (+818 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Clahan Academy V2 — Complete System Documentation & Architecture Guide` connect `Community 35` to `Community 36`?**
+- **Why does `Clahan Academy Online Exam Platform — Comprehensive System Reference` connect `Community 62` to `Community 64`, `Community 65`, `Community 66`, `Community 67`?**
   _High betweenness centrality (0.001) - this node is a cross-community bridge._
 - **Why does `Clahan Academy Online Exam Platform — Complete System Description` connect `Community 64` to `Community 65`, `Community 68`, `Community 63`?**
   _High betweenness centrality (0.001) - this node is a cross-community bridge._
-- **Why does `QuestionErrorBoundary` connect `Community 85` to `Community 19`?**
+- **Why does `⚡ 6. Detailed API Reference` connect `Community 36` to `Community 35`?**
   _High betweenness centrality (0.001) - this node is a cross-community bridge._
 - **What connects `build-and-push.sh script`, `copy-env-examples.sh script`, `version` to the rest of the system?**
-  _819 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _824 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**

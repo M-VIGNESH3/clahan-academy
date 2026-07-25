@@ -400,9 +400,17 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
 
     const finalCutoffPct = cutoffPercentage !== undefined && cutoffPercentage !== null && String(cutoffPercentage).trim() !== '' ? parseFloat(String(cutoffPercentage)) : 50.00;
     const finalAllowedAttempts = allowedAttempts !== undefined && allowedAttempts !== null && String(allowedAttempts).trim() !== '' ? parseInt(String(allowedAttempts), 10) : 1;
-    const faceDetectionEnabled = enableFaceDetection !== undefined
-      ? Boolean(enableFaceDetection)
-      : (req.body.enable_face_detection !== undefined ? Boolean(req.body.enable_face_detection) : true);
+    
+    // FIX 3A — Backend Property Casing Normalization
+    const rawFaceDetection = req.body.enableFaceDetection !== undefined 
+      ? req.body.enableFaceDetection 
+      : req.body.enable_face_detection;
+    const faceDetectionEnabled = rawFaceDetection === true || rawFaceDetection === 'true';
+
+    const rawSectionCutoff = req.body.enableSectionCutoff !== undefined 
+      ? req.body.enableSectionCutoff 
+      : req.body.enable_section_cutoff;
+    const sectionCutoffEnabled = rawSectionCutoff === true || rawSectionCutoff === 'true';
 
     const result = await query(
       `UPDATE exams 
@@ -413,7 +421,7 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
        WHERE id = $22 RETURNING *`,
       [
         exName, description || '', exType, durMins, finalCutoffPct, finalAllowedAttempts, finalScheduleDate, finalCollegeId, finalDeptId, finalDeptIds, finalBatchId, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, finalTrainerId, faceDetectionEnabled,
-        enableSectionCutoff === true, mcqCutoffPercentage !== undefined && mcqCutoffPercentage !== null ? mcqCutoffPercentage : 50.00, codingCutoffPercentage !== undefined && codingCutoffPercentage !== null ? codingCutoffPercentage : 50.00, mcqCutoffMarks !== undefined && mcqCutoffMarks !== null ? mcqCutoffMarks : 0.00, codingCutoffMarks !== undefined && codingCutoffMarks !== null ? codingCutoffMarks : 0.00,
+        sectionCutoffEnabled, mcqCutoffPercentage !== undefined && mcqCutoffPercentage !== null ? mcqCutoffPercentage : 50.00, codingCutoffPercentage !== undefined && codingCutoffPercentage !== null ? codingCutoffPercentage : 50.00, mcqCutoffMarks !== undefined && mcqCutoffMarks !== null ? mcqCutoffMarks : 0.00, codingCutoffMarks !== undefined && codingCutoffMarks !== null ? codingCutoffMarks : 0.00,
         req.body.navigationMode || req.body.navigation_mode || 'free',
         req.params.id
       ]
@@ -1048,9 +1056,19 @@ app.put(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'
     const optBImg = optBImgRaw === undefined ? '__KEEP_EXISTING__' : (optBImgRaw || null);
     const optCImg = optCImgRaw === undefined ? '__KEEP_EXISTING__' : (optCImgRaw || null);
     const optDImg = optDImgRaw === undefined ? '__KEEP_EXISTING__' : (optDImgRaw || null);
+    
     const cBlocks = contentBlocks ?? req.body.content_blocks;
-
     const rawImages = images ?? req.body.images ?? req.body.questionImage ?? req.body.question_image;
+
+    // Validate options if provided (text OR image)
+    const hasOptA = optA !== undefined ? Boolean((optA && String(optA).trim()) || (optAImg && optAImg !== '__KEEP_EXISTING__')) : true;
+    const hasOptB = optB !== undefined ? Boolean((optB && String(optB).trim()) || (optBImg && optBImg !== '__KEEP_EXISTING__')) : true;
+    const hasOptC = optC !== undefined ? Boolean((optC && String(optC).trim()) || (optCImg && optCImg !== '__KEEP_EXISTING__')) : true;
+    const hasOptD = optD !== undefined ? Boolean((optD && String(optD).trim()) || (optDImg && optDImg !== '__KEEP_EXISTING__')) : true;
+
+    if (!hasOptA || !hasOptB || !hasOptC || !hasOptD) {
+      return res.status(400).json({ error: 'All MCQ options must contain either text or image content' });
+    }
 
     const result = await query(
       `UPDATE mcq_questions

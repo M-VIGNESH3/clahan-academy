@@ -132,27 +132,30 @@ interface ExamFaceDetectionConfig {
 const examFaceDetectionCache: Record<string, ExamFaceDetectionConfig> = {};
 
 async function isFaceDetectionEnabled(examId: string): Promise<boolean> {
-  const now = Date.now();
-  const cached = examFaceDetectionCache[examId];
-  if (cached && cached.expiresAt > now) {
-    return cached.enabled;
-  }
-
   try {
-    const res = await query('SELECT enable_face_detection FROM exams WHERE id = $1', [examId]);
-    const enabled = res.rows.length > 0 ? res.rows[0].enable_face_detection !== false : true;
-    examFaceDetectionCache[examId] = {
-      enabled,
-      expiresAt: now + 5000 // Cache for 5 seconds
-    };
-    return enabled;
+    const examRes = await query(
+      'SELECT enable_face_detection FROM exams WHERE id = $1', 
+      [examId]
+    );
+    return examRes.rows[0]?.enable_face_detection === true;
   } catch (err) {
     console.error(`Error querying enable_face_detection for exam ${examId}:`, err);
-    return true;
+    return false;
   }
 }
 
 const activeSessions: Record<string, { attemptId: string; studentId: string; examId: string; role: string }> = {};
+
+// GAP 2 — Attempt-indexed Session Tracking Maps
+const attemptSessions: Map<string, {
+  socketId: string;
+  studentId: string;
+  examId: string;
+  role: string;
+  lastSeen: number;
+}> = new Map();
+
+const socketToAttempt: Map<string, string> = new Map();
 
 // Track consecutive violations in memory (key: attemptId, value: Record<eventType, count>)
 const consecutiveViolations: Record<string, Record<string, number>> = {};
@@ -163,8 +166,42 @@ const violationStartTimes: Record<string, Record<string, number>> = {};
 // Track phone confidences in memory (key: attemptId, value: array of confidence strings)
 const phoneConfidences: Record<string, string[]> = {};
 
+// FINAL TASK 4 — Periodic Cleanup Job for Stale Attempt Sessions
+setInterval(() => {
+  const now = Date.now();
+  const MAX_SESSION_AGE_MS = 4 * 60 * 60 * 1000; // 4 hours
+  let cleaned = 0;
+  for (const [attemptId, session] of attemptSessions.entries()) {
+    if (now - session.lastSeen > MAX_SESSION_AGE_MS) {
+      socketToAttempt.delete(session.socketId);
+      attemptSessions.delete(attemptId);
+      cleaned++;
+    }
+  }
+  if (cleaned > 0) {
+    console.log(`Session cleanup: removed ${cleaned} stale sessions. Active: ${attemptSessions.size}`);
+  }
+}, 10 * 60 * 1000);
+
 io.on('connection', (socket: Socket) => {
   console.log(`Socket connected: ${socket.id}`);
+
+  socket.on('disconnect', () => {
+    console.log(`Socket disconnected: ${socket.id}`);
+    delete activeSessions[socket.id];
+    
+    const attemptId = socketToAttempt.get(socket.id);
+    socketToAttempt.delete(socket.id);
+    if (attemptId) {
+      setTimeout(() => {
+        const current = attemptSessions.get(attemptId);
+        if (current && current.socketId === socket.id) {
+          attemptSessions.delete(attemptId);
+          console.log(`Cleaned up session for attempt ${attemptId} after 60s disconnect grace period`);
+        }
+      }, 60000);
+    }
+  });
 
   // Authentication & Room Joining
   socket.on('join-exam', async (payload: { token: string; attemptId: string; examId: string }) => {
@@ -172,12 +209,32 @@ io.on('connection', (socket: Socket) => {
       const { token, attemptId, examId } = payload;
       const decoded: any = jwt.verify(token, JWT_SECRET);
 
-      activeSessions[socket.id] = {
+      if (attemptSessions.size > 10000) {
+        console.error('attemptSessions Map exceeded 10000 entries. Emergency cleanup triggered.');
+      }
+
+      const sessionObj = {
         attemptId,
         studentId: decoded.id,
         examId,
         role: decoded.role,
       };
+
+      activeSessions[socket.id] = sessionObj;
+
+      // Update attempt-indexed Maps
+      if (attemptSessions.has(attemptId)) {
+        const existing = attemptSessions.get(attemptId)!;
+        socketToAttempt.delete(existing.socketId);
+      }
+      attemptSessions.set(attemptId, {
+        socketId: socket.id,
+        studentId: decoded.id,
+        examId,
+        role: decoded.role,
+        lastSeen: Date.now()
+      });
+      socketToAttempt.set(socket.id, attemptId);
 
       // Students join attempt-specific room and exam room
       if (decoded.role === 'student') {
@@ -356,24 +413,21 @@ io.on('connection', (socket: Socket) => {
 
           const examResult = await query('SELECT cutoff_percentage FROM exams WHERE id = $1', [examId]);
           const cutoff = examResult.rows[0]?.cutoff_percentage || 50;
-          const percentage = maxScorePossible > 0 ? (totalScore / maxScorePossible) * 100 : 0.0;
+          const percentage = maxScorePossible > 0 ? parseFloat(((totalScore / maxScorePossible) * 100).toFixed(2)) : 0;
           const passed = percentage >= cutoff;
 
-          const feedbackStr = `Exam auto-submitted due to: ${terminationReason}`;
-
           await query(
             `UPDATE exam_attempts 
-             SET status = 'completed', score = $1, percentage = $2, passed = $3, mcq_score = $4, coding_score = $5, feedback = $6
-             WHERE id = $7`,
-            [totalScore, percentage, passed, mcqScore, codingScore, feedbackStr, attemptId]
+             SET status = 'completed', score = $1, percentage = $2, passed = $3, completed_at = CURRENT_TIMESTAMP, feedback = $4
+             WHERE id = $5`,
+            [totalScore, percentage, passed, `Auto-submitted due to: ${terminationReason}`, attemptId]
           );
         } else {
-          // Standard termination
           await query(
             `UPDATE exam_attempts 
-             SET status = 'terminated', score = 0, percentage = 0.00, passed = FALSE, feedback = $1
-             WHERE id = $2`,
-            [`Exam automatically terminated: ${terminationReason}`, attemptId]
+             SET status = 'terminated', score = 0, percentage = 0, passed = FALSE, completed_at = CURRENT_TIMESTAMP, feedback = $4
+             WHERE id = $5`,
+            [0, 0, false, `Terminated due to: ${terminationReason}`, attemptId]
           );
         }
 
@@ -447,7 +501,10 @@ io.on('connection', (socket: Socket) => {
   // Client streams camera frame (low resolution base64 JPEG)
   socket.on('proctor-frame', async (data: { image: string }) => {
     const session = activeSessions[socket.id];
-    if (!session || session.role !== 'student') return;
+    if (!session || session.role !== 'student') {
+      console.warn(`No session found for socket ${socket.id}. Skipping frame.`);
+      return;
+    }
 
     const { attemptId, studentId, examId } = session;
 
@@ -478,12 +535,22 @@ io.on('connection', (socket: Socket) => {
         // Fetch if face detection is enabled for this exam
         const faceDetectionEnabled = await isFaceDetectionEnabled(examId);
         if (!faceDetectionEnabled) {
-          // Bypass face detection: strip face-related violations and override lost face flags
-          result.violations = (result.violations || []).filter((v: string) => v !== 'NO_FACE_DETECTED' && v !== 'MULTIPLE_FACES_DETECTED');
-          result.trackingStatus = 'Face Present';
-          result.facePresent = true;
-          result.faceLost = false;
-          result.faceRecovered = false;
+          if (consecutiveViolations[attemptId]) {
+            consecutiveViolations[attemptId]['NO_FACE_DETECTED'] = 0;
+            consecutiveViolations[attemptId]['NO_FACE_FRAMES'] = 0;
+            consecutiveViolations[attemptId]['WARNED_2S'] = 0;
+            consecutiveViolations[attemptId]['LOGGED_5S'] = 0;
+          }
+          if (violationStartTimes[attemptId]) {
+            violationStartTimes[attemptId]['NO_FACE_DETECTED'] = 0;
+          }
+          socket.emit('proctor-status', {
+            faceDetectionEnabled: false,
+            trackingStatus: 'Proctoring Disabled',
+            message: 'AI proctoring is disabled for this exam',
+            detectionSource: 'Disabled'
+          });
+          return; // Hard guard - if disabled, skip ALL face tracking logic and do not emit warnings/terminate
         }
         
         // Initialize consecutive violation storage for this attempt

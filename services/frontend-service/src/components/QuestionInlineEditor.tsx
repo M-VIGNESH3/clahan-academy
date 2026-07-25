@@ -139,6 +139,16 @@ export const QuestionInlineEditor: React.FC<QuestionInlineEditorProps> = ({
     setIsSubmitting(true);
     try {
       if (type === 'mcq') {
+        const hasText = mcqForm.question?.trim().length > 0;
+        const hasImage = Boolean(
+          (mcqForm as any).questionImage || 
+          (mcqForm.images && mcqForm.images.length > 0) || 
+          (mcqForm.content_blocks && mcqForm.content_blocks.length > 0)
+        );
+        if (!hasText && !hasImage) {
+          alert("Please provide question text or an image block.");
+          return;
+        }
         await onSave({
           ...mcqForm,
           option_a_image: mcqForm.option_a_image || '',
@@ -184,7 +194,7 @@ export const QuestionInlineEditor: React.FC<QuestionInlineEditorProps> = ({
                 onChange={e => setMcqForm({ ...mcqForm, question: e.target.value })}
                 className="w-full p-3 border rounded-xl text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium"
                 rows={3}
-                required={(!mcqForm.content_blocks || mcqForm.content_blocks.length === 0) && (!mcqForm.images || (Array.isArray(mcqForm.images) && mcqForm.images.length === 0))}
+                placeholder="Enter question text or attach image blocks below..."
               />
             </div>
 

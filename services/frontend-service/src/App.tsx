@@ -339,6 +339,35 @@ export default function App() {
   const [pendingTargetSectionId, setPendingTargetSectionId] = useState<string | null>(null);
 
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  useEffect(() => {
+    cameraStreamRef.current = cameraStream;
+  }, [cameraStream]);
+
+  const cleanupExamSession = useCallback(() => {
+    if (proctorIntervalRef.current) {
+      clearInterval(proctorIntervalRef.current);
+      proctorIntervalRef.current = null;
+    }
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current.getTracks().forEach(track => {
+        try { track.stop(); } catch {}
+      });
+      cameraStreamRef.current = null;
+    }
+    setCameraStream(null);
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    if (socketRef.current && currentAttemptRef.current?.id) {
+      try {
+        socketRef.current.emit('leave-exam', {
+          attemptId: currentAttemptRef.current.id
+        });
+      } catch {}
+    }
+    console.log('Exam session cleaned up successfully');
+  }, []);
   const [isDescriptiveModalOpen, setIsDescriptiveModalOpen] = useState(false);
   const [descriptiveForm, setDescriptiveForm] = useState<{
     question: string;
@@ -812,7 +841,7 @@ export default function App() {
         videoRef.current.srcObject = cameraStream;
       }
       videoRef.current.play().catch(err => {
-        console.warn("webcam video.play() auto-play catch:", err);
+        console.error('Video playback failed:', err);
       });
     }
   }, [currentPage, validationStep, cameraStream]);
@@ -2712,48 +2741,37 @@ export default function App() {
     }
 
     // Create New MCQ mode
-    let createdFromApi: MCQQuestion | null = null;
     try {
       const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/mcq`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)
       });
-      if (res.ok) {
-        createdFromApi = await res.json();
-        showToast('MCQ Question added');
-      }
-    } catch {
-      // Handled via fallback
-    }
 
-    if (createdFromApi) {
-      setAdminSelectedExamMCQs(prev => [...prev, createdFromApi!]);
-    } else {
-      setAdminExams(prev => prev.map(e => e.id === selectedExamIdForQuestions ? { ...e, mcq_count: (e.mcq_count || 0) + 1 } : e));
-      const mockMcq: MCQQuestion = {
-        id: `mock-q-${Date.now()}`,
-        question: mcqForm.question,
-        option_a: mcqForm.optionA,
-        option_b: mcqForm.optionB,
-        option_c: mcqForm.optionC,
-        option_d: mcqForm.optionD,
-        option_a_image: mcqForm.optionAImage,
-        option_b_image: mcqForm.optionBImage,
-        option_c_image: mcqForm.optionCImage,
-        option_d_image: mcqForm.optionDImage,
-        content_blocks: mcqForm.contentBlocks,
-        images: mcqForm.images,
-        correct_answer: mcqForm.correctAnswer,
-        marks: mcqForm.marks,
-        difficulty: mcqForm.difficulty,
-        section_id: selectedSectionIdForMcq
-      };
-      setAdminSelectedExamMCQs(prev => [...prev, mockMcq]);
-      showToast('MCQ Question added');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMessage = errorData.error || errorData.message || 'Failed to save question. Please try again.';
+        showToast(errorMessage, 'error');
+        alert(errorMessage);
+        return;
+      }
+
+      const savedQuestion = await res.json();
+      setAdminSelectedExamMCQs(prev => {
+        const exists = prev.find(q => q.id === savedQuestion.id);
+        if (exists) {
+          return prev.map(q => q.id === savedQuestion.id ? savedQuestion : q);
+        }
+        return [...prev, savedQuestion];
+      });
+      showToast('MCQ Question added successfully');
+      setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '', contentBlocks: [], images: [], correctAnswer: 'A', marks: 1, difficulty: 'medium' });
+      setIsSectionModalOpen(false);
+    } catch (err: any) {
+      console.error("Save MCQ error:", err);
+      showToast("Network error: Failed to save question", 'error');
+      alert("Network error: Failed to save question");
     }
-    setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '', contentBlocks: [], images: [], correctAnswer: 'A', marks: 1, difficulty: 'medium' });
-    setIsSectionModalOpen(false);
   };
 
   const importMcqCsv = async (e: React.FormEvent) => {
@@ -3072,6 +3090,47 @@ export default function App() {
         videoRef.current.srcObject = combinedStream;
         videoRef.current.play().catch(() => {});
       }
+      const recoverCameraStream = async () => {
+        try {
+          console.warn('Camera track ended. Attempting recovery...');
+          const newStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+            audio: true
+          });
+
+          // Stop audio tracks immediately to prevent leak
+          newStream.getAudioTracks().forEach(track => {
+            track.stop();
+          });
+
+          // Stop all tracks on old stream before replacing
+          if (cameraStreamRef.current) {
+            cameraStreamRef.current.getTracks().forEach(track => {
+              try { track.stop(); } catch {}
+            });
+          }
+
+          setCameraStream(newStream);
+
+          if (videoRef.current) {
+            videoRef.current.srcObject = newStream;
+            await videoRef.current.play().catch(() => {});
+          }
+
+          newStream.getVideoTracks().forEach(track => {
+            track.addEventListener('ended', recoverCameraStream);
+          });
+
+        } catch (err) {
+          console.error('Camera recovery failed:', err);
+          showToast('Camera disconnected. Please check your camera connection.', 'error');
+        }
+      };
+
+      combinedStream.getVideoTracks().forEach(track => {
+        track.addEventListener('ended', recoverCameraStream);
+      });
+
       setHardwareProgress(75);
 
       setTimeout(() => {
@@ -3362,7 +3421,9 @@ export default function App() {
 
         // Determine active fraud state
         let fraudState = 'Normal';
-        if (status.violations && status.violations.length > 0) {
+        if (status.trackingStatus === 'Proctoring Disabled' || status.faceDetectionEnabled === false) {
+          fraudState = 'Proctoring Off';
+        } else if (status.violations && status.violations.length > 0) {
           fraudState = `Warning: ${status.violations.join(', ')}`;
           logDebugEvent(`Fraud Triggered: ${status.violations.join(', ')}`);
         } else if (status.trackingStatus === 'Temporary Detection Loss') {
@@ -3385,6 +3446,17 @@ export default function App() {
         handleExamTermination(data.reason, data.autoSubmitted);
       });
 
+      socket.on('reconnect', () => {
+        if (currentAttemptRef.current?.id && currentExamRef.current?.id) {
+          console.log(`Socket reconnected. Re-joining proctoring room for attempt ${currentAttemptRef.current.id}`);
+          socket.emit('join-exam', {
+            token,
+            attemptId: currentAttemptRef.current.id,
+            examId: currentExamRef.current.id
+          });
+        }
+      });
+
       socket.on('admin-warning', (data: any) => {
         logDebugEvent(`Admin Warning Received: ${data.reason}`);
         setStudentWarningMessage(data.reason);
@@ -3395,12 +3467,20 @@ export default function App() {
     }
 
     // Periodically capture and stream webcam frame to the socket
-    proctorIntervalRef.current = setInterval(() => {
+    proctorIntervalRef.current = setInterval(async () => {
       if (currentPageRef.current === 'exam-env' && videoRef.current && socketRef.current) {
         try {
           const video = videoRef.current;
+          if (!video) return;
+
+          // Check video track is still live
+          const tracks = cameraStream?.getVideoTracks() || [];
+          const trackLive = tracks.length > 0 && tracks[0].readyState === 'live';
+          if (!trackLive) return;
+
+          // Check video element is playing
           if (video.paused || video.readyState < 2) {
-            video.play().catch(() => {});
+            try { await video.play(); } catch(e) { return; }
           }
           const canvas = document.createElement('canvas');
           canvas.width = 640;
@@ -3521,16 +3601,22 @@ export default function App() {
     loadStudentDashboard();
   };
 
+  useEffect(() => {
+    if (currentPage !== 'exam-env') {
+      cleanupExamSession();
+    }
+    return () => {
+      cleanupExamSession();
+    };
+  }, [currentPage, cleanupExamSession]);
+
   const cleanupProctoring = () => {
+    cleanupExamSession();
     if (timerRef.current) clearInterval(timerRef.current);
     if (proctorIntervalRef.current) clearInterval(proctorIntervalRef.current);
     if (socketRef.current) {
       socketRef.current.disconnect();
       socketRef.current = null;
-    }
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
-      setCameraStream(null);
     }
     document.removeEventListener('visibilitychange', stableVisibilityChange);
     // Reset Debug panel states
