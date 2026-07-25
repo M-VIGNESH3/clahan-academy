@@ -900,6 +900,10 @@ app.post(['/api/exams/:id/sections', '/api/assessments/:id/sections', '/api/exam
       return res.status(400).json({ error: 'Section name and sectionType are required' });
     }
 
+    const parsedDuration = durationMinutes !== undefined && durationMinutes !== null && String(durationMinutes).trim() !== '' ? parseInt(String(durationMinutes), 10) : null;
+    const parsedCutoffPct = cutoffPercentage !== undefined && cutoffPercentage !== null && String(cutoffPercentage).trim() !== '' ? parseFloat(String(cutoffPercentage)) : null;
+    const parsedCutoffMarks = cutoffMarks !== undefined && cutoffMarks !== null && String(cutoffMarks).trim() !== '' ? parseFloat(String(cutoffMarks)) : null;
+
     const orderResult = await query('SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order FROM sections WHERE exam_id = $1', [id]);
     const sortOrder = orderResult.rows[0].next_order;
 
@@ -907,9 +911,9 @@ app.post(['/api/exams/:id/sections', '/api/assessments/:id/sections', '/api/exam
       `INSERT INTO sections (exam_id, name, description, section_type, duration_minutes, randomize_questions, is_mandatory, sort_order, enable_cutoff, cutoff_percentage, cutoff_marks)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
       [
-        id, name, description || '', sType, durationMinutes || null,
+        id, name, description || '', sType, parsedDuration,
         randomizeQuestions === true, isMandatory !== false, sortOrder,
-        enableCutoff === true, cutoffPercentage || null, cutoffMarks || null
+        enableCutoff === true, parsedCutoffPct, parsedCutoffMarks
       ]
     );
 
@@ -939,7 +943,7 @@ app.put(['/api/sections/:id', '/api/exams/sections/:id', '/api/exams/:examId/sec
       `UPDATE sections
        SET name = COALESCE($1, name),
            description = COALESCE($2, description),
-           duration_minutes = COALESCE($3, duration_minutes),
+           duration_minutes = $3,
            randomize_questions = COALESCE($4, randomize_questions),
            is_mandatory = COALESCE($5, is_mandatory),
            enable_cutoff = COALESCE($6, enable_cutoff),

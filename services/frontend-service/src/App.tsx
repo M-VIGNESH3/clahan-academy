@@ -1525,12 +1525,16 @@ export default function App() {
         })
       });
       if (res.ok) {
+        const updatedSec = await res.json();
         showToast('Section updated successfully');
+        if (updatedSec && updatedSec.id) {
+          setAdminSelectedExamSections(prev => prev.map(s => s.id === updatedSec.id ? updatedSec : s));
+        }
         setEditingSectionId(null);
         setIsSectionModalOpen(false);
         setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
         setSelectedExamIdForQuestions(targetExamId);
-        loadAdminExamQuestions(targetExamId);
+        await loadAdminExamQuestions(targetExamId);
       }
     } catch (err) {
       console.error(err);
@@ -1562,6 +1566,7 @@ export default function App() {
       });
       if (res.ok) {
         showToast('Section deleted successfully');
+        setAdminSelectedExamSections(prev => prev.filter(s => s.id !== sectionId));
         if (targetExamId) loadAdminExamQuestions(targetExamId);
       }
     } catch (err) {
@@ -1572,7 +1577,8 @@ export default function App() {
   };
 
   const moveSection = async (sectionId: string, direction: 'up' | 'down') => {
-    if (!selectedExamIdForQuestions) return;
+    const targetExamId = selectedExamIdForQuestions || editingExamId;
+    if (!targetExamId) return;
     const index = adminSelectedExamSections.findIndex(s => s.id === sectionId);
     if (index === -1) return;
     if (direction === 'up' && index === 0) return;
@@ -1586,7 +1592,7 @@ export default function App() {
 
     const sectionIds = newSections.map(s => s.id);
     try {
-      const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/sections/reorder`, {
+      const res = await fetch(`${API_EXAMS}/${targetExamId}/sections/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ sectionIds })
