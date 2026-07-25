@@ -292,6 +292,7 @@ export default function App() {
     navigationMode?: 'free' | 'locked' | 'sequential' | 'sequential_locked';
     submissionMode?: 'manual' | 'auto';
     timingMode?: 'overall' | 'section';
+    skillCategory?: string;
   }>({
     name: '', description: '', examType: 'mcq',
     durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
@@ -305,7 +306,8 @@ export default function App() {
     codingCutoffMarks: 0,
     navigationMode: 'free',
     submissionMode: 'manual',
-    timingMode: 'overall'
+    timingMode: 'overall',
+    skillCategory: ''
   });
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [terminationModal, setTerminationModal] = useState<{ attemptId: string; studentName: string } | null>(null);
@@ -1400,14 +1402,7 @@ export default function App() {
       });
       if (res.ok) {
         const data = await res.json();
-        const { overallScore, ...scores } = data.skillScores || {};
-        setSkillGapData({
-          studentId: data.studentId,
-          scores,
-          weakAreas: data.weakAreas || [],
-          strongAreas: data.strongAreas || [],
-          recommendations: data.recommendedTraining || []
-        });
+        setSkillGapData(data);
       }
     } catch (err) {
       console.error('Failed to load skill gap:', err);
@@ -2234,7 +2229,8 @@ export default function App() {
         scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
         navigationMode: examForm.navigationMode || 'free',
         submissionMode: examForm.submissionMode || 'manual',
-        enableFaceDetection: examForm.enableFaceDetection === true
+        enableFaceDetection: examForm.enableFaceDetection === true,
+        skillCategory: examForm.skillCategory || null
       };
       const res = await fetch(`${API_EXAMS}`, {
         method: 'POST',
@@ -2307,7 +2303,8 @@ export default function App() {
         scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
         navigationMode: examForm.navigationMode || 'free',
         submissionMode: examForm.submissionMode || 'manual',
-        enableFaceDetection: examForm.enableFaceDetection === true
+        enableFaceDetection: examForm.enableFaceDetection === true,
+        skillCategory: examForm.skillCategory || null
       };
 
       console.log('=== UPDATING EXAM ===');
@@ -2405,7 +2402,9 @@ export default function App() {
       navigationMode: navMode,
       navigation_mode: navMode,
       submissionMode: subMode,
-      submission_mode: subMode
+      submission_mode: subMode,
+      skillCategory: ex.skill_category || ex.skillCategory || '',
+      skill_category: ex.skill_category || ex.skillCategory || ''
     };
   };
 
@@ -2447,7 +2446,8 @@ export default function App() {
       codingCutoffMarks: ex.coding_cutoff_marks !== undefined ? Number(ex.coding_cutoff_marks) : (ex.codingCutoffMarks !== undefined ? Number(ex.codingCutoffMarks) : 0),
       navigationMode: ex.navigation_mode || ex.navigationMode || 'free',
       submissionMode: ex.submission_mode || ex.submissionMode || 'manual',
-      timingMode: ex.timing_mode || ex.timingMode || 'overall'
+      timingMode: ex.timing_mode || ex.timingMode || 'overall',
+      skillCategory: ex.skill_category || ex.skillCategory || ''
     });
     if (ex.college_id || ex.collegeId) {
       fetchDepartments(ex.college_id || ex.collegeId);
@@ -7192,6 +7192,23 @@ export default function App() {
                     </div>
                   </div>
 
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-muted-foreground">Skill Category (for Skill Gap Analysis)</label>
+                    <select
+                      value={examForm.skillCategory || ''}
+                      onChange={e => setExamForm({ ...examForm, skillCategory: e.target.value })}
+                      className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                    >
+                      <option value="">General / Mixed (Not categorized)</option>
+                      <option value="aptitude">Aptitude & Reasoning</option>
+                      <option value="coding">Coding & Programming</option>
+                      <option value="technical">Technical / Domain Knowledge</option>
+                      <option value="communication">Communication & Soft Skills</option>
+                      <option value="reasoning">Logical Reasoning</option>
+                    </select>
+                    <p className="text-[10px] text-muted-foreground">Tagging helps generate accurate skill gap reports for students.</p>
+                  </div>
+
                   {/* Target Audience & Allocation Controls */}
                   <div className="p-5 rounded-2xl border border-indigo-200/60 dark:border-indigo-900/40 bg-indigo-50/20 dark:bg-indigo-950/10 space-y-4">
                     <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -11565,9 +11582,13 @@ export default function App() {
                 <p className="text-slate-400 text-sm">Analyzing your performance...</p>
               </div>
             </div>
-          ) : !skillGapData ? (
-            <div className="text-center py-16">
-              <p className="text-slate-400">No assessment data found. Complete some exams first.</p>
+          ) : !skillGapData?.hasData ? (
+            <div className="text-center py-12 space-y-4">
+              <div className="text-5xl">📊</div>
+              <h3 className="text-lg font-bold text-white">No Assessment Data Yet</h3>
+              <p className="text-sm text-slate-400 max-w-sm mx-auto">
+                {skillGapData?.message || 'Complete some exams to see your skill analysis. Ask your admin to categorize exams by skill type for better insights.'}
+              </p>
             </div>
           ) : (
             <div className="space-y-6 max-w-4xl mx-auto">
@@ -11665,6 +11686,39 @@ export default function App() {
                       <div key={i} className="flex items-start gap-2 text-xs text-slate-300">
                         <span className="text-indigo-400 font-bold shrink-0">{i + 1}.</span>
                         <span>{rec}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Exams Analyzed */}
+              {skillGapData?.recentExams?.length > 0 && (
+                <div className="p-5 bg-slate-900 border border-white/10 rounded-2xl">
+                  <h3 className="font-extrabold text-sm text-white mb-3">
+                    📋 Recent Exams Analyzed
+                  </h3>
+                  <div className="space-y-2">
+                    {skillGapData.recentExams.map((exam: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between p-2 bg-slate-800 rounded-lg">
+                        <div>
+                          <span className="text-xs font-bold text-white block">
+                            {exam.name}
+                          </span>
+                          <span className="text-[10px] text-slate-400 capitalize">
+                            {exam.category}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className={`text-sm font-black ${
+                            exam.percentage >= 75 ? 'text-emerald-400' : exam.percentage >= 50 ? 'text-amber-400' : 'text-red-400'
+                          }`}>
+                            {exam.percentage}%
+                          </span>
+                          <span className={`text-[9px] block font-bold ${exam.passed ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {exam.passed ? 'PASSED' : 'FAILED'}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
