@@ -2622,6 +2622,37 @@ export default function App() {
 
 
 
+  const compressImageFile = (file: File, maxWidth = 1024, quality = 0.8): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(String(e.target?.result || ''));
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(String(e.target?.result || ''));
+        img.src = String(e.target?.result || '');
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
   const saveMcqQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedExamIdForQuestions) return;
@@ -7860,7 +7891,7 @@ export default function App() {
                                 </h5>
                                 <div className="space-y-1">
                                   <label className="text-[10px] font-semibold text-muted-foreground">Question Stem</label>
-                                  <input type="text" value={mcqForm.question} onChange={e => setMcqForm({ ...mcqForm, question: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" placeholder="What is the runtime complexity of binary search?" required />
+                                  <input type="text" value={mcqForm.question} onChange={e => setMcqForm({ ...mcqForm, question: e.target.value })} className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-slate-900 dark:text-white" placeholder="What is the runtime complexity of binary search?" required={(!mcqForm.contentBlocks || mcqForm.contentBlocks.length === 0) && (!mcqForm.images || mcqForm.images.length === 0)} />
                                 </div>
 
                                 <div className="space-y-1">
@@ -7906,7 +7937,7 @@ export default function App() {
                                               <input
                                                 type="file"
                                                 accept="image/*"
-                                                onChange={e => {
+                                                onChange={async e => {
                                                   const file = e.target.files?.[0];
                                                   if (file) {
                                                     const reader = new FileReader();

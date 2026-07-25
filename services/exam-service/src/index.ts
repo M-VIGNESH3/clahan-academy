@@ -699,6 +699,26 @@ app.post('/api/exams/:id/mcq/import', authenticate, requireRole('admin'), async 
   }
 });
 
+const sanitizeJsonb = (val: any): string => {
+  if (val === undefined || val === null) return JSON.stringify([]);
+  if (Array.isArray(val)) return JSON.stringify(val);
+  if (typeof val === 'object') return JSON.stringify([val]);
+  if (typeof val === 'string') {
+    const trimmed = val.trim();
+    if (!trimmed) return JSON.stringify([]);
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        JSON.parse(trimmed);
+        return trimmed;
+      } catch {
+        return JSON.stringify([trimmed]);
+      }
+    }
+    return JSON.stringify([trimmed]);
+  }
+  return JSON.stringify([]);
+};
+
 // Add MCQ manually
 app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, res) => {
   try {
@@ -713,8 +733,15 @@ app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, r
 
     const qType = questionType || 'mcq';
     const hasQuestionText = Boolean((question && String(question).trim()) || (req.body.question && String(req.body.question).trim()));
-    const hasContentBlocks = Array.isArray(contentBlocks) && contentBlocks.length > 0;
-    const hasImages = Array.isArray(images) && images.length > 0;
+    const rawContentBlocks = contentBlocks ?? req.body.content_blocks;
+    const hasContentBlocks = Boolean((Array.isArray(rawContentBlocks) && rawContentBlocks.length > 0) || (typeof rawContentBlocks === 'string' && rawContentBlocks.trim()));
+
+    const rawImages = images ?? req.body.images ?? req.body.questionImage ?? req.body.question_image;
+    const hasImages = Boolean(
+      (Array.isArray(rawImages) && rawImages.length > 0) ||
+      (typeof rawImages === 'string' && rawImages.trim().length > 0) ||
+      (typeof rawImages === 'object' && rawImages !== null && Object.keys(rawImages).length > 0)
+    );
 
     const optAImg = optionAImage || req.body.option_a_image || '';
     const optBImg = optionBImage || req.body.option_b_image || '';
@@ -753,17 +780,12 @@ app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, r
       }
     }
 
-    const optAImage = optionAImage || req.body.option_a_image || '';
-    const optBImage = optionBImage || req.body.option_b_image || '';
-    const optCImage = optionCImage || req.body.option_c_image || '';
-    const optDImage = optionDImage || req.body.option_d_image || '';
-
     const result = await query(
       `INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty, content_blocks, images, option_a_image, option_b_image, option_c_image, option_d_image, question_type, word_limit, evaluation_method)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb, $12::jsonb, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
       [
         id, finalSectionId, question || '', optA || '', optB || '', optC || '', optD || '', finalCorrAns, marks || 1, difficulty || 'medium',
-        JSON.stringify(contentBlocks || []), JSON.stringify(images || []),
+        sanitizeJsonb(rawContentBlocks), sanitizeJsonb(rawImages),
         optAImg, optBImg, optCImg, optDImg,
         qType, wordLimit || 0, evaluationMethod || 'manual'
       ]
@@ -1025,6 +1047,8 @@ app.put(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'
     const optDImg = optDImgRaw === undefined ? '__KEEP_EXISTING__' : (optDImgRaw || null);
     const cBlocks = contentBlocks ?? req.body.content_blocks;
 
+    const rawImages = images ?? req.body.images ?? req.body.questionImage ?? req.body.question_image;
+
     const result = await query(
       `UPDATE mcq_questions
        SET question = COALESCE($1, question),
@@ -1044,8 +1068,8 @@ app.put(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'
        WHERE id = $15 RETURNING *`,
       [
         question, optA, optB, optC, optD, corrAns, marks, difficulty,
-        cBlocks ? JSON.stringify(cBlocks) : null,
-        images ? JSON.stringify(images) : null,
+        cBlocks !== undefined ? sanitizeJsonb(cBlocks) : null,
+        rawImages !== undefined ? sanitizeJsonb(rawImages) : null,
         optAImg,
         optBImg,
         optCImg,

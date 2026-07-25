@@ -184,7 +184,7 @@ export const QuestionInlineEditor: React.FC<QuestionInlineEditorProps> = ({
                 onChange={e => setMcqForm({ ...mcqForm, question: e.target.value })}
                 className="w-full p-3 border rounded-xl text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white font-medium"
                 rows={3}
-                required
+                required={(!mcqForm.content_blocks || mcqForm.content_blocks.length === 0) && (!mcqForm.images || (Array.isArray(mcqForm.images) && mcqForm.images.length === 0))}
               />
             </div>
 
