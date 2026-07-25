@@ -8814,13 +8814,44 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
+                      if (!editingExamId) {
+                        setExamWizardStep(5);
+                        setExamWorkspaceTab('submission');
+                        return;
+                      }
+                      try {
+                        const payload = {
+                          ...examForm,
+                          durationMinutes: examForm.durationMinutes || 60,
+                          cutoffPercentage: examForm.cutoffPercentage || 50,
+                          scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
+                          navigationMode: examForm.navigationMode || 'free',
+                          submissionMode: examForm.submissionMode || 'manual',
+                          enableFaceDetection: examForm.enableFaceDetection === true
+                        };
+                        const res = await fetch(`${API_EXAMS}/${editingExamId}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                          body: JSON.stringify(payload)
+                        });
+                        if (res.ok) {
+                          showToast('Navigation settings saved!', 'success');
+                        } else {
+                          const err = await res.json().catch(() => ({}));
+                          showToast(err.error || 'Failed to save navigation settings', 'error');
+                          return;
+                        }
+                      } catch (err) {
+                        showToast('Network error saving navigation settings', 'error');
+                        return;
+                      }
                       setExamWizardStep(5);
                       setExamWorkspaceTab('submission');
                     }}
                     className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs"
                   >
-                    Next: Submission Rules &rarr;
+                    Save & Continue &rarr;
                   </button>
                 </div>
               </div>
@@ -8852,13 +8883,44 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
+                      if (!editingExamId) {
+                        setExamWizardStep(6);
+                        setExamWorkspaceTab('proctoring');
+                        return;
+                      }
+                      try {
+                        const payload = {
+                          ...examForm,
+                          durationMinutes: examForm.durationMinutes || 60,
+                          cutoffPercentage: examForm.cutoffPercentage || 50,
+                          scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
+                          navigationMode: examForm.navigationMode || 'free',
+                          submissionMode: examForm.submissionMode || 'manual',
+                          enableFaceDetection: examForm.enableFaceDetection === true
+                        };
+                        const res = await fetch(`${API_EXAMS}/${editingExamId}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                          body: JSON.stringify(payload)
+                        });
+                        if (res.ok) {
+                          showToast('Submission settings saved!', 'success');
+                        } else {
+                          const err = await res.json().catch(() => ({}));
+                          showToast(err.error || 'Failed to save submission settings', 'error');
+                          return;
+                        }
+                      } catch (err) {
+                        showToast('Network error saving submission settings', 'error');
+                        return;
+                      }
                       setExamWizardStep(6);
                       setExamWorkspaceTab('proctoring');
                     }}
                     className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs"
                   >
-                    Next: Proctoring Rules &rarr;
+                    Save & Continue &rarr;
                   </button>
                 </div>
               </div>
@@ -8876,7 +8938,7 @@ export default function App() {
                   <label className="flex items-center gap-3 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200 select-none">
                     <input 
                       type="checkbox" 
-                      checked={examForm.enableFaceDetection !== false} 
+                      checked={examForm.enableFaceDetection === true} 
                       onChange={e => setExamForm({...examForm, enableFaceDetection: e.target.checked})} 
                       className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-slate-950" 
                     />
@@ -8908,13 +8970,44 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
+                      if (!editingExamId) {
+                        setExamWizardStep(7);
+                        setExamWorkspaceTab('duration');
+                        return;
+                      }
+                      try {
+                        const payload = {
+                          ...examForm,
+                          durationMinutes: examForm.durationMinutes || 60,
+                          cutoffPercentage: examForm.cutoffPercentage || 50,
+                          scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
+                          navigationMode: examForm.navigationMode || 'free',
+                          submissionMode: examForm.submissionMode || 'manual',
+                          enableFaceDetection: examForm.enableFaceDetection === true
+                        };
+                        const res = await fetch(`${API_EXAMS}/${editingExamId}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                          body: JSON.stringify(payload)
+                        });
+                        if (res.ok) {
+                          showToast('Proctoring settings saved!', 'success');
+                        } else {
+                          const err = await res.json().catch(() => ({}));
+                          showToast(err.error || 'Failed to save proctoring settings', 'error');
+                          return;
+                        }
+                      } catch (err) {
+                        showToast('Network error saving proctoring settings', 'error');
+                        return;
+                      }
                       setExamWizardStep(7);
                       setExamWorkspaceTab('duration');
                     }}
                     className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs"
                   >
-                    Next: Assessment Duration &rarr;
+                    Save & Continue &rarr;
                   </button>
                 </div>
               </div>
@@ -8950,13 +9043,44 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
+                      if (!editingExamId) {
+                        setExamWizardStep(8);
+                        setExamWorkspaceTab('review');
+                        return;
+                      }
+                      try {
+                        const payload = {
+                          ...examForm,
+                          durationMinutes: examForm.durationMinutes || 60,
+                          cutoffPercentage: examForm.cutoffPercentage || 50,
+                          scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
+                          navigationMode: examForm.navigationMode || 'free',
+                          submissionMode: examForm.submissionMode || 'manual',
+                          enableFaceDetection: examForm.enableFaceDetection === true
+                        };
+                        const res = await fetch(`${API_EXAMS}/${editingExamId}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                          body: JSON.stringify(payload)
+                        });
+                        if (res.ok) {
+                          showToast('Duration settings saved!', 'success');
+                        } else {
+                          const err = await res.json().catch(() => ({}));
+                          showToast(err.error || 'Failed to save duration settings', 'error');
+                          return;
+                        }
+                      } catch (err) {
+                        showToast('Network error saving duration settings', 'error');
+                        return;
+                      }
                       setExamWizardStep(8);
                       setExamWorkspaceTab('review');
                     }}
                     className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs"
                   >
-                    Next: System Validation Review &rarr;
+                    Save & Continue &rarr;
                   </button>
                 </div>
               </div>
