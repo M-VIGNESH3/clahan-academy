@@ -57,6 +57,26 @@ pool.query(`
 });
 
 pool.query(`
+  ALTER TABLE exams DROP CONSTRAINT IF EXISTS exams_exam_type_check;
+`).catch(() => {});
+
+pool.query(`
+  ALTER TABLE exams ADD CONSTRAINT exams_exam_type_check CHECK (exam_type IN (
+    'mcq',
+    'coding',
+    'both',
+    'crt',
+    'corporate_test',
+    'technical',
+    'aptitude',
+    'mock_interview',
+    'custom'
+  ))
+`).catch(err => {
+  console.log('exam_type constraint update:', err.message);
+});
+
+pool.query(`
   ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS question_type VARCHAR(50) DEFAULT 'mcq';
   ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS word_limit INT DEFAULT 0;
   ALTER TABLE mcq_questions ADD COLUMN IF NOT EXISTS evaluation_method VARCHAR(50) DEFAULT 'manual';

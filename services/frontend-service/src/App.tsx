@@ -6180,6 +6180,21 @@ export default function App() {
                                 </span>
                               </td>
                               <td className="text-right py-3 px-2">
+                                <button
+                                  onClick={async () => {
+                                    const res = await fetch(`${API_REPORTS}/skills/${student.id}`, {
+                                      headers: { Authorization: `Bearer ${token}` }
+                                    });
+                                    if (res.ok) {
+                                      const data = await res.json();
+                                      setSkillGapData(data);
+                                      setCurrentPage('skill-gap');
+                                    }
+                                  }}
+                                  className="px-2 py-1 bg-purple-500/20 border border-purple-500/30 text-purple-300 text-[10px] font-bold rounded-lg hover:bg-purple-500/30 mr-2"
+                                >
+                                  📊 Skills
+                                </button>
                                 <button onClick={() => resetStudentPassword(student.id)} className="text-[10px] font-bold px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded mr-2 hover:bg-slate-200">Reset Pw</button>
                                 <button onClick={() => deleteStudent(student.id)} className="text-rose-500 hover:text-rose-600 p-1.5"><Trash2 className="h-4 w-4" /></button>
                               </td>
@@ -9467,7 +9482,7 @@ export default function App() {
             )}
           </div>
         </main>
-      )}\n
+      )}
       {/* EXAM ENVIRONMENT ROUTE (STRICT PROCTOR MODE) */}
       {currentPage === 'exam-env' && currentExam && (
         <main className="fixed inset-0 z-50 bg-slate-900 text-white overflow-y-auto p-4 md:p-8 flex flex-col justify-between">
@@ -11582,16 +11597,44 @@ export default function App() {
                 <p className="text-slate-400 text-sm">Analyzing your performance...</p>
               </div>
             </div>
-          ) : !skillGapData?.hasData ? (
+          ) : (!skillGapData || skillGapData.hasData === false) ? (
             <div className="text-center py-12 space-y-4">
               <div className="text-5xl">📊</div>
-              <h3 className="text-lg font-bold text-white">No Assessment Data Yet</h3>
+              <h3 className="text-lg font-bold text-white">No Completed Exams Found</h3>
               <p className="text-sm text-slate-400 max-w-sm mx-auto">
-                {skillGapData?.message || 'Complete some exams to see your skill analysis. Ask your admin to categorize exams by skill type for better insights.'}
+                Complete some assessments to see your personalized skill gap analysis.
               </p>
+              <div className="p-4 bg-slate-800 rounded-xl max-w-sm mx-auto text-left">
+                <p className="text-xs font-bold text-slate-300 mb-2">
+                  How it works:
+                </p>
+                <div className="space-y-1 text-[11px] text-slate-400">
+                  <p>1. Take assessments assigned to you</p>
+                  <p>2. Complete and submit them</p>
+                  <p>3. Your skill scores appear here</p>
+                  <p>4. Get personalized recommendations</p>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="space-y-6 max-w-4xl mx-auto">
+
+              {/* Uncategorized Exams Banner */}
+              {skillGapData?.uncategorized && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                  <div className="flex items-start gap-3">
+                    <span className="text-amber-400 text-lg shrink-0">ℹ️</span>
+                    <div>
+                      <p className="text-xs font-bold text-amber-300 mb-1">
+                        Exams Not Yet Categorized
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        Your completed exams have not been tagged with skill categories yet. Scores are estimated from exam type. Ask your admin to categorize exams for accurate skill analysis.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Skill Score Cards */}
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">

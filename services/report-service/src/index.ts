@@ -186,20 +186,47 @@ app.get('/api/reports/skills/:studentId', authenticate, async (req: Authenticate
       recommendations.push('Take more categorized assessments to get a complete skill gap analysis across all areas.');
     }
 
+    // Always show all 5 skills
+    // Use 0 for skills with no data
+    const allScores = {
+      aptitude: scores.aptitude || 0,
+      coding: scores.coding || 0,
+      technical: scores.technical || 0,
+      communication: scores.communication || 0,
+      reasoning: scores.reasoning || 0
+    };
+
+    // Check if ANY skill has real data
+    const hasRealData = Object.values(allScores).some(s => s > 0);
+
+    // Add note if exams are uncategorized
+    if (!hasRealData && attempts.length > 0) {
+      recommendations.unshift(
+        `You have completed ${attempts.length} exam(s) but they are not yet categorized by skill type. Ask your admin to tag exams with skill categories for detailed analysis. Your scores are shown below based on exam type.`
+      );
+    }
+
+    // Recalculate weak/strong with all scores
+    const allSkillsWithData = Object.entries(allScores).filter(([, score]) => score > 0);
+
+    const finalWeakAreas = allSkillsWithData.filter(([, score]) => score < 50).map(([skill]) => skill);
+    const finalStrongAreas = allSkillsWithData.filter(([, score]) => score >= 75).map(([skill]) => skill);
+
     res.json({
       studentId,
       totalExams: attempts.length,
-      examsAnalyzed: skillsWithData.length,
-      scores,
+      examsAnalyzed: allSkillsWithData.length,
+      scores: allScores,
       skillScores: Object.fromEntries(Object.entries(skillScores).map(([k, v]) => [k, v.length])),
-      weakAreas,
-      strongAreas,
+      weakAreas: finalWeakAreas,
+      strongAreas: finalStrongAreas,
       recommendations,
-      hasData: true,
+      hasData: attempts.length > 0,
+      uncategorized: !hasRealData && attempts.length > 0,
       recentExams: attempts.slice(0, 5).map(a => ({
         name: a.exam_name,
-        category: a.skill_category || 'general',
-        percentage: Math.round(a.percentage),
+        category: a.skill_category || 'Not categorized',
+        percentage: Math.round(parseFloat(a.percentage) || 0),
         passed: a.passed
       }))
     });
