@@ -2704,7 +2704,82 @@ export default function App() {
 
 
 
-  const compressImageFile = (file: File, maxWidth = 1024, quality = 0.8): Promise<string> => {
+  const canNavigateToQuestion = (
+    targetIdx: number,
+    currentIdx: number,
+    navMode: string,
+    answeredQuestions: Set<number> | Record<number, boolean> = {}
+  ): { allowed: boolean; reason?: string } => {
+    const mode = String(navMode || 'free').toLowerCase();
+
+    // Free mode - always allow
+    if (mode === 'free') {
+      return { allowed: true };
+    }
+
+    // Sequential mode - can only go forward one at a time or go back freely
+    if (mode === 'sequential') {
+      if (targetIdx > currentIdx + 1) {
+        return { 
+          allowed: false, 
+          reason: 'Sequential Navigation: You must complete each question before moving forward. You cannot skip ahead.' 
+        };
+      }
+      return { allowed: true };
+    }
+
+    // Locked mode - cannot go back at all
+    if (mode === 'locked') {
+      if (targetIdx < currentIdx) {
+        return { 
+          allowed: false, 
+          reason: 'Locked Navigation: You cannot go back to previous questions.' 
+        };
+      }
+      return { allowed: true };
+    }
+
+    // Sequential locked - cannot skip ahead AND cannot go back
+    if (mode === 'sequential_locked') {
+      if (targetIdx > currentIdx + 1) {
+        return { 
+          allowed: false, 
+          reason: 'Sequential Navigation: You must answer questions in order. You cannot skip ahead.' 
+        };
+      }
+      if (targetIdx < currentIdx) {
+        return { 
+          allowed: false, 
+          reason: 'Locked Navigation: You cannot return to previous questions once you have moved forward.' 
+        };
+      }
+      return { allowed: true };
+    }
+
+    return { allowed: true };
+  };
+
+  const isQuestionReachable = (targetIdx: number): boolean => {
+    const navMode = String(
+      currentExam?.navigation_mode || 
+      currentExam?.navigationMode || 
+      'free'
+    ).toLowerCase();
+
+    if (navMode === 'free') return true;
+    if (navMode === 'sequential') {
+      return targetIdx <= activeQuestionIndex + 1;
+    }
+    if (navMode === 'locked') {
+      return targetIdx >= activeQuestionIndex;
+    }
+    if (navMode === 'sequential_locked') {
+      return targetIdx === activeQuestionIndex + 1 || targetIdx === activeQuestionIndex;
+    }
+    return true;
+  };
+
+  const compressImageFile = (file: File, maxWidth = 800, quality = 0.5): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -2738,6 +2813,8 @@ export default function App() {
   const saveMcqQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedExamIdForQuestions) return;
+
+    showToast('Saving question with images... please wait', 'info');
 
     const payload = {
       ...mcqForm,
@@ -3360,6 +3437,7 @@ export default function App() {
         if (prev <= 1) {
           clearInterval(timerRef.current);
           setIsExamLocked(true);
+          showToast('Time is up! Your exam is being submitted automatically.', 'warning');
           (async () => {
             await saveCurrentCodeImmediately();
             await submitEntireExam(true);
@@ -8077,16 +8155,14 @@ export default function App() {
                                                   <input
                                                     type="file"
                                                     accept="image/*"
-                                                    onChange={e => {
+                                                    onChange={async e => {
                                                       const file = e.target.files?.[0];
                                                       if (file) {
-                                                        const reader = new FileReader();
-                                                        reader.onload = () => {
-                                                          if (typeof reader.result === 'string') {
-                                                            setMcqForm(prev => ({ ...prev, [opt.imgKey]: reader.result }));
-                                                          }
-                                                        };
-                                                        reader.readAsDataURL(file);
+                                                        if (file.size > 5 * 1024 * 1024) {
+                                                          showToast('Image is very large. Consider using a smaller image for faster upload.', 'warning');
+                                                        }
+                                                        const base64 = await compressImageFile(file, 800, 0.5);
+                                                        setMcqForm(prev => ({ ...prev, [opt.imgKey]: base64 }));
                                                       }
                                                     }}
                                                     className="hidden"
@@ -9176,6 +9252,38 @@ export default function App() {
                     </p>
                   </div>
 
+                  {/* Navigation Mode Indicator Badge */}
+                  {(() => {
+                    const navMode = currentExam?.navigation_mode || currentExam?.navigationMode || 'free';
+                    const navModeLabel = {
+                      'free': null,
+                      'sequential': {
+                        label: 'Sequential',
+                        desc: 'Answer in order',
+                        color: 'text-blue-300 border-blue-500/30 bg-blue-500/10'
+                      },
+                      'locked': {
+                        label: 'Locked',
+                        desc: 'No going back',
+                        color: 'text-amber-300 border-amber-500/30 bg-amber-500/10'
+                      },
+                      'sequential_locked': {
+                        label: 'Sequential & Locked',
+                        desc: 'In order, no going back',
+                        color: 'text-red-300 border-red-500/30 bg-red-500/10'
+                      }
+                    }[navMode];
+
+                    if (!navModeLabel) return null;
+
+                    return (
+                      <div className={`px-3.5 py-1.5 rounded-lg border text-right ${navModeLabel.color}`}>
+                        <span className="text-[10px] font-extrabold uppercase block">{navModeLabel.label}</span>
+                        <span className="text-[9px] text-slate-400 font-medium block">{navModeLabel.desc}</span>
+                      </div>
+                    );
+                  })()}
+
                   {/* Submission Button & Mode Handling */}
                   {((currentExam?.submission_mode || currentExam?.submissionMode) !== 'auto') ? (
                     <button
@@ -9547,12 +9655,20 @@ export default function App() {
                                   key={q.id || idx}
                                   onClick={() => {
                                     if (isExamLocked) return;
+                                    const navMode = currentExam?.navigation_mode || currentExam?.navigationMode || 'free';
+                                    const result = canNavigateToQuestion(idx, activeQuestionIndex, navMode, {});
+                                    if (!result.allowed) {
+                                      showToast(result.reason || 'Navigation not allowed', 'warning');
+                                      return;
+                                    }
                                     saveCurrentCodeImmediately();
                                     setActiveQuestionIndex(idx);
                                     setVisitedQuestions(prev => ({ ...prev, [q.id]: true }));
                                   }}
-                                  disabled={isExamLocked}
-                                  className={`h-9 w-9 flex items-center justify-center rounded-lg text-xs transition-all border ${bgClass} ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  disabled={isExamLocked || !isQuestionReachable(idx)}
+                                  className={`h-9 w-9 flex items-center justify-center rounded-lg text-xs transition-all border ${bgClass} ${
+                                    isExamLocked || !isQuestionReachable(idx) ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                                  }`}
                                   title={`Go to Q${idx + 1} (${isMarked ? 'Flagged' : isAnswered ? 'Answered' : isVisited ? 'Visited' : 'Not Visited'})`}
                                 >
                                   {idx + 1}
@@ -9692,7 +9808,17 @@ export default function App() {
                           <div className="flex flex-wrap justify-between items-center mt-6 border-t border-white/10 pt-4 gap-4">
                             <div className="flex items-center gap-3">
                               <button
-                                onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.max(0, p - 1)); }}
+                                onClick={() => {
+                                  if (isExamLocked) return;
+                                  const navMode = currentExam?.navigation_mode || currentExam?.navigationMode || 'free';
+                                  const targetIdx = Math.max(0, activeQuestionIndex - 1);
+                                  const result = canNavigateToQuestion(targetIdx, activeQuestionIndex, navMode, {});
+                                  if (!result.allowed) {
+                                    showToast(result.reason || 'Navigation not allowed', 'warning');
+                                    return;
+                                  }
+                                  setActiveQuestionIndex(targetIdx);
+                                }}
                                 disabled={isExamLocked || activeQuestionIndex === 0}
                                 className="px-5 py-2.5 border border-white/10 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 disabled:opacity-30"
                               >
@@ -9713,7 +9839,17 @@ export default function App() {
                             </div>
 
                             <button
-                              onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.min(currentSectionQuestions.length - 1, p + 1)); }}
+                              onClick={() => {
+                                if (isExamLocked) return;
+                                const navMode = currentExam?.navigation_mode || currentExam?.navigationMode || 'free';
+                                const targetIdx = Math.min(currentSectionQuestions.length - 1, activeQuestionIndex + 1);
+                                const result = canNavigateToQuestion(targetIdx, activeQuestionIndex, navMode, {});
+                                if (!result.allowed) {
+                                  showToast(result.reason || 'Navigation not allowed', 'warning');
+                                  return;
+                                }
+                                setActiveQuestionIndex(targetIdx);
+                              }}
                               disabled={isExamLocked || activeQuestionIndex === currentSectionQuestions.length - 1}
                               className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs disabled:opacity-30"
                             >
@@ -9784,7 +9920,17 @@ export default function App() {
                           <div className="flex flex-wrap justify-between items-center mt-8 border-t border-white/10 pt-5 gap-4">
                             <div className="flex items-center gap-3">
                               <button
-                                onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.max(0, p - 1)); }}
+                                onClick={() => {
+                                  if (isExamLocked) return;
+                                  const navMode = currentExam?.navigation_mode || currentExam?.navigationMode || 'free';
+                                  const targetIdx = Math.max(0, activeQuestionIndex - 1);
+                                  const result = canNavigateToQuestion(targetIdx, activeQuestionIndex, navMode, {});
+                                  if (!result.allowed) {
+                                    showToast(result.reason || 'Navigation not allowed', 'warning');
+                                    return;
+                                  }
+                                  setActiveQuestionIndex(targetIdx);
+                                }}
                                 className="px-5 py-2.5 border border-white/10 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition-colors disabled:opacity-30 disabled:hover:bg-transparent flex items-center gap-2"
                                 disabled={isExamLocked || activeQuestionIndex === 0}
                               >
@@ -9819,7 +9965,17 @@ export default function App() {
                               )}
                               
                               <button
-                                onClick={() => { if (!isExamLocked) setActiveQuestionIndex(p => Math.min(currentSectionQuestions.length - 1, p + 1)); }}
+                                onClick={() => {
+                                  if (isExamLocked) return;
+                                  const navMode = currentExam?.navigation_mode || currentExam?.navigationMode || 'free';
+                                  const targetIdx = Math.min(currentSectionQuestions.length - 1, activeQuestionIndex + 1);
+                                  const result = canNavigateToQuestion(targetIdx, activeQuestionIndex, navMode, {});
+                                  if (!result.allowed) {
+                                    showToast(result.reason || 'Navigation not allowed', 'warning');
+                                    return;
+                                  }
+                                  setActiveQuestionIndex(targetIdx);
+                                }}
                                 className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs transition-all shadow-md shadow-indigo-600/20 flex items-center gap-2 disabled:opacity-30 disabled:hover:bg-indigo-600"
                                 disabled={isExamLocked || activeQuestionIndex === currentSectionQuestions.length - 1}
                               >
