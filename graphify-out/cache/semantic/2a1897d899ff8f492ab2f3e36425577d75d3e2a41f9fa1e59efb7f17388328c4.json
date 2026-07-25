@@ -1,0 +1,1 @@
+{"nodes": [{"id": "notificationsecretprovider_notification", "label": "Notification SecretProviderClass", "file_type": "code", "source_file": "clahan-academy/templates/secretproviders/notification-secretprovider.yaml", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null}], "edges": [], "hyperedges": []}

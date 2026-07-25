@@ -1,0 +1,1 @@
+{"nodes": [{"id": "configmap_ollama", "label": "Ollama ConfigMap", "file_type": "code", "source_file": "clahan-academy/templates/configmaps/ollama-config.yaml", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null}], "edges": [], "hyperedges": []}

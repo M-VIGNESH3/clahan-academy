@@ -2,1162 +2,1162 @@
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\docker-compose.yml": {
     "mtime": 1784725239.266461,
     "ast_hash": "9d71380f3f4aaf3bc16e1e52a03439af",
-    "semantic_hash": ""
+    "semantic_hash": "9d71380f3f4aaf3bc16e1e52a03439af"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\implementation_plan.md": {
     "mtime": 1780157763.3200114,
     "ast_hash": "926a6088eab2a41f4b1a151b4a8ae972",
-    "semantic_hash": ""
+    "semantic_hash": "926a6088eab2a41f4b1a151b4a8ae972"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\walkthrough.md": {
     "mtime": 1781284188.103081,
     "ast_hash": "38552a08b85daf4f7e05dcfef9a65152",
-    "semantic_hash": ""
+    "semantic_hash": "38552a08b85daf4f7e05dcfef9a65152"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\https_setup_guide.md": {
     "mtime": 1780675336.4246168,
     "ast_hash": "b7a512e9e184f3d09f22a4fbad55a24d",
-    "semantic_hash": ""
+    "semantic_hash": "b7a512e9e184f3d09f22a4fbad55a24d"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\new_vm_with_https.md": {
     "mtime": 1781768552.9729917,
     "ast_hash": "9ab3e3de64ecd5e729efab097ac17bb8",
-    "semantic_hash": ""
+    "semantic_hash": "9ab3e3de64ecd5e729efab097ac17bb8"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\prometheus\\prometheus.yml": {
     "mtime": 1780587668.1717854,
     "ast_hash": "257f8de315729fb32a47c7d113a98622",
-    "semantic_hash": ""
+    "semantic_hash": "257f8de315729fb32a47c7d113a98622"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\docker-compose-monitoring.yml": {
     "mtime": 1780648657.3557487,
     "ast_hash": "8ffea0f0670d31b7ece343165c355457",
-    "semantic_hash": ""
+    "semantic_hash": "8ffea0f0670d31b7ece343165c355457"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\sendgrid_setup_guide.md": {
     "mtime": 1780842842.6224403,
     "ast_hash": "57542d1b3c785008ddeb91772016c169",
-    "semantic_hash": ""
+    "semantic_hash": "57542d1b3c785008ddeb91772016c169"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\azure_architecture.md": {
     "mtime": 1780842846.1041808,
     "ast_hash": "046dea82c77651304a13a06270e9ef97",
-    "semantic_hash": ""
+    "semantic_hash": "046dea82c77651304a13a06270e9ef97"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\build-and-push.ps1": {
     "mtime": 1784646051.6693497,
     "ast_hash": "d5b33f97bcc42e4ebf9e0107c5247970",
-    "semantic_hash": ""
+    "semantic_hash": "d5b33f97bcc42e4ebf9e0107c5247970"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\build-and-push.sh": {
     "mtime": 1784646041.1783607,
     "ast_hash": "30426fae232f08307026ce839fda929c",
-    "semantic_hash": ""
+    "semantic_hash": "30426fae232f08307026ce839fda929c"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\application_architecture.md": {
     "mtime": 1781806321.0212011,
     "ast_hash": "efcc3995940315f46befbd957ff09e5b",
-    "semantic_hash": ""
+    "semantic_hash": "efcc3995940315f46befbd957ff09e5b"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\architecture_diagram.png": {
     "mtime": 1781273434.82872,
     "ast_hash": "267675b3573879f5d35d46ea9bb5feca",
-    "semantic_hash": ""
+    "semantic_hash": "267675b3573879f5d35d46ea9bb5feca"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\deploy_new_vm.md": {
     "mtime": 1783954146.825868,
     "ast_hash": "1c901a2ecb5dc497a8ef0cae938abe11",
-    "semantic_hash": ""
+    "semantic_hash": "1c901a2ecb5dc497a8ef0cae938abe11"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\copy-env-examples.sh": {
     "mtime": 1784725239.2644548,
     "ast_hash": "3cd551a3ddcb52eddbabb586b822b4ba",
-    "semantic_hash": ""
+    "semantic_hash": "3cd551a3ddcb52eddbabb586b822b4ba"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\environment_migration_report.md": {
     "mtime": 1781428671.8966143,
     "ast_hash": "39f5a4d98dd8ebf6d39a69f8de322bd9",
-    "semantic_hash": ""
+    "semantic_hash": "39f5a4d98dd8ebf6d39a69f8de322bd9"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan_academy_overview.md": {
     "mtime": 1781450368.077298,
     "ast_hash": "c35ac83d205f2691297208ddd6cc26b7",
-    "semantic_hash": ""
+    "semantic_hash": "c35ac83d205f2691297208ddd6cc26b7"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\complete_documentation.md": {
     "mtime": 1781806291.638804,
     "ast_hash": "68a93330167bb45e5a1d58feb2a60f46",
-    "semantic_hash": ""
+    "semantic_hash": "68a93330167bb45e5a1d58feb2a60f46"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\Chart.yaml": {
     "mtime": 1781845970.707718,
     "ast_hash": "2e90828a7da692771d0f8c0135196436",
-    "semantic_hash": ""
+    "semantic_hash": "2e90828a7da692771d0f8c0135196436"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\values-dev.yaml": {
     "mtime": 1781845970.707718,
     "ast_hash": "d94b0f8b8e2f21ada7c071dceb458db0",
-    "semantic_hash": ""
+    "semantic_hash": "d94b0f8b8e2f21ada7c071dceb458db0"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\values-prod.yaml": {
     "mtime": 1781845970.707718,
     "ast_hash": "3e7cd1875babd0c6431aa5da447eca57",
-    "semantic_hash": ""
+    "semantic_hash": "3e7cd1875babd0c6431aa5da447eca57"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\values.yaml": {
     "mtime": 1781845970.707718,
     "ast_hash": "9c0adf880379ac7acd1039e9740a6dfb",
-    "semantic_hash": ""
+    "semantic_hash": "9c0adf880379ac7acd1039e9740a6dfb"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\namespace.yaml": {
     "mtime": 1781845970.7118907,
     "ast_hash": "d77ecdc1abd6346cd05aaaa2d0b3c23c",
-    "semantic_hash": ""
+    "semantic_hash": "d77ecdc1abd6346cd05aaaa2d0b3c23c"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\NOTES.txt": {
     "mtime": 1781845970.729715,
     "ast_hash": "0ab4ab30de742a6e13ce9e9deeca5621",
-    "semantic_hash": ""
+    "semantic_hash": "0ab4ab30de742a6e13ce9e9deeca5621"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\configmaps\\admin-config.yaml": {
     "mtime": 1781845970.7170286,
     "ast_hash": "2b85803b00d14ab4ce84c88ba8db300c",
-    "semantic_hash": ""
+    "semantic_hash": "2b85803b00d14ab4ce84c88ba8db300c"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\configmaps\\ai-config.yaml": {
     "mtime": 1781845970.7175808,
     "ast_hash": "4a8ff523481c92434613f2563ce88da7",
-    "semantic_hash": ""
+    "semantic_hash": "4a8ff523481c92434613f2563ce88da7"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\configmaps\\auth-config.yaml": {
     "mtime": 1781845970.7170286,
     "ast_hash": "aee80411de5fc81167508e4f723a289e",
-    "semantic_hash": ""
+    "semantic_hash": "aee80411de5fc81167508e4f723a289e"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\configmaps\\exam-config.yaml": {
     "mtime": 1781845970.7175808,
     "ast_hash": "db52b1ad0e8cebaaa472a5794d0fbc97",
-    "semantic_hash": ""
+    "semantic_hash": "db52b1ad0e8cebaaa472a5794d0fbc97"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\configmaps\\frontend-config.yaml": {
     "mtime": 1781845970.7141645,
     "ast_hash": "e20c52c4aced7679c9cf6b3dded5fcba",
-    "semantic_hash": ""
+    "semantic_hash": "e20c52c4aced7679c9cf6b3dded5fcba"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\configmaps\\judge0-config.yaml": {
     "mtime": 1781845970.7175808,
     "ast_hash": "3887ba6b1ded90ab856e3b28f0a2feb2",
-    "semantic_hash": ""
+    "semantic_hash": "3887ba6b1ded90ab856e3b28f0a2feb2"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\configmaps\\notification-config.yaml": {
     "mtime": 1781845970.7175808,
     "ast_hash": "f6e562e7147d11d99792bf7ec2d1cbbb",
-    "semantic_hash": ""
+    "semantic_hash": "f6e562e7147d11d99792bf7ec2d1cbbb"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\configmaps\\ollama-config.yaml": {
     "mtime": 1781845970.7175808,
     "ast_hash": "2c5bea9e1f1954fd1aaf220335293e67",
-    "semantic_hash": ""
+    "semantic_hash": "2c5bea9e1f1954fd1aaf220335293e67"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\configmaps\\proctoring-config.yaml": {
     "mtime": 1781845970.7175808,
     "ast_hash": "05d7305bdac7ba7a2be280ff1120eb5c",
-    "semantic_hash": ""
+    "semantic_hash": "05d7305bdac7ba7a2be280ff1120eb5c"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\configmaps\\student-config.yaml": {
     "mtime": 1781845970.7175808,
     "ast_hash": "1e86a7d6b3c6f139914177cfc2f63417",
-    "semantic_hash": ""
+    "semantic_hash": "1e86a7d6b3c6f139914177cfc2f63417"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\deployments\\admin-deployment.yaml": {
     "mtime": 1781845970.7175808,
     "ast_hash": "7feac0e45316ae2b3b56a3e619f6fb94",
-    "semantic_hash": ""
+    "semantic_hash": "7feac0e45316ae2b3b56a3e619f6fb94"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\deployments\\ai-deployment.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "2cde4526ab5838fa5288682dab13bd1e",
-    "semantic_hash": ""
+    "semantic_hash": "2cde4526ab5838fa5288682dab13bd1e"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\deployments\\auth-deployment.yaml": {
     "mtime": 1781845970.7175808,
     "ast_hash": "a92577bef0fe49ae8eb94d49ab5abe0f",
-    "semantic_hash": ""
+    "semantic_hash": "a92577bef0fe49ae8eb94d49ab5abe0f"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\deployments\\exam-deployment.yaml": {
     "mtime": 1781845970.7175808,
     "ast_hash": "b33db8b6bf5bab149ab902b9189f4aa6",
-    "semantic_hash": ""
+    "semantic_hash": "b33db8b6bf5bab149ab902b9189f4aa6"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\deployments\\frontend-deployment.yaml": {
     "mtime": 1781845970.7175808,
     "ast_hash": "814ec4c9f97b2543bb0266a99f571751",
-    "semantic_hash": ""
+    "semantic_hash": "814ec4c9f97b2543bb0266a99f571751"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\deployments\\judge0-deployment.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "3a90afdd5815ba400dafdf385b0131cc",
-    "semantic_hash": ""
+    "semantic_hash": "3a90afdd5815ba400dafdf385b0131cc"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\deployments\\notification-deployment.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "7fcaaa9c720ca1c3fe9b5d848d597430",
-    "semantic_hash": ""
+    "semantic_hash": "7fcaaa9c720ca1c3fe9b5d848d597430"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\deployments\\ollama-deployment.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "beccefaf134b8c9ad9a72b8e1f846c15",
-    "semantic_hash": ""
+    "semantic_hash": "beccefaf134b8c9ad9a72b8e1f846c15"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\deployments\\proctoring-deployment.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "152d5865299da8962c6ee16996f517be",
-    "semantic_hash": ""
+    "semantic_hash": "152d5865299da8962c6ee16996f517be"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\deployments\\student-deployment.yaml": {
     "mtime": 1781845970.7175808,
     "ast_hash": "b0049654138ae86ec6072aefe3b90392",
-    "semantic_hash": ""
+    "semantic_hash": "b0049654138ae86ec6072aefe3b90392"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\hpa\\auth-hpa.yaml": {
     "mtime": 1781845970.7255785,
     "ast_hash": "d09f682e14acb5192be4a6b1689878a3",
-    "semantic_hash": ""
+    "semantic_hash": "d09f682e14acb5192be4a6b1689878a3"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\hpa\\exam-hpa.yaml": {
     "mtime": 1781845970.7255785,
     "ast_hash": "22a64b515c173e9532530539fc191e02",
-    "semantic_hash": ""
+    "semantic_hash": "22a64b515c173e9532530539fc191e02"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\hpa\\frontend-hpa.yaml": {
     "mtime": 1781845970.7255785,
     "ast_hash": "e62d7fa7090ee9ffad231933befc28fd",
-    "semantic_hash": ""
+    "semantic_hash": "e62d7fa7090ee9ffad231933befc28fd"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\hpa\\proctoring-hpa.yaml": {
     "mtime": 1781845970.7275956,
     "ast_hash": "4d03e8f1030861f1c89a9a25a4d72731",
-    "semantic_hash": ""
+    "semantic_hash": "4d03e8f1030861f1c89a9a25a4d72731"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\networkpolicies\\ai-node-netpol.yaml": {
     "mtime": 1781845970.729715,
     "ast_hash": "58e3e4e026fd9a94834e1c56569ce0c8",
-    "semantic_hash": ""
+    "semantic_hash": "58e3e4e026fd9a94834e1c56569ce0c8"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\networkpolicies\\app-node-netpol.yaml": {
     "mtime": 1781845970.7275956,
     "ast_hash": "1755e7fb913fd092f7696f181b4ff851",
-    "semantic_hash": ""
+    "semantic_hash": "1755e7fb913fd092f7696f181b4ff851"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\networkpolicies\\deny-all-default.yaml": {
     "mtime": 1781845970.7275956,
     "ast_hash": "4c90e97791bcbaf47d6be00204105099",
-    "semantic_hash": ""
+    "semantic_hash": "4c90e97791bcbaf47d6be00204105099"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\pdb\\auth-pdb.yaml": {
     "mtime": 1781845970.7275956,
     "ast_hash": "a647ffe63cbaa63a7a5037aab1b01dfa",
-    "semantic_hash": ""
+    "semantic_hash": "a647ffe63cbaa63a7a5037aab1b01dfa"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\pdb\\frontend-pdb.yaml": {
     "mtime": 1781845970.7275956,
     "ast_hash": "3d1f1dbcee3c42d6a738d6f56eaf3ccc",
-    "semantic_hash": ""
+    "semantic_hash": "3d1f1dbcee3c42d6a738d6f56eaf3ccc"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\pdb\\proctoring-pdb.yaml": {
     "mtime": 1781845970.7275956,
     "ast_hash": "7b66f5fdc850c95d3806f5e9f3f88aa0",
-    "semantic_hash": ""
+    "semantic_hash": "7b66f5fdc850c95d3806f5e9f3f88aa0"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\secretproviders\\admin-secretprovider.yaml": {
     "mtime": 1781845970.7141645,
     "ast_hash": "57accc986435ef76594845f8976a14a3",
-    "semantic_hash": ""
+    "semantic_hash": "57accc986435ef76594845f8976a14a3"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\secretproviders\\ai-secretprovider.yaml": {
     "mtime": 1781845970.7141645,
     "ast_hash": "2f24095b3e68d90343113209461dcd18",
-    "semantic_hash": ""
+    "semantic_hash": "2f24095b3e68d90343113209461dcd18"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\secretproviders\\auth-secretprovider.yaml": {
     "mtime": 1781845970.7141645,
     "ast_hash": "8715b16dbb7ceeb9a685dd888ba259a6",
-    "semantic_hash": ""
+    "semantic_hash": "8715b16dbb7ceeb9a685dd888ba259a6"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\secretproviders\\exam-secretprovider.yaml": {
     "mtime": 1781845970.7141645,
     "ast_hash": "9d508dec4320a5192d139828aec1b166",
-    "semantic_hash": ""
+    "semantic_hash": "9d508dec4320a5192d139828aec1b166"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\secretproviders\\notification-secretprovider.yaml": {
     "mtime": 1781845970.7141645,
     "ast_hash": "3382b6517ccbb9309c70db437664efd5",
-    "semantic_hash": ""
+    "semantic_hash": "3382b6517ccbb9309c70db437664efd5"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\secretproviders\\proctoring-secretprovider.yaml": {
     "mtime": 1781845970.7141645,
     "ast_hash": "f515a4aca7e929515e4ecd27a5e32660",
-    "semantic_hash": ""
+    "semantic_hash": "f515a4aca7e929515e4ecd27a5e32660"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\secretproviders\\student-secretprovider.yaml": {
     "mtime": 1781845970.7141645,
     "ast_hash": "391800817133a119e81711fb129503fa",
-    "semantic_hash": ""
+    "semantic_hash": "391800817133a119e81711fb129503fa"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\serviceaccounts\\admin-sa.yaml": {
     "mtime": 1781845970.7124028,
     "ast_hash": "1bcbd24feda128cdf6baff156d940d46",
-    "semantic_hash": ""
+    "semantic_hash": "1bcbd24feda128cdf6baff156d940d46"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\serviceaccounts\\ai-sa.yaml": {
     "mtime": 1781845970.7141645,
     "ast_hash": "a39a4f00ec0faf67d20bf1687eb4b433",
-    "semantic_hash": ""
+    "semantic_hash": "a39a4f00ec0faf67d20bf1687eb4b433"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\serviceaccounts\\auth-sa.yaml": {
     "mtime": 1781845970.7124028,
     "ast_hash": "4d5650c2717f9609ea63d40e98341951",
-    "semantic_hash": ""
+    "semantic_hash": "4d5650c2717f9609ea63d40e98341951"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\serviceaccounts\\exam-sa.yaml": {
     "mtime": 1781845970.7124028,
     "ast_hash": "8b30661c88b7daa4231554920bab3757",
-    "semantic_hash": ""
+    "semantic_hash": "8b30661c88b7daa4231554920bab3757"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\serviceaccounts\\frontend-sa.yaml": {
     "mtime": 1781845970.7118907,
     "ast_hash": "9f381aa1021f041575e754054501c4c3",
-    "semantic_hash": ""
+    "semantic_hash": "9f381aa1021f041575e754054501c4c3"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\serviceaccounts\\judge0-sa.yaml": {
     "mtime": 1781845970.7141645,
     "ast_hash": "4adcd7b53e3ee48ea13ec02e8ba48e30",
-    "semantic_hash": ""
+    "semantic_hash": "4adcd7b53e3ee48ea13ec02e8ba48e30"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\serviceaccounts\\notification-sa.yaml": {
     "mtime": 1781845970.7124028,
     "ast_hash": "524cd48cf603bbd5cf20693710b50c2c",
-    "semantic_hash": ""
+    "semantic_hash": "524cd48cf603bbd5cf20693710b50c2c"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\serviceaccounts\\ollama-sa.yaml": {
     "mtime": 1781845970.7141645,
     "ast_hash": "71df1320a57a1dbf04c546e7b2e2ae04",
-    "semantic_hash": ""
+    "semantic_hash": "71df1320a57a1dbf04c546e7b2e2ae04"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\serviceaccounts\\proctoring-sa.yaml": {
     "mtime": 1781845970.7124028,
     "ast_hash": "39ba3278fd1d958d8c52c33959e86e79",
-    "semantic_hash": ""
+    "semantic_hash": "39ba3278fd1d958d8c52c33959e86e79"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\serviceaccounts\\student-sa.yaml": {
     "mtime": 1781845970.7124028,
     "ast_hash": "42cb7e3fd34dee9af66eb9cdfe43017b",
-    "semantic_hash": ""
+    "semantic_hash": "42cb7e3fd34dee9af66eb9cdfe43017b"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\services\\admin-svc.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "76a3a720aeb16394f029d5f31b37c2d2",
-    "semantic_hash": ""
+    "semantic_hash": "76a3a720aeb16394f029d5f31b37c2d2"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\services\\ai-svc.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "d4df0c3cb0f2d1ebabebb5db88718b46",
-    "semantic_hash": ""
+    "semantic_hash": "d4df0c3cb0f2d1ebabebb5db88718b46"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\services\\auth-svc.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "538eadbaa5e7c4cc076993e4cf978d19",
-    "semantic_hash": ""
+    "semantic_hash": "538eadbaa5e7c4cc076993e4cf978d19"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\services\\exam-svc.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "ce5461b07d5101b6609eeac4de8fe995",
-    "semantic_hash": ""
+    "semantic_hash": "ce5461b07d5101b6609eeac4de8fe995"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\services\\frontend-svc.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "fe4f2290f3c333dab43a7d7906c07e24",
-    "semantic_hash": ""
+    "semantic_hash": "fe4f2290f3c333dab43a7d7906c07e24"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\services\\judge0-svc.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "a92ff683a82371942fe836c20dab25b2",
-    "semantic_hash": ""
+    "semantic_hash": "a92ff683a82371942fe836c20dab25b2"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\services\\notification-svc.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "8ab5b7809766d85d5b0fd0726cce4431",
-    "semantic_hash": ""
+    "semantic_hash": "8ab5b7809766d85d5b0fd0726cce4431"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\services\\ollama-svc.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "dee45a59e97d9ce8628ba44508970bf6",
-    "semantic_hash": ""
+    "semantic_hash": "dee45a59e97d9ce8628ba44508970bf6"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\services\\proctoring-svc.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "43488f486c2a5db46109353a4f1c7210",
-    "semantic_hash": ""
+    "semantic_hash": "43488f486c2a5db46109353a4f1c7210"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\services\\student-svc.yaml": {
     "mtime": 1781845970.7215624,
     "ast_hash": "d5b81b70fd14f0d173d015fba1f2d160",
-    "semantic_hash": ""
+    "semantic_hash": "d5b81b70fd14f0d173d015fba1f2d160"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\storage\\ai-models-pvc.yaml": {
     "mtime": 1781845970.7255785,
     "ast_hash": "f482311caac22a0de5d8cd9682129f57",
-    "semantic_hash": ""
+    "semantic_hash": "f482311caac22a0de5d8cd9682129f57"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\clahan-academy\\templates\\storage\\ollama-models-pvc.yaml": {
     "mtime": 1781845970.7255785,
     "ast_hash": "d8020af60b66fa94ea45f5f8de3ff3a8",
-    "semantic_hash": ""
+    "semantic_hash": "d8020af60b66fa94ea45f5f8de3ff3a8"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\admin-service\\package.json": {
     "mtime": 1780754343.4140663,
     "ast_hash": "c2dec0d6820ed94943ad04bf94294c2c",
-    "semantic_hash": ""
+    "semantic_hash": "c2dec0d6820ed94943ad04bf94294c2c"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\admin-service\\tsconfig.json": {
     "mtime": 1780157870.0879908,
     "ast_hash": "753ccdbcc80b0dcb4c2b5446055254a3",
-    "semantic_hash": ""
+    "semantic_hash": "753ccdbcc80b0dcb4c2b5446055254a3"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\admin-service\\src\\index.ts": {
     "mtime": 1784985241.7502906,
     "ast_hash": "5450db8bb019739dd70028772ef69b46",
-    "semantic_hash": ""
+    "semantic_hash": "5450db8bb019739dd70028772ef69b46"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\ai-service\\main.py": {
     "mtime": 1781969908.7274742,
     "ast_hash": "2e3bb19c381c3b0c6ecdc625de815a5f",
-    "semantic_hash": ""
+    "semantic_hash": "2e3bb19c381c3b0c6ecdc625de815a5f"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\auth-service\\package.json": {
     "mtime": 1780754249.3522906,
     "ast_hash": "81c6db44c7e8c5a40e0fe311e120e548",
-    "semantic_hash": ""
+    "semantic_hash": "81c6db44c7e8c5a40e0fe311e120e548"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\auth-service\\tsconfig.json": {
     "mtime": 1780157795.4496732,
     "ast_hash": "753ccdbcc80b0dcb4c2b5446055254a3",
-    "semantic_hash": ""
+    "semantic_hash": "753ccdbcc80b0dcb4c2b5446055254a3"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\auth-service\\src\\db.ts": {
     "mtime": 1784985259.4574368,
     "ast_hash": "a3fe212060500e11b29b5edbab99340a",
-    "semantic_hash": ""
+    "semantic_hash": "a3fe212060500e11b29b5edbab99340a"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\auth-service\\src\\index.ts": {
     "mtime": 1784971828.096471,
     "ast_hash": "e91ee0bbf19270cd933c49320f9cde10",
-    "semantic_hash": ""
+    "semantic_hash": "e91ee0bbf19270cd933c49320f9cde10"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\auth-service\\src\\middleware.ts": {
     "mtime": 1780732141.3856432,
     "ast_hash": "da2c65cf54761dab7e53c92ffc5ee5d3",
-    "semantic_hash": ""
+    "semantic_hash": "da2c65cf54761dab7e53c92ffc5ee5d3"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\exam-service\\package.json": {
     "mtime": 1780754358.5025904,
     "ast_hash": "6061bc437545d0e948731ecf409567a4",
-    "semantic_hash": ""
+    "semantic_hash": "6061bc437545d0e948731ecf409567a4"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\exam-service\\tsconfig.json": {
     "mtime": 1780157948.1028583,
     "ast_hash": "753ccdbcc80b0dcb4c2b5446055254a3",
-    "semantic_hash": ""
+    "semantic_hash": "753ccdbcc80b0dcb4c2b5446055254a3"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\exam-service\\src\\index.ts": {
     "mtime": 1784985211.8236895,
     "ast_hash": "51e363abf64223697792d7697eaf2b6f",
-    "semantic_hash": ""
+    "semantic_hash": "51e363abf64223697792d7697eaf2b6f"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\package.json": {
     "mtime": 1781277404.7777133,
     "ast_hash": "6b7861eb18958233157f124404ac4737",
-    "semantic_hash": ""
+    "semantic_hash": "6b7861eb18958233157f124404ac4737"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\postcss.config.js": {
     "mtime": 1780158430.967722,
     "ast_hash": "c735540bb63936a123bc867d950c9f69",
-    "semantic_hash": ""
+    "semantic_hash": "c735540bb63936a123bc867d950c9f69"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\tailwind.config.js": {
     "mtime": 1780158465.3957531,
     "ast_hash": "c738180f9afc286466f5adb1a551e14f",
-    "semantic_hash": ""
+    "semantic_hash": "c738180f9afc286466f5adb1a551e14f"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\tsconfig.json": {
     "mtime": 1780159420.070196,
     "ast_hash": "c6e6eb06a56d2a0aca72d8f3a20eb3e8",
-    "semantic_hash": ""
+    "semantic_hash": "c6e6eb06a56d2a0aca72d8f3a20eb3e8"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\vite.config.ts": {
     "mtime": 1784725239.2811272,
     "ast_hash": "ec37d08af2ebcdf375e755d99fa293fd",
-    "semantic_hash": ""
+    "semantic_hash": "ec37d08af2ebcdf375e755d99fa293fd"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\App.tsx": {
-    "mtime": 1784994733.9817004,
-    "ast_hash": "486b3a65bfd4bcacb5f086bb2dd8e47e",
-    "semantic_hash": ""
+    "mtime": 1785001869.024418,
+    "ast_hash": "2c1184de73fdb13496cf75b7c16d3d89",
+    "semantic_hash": "2c1184de73fdb13496cf75b7c16d3d89"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\main.tsx": {
     "mtime": 1780158485.9707713,
     "ast_hash": "35d924fcff083bd02cfe5c446c6612f0",
-    "semantic_hash": ""
+    "semantic_hash": "35d924fcff083bd02cfe5c446c6612f0"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\notification-service\\package.json": {
     "mtime": 1780754372.13005,
     "ast_hash": "362a59f1c8389b8654b9160c1f848489",
-    "semantic_hash": ""
+    "semantic_hash": "362a59f1c8389b8654b9160c1f848489"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\notification-service\\tsconfig.json": {
     "mtime": 1780158039.7196133,
     "ast_hash": "753ccdbcc80b0dcb4c2b5446055254a3",
-    "semantic_hash": ""
+    "semantic_hash": "753ccdbcc80b0dcb4c2b5446055254a3"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\notification-service\\src\\index.ts": {
     "mtime": 1781969908.5396192,
     "ast_hash": "ee507189822d24291fdd9b986351efe9",
-    "semantic_hash": ""
+    "semantic_hash": "ee507189822d24291fdd9b986351efe9"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\proctoring-service\\package.json": {
     "mtime": 1780157993.7248776,
     "ast_hash": "3442e07e08e32948e0fcb50cb3d8f94d",
-    "semantic_hash": ""
+    "semantic_hash": "3442e07e08e32948e0fcb50cb3d8f94d"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\proctoring-service\\tsconfig.json": {
     "mtime": 1780158002.635918,
     "ast_hash": "753ccdbcc80b0dcb4c2b5446055254a3",
-    "semantic_hash": ""
+    "semantic_hash": "753ccdbcc80b0dcb4c2b5446055254a3"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\proctoring-service\\src\\index.ts": {
     "mtime": 1784985266.9943087,
     "ast_hash": "86f962a7f14bc28950e568b060c84fb4",
-    "semantic_hash": ""
+    "semantic_hash": "86f962a7f14bc28950e568b060c84fb4"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\student-service\\package.json": {
     "mtime": 1780157892.403597,
     "ast_hash": "20e635065a170817ab48af579d86cfe7",
-    "semantic_hash": ""
+    "semantic_hash": "20e635065a170817ab48af579d86cfe7"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\student-service\\tsconfig.json": {
     "mtime": 1780157907.6420708,
     "ast_hash": "753ccdbcc80b0dcb4c2b5446055254a3",
-    "semantic_hash": ""
+    "semantic_hash": "753ccdbcc80b0dcb4c2b5446055254a3"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\student-service\\src\\index.ts": {
     "mtime": 1784985278.861678,
     "ast_hash": "cd85541f56b93fe75d2ca047ab52379d",
-    "semantic_hash": ""
+    "semantic_hash": "cd85541f56b93fe75d2ca047ab52379d"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\ai-service\\requirements.txt": {
     "mtime": 1781428343.4635727,
     "ast_hash": "9f158b6735cde581ec16e723bc413d8a",
-    "semantic_hash": ""
+    "semantic_hash": "9f158b6735cde581ec16e723bc413d8a"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\index.html": {
     "mtime": 1780583478.781741,
     "ast_hash": "0078fdea13ed0d66b595610079a8ba29",
-    "semantic_hash": ""
+    "semantic_hash": "0078fdea13ed0d66b595610079a8ba29"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\public\\logo.png": {
     "mtime": 1780674901.292654,
     "ast_hash": "a243b82eca434032c075251cdf7b8709",
-    "semantic_hash": ""
+    "semantic_hash": "a243b82eca434032c075251cdf7b8709"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\scripts\\bootstrap.sh": {
     "mtime": 1781938425.5546532,
     "ast_hash": "f49a94f0be13a13da5788c03f9c21f15",
-    "semantic_hash": ""
+    "semantic_hash": "f49a94f0be13a13da5788c03f9c21f15"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\.github\\workflows\\build.yml": {
     "mtime": 1782009531.7037017,
     "ast_hash": "6736c01538aaa7da6d7dd1c07f4c3e6e",
-    "semantic_hash": ""
+    "semantic_hash": "6736c01538aaa7da6d7dd1c07f4c3e6e"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\.github\\workflows\\deploy.yml": {
     "mtime": 1781966961.1936023,
     "ast_hash": "1e28c3af184121acabdf775737a82030",
-    "semantic_hash": ""
+    "semantic_hash": "1e28c3af184121acabdf775737a82030"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\.github\\workflows\\terraform-apply.yml": {
     "mtime": 1782009774.7681606,
     "ast_hash": "43886ac6bbe4455453e0b1640f3a7f86",
-    "semantic_hash": ""
+    "semantic_hash": "43886ac6bbe4455453e0b1640f3a7f86"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\Chart.yaml": {
     "mtime": 1781967551.9700842,
     "ast_hash": "3d93eb092a792d4f8dc37d94df72f6e0",
-    "semantic_hash": ""
+    "semantic_hash": "3d93eb092a792d4f8dc37d94df72f6e0"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\values.yaml": {
     "mtime": 1782028632.1020975,
     "ast_hash": "725ba2f7945a441e4266d5ed2031b3b1",
-    "semantic_hash": ""
+    "semantic_hash": "725ba2f7945a441e4266d5ed2031b3b1"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\namespace.yaml": {
     "mtime": 1781967596.3846207,
     "ast_hash": "f9ba2abbc2a028154c9ffb669640756c",
-    "semantic_hash": ""
+    "semantic_hash": "f9ba2abbc2a028154c9ffb669640756c"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\deployments\\admin-deployment.yaml": {
     "mtime": 1781967738.1574087,
     "ast_hash": "c42c7079ec93df5a29ae95af942be023",
-    "semantic_hash": ""
+    "semantic_hash": "c42c7079ec93df5a29ae95af942be023"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\deployments\\ai-deployment.yaml": {
     "mtime": 1781967789.210409,
     "ast_hash": "05169778d4849da862b417fb0e2d64b9",
-    "semantic_hash": ""
+    "semantic_hash": "05169778d4849da862b417fb0e2d64b9"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\deployments\\auth-deployment.yaml": {
     "mtime": 1781967732.180042,
     "ast_hash": "d0f0aeba778493c85e842a580218e22e",
-    "semantic_hash": ""
+    "semantic_hash": "d0f0aeba778493c85e842a580218e22e"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\deployments\\exam-deployment.yaml": {
     "mtime": 1781967766.0327814,
     "ast_hash": "7b38f17f6e932b862d1244ae6a2e7270",
-    "semantic_hash": ""
+    "semantic_hash": "7b38f17f6e932b862d1244ae6a2e7270"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\deployments\\frontend-deployment.yaml": {
     "mtime": 1781967725.7041564,
     "ast_hash": "7303e448098ec35a140ca6e9d54d07c0",
-    "semantic_hash": ""
+    "semantic_hash": "7303e448098ec35a140ca6e9d54d07c0"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\deployments\\judge0-api-deployment.yaml": {
     "mtime": 1781967822.4905689,
     "ast_hash": "950e6867f4b681da178965bf72fe632a",
-    "semantic_hash": ""
+    "semantic_hash": "950e6867f4b681da178965bf72fe632a"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\deployments\\judge0-redis-deployment.yaml": {
     "mtime": 1781967841.8603187,
     "ast_hash": "fa155b930e76a93c6b4dd6cc7f28de50",
-    "semantic_hash": ""
+    "semantic_hash": "fa155b930e76a93c6b4dd6cc7f28de50"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\deployments\\judge0-worker-deployment.yaml": {
     "mtime": 1781967830.1857514,
     "ast_hash": "b0977eb9de6418b4dd1db637c620e4e5",
-    "semantic_hash": ""
+    "semantic_hash": "b0977eb9de6418b4dd1db637c620e4e5"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\deployments\\notification-deployment.yaml": {
     "mtime": 1781967779.9173293,
     "ast_hash": "1c175638c42647e80ed197faa39a7b8a",
-    "semantic_hash": ""
+    "semantic_hash": "1c175638c42647e80ed197faa39a7b8a"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\deployments\\ollama-deployment.yaml": {
     "mtime": 1781967799.0443292,
     "ast_hash": "446590ea67eed8d7081934b9e346449c",
-    "semantic_hash": ""
+    "semantic_hash": "446590ea67eed8d7081934b9e346449c"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\deployments\\proctoring-deployment.yaml": {
     "mtime": 1781967771.9260418,
     "ast_hash": "fd93595a68c415519a7992b30452a64e",
-    "semantic_hash": ""
+    "semantic_hash": "fd93595a68c415519a7992b30452a64e"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\deployments\\student-deployment.yaml": {
     "mtime": 1781967759.6153493,
     "ast_hash": "39d36afc076621e0fcdf8a7f21931ccf",
-    "semantic_hash": ""
+    "semantic_hash": "39d36afc076621e0fcdf8a7f21931ccf"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\hpa\\auth-hpa.yaml": {
     "mtime": 1781968006.0244,
     "ast_hash": "1504eadbb8b900fa19b9a1c787f58f88",
-    "semantic_hash": ""
+    "semantic_hash": "1504eadbb8b900fa19b9a1c787f58f88"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\hpa\\exam-hpa.yaml": {
     "mtime": 1781968013.3209834,
     "ast_hash": "3399f1238efa0c6b714409a055188db6",
-    "semantic_hash": ""
+    "semantic_hash": "3399f1238efa0c6b714409a055188db6"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\hpa\\frontend-hpa.yaml": {
     "mtime": 1781967998.8368566,
     "ast_hash": "5f091711d34c12c4007d021d4026e763",
-    "semantic_hash": ""
+    "semantic_hash": "5f091711d34c12c4007d021d4026e763"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\hpa\\proctoring-hpa.yaml": {
     "mtime": 1781968027.2026358,
     "ast_hash": "9771a9cbf96dcd62b794b666a7f2cb4b",
-    "semantic_hash": ""
+    "semantic_hash": "9771a9cbf96dcd62b794b666a7f2cb4b"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\networkpolicies\\ai-netpol.yaml": {
     "mtime": 1781968055.266007,
     "ast_hash": "3e6bed2bb94e8af1c924d9b9b630ab31",
-    "semantic_hash": ""
+    "semantic_hash": "3e6bed2bb94e8af1c924d9b9b630ab31"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\networkpolicies\\app-netpol.yaml": {
     "mtime": 1781968044.5606198,
     "ast_hash": "dbf3bec37d95b5b311ff2789c22e284d",
-    "semantic_hash": ""
+    "semantic_hash": "dbf3bec37d95b5b311ff2789c22e284d"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\networkpolicies\\default-deny.yaml": {
     "mtime": 1781968037.180554,
     "ast_hash": "80398a42268d6f12d122a6f2695039c0",
-    "semantic_hash": ""
+    "semantic_hash": "80398a42268d6f12d122a6f2695039c0"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\pdb\\auth-pdb.yaml": {
     "mtime": 1781968077.8423536,
     "ast_hash": "554b00d4a3c383bf0cfeb1a3d5c4b1ec",
-    "semantic_hash": ""
+    "semantic_hash": "554b00d4a3c383bf0cfeb1a3d5c4b1ec"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\pdb\\frontend-pdb.yaml": {
     "mtime": 1781968062.0854461,
     "ast_hash": "43eb6c9579308f560201a3cb38a9f8f2",
-    "semantic_hash": ""
+    "semantic_hash": "43eb6c9579308f560201a3cb38a9f8f2"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\secretproviders\\admin-secretprovider.yaml": {
     "mtime": 1781967617.9244773,
     "ast_hash": "a0c646f839b35ac9f09b8931dbfcf5bc",
-    "semantic_hash": ""
+    "semantic_hash": "a0c646f839b35ac9f09b8931dbfcf5bc"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\secretproviders\\ai-secretprovider.yaml": {
     "mtime": 1781967659.886808,
     "ast_hash": "25f9c35cf42d94a85427e530a20a683d",
-    "semantic_hash": ""
+    "semantic_hash": "25f9c35cf42d94a85427e530a20a683d"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\secretproviders\\auth-secretprovider.yaml": {
     "mtime": 1781967612.0725057,
     "ast_hash": "18cc81c2b72cd0685737aefb04da5773",
-    "semantic_hash": ""
+    "semantic_hash": "18cc81c2b72cd0685737aefb04da5773"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\secretproviders\\exam-secretprovider.yaml": {
     "mtime": 1781967811.646134,
     "ast_hash": "bc73afc3202ef64fa972153970b2b4a4",
-    "semantic_hash": ""
+    "semantic_hash": "bc73afc3202ef64fa972153970b2b4a4"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\secretproviders\\frontend-secretprovider.yaml": {
     "mtime": 1781967605.2019658,
     "ast_hash": "ccd4131a37f86bf042cfb7d690b044d4",
-    "semantic_hash": ""
+    "semantic_hash": "ccd4131a37f86bf042cfb7d690b044d4"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\secretproviders\\notification-secretprovider.yaml": {
     "mtime": 1781967648.9986115,
     "ast_hash": "ca2d7a388b1425e3fac09823a62aa980",
-    "semantic_hash": ""
+    "semantic_hash": "ca2d7a388b1425e3fac09823a62aa980"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\secretproviders\\proctoring-secretprovider.yaml": {
     "mtime": 1781967641.4528172,
     "ast_hash": "7143dd1e9bdf9e1d606733cca92ca888",
-    "semantic_hash": ""
+    "semantic_hash": "7143dd1e9bdf9e1d606733cca92ca888"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\secretproviders\\student-secretprovider.yaml": {
     "mtime": 1781967623.6376486,
     "ast_hash": "becbf7909b7fa68f1429f4618eae73ea",
-    "semantic_hash": ""
+    "semantic_hash": "becbf7909b7fa68f1429f4618eae73ea"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\serviceaccounts\\admin-sa.yaml": {
     "mtime": 1781967683.7399569,
     "ast_hash": "62b4f59a7f1abd5159ea1231a9a83cfd",
-    "semantic_hash": ""
+    "semantic_hash": "62b4f59a7f1abd5159ea1231a9a83cfd"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\serviceaccounts\\ai-sa.yaml": {
     "mtime": 1781967718.9821002,
     "ast_hash": "3eadd348e299535ae7b70f605172f801",
-    "semantic_hash": ""
+    "semantic_hash": "3eadd348e299535ae7b70f605172f801"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\serviceaccounts\\auth-sa.yaml": {
     "mtime": 1781967677.9439514,
     "ast_hash": "69785e9bf948100f9f1d49ec34d8b694",
-    "semantic_hash": ""
+    "semantic_hash": "69785e9bf948100f9f1d49ec34d8b694"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\serviceaccounts\\exam-sa.yaml": {
     "mtime": 1781967701.2515404,
     "ast_hash": "8e403bcdcd5840f86705ab194b592155",
-    "semantic_hash": ""
+    "semantic_hash": "8e403bcdcd5840f86705ab194b592155"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\serviceaccounts\\frontend-sa.yaml": {
     "mtime": 1781967670.4437304,
     "ast_hash": "bd5b08388f6e801b94eadc8c1d7a3aea",
-    "semantic_hash": ""
+    "semantic_hash": "bd5b08388f6e801b94eadc8c1d7a3aea"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\serviceaccounts\\notification-sa.yaml": {
     "mtime": 1781967711.8481288,
     "ast_hash": "ca892f15514a716d925d25b4099d4eaf",
-    "semantic_hash": ""
+    "semantic_hash": "ca892f15514a716d925d25b4099d4eaf"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\serviceaccounts\\proctoring-sa.yaml": {
     "mtime": 1781967706.587167,
     "ast_hash": "5b855612c9bf77198a48821ea4aeeb3f",
-    "semantic_hash": ""
+    "semantic_hash": "5b855612c9bf77198a48821ea4aeeb3f"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\serviceaccounts\\student-sa.yaml": {
     "mtime": 1781967691.1174307,
     "ast_hash": "e6e1b254fa1655c8063192d49e878fbe",
-    "semantic_hash": ""
+    "semantic_hash": "e6e1b254fa1655c8063192d49e878fbe"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\services\\admin-svc.yaml": {
     "mtime": 1781967872.7200177,
     "ast_hash": "35c7ce132df3a71917cb25e0d93f81bb",
-    "semantic_hash": ""
+    "semantic_hash": "35c7ce132df3a71917cb25e0d93f81bb"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\services\\ai-svc.yaml": {
     "mtime": 1781967917.0175996,
     "ast_hash": "c454984538a9c412256c0803a51a309d",
-    "semantic_hash": ""
+    "semantic_hash": "c454984538a9c412256c0803a51a309d"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\services\\auth-svc.yaml": {
     "mtime": 1781967861.4822898,
     "ast_hash": "5dedcb5e07acf8c2d5853d5d0b7454d1",
-    "semantic_hash": ""
+    "semantic_hash": "5dedcb5e07acf8c2d5853d5d0b7454d1"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\services\\exam-svc.yaml": {
     "mtime": 1781967889.485772,
     "ast_hash": "e54351cdecb744e4327e4906e3d9f28d",
-    "semantic_hash": ""
+    "semantic_hash": "e54351cdecb744e4327e4906e3d9f28d"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\services\\frontend-svc.yaml": {
     "mtime": 1781967854.1313882,
     "ast_hash": "81c6bbe1e38411b7944741dfef13299c",
-    "semantic_hash": ""
+    "semantic_hash": "81c6bbe1e38411b7944741dfef13299c"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\services\\judge0-svc.yaml": {
     "mtime": 1781967948.960418,
     "ast_hash": "c99f517991610af35d7375e57d374424",
-    "semantic_hash": ""
+    "semantic_hash": "c99f517991610af35d7375e57d374424"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\services\\notification-svc.yaml": {
     "mtime": 1781967908.50575,
     "ast_hash": "0366238197ab37e7d9ba3516fe8bbbc4",
-    "semantic_hash": ""
+    "semantic_hash": "0366238197ab37e7d9ba3516fe8bbbc4"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\services\\ollama-svc.yaml": {
     "mtime": 1781967936.357791,
     "ast_hash": "a2e57f7adf7363f9786513e61baaf4c1",
-    "semantic_hash": ""
+    "semantic_hash": "a2e57f7adf7363f9786513e61baaf4c1"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\services\\proctoring-svc.yaml": {
     "mtime": 1781967896.1199427,
     "ast_hash": "45c9d57743536ee814682eb2b51fba5f",
-    "semantic_hash": ""
+    "semantic_hash": "45c9d57743536ee814682eb2b51fba5f"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\services\\student-svc.yaml": {
     "mtime": 1781967881.6725795,
     "ast_hash": "5786a41533aff1e5b0d77b3100ae71eb",
-    "semantic_hash": ""
+    "semantic_hash": "5786a41533aff1e5b0d77b3100ae71eb"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\storage\\ollama-pvc.yaml": {
     "mtime": 1781967975.0735793,
     "ast_hash": "2b76bf3c4f16ca75bed2654e9421ae86",
-    "semantic_hash": ""
+    "semantic_hash": "2b76bf3c4f16ca75bed2654e9421ae86"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\configmap.yaml": {
     "mtime": 1781970150.4523797,
     "ast_hash": "e52ee3d2cd6e312cc58c9b536536d0e1",
-    "semantic_hash": ""
+    "semantic_hash": "e52ee3d2cd6e312cc58c9b536536d0e1"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\namespace.yaml": {
     "mtime": 1781970144.1354432,
     "ast_hash": "9933da6d2eb9fd91b8c2a67219001d99",
-    "semantic_hash": ""
+    "semantic_hash": "9933da6d2eb9fd91b8c2a67219001d99"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\admin-service\\deployment.yaml": {
     "mtime": 1781970267.9141514,
     "ast_hash": "58a54935f527dc965b1cd3c37887326a",
-    "semantic_hash": ""
+    "semantic_hash": "58a54935f527dc965b1cd3c37887326a"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\admin-service\\service.yaml": {
     "mtime": 1781970275.4187987,
     "ast_hash": "fd566d265e3a8f64f742c3da94fb11f5",
-    "semantic_hash": ""
+    "semantic_hash": "fd566d265e3a8f64f742c3da94fb11f5"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\admin-service\\serviceaccount.yaml": {
     "mtime": 1781970258.9637818,
     "ast_hash": "a8c5f3e27c628dc508c59f23c1d76476",
-    "semantic_hash": ""
+    "semantic_hash": "a8c5f3e27c628dc508c59f23c1d76476"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\ai-service\\deployment.yaml": {
     "mtime": 1781970409.3671582,
     "ast_hash": "53c66227e74d5ef81e6d0324bb691f38",
-    "semantic_hash": ""
+    "semantic_hash": "53c66227e74d5ef81e6d0324bb691f38"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\ai-service\\service.yaml": {
     "mtime": 1781970427.135481,
     "ast_hash": "4529906cdac96b365f8208e4e4da0608",
-    "semantic_hash": ""
+    "semantic_hash": "4529906cdac96b365f8208e4e4da0608"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\ai-service\\serviceaccount.yaml": {
     "mtime": 1781970402.7597213,
     "ast_hash": "d9ac0e082f88eb91657e5cc5d286f5a4",
-    "semantic_hash": ""
+    "semantic_hash": "d9ac0e082f88eb91657e5cc5d286f5a4"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\auth-service\\deployment.yaml": {
     "mtime": 1781970218.0812743,
     "ast_hash": "5a98fbc8bab5ba4ea31ea19cb2d27709",
-    "semantic_hash": ""
+    "semantic_hash": "5a98fbc8bab5ba4ea31ea19cb2d27709"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\auth-service\\service.yaml": {
     "mtime": 1781970224.802883,
     "ast_hash": "f2058aab963af40bab65454bbe1c55f0",
-    "semantic_hash": ""
+    "semantic_hash": "f2058aab963af40bab65454bbe1c55f0"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\auth-service\\serviceaccount.yaml": {
     "mtime": 1781970210.2413745,
     "ast_hash": "6117ece9cd9db01f0f6e5d8d65aa5108",
-    "semantic_hash": ""
+    "semantic_hash": "6117ece9cd9db01f0f6e5d8d65aa5108"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\exam-service\\deployment.yaml": {
     "mtime": 1781970321.8353798,
     "ast_hash": "a7cf1fa70fab5338e026af0c177cc338",
-    "semantic_hash": ""
+    "semantic_hash": "a7cf1fa70fab5338e026af0c177cc338"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\exam-service\\service.yaml": {
     "mtime": 1781970329.44342,
     "ast_hash": "0bc8c360938d16442dc4226699227ca2",
-    "semantic_hash": ""
+    "semantic_hash": "0bc8c360938d16442dc4226699227ca2"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\exam-service\\serviceaccount.yaml": {
     "mtime": 1781970303.1164405,
     "ast_hash": "aa0cf11b16a29c3baf9506a7a78bbfdc",
-    "semantic_hash": ""
+    "semantic_hash": "aa0cf11b16a29c3baf9506a7a78bbfdc"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\frontend-service\\deployment.yaml": {
     "mtime": 1781970190.775015,
     "ast_hash": "3d0f9d66ed1d52bfb05ae59df666fac8",
-    "semantic_hash": ""
+    "semantic_hash": "3d0f9d66ed1d52bfb05ae59df666fac8"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\frontend-service\\service.yaml": {
     "mtime": 1781970198.3589678,
     "ast_hash": "bc6f03fb37f607f066925eee2378f592",
-    "semantic_hash": ""
+    "semantic_hash": "bc6f03fb37f607f066925eee2378f592"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\frontend-service\\serviceaccount.yaml": {
     "mtime": 1781970182.6760132,
     "ast_hash": "ebc32d3e745c96870e39918781b617e1",
-    "semantic_hash": ""
+    "semantic_hash": "ebc32d3e745c96870e39918781b617e1"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\judge0\\api-deployment.yaml": {
     "mtime": 1781970474.1341803,
     "ast_hash": "d9f5434709f219caf8f831c0b15b5877",
-    "semantic_hash": ""
+    "semantic_hash": "d9f5434709f219caf8f831c0b15b5877"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\judge0\\redis-deployment.yaml": {
     "mtime": 1781970463.0687342,
     "ast_hash": "95dd1fa7d4e200d0f55eb65f195e28d2",
-    "semantic_hash": ""
+    "semantic_hash": "95dd1fa7d4e200d0f55eb65f195e28d2"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\judge0\\service.yaml": {
     "mtime": 1781970490.9167614,
     "ast_hash": "9c5da7c6a506acaf7bd213c89f649703",
-    "semantic_hash": ""
+    "semantic_hash": "9c5da7c6a506acaf7bd213c89f649703"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\judge0\\worker-deployment.yaml": {
     "mtime": 1781970480.2734573,
     "ast_hash": "b75474d00b091c57584e8f17e05a5b30",
-    "semantic_hash": ""
+    "semantic_hash": "b75474d00b091c57584e8f17e05a5b30"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\notification-service\\deployment.yaml": {
     "mtime": 1781970715.907926,
     "ast_hash": "1c19a70fa9fa04f8fd3bcd8177fa8753",
-    "semantic_hash": ""
+    "semantic_hash": "1c19a70fa9fa04f8fd3bcd8177fa8753"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\notification-service\\service.yaml": {
     "mtime": 1781970394.5127082,
     "ast_hash": "355adfa3842459f8cdad5aac3bfdb2f0",
-    "semantic_hash": ""
+    "semantic_hash": "355adfa3842459f8cdad5aac3bfdb2f0"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\notification-service\\serviceaccount.yaml": {
     "mtime": 1781970377.5652828,
     "ast_hash": "3097fc0382433104dc2e074c920db353",
-    "semantic_hash": ""
+    "semantic_hash": "3097fc0382433104dc2e074c920db353"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\ollama\\deployment.yaml": {
     "mtime": 1781970443.3442638,
     "ast_hash": "e70fc8e7ad143fe94cbc43342fa6a8d7",
-    "semantic_hash": ""
+    "semantic_hash": "e70fc8e7ad143fe94cbc43342fa6a8d7"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\ollama\\pvc.yaml": {
     "mtime": 1781970434.2917037,
     "ast_hash": "824a60d05ae728e9ee2a74fdb3eca256",
-    "semantic_hash": ""
+    "semantic_hash": "824a60d05ae728e9ee2a74fdb3eca256"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\ollama\\service.yaml": {
     "mtime": 1781970454.0761383,
     "ast_hash": "109f313f363b9e6937e7c21b9b191f45",
-    "semantic_hash": ""
+    "semantic_hash": "109f313f363b9e6937e7c21b9b191f45"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\proctoring-service\\deployment.yaml": {
     "mtime": 1781970347.712401,
     "ast_hash": "14e5af90e3f968553312f940c00b6c2e",
-    "semantic_hash": ""
+    "semantic_hash": "14e5af90e3f968553312f940c00b6c2e"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\proctoring-service\\service.yaml": {
     "mtime": 1781970363.55066,
     "ast_hash": "6dedfc76c726c7bc5daef0698a56e59b",
-    "semantic_hash": ""
+    "semantic_hash": "6dedfc76c726c7bc5daef0698a56e59b"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\proctoring-service\\serviceaccount.yaml": {
     "mtime": 1781970340.8631814,
     "ast_hash": "7e7639577a8c529ab13508bfbcc9949c",
-    "semantic_hash": ""
+    "semantic_hash": "7e7639577a8c529ab13508bfbcc9949c"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\student-service\\deployment.yaml": {
     "mtime": 1781970288.2155366,
     "ast_hash": "b21e7beee89a66f966ade6f081f00897",
-    "semantic_hash": ""
+    "semantic_hash": "b21e7beee89a66f966ade6f081f00897"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\student-service\\service.yaml": {
     "mtime": 1781970296.8524199,
     "ast_hash": "f9d1b0298e506b130fb0713d4b1e4944",
-    "semantic_hash": ""
+    "semantic_hash": "f9d1b0298e506b130fb0713d4b1e4944"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\student-service\\serviceaccount.yaml": {
     "mtime": 1781970281.6417997,
     "ast_hash": "962b4e38436d129be70b4e4118f480e0",
-    "semantic_hash": ""
+    "semantic_hash": "962b4e38436d129be70b4e4118f480e0"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\argocd\\dev\\application.yaml": {
     "mtime": 1781971515.3863854,
     "ast_hash": "dc0f1cfd0624a2f28670ff8ca83a9ecb",
-    "semantic_hash": ""
+    "semantic_hash": "dc0f1cfd0624a2f28670ff8ca83a9ecb"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\argocd\\dev\\project.yaml": {
     "mtime": 1781971502.065169,
     "ast_hash": "5ba8042ee81fac1e0e30595897763a90",
-    "semantic_hash": ""
+    "semantic_hash": "5ba8042ee81fac1e0e30595897763a90"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\postgres\\deployment.yaml": {
     "mtime": 1781971275.3040674,
     "ast_hash": "376615e9127d84ac9156c7ff3c831fbe",
-    "semantic_hash": ""
+    "semantic_hash": "376615e9127d84ac9156c7ff3c831fbe"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\postgres\\service.yaml": {
     "mtime": 1781971275.4056835,
     "ast_hash": "ed8f9c3f85fcbdbcfb43774a8e213260",
-    "semantic_hash": ""
+    "semantic_hash": "ed8f9c3f85fcbdbcfb43774a8e213260"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\redis\\deployment.yaml": {
     "mtime": 1781971275.4877152,
     "ast_hash": "1158534ed282846a773267492f34a32b",
-    "semantic_hash": ""
+    "semantic_hash": "1158534ed282846a773267492f34a32b"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\redis\\service.yaml": {
     "mtime": 1781971275.557875,
     "ast_hash": "8002bc30c7ae632c451c8612e1b8e371",
-    "semantic_hash": ""
+    "semantic_hash": "8002bc30c7ae632c451c8612e1b8e371"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\functions\\host.json": {
     "mtime": 1781971763.3438623,
     "ast_hash": "0ddcf24f2c20b21459f1f9b79031732f",
-    "semantic_hash": ""
+    "semantic_hash": "0ddcf24f2c20b21459f1f9b79031732f"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\functions\\package.json": {
     "mtime": 1781971770.6581037,
     "ast_hash": "4e95a3164a02715ab2b3e1e6671d59c0",
-    "semantic_hash": ""
+    "semantic_hash": "4e95a3164a02715ab2b3e1e6671d59c0"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\functions\\tsconfig.json": {
     "mtime": 1781971776.5225797,
     "ast_hash": "6eb0ff4fddaba6c6de56f80e7f6a61a4",
-    "semantic_hash": ""
+    "semantic_hash": "6eb0ff4fddaba6c6de56f80e7f6a61a4"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\functions\\ResourceHealthMonitor\\function.json": {
     "mtime": 1781971785.2394109,
     "ast_hash": "852d7e39ddb74a125598c3dc5033cbf5",
-    "semantic_hash": ""
+    "semantic_hash": "852d7e39ddb74a125598c3dc5033cbf5"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\functions\\ResourceHealthMonitor\\index.ts": {
     "mtime": 1781971825.1774433,
     "ast_hash": "4e08656f51fa78a6d82fc43b56d21351",
-    "semantic_hash": ""
+    "semantic_hash": "4e08656f51fa78a6d82fc43b56d21351"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\README.md": {
     "mtime": 1781972039.145613,
     "ast_hash": "7f409fa58c72d6661425e88361ca13c5",
-    "semantic_hash": ""
+    "semantic_hash": "7f409fa58c72d6661425e88361ca13c5"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\.agents\\rules\\graphify.md": {
     "mtime": 1780169148.754385,
     "ast_hash": "a0e4d192b9e2e17256124dbfc8e24e6a",
-    "semantic_hash": ""
+    "semantic_hash": "a0e4d192b9e2e17256124dbfc8e24e6a"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\.agents\\workflows\\graphify.md": {
     "mtime": 1780169148.755928,
     "ast_hash": "84de69efd46ab0b8430393bd4188f8f2",
-    "semantic_hash": ""
+    "semantic_hash": "84de69efd46ab0b8430393bd4188f8f2"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\values-dev.yaml": {
     "mtime": 1781978272.7866971,
     "ast_hash": "48a4e79b7b7c757ed21bcf1b27e00a38",
-    "semantic_hash": ""
+    "semantic_hash": "48a4e79b7b7c757ed21bcf1b27e00a38"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\values-prod.yaml": {
     "mtime": 1781978281.4172983,
     "ast_hash": "915d665e3418ca0ee2982e0c0f19d7a0",
-    "semantic_hash": ""
+    "semantic_hash": "915d665e3418ca0ee2982e0c0f19d7a0"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\scripts\\install-kgateway.sh": {
     "mtime": 1782028663.8414876,
     "ast_hash": "5de466fa39405e09b76e3787a5a36cce",
-    "semantic_hash": ""
+    "semantic_hash": "5de466fa39405e09b76e3787a5a36cce"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\build-and-push.ps1": {
     "mtime": 1781439946.068903,
     "ast_hash": "44febf762c09d0d6c796ec591b1f020d",
-    "semantic_hash": ""
+    "semantic_hash": "44febf762c09d0d6c796ec591b1f020d"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\build-and-push.sh": {
     "mtime": 1781439933.6950889,
     "ast_hash": "bff21fd5d168484a995ec18d99b449ec",
-    "semantic_hash": ""
+    "semantic_hash": "bff21fd5d168484a995ec18d99b449ec"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\terraform\\scripts\\bootstrap.sh": {
     "mtime": 1781938425.5546532,
     "ast_hash": "f49a94f0be13a13da5788c03f9c21f15",
-    "semantic_hash": ""
+    "semantic_hash": "f49a94f0be13a13da5788c03f9c21f15"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\argocd\\dev\\application.yaml": {
     "mtime": 1781971515.3863854,
     "ast_hash": "dc0f1cfd0624a2f28670ff8ca83a9ecb",
-    "semantic_hash": ""
+    "semantic_hash": "dc0f1cfd0624a2f28670ff8ca83a9ecb"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\argocd\\dev\\project.yaml": {
     "mtime": 1781971502.065169,
     "ast_hash": "5ba8042ee81fac1e0e30595897763a90",
-    "semantic_hash": ""
+    "semantic_hash": "5ba8042ee81fac1e0e30595897763a90"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\gateway.yaml": {
     "mtime": 1782028631.58373,
     "ast_hash": "f764eed1de83804b4a449eafce4fc525",
-    "semantic_hash": ""
+    "semantic_hash": "f764eed1de83804b4a449eafce4fc525"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\helm\\clahan-academy\\templates\\httproute.yaml": {
     "mtime": 1782028631.94578,
     "ast_hash": "04fdc4f755313af99f4cff58fa77a583",
-    "semantic_hash": ""
+    "semantic_hash": "04fdc4f755313af99f4cff58fa77a583"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\kubernetes\\gateway.yaml": {
     "mtime": 1782028649.3729048,
     "ast_hash": "ce5ff0b7961e121c180f0bc698f08994",
-    "semantic_hash": ""
+    "semantic_hash": "ce5ff0b7961e121c180f0bc698f08994"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\docker-compose.yml": {
     "mtime": 1781428406.3595042,
     "ast_hash": "7249e2d93a89625b22ea1cd8acdd00ac",
-    "semantic_hash": ""
+    "semantic_hash": "7249e2d93a89625b22ea1cd8acdd00ac"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\README.md": {
     "mtime": 1781972039.145613,
     "ast_hash": "7f409fa58c72d6661425e88361ca13c5",
-    "semantic_hash": ""
+    "semantic_hash": "7f409fa58c72d6661425e88361ca13c5"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\.github\\workflows\\build.yml": {
     "mtime": 1782009531.7037017,
     "ast_hash": "6736c01538aaa7da6d7dd1c07f4c3e6e",
-    "semantic_hash": ""
+    "semantic_hash": "6736c01538aaa7da6d7dd1c07f4c3e6e"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\.github\\workflows\\deploy.yml": {
     "mtime": 1781966961.1936023,
     "ast_hash": "1e28c3af184121acabdf775737a82030",
-    "semantic_hash": ""
+    "semantic_hash": "1e28c3af184121acabdf775737a82030"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\terraform\\.github\\workflows\\terraform-apply.yml": {
     "mtime": 1782009774.7681606,
     "ast_hash": "43886ac6bbe4455453e0b1640f3a7f86",
-    "semantic_hash": ""
+    "semantic_hash": "43886ac6bbe4455453e0b1640f3a7f86"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\.gemini\\antigravity\\brain\\f6905565-85a3-4a79-acd3-cd90d6fab191\\scratch\\fix_errors.py": {
     "mtime": 1784653633.9598095,
@@ -1182,146 +1182,151 @@
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\AssessmentInstructions.tsx": {
     "mtime": 1784958223.525803,
     "ast_hash": "4fd49bc82fdf604bc669a44aa23335b1",
-    "semantic_hash": ""
+    "semantic_hash": "4fd49bc82fdf604bc669a44aa23335b1"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\AssessmentTimingSettings.tsx": {
     "mtime": 1784992085.534197,
     "ast_hash": "d3e3e3ad536272cce4ceaecc4aafdd9c",
-    "semantic_hash": ""
+    "semantic_hash": "d3e3e3ad536272cce4ceaecc4aafdd9c"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\ImageViewerModal.tsx": {
     "mtime": 1784727677.7024298,
     "ast_hash": "c81966bd499d5ebf423b80be93d0395b",
-    "semantic_hash": ""
+    "semantic_hash": "c81966bd499d5ebf423b80be93d0395b"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\NavigationRuleSettings.tsx": {
     "mtime": 1784742838.759858,
     "ast_hash": "ad67afc1dd1791e3673dc0a5b7a2fe7d",
-    "semantic_hash": ""
+    "semantic_hash": "ad67afc1dd1791e3673dc0a5b7a2fe7d"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\QuestionFooter.tsx": {
     "mtime": 1784736751.1836355,
     "ast_hash": "94ac0e19515e6343f7739da778e94216",
-    "semantic_hash": ""
+    "semantic_hash": "94ac0e19515e6343f7739da778e94216"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\QuestionInlineEditor.tsx": {
     "mtime": 1784974062.8655806,
     "ast_hash": "3a2864c0bee4cd47475cba03ea51515c",
-    "semantic_hash": ""
+    "semantic_hash": "3a2864c0bee4cd47475cba03ea51515c"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\QuestionPreview.tsx": {
     "mtime": 1784903128.9488747,
     "ast_hash": "35fae2fcef528b93dc1e2638097ce9f0",
-    "semantic_hash": ""
+    "semantic_hash": "35fae2fcef528b93dc1e2638097ce9f0"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\RichContentRenderer.tsx": {
     "mtime": 1784903128.9528394,
     "ast_hash": "7768b8942c0ec65c98c1ffedb65d4c5d",
-    "semantic_hash": ""
+    "semantic_hash": "7768b8942c0ec65c98c1ffedb65d4c5d"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\RichTextEditor.tsx": {
     "mtime": 1784903128.9548547,
     "ast_hash": "e737b9c050f3d2f2267afab651fe70bf",
-    "semantic_hash": ""
+    "semantic_hash": "e737b9c050f3d2f2267afab651fe70bf"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\SectionConfirmationModal.tsx": {
     "mtime": 1784732473.5591292,
     "ast_hash": "1c2c35f8951f3631f22525a2e1c93157",
-    "semantic_hash": ""
+    "semantic_hash": "1c2c35f8951f3631f22525a2e1c93157"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\SubmissionPolicySettings.tsx": {
     "mtime": 1784742853.3242793,
     "ast_hash": "be7e49a07348dd2fe1e9d747a5b1e910",
-    "semantic_hash": ""
+    "semantic_hash": "be7e49a07348dd2fe1e9d747a5b1e910"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\assessment\\AssessmentPreExamStepper.tsx": {
     "mtime": 1784978237.8764956,
     "ast_hash": "990f7b16d3d751f07338f2e3fdb481e7",
-    "semantic_hash": ""
+    "semantic_hash": "990f7b16d3d751f07338f2e3fdb481e7"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\assessment\\SafeQuestionRenderer.tsx": {
     "mtime": 1784903128.9625087,
     "ast_hash": "f846eddea035c014924e068bf68923a6",
-    "semantic_hash": ""
+    "semantic_hash": "f846eddea035c014924e068bf68923a6"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\types\\richQuestion.ts": {
     "mtime": 1784730034.3341022,
     "ast_hash": "43cfd53874dac38542a112095a5c88ad",
-    "semantic_hash": ""
+    "semantic_hash": "43cfd53874dac38542a112095a5c88ad"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\placement-service\\package.json": {
     "mtime": 1784725239.2822978,
     "ast_hash": "755e9987c8a37aedbdf943150d7f15f9",
-    "semantic_hash": ""
+    "semantic_hash": "755e9987c8a37aedbdf943150d7f15f9"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\placement-service\\tsconfig.json": {
     "mtime": 1784725239.2843046,
     "ast_hash": "67d2f4dcd2fefa2cfc9c03c7b1f09840",
-    "semantic_hash": ""
+    "semantic_hash": "67d2f4dcd2fefa2cfc9c03c7b1f09840"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\placement-service\\src\\index.ts": {
     "mtime": 1784725239.2843046,
     "ast_hash": "9a5793a9dfe63d23f24a0efc6e7bd65b",
-    "semantic_hash": ""
+    "semantic_hash": "9a5793a9dfe63d23f24a0efc6e7bd65b"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\report-service\\package.json": {
     "mtime": 1784725239.2880654,
     "ast_hash": "6adb249056537bd9b2359d5930e0fb08",
-    "semantic_hash": ""
+    "semantic_hash": "6adb249056537bd9b2359d5930e0fb08"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\report-service\\tsconfig.json": {
     "mtime": 1784725239.292169,
     "ast_hash": "67d2f4dcd2fefa2cfc9c03c7b1f09840",
-    "semantic_hash": ""
+    "semantic_hash": "67d2f4dcd2fefa2cfc9c03c7b1f09840"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\report-service\\src\\index.ts": {
     "mtime": 1784725239.289934,
     "ast_hash": "203b2e95a1ba685566c9c00641da72cc",
-    "semantic_hash": ""
+    "semantic_hash": "203b2e95a1ba685566c9c00641da72cc"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\training-service\\package.json": {
     "mtime": 1784725239.2961376,
     "ast_hash": "1ee3a62921dbd871f4992ee32c3e5c62",
-    "semantic_hash": ""
+    "semantic_hash": "1ee3a62921dbd871f4992ee32c3e5c62"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\training-service\\tsconfig.json": {
     "mtime": 1784725239.2999845,
     "ast_hash": "67d2f4dcd2fefa2cfc9c03c7b1f09840",
-    "semantic_hash": ""
+    "semantic_hash": "67d2f4dcd2fefa2cfc9c03c7b1f09840"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\training-service\\src\\index.ts": {
     "mtime": 1784725239.299044,
     "ast_hash": "010804e7d651bb2194e00c7aecab421e",
-    "semantic_hash": ""
+    "semantic_hash": "010804e7d651bb2194e00c7aecab421e"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\ResultReportView.tsx": {
     "mtime": 1784903128.9513264,
     "ast_hash": "41f73d53cf896daf5cba10add7db64b0",
-    "semantic_hash": ""
+    "semantic_hash": "41f73d53cf896daf5cba10add7db64b0"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\assessment\\ExamSubmissionController.tsx": {
     "mtime": 1784903128.9588802,
     "ast_hash": "458967cafe8711899e4a21bbabe8a267",
-    "semantic_hash": ""
+    "semantic_hash": "458967cafe8711899e4a21bbabe8a267"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\assessment\\PreExamFlowController.tsx": {
     "mtime": 1784958276.209078,
     "ast_hash": "9c74fa3818d4c4b5a32ae7d2689f02e4",
-    "semantic_hash": ""
+    "semantic_hash": "9c74fa3818d4c4b5a32ae7d2689f02e4"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\services\\frontend-service\\src\\components\\assessment\\SectionBuilder.tsx": {
     "mtime": 1784903128.9638338,
     "ast_hash": "e8eaee1fe67bf1535079a45e4ddbfd44",
-    "semantic_hash": ""
+    "semantic_hash": "e8eaee1fe67bf1535079a45e4ddbfd44"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\deploy.sh": {
     "mtime": 1784985334.0400505,
     "ast_hash": "1a9c564e229074e14cd1a8a861b58652",
-    "semantic_hash": ""
+    "semantic_hash": "1a9c564e229074e14cd1a8a861b58652"
   },
   "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\VERIFY.md": {
     "mtime": 1784985340.6893494,
     "ast_hash": "ca702a90728439f544613e89af775d18",
-    "semantic_hash": ""
+    "semantic_hash": "ca702a90728439f544613e89af775d18"
+  },
+  "C:\\Users\\91901\\OneDrive\\Desktop\\clahan academy\\.claude\\settings.local.json": {
+    "mtime": 1785002342.455778,
+    "ast_hash": "6590f95f3d6ae21658bd9482a7ec5ed9",
+    "semantic_hash": "6590f95f3d6ae21658bd9482a7ec5ed9"
   }
 }

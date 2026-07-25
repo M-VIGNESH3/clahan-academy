@@ -1,0 +1,1 @@
+{"nodes": [{"id": "authhpa_auth", "label": "Auth HorizontalPodAutoscaler", "file_type": "code", "source_file": "clahan-academy/templates/hpa/auth-hpa.yaml", "source_location": null, "source_url": null, "captured_at": null, "author": null, "contributor": null}], "edges": [], "hyperedges": []}
