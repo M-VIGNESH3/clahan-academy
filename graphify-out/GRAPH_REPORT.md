@@ -1,13 +1,13 @@
-# Graph Report - .  (2026-07-25)
+# Graph Report - .  (2026-07-26)
 
 ## Corpus Check
-- 262 files · ~99,999 words
+- 3 files · ~99,999 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1787 nodes · 1992 edges · 161 communities (120 shown, 41 thin omitted)
-- Extraction: 93% EXTRACTED · 7% INFERRED · 1% AMBIGUOUS · INFERRED: 133 edges (avg confidence: 0.87)
-- Token cost: 860,155 input · 0 output
+- 1815 nodes · 2090 edges · 164 communities (118 shown, 46 thin omitted)
+- Extraction: 93% EXTRACTED · 6% INFERRED · 1% AMBIGUOUS · INFERRED: 133 edges (avg confidence: 0.87)
+- Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
 - [[_COMMUNITY_Community 0|Community 0]]
@@ -146,9 +146,9 @@
 - [[_COMMUNITY_Community 133|Community 133]]
 - [[_COMMUNITY_Community 134|Community 134]]
 - [[_COMMUNITY_Community 135|Community 135]]
-- [[_COMMUNITY_Community 141|Community 141]]
-- [[_COMMUNITY_Community 142|Community 142]]
-- [[_COMMUNITY_Community 143|Community 143]]
+- [[_COMMUNITY_Community 136|Community 136]]
+- [[_COMMUNITY_Community 137|Community 137]]
+- [[_COMMUNITY_Community 138|Community 138]]
 - [[_COMMUNITY_Community 144|Community 144]]
 - [[_COMMUNITY_Community 145|Community 145]]
 - [[_COMMUNITY_Community 146|Community 146]]
@@ -166,6 +166,9 @@
 - [[_COMMUNITY_Community 158|Community 158]]
 - [[_COMMUNITY_Community 159|Community 159]]
 - [[_COMMUNITY_Community 160|Community 160]]
+- [[_COMMUNITY_Community 161|Community 161]]
+- [[_COMMUNITY_Community 162|Community 162]]
+- [[_COMMUNITY_Community 163|Community 163]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `Azure Container Apps (ACA)` - 22 edges
@@ -184,12 +187,12 @@
   deploy_new_vm.md → https_setup_guide.md
 - `Certbot Let's Encrypt SSL` --semantically_similar_to--> `Nginx + Certbot HTTPS Option`  [INFERRED] [semantically similar]
   deploy_new_vm.md → https_setup_guide.md
-- `Nginx Host HTTPS Setup Option` --semantically_similar_to--> `Nginx + Certbot HTTPS Option`  [INFERRED] [semantically similar]
-  new_vm_with_https.md → https_setup_guide.md
+- `Nginx + Certbot HTTPS Option` --semantically_similar_to--> `Nginx Host HTTPS Setup Option`  [INFERRED] [semantically similar]
+  https_setup_guide.md → new_vm_with_https.md
 - `Azure Container Apps (ACA)` --conceptually_related_to--> `Terraform IaC`  [AMBIGUOUS]
   azure_architecture.md → README.md
-- `Disaster Recovery Table` --semantically_similar_to--> `Active-Passive Multi-Region DR Strategy`  [INFERRED] [semantically similar]
-  README.md → azure_architecture.md
+- `Active-Passive Multi-Region DR Strategy` --semantically_similar_to--> `Disaster Recovery Table`  [INFERRED] [semantically similar]
+  azure_architecture.md → README.md
 
 ## Hyperedges (group relationships)
 - **AI & Execution Subsystem Orchestration** — application_architecture_ai_service_hub, application_architecture_ollama_service, application_architecture_yolo_service, application_architecture_ocr_service, clahan_academy_overview_insightface_service, clahan_academy_overview_judge0_api [EXTRACTED 1.00]
@@ -220,51 +223,51 @@
 - **CI/CD pipeline flow: build, deploy, and infrastructure apply** — build_yml_workflow, deploy_yml_workflow, terraform_apply_workflow, services_readme [EXTRACTED 1.00]
 - **Local demo/evaluation infra stack standing in for managed Azure services** — postgres_deployment, redis_deployment, dockercompose_postgres, dockercompose_redis [INFERRED 0.85]
 
-## Communities (161 total, 41 thin omitted)
+## Communities (164 total, 46 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.03
-Nodes (61): app, AuthenticatedRequest, dataRows, limiter, lines, notificationPayloads, notificationQueue, parsed (+53 more)
-
-### Community 1 - "Community 1"
 Cohesion: 0.06
 Nodes (52): Smart AI Proctoring, ai-service requirements.txt, Automated Grading Engine, Azure Workload Identity, CI Build, Scan & Push workflow, CD Deploy via ArgoCD workflow, detect-changes job, build (docker) job (+44 more)
 
-### Community 2 - "Community 2"
+### Community 1 - "Community 1"
 Cohesion: 0.05
 Nodes (47): ServiceAccount: clahan-admin-sa, SecretProviderClass: clahan-admin-secrets, NetworkPolicy: ai-netpol, AI Node NetworkPolicy, AI SecretProviderClass, NetworkPolicy: app-netpol, Exam and Proctoring (AI Clients) NetworkPolicy, App Common NetworkPolicy (+39 more)
 
+### Community 2 - "Community 2"
+Cohesion: 0.05
+Nodes (40): app, AuthenticatedRequest, limiter, pool, cleanCorrect, cleanOptionText, cleanSelected, codingRespMap (+32 more)
+
 ### Community 3 - "Community 3"
+Cohesion: 0.05
+Nodes (39): app, AuthenticatedRequest, dataRows, limiter, lines, notificationPayloads, notificationQueue, parsed (+31 more)
+
+### Community 4 - "Community 4"
 Cohesion: 0.08
 Nodes (37): 1. Network & Port Requirements, 2. Step-by-Step System Provisioning, 3. Environment Variables Configuration, 4. Launching the Docker Stack, 5. Nginx Reverse Proxy & HTTPS Certificate Configuration, 6. System Monitoring Dashboard Verification, A. Core SMTP Configurations (Node.js APIs), A. Core SMTP Configurations (`notification-service/.env`) (+29 more)
 
-### Community 4 - "Community 4"
+### Community 5 - "Community 5"
 Cohesion: 0.05
 Nodes (36): 10. Disaster Recovery (DR) & Business Continuity Plan, 1. High-Level Architecture Diagram, 1. Networking Strategy, 2. Core Architectural Pillars, 2. IAM & Identity (Passwordless Setup), 3.1 Alternative: Azure Kubernetes Service (AKS) with GPU Node Pool, 3. Azure Services Mapping & Selection, 4. Security & Compliance Deep Dive (+28 more)
 
-### Community 5 - "Community 5"
+### Community 6 - "Community 6"
 Cohesion: 0.12
 Nodes (35): Admin Service Deployment, AI Service Deployment, AI Models PVC, ArgoCD Application: clahan-academy (dev), Auth Service Deployment, Clahan Academy Helm Chart, Exam Service Deployment, Frontend Service Deployment (+27 more)
 
-### Community 6 - "Community 6"
+### Community 7 - "Community 7"
 Cohesion: 0.07
 Nodes (32): app, now, pool, query(), server, activeAttemptIds, activeOnly, activeSessions (+24 more)
-
-### Community 7 - "Community 7"
-Cohesion: 0.06
-Nodes (31): Approach 1: Standalone Manifests (Quick Demo), Approach 2: GitOps/ArgoCD (Production), 🏗️ Architecture, 🎁 Bonus Features, 🔄 CI/CD Pipelines, 🎓 Clahan Academy V2, 🔐 Cloud Integration (Workload Identity), code:block1 (+-----------------------+) (+23 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.06
 Nodes (31): Approach 1: Standalone Manifests (Quick Demo), Approach 2: GitOps/ArgoCD (Production), 🏗️ Architecture, 🎁 Bonus Features, 🔄 CI/CD Pipelines, 🎓 Clahan Academy V2, 🔐 Cloud Integration (Workload Identity), code:block1 (+-----------------------+) (+23 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.13
-Nodes (31): Helm Chart: clahan-academy, Admin ConfigMap, AI ConfigMap, Auth ConfigMap, Exam ConfigMap, Notification ConfigMap, Proctoring ConfigMap, Student ConfigMap (+23 more)
+Cohesion: 0.06
+Nodes (31): Approach 1: Standalone Manifests (Quick Demo), Approach 2: GitOps/ArgoCD (Production), 🏗️ Architecture, 🎁 Bonus Features, 🔄 CI/CD Pipelines, 🎓 Clahan Academy V2, 🔐 Cloud Integration (Workload Identity), code:block1 (+-----------------------+) (+23 more)
 
 ### Community 10 - "Community 10"
-Cohesion: 0.07
-Nodes (29): dependencies, bcryptjs, bullmq, cors, csv-parse, dotenv, express, express-rate-limit (+21 more)
+Cohesion: 0.13
+Nodes (31): Helm Chart: clahan-academy, Admin ConfigMap, AI ConfigMap, Auth ConfigMap, Exam ConfigMap, Notification ConfigMap, Proctoring ConfigMap, Student ConfigMap (+23 more)
 
 ### Community 11 - "Community 11"
 Cohesion: 0.07
@@ -272,39 +275,39 @@ Nodes (29): dependencies, bcryptjs, bullmq, cors, dotenv, express, express-rate-
 
 ### Community 12 - "Community 12"
 Cohesion: 0.07
-Nodes (28): dependencies, axios, bullmq, cors, csv-parse, dotenv, express, express-rate-limit (+20 more)
+Nodes (29): dependencies, bcryptjs, bullmq, cors, csv-parse, dotenv, express, express-rate-limit (+21 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.07
-Nodes (27): dependencies, clsx, lucide-react, @monaco-editor/react, react, react-dom, socket.io-client, tailwind-merge (+19 more)
+Nodes (28): dependencies, axios, bullmq, cors, csv-parse, dotenv, express, express-rate-limit (+20 more)
 
 ### Community 14 - "Community 14"
+Cohesion: 0.07
+Nodes (27): dependencies, clsx, lucide-react, @monaco-editor/react, react, react-dom, socket.io-client, tailwind-merge (+19 more)
+
+### Community 15 - "Community 15"
 Cohesion: 0.08
 Nodes (27): 1. Synchronize Databases, 2. Scale Down SEA Container Apps, 3. Restore India Ingress Rules (If disabled during test), Automated Failover (Alert Triggered), Clahan-Academy Disaster Recovery (DR) Runbook, code:bash (az network nsg rule delete \), code:bash (az network nsg rule create \), code:bash (az containerapp update \) (+19 more)
 
-### Community 15 - "Community 15"
+### Community 16 - "Community 16"
 Cohesion: 0.10
 Nodes (26): Admin Service Deployment, Admin Service (K8s Service), Admin ServiceAccount, AI Service Deployment, AI Service (K8s Service), AI ServiceAccount, Auth Service Deployment, Auth Service (K8s Service) (+18 more)
 
-### Community 16 - "Community 16"
+### Community 17 - "Community 17"
 Cohesion: 0.08
 Nodes (25): dependencies, cors, dotenv, express, helmet, jsonwebtoken, pg, redis (+17 more)
 
-### Community 17 - "Community 17"
+### Community 18 - "Community 18"
 Cohesion: 0.08
 Nodes (25): 1. Initial Setup & Initialization, 2. Managing Workspaces, 3. Deployment Steps (Systematic Apply), 4. Teardown Steps (Systematic Destroy), Clahan-Academy Terraform Workspace Deployment Steps, code:powershell (az login), code:powershell (# 1. Select the staging workspace), code:powershell (# 1. Select the prod workspace) (+17 more)
 
-### Community 18 - "Community 18"
+### Community 19 - "Community 19"
 Cohesion: 0.08
 Nodes (24): 1. Install Nginx and Certbot, 1. Modify `docker-compose.yml`, 2. Configure the Nginx Site, 2. Create the `Caddyfile`, 3. Provision Let's Encrypt SSL Certificates, code:bash (# Update package list and install requirements), code:bash (sudo certbot --nginx -d clahanacademy.com -d www.clahanacade), code:bash (# 1. Build and launch all core services in background mode) (+16 more)
 
-### Community 19 - "Community 19"
-Cohesion: 0.08
-Nodes (24): dependencies, bullmq, cors, dotenv, express, helmet, nodemailer, redis (+16 more)
-
 ### Community 20 - "Community 20"
 Cohesion: 0.08
-Nodes (24): dependencies, cors, dotenv, express, express-rate-limit, helmet, jsonwebtoken, pg (+16 more)
+Nodes (24): dependencies, bullmq, cors, dotenv, express, helmet, nodemailer, redis (+16 more)
 
 ### Community 21 - "Community 21"
 Cohesion: 0.08
@@ -315,36 +318,36 @@ Cohesion: 0.08
 Nodes (24): dependencies, cors, dotenv, express, express-rate-limit, helmet, jsonwebtoken, pg (+16 more)
 
 ### Community 23 - "Community 23"
+Cohesion: 0.09
+Nodes (19): app, AuthenticatedRequest, limiter, pool, app, AuthenticatedRequest, limiter, pool (+11 more)
+
+### Community 24 - "Community 24"
 Cohesion: 0.08
 Nodes (24): dependencies, cors, dotenv, express, express-rate-limit, helmet, jsonwebtoken, pg (+16 more)
 
-### Community 24 - "Community 24"
-Cohesion: 0.10
-Nodes (23): Admin Service, Clahan AI ServiceAccount, AI Service, Clahan Auth ServiceAccount, Auth Service, Clahan Config ConfigMap, Clahan Exam ServiceAccount, Exam Service (+15 more)
-
 ### Community 25 - "Community 25"
+Cohesion: 0.08
+Nodes (24): dependencies, cors, dotenv, express, express-rate-limit, helmet, jsonwebtoken, pg (+16 more)
+
+### Community 26 - "Community 26"
 Cohesion: 0.09
 Nodes (22): code:bash (sudo apt update), code:bash (sudo nano /etc/nginx/sites-available/clahanacademy.com), code:nginx (server {), code:bash (sudo ln -s /etc/nginx/sites-available/clahanacademy.com /etc), code:bash (sudo certbot --nginx -d clahanacademy.com -d www.clahanacade), code:yaml (caddy:), code:caddy (clahanacademy.com, www.clahanacademy.com {), code:yaml (FRONTEND_URL: https://clahanacademy.com) (+14 more)
 
-### Community 26 - "Community 26"
-Cohesion: 0.11
-Nodes (16): app, limiter, notificationQueue, parsed, redisClient, server, initDb(), pool (+8 more)
-
 ### Community 27 - "Community 27"
-Cohesion: 0.11
-Nodes (16): ExamSubmissionController(), ExamSubmissionControllerProps, NavigationRuleSettings(), NavigationRuleSettingsProps, QuestionFooter(), QuestionFooterProps, SubmissionPolicySettings(), SubmissionPolicySettingsProps (+8 more)
+Cohesion: 0.10
+Nodes (23): Admin Service, Clahan AI ServiceAccount, AI Service, Clahan Auth ServiceAccount, Auth Service, Clahan Config ConfigMap, Clahan Exam ServiceAccount, Exam Service (+15 more)
 
 ### Community 28 - "Community 28"
 Cohesion: 0.11
-Nodes (22): Architecture Overview, Clahan-Academy Online Exam Platform Infrastructure (Active-Standby DR), Cleanup, code:block1 (+-----------------------------+), code:bash (az login), code:bash (cd scripts), code:bash (./init-workspaces.sh), code:bash (# List all workspaces) (+14 more)
+Nodes (16): app, limiter, notificationQueue, parsed, redisClient, server, initDb(), pool (+8 more)
 
 ### Community 29 - "Community 29"
-Cohesion: 0.09
-Nodes (17): app, AuthenticatedRequest, dataRows, limiter, lines, notificationPayloads, notificationQueue, parsed (+9 more)
+Cohesion: 0.11
+Nodes (22): Architecture Overview, Clahan-Academy Online Exam Platform Infrastructure (Active-Standby DR), Cleanup, code:block1 (+-----------------------------+), code:bash (az login), code:bash (cd scripts), code:bash (./init-workspaces.sh), code:bash (# List all workspaces) (+14 more)
 
 ### Community 30 - "Community 30"
-Cohesion: 0.15
-Nodes (13): analyze_frame(), AttemptTracker, download_cascade_if_missing(), FeedbackRequest, generate_feedback(), generate_question(), GenerateQuestionRequest, letterbox_image() (+5 more)
+Cohesion: 0.09
+Nodes (17): app, AuthenticatedRequest, dataRows, limiter, lines, notificationPayloads, notificationQueue, parsed (+9 more)
 
 ### Community 31 - "Community 31"
 Cohesion: 0.11
@@ -355,56 +358,56 @@ Cohesion: 0.11
 Nodes (18): 1. System Architecture Map, 2. Microservices Reference, 3. Local & Containerized Setup, 4. SMTP and Gmail Setup, 5. Administrative Seeding Instructions, 6. AI Proctoring & Violation Rules Engine, A. Pre-Exam Verification Handshake, B. Frame Preprocessing (Letterboxing) (+10 more)
 
 ### Community 33 - "Community 33"
-Cohesion: 0.12
-Nodes (18): ArgoCD Application (clahan-academy), Push to Azure Container Registry, CI Build/Scan/Push Pipeline, Detect Changed Services Job, Snyk Vulnerability Scan, SonarCloud Quality Gate, Trivy Vulnerability Scan, Update Helm Values Job (+10 more)
+Cohesion: 0.15
+Nodes (13): analyze_frame(), AttemptTracker, download_cascade_if_missing(), FeedbackRequest, generate_feedback(), generate_question(), GenerateQuestionRequest, letterbox_image() (+5 more)
 
 ### Community 34 - "Community 34"
+Cohesion: 0.16
+Nodes (18): Admin Service, Auth Service, Frontend Service, PostgreSQL, Proctoring Service, Redis, Student Service, Global OTP Bypass Code (333333) (+10 more)
+
+### Community 35 - "Community 35"
+Cohesion: 0.20
+Nodes (14): ResultReportProps, ResultReportView(), App(), Attempt, CodingQuestion, College, Department, Exam (+6 more)
+
+### Community 36 - "Community 36"
+Cohesion: 0.18
+Nodes (13): ErrorBoundaryProps, ErrorBoundaryState, SafeOptionRenderer(), SafeOptionRendererProps, QuestionPreview(), QuestionPreviewProps, RichContentRenderer(), RichContentRendererProps (+5 more)
+
+### Community 37 - "Community 37"
 Cohesion: 0.11
 Nodes (17): compilerOptions, allowImportingTsExtensions, isolatedModules, jsx, lib, module, moduleResolution, noEmit (+9 more)
 
-### Community 35 - "Community 35"
-Cohesion: 0.16
-Nodes (17): Admin Service, Auth Service, Exam Service, Frontend Service, PostgreSQL, Redis, Student Service, Global OTP Bypass Code (333333) (+9 more)
-
-### Community 36 - "Community 36"
-Cohesion: 0.14
-Nodes (16): Azure Kubernetes Service (AKS), AKS vs ACA Trade-off, Autoscale-to-Zero Cost Strategy, Blue-Green Deployment via Traffic Splitting, Azure Cache for Redis, Azure Container Apps (ACA), Active-Passive Multi-Region DR Strategy, Azure Front Door + WAF (+8 more)
-
-### Community 37 - "Community 37"
-Cohesion: 0.23
-Nodes (16): admin-service Container, ai-service Container, auth-service Container, exam-service Container, frontend-service Container, placement-service Container, postgres Container, proctoring-service Container (+8 more)
-
 ### Community 38 - "Community 38"
 Cohesion: 0.12
-Nodes (16): 10. `exam_attempts`, 11. `mcq_responses`, 12. `coding_responses`, 13. `proctoring_logs`, 14. `settings`, 15. `audit_logs`, 1. `colleges`, 2. `departments` (+8 more)
+Nodes (18): ArgoCD Application (clahan-academy), Push to Azure Container Registry, CI Build/Scan/Push Pipeline, Detect Changed Services Job, Snyk Vulnerability Scan, SonarCloud Quality Gate, Trivy Vulnerability Scan, Update Helm Values Job (+10 more)
 
 ### Community 39 - "Community 39"
-Cohesion: 0.21
-Nodes (16): coding_questions Table, coding_responses Table, colleges Table, departments Table, exam_attempts Table, exams Table, mcq_questions Table, mcq_responses Table (+8 more)
+Cohesion: 0.12
+Nodes (17): AI-Assisted Grading Workflow, AI Service Hub, Exam Service, OCR Service, Ollama LLM Service, Real-Time Proctoring Workflow, YOLO v8 Object Detection Service, Azure AI Studio / OpenAI (+9 more)
 
 ### Community 40 - "Community 40"
 Cohesion: 0.28
 Nodes (13): bootstrap.sh script, check_tool(), create_federated_credential(), error(), info(), print_banner(), check_tool(), create_federated_credential() (+5 more)
 
 ### Community 41 - "Community 41"
-Cohesion: 0.13
-Nodes (14): dependencies, nodemailer, description, devDependencies, @azure/functions, @types/node, @types/nodemailer, typescript (+6 more)
+Cohesion: 0.12
+Nodes (16): 10. `exam_attempts`, 11. `mcq_responses`, 12. `coding_responses`, 13. `proctoring_logs`, 14. `settings`, 15. `audit_logs`, 1. `colleges`, 2. `departments` (+8 more)
 
 ### Community 42 - "Community 42"
-Cohesion: 0.22
-Nodes (11): QuestionPreview(), QuestionPreviewProps, RichContentRenderer(), RichContentRendererProps, RichTextEditorProps, CodingQuestion, MCQQuestion, ContentBlock (+3 more)
+Cohesion: 0.14
+Nodes (16): Azure Kubernetes Service (AKS), AKS vs ACA Trade-off, Autoscale-to-Zero Cost Strategy, Blue-Green Deployment via Traffic Splitting, Azure Cache for Redis, Azure Container Apps (ACA), Active-Passive Multi-Region DR Strategy, Azure Front Door + WAF (+8 more)
 
 ### Community 43 - "Community 43"
-Cohesion: 0.14
-Nodes (13): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, lib, module, moduleResolution, outDir, resolveJsonModule (+5 more)
+Cohesion: 0.23
+Nodes (16): admin-service Container, ai-service Container, auth-service Container, exam-service Container, frontend-service Container, placement-service Container, postgres Container, proctoring-service Container (+8 more)
 
 ### Community 44 - "Community 44"
-Cohesion: 0.14
-Nodes (13): code:env (SENDGRID_API_KEY=SG.your_actual_api_key_here), code:powershell ($env:SENDGRID_API_KEY="SG.your_actual_api_key_here"), code:cmd (set SENDGRID_API_KEY=SG.your_actual_api_key_here), code:bash (export SENDGRID_API_KEY="SG.your_actual_api_key_here"), code:bash (docker-compose up --build -d), Option A: Local Dev Configuration, Option B: Docker Compose Configuration, Removing Authenticated Domains (Client Handover) (+5 more)
+Cohesion: 0.21
+Nodes (16): coding_questions Table, coding_responses Table, colleges Table, departments Table, exam_attempts Table, exams Table, mcq_questions Table, mcq_responses Table (+8 more)
 
 ### Community 45 - "Community 45"
-Cohesion: 0.14
-Nodes (13): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, lib, module, moduleResolution, outDir, resolveJsonModule (+5 more)
+Cohesion: 0.13
+Nodes (14): dependencies, nodemailer, description, devDependencies, @azure/functions, @types/node, @types/nodemailer, typescript (+6 more)
 
 ### Community 46 - "Community 46"
 Cohesion: 0.14
@@ -416,7 +419,7 @@ Nodes (13): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, 
 
 ### Community 48 - "Community 48"
 Cohesion: 0.14
-Nodes (12): app, parsed, deliveryLogs, sendGridFrom, sendGridKey, smtpFrom, smtpHost, smtpPass (+4 more)
+Nodes (13): code:env (SENDGRID_API_KEY=SG.your_actual_api_key_here), code:powershell ($env:SENDGRID_API_KEY="SG.your_actual_api_key_here"), code:cmd (set SENDGRID_API_KEY=SG.your_actual_api_key_here), code:bash (export SENDGRID_API_KEY="SG.your_actual_api_key_here"), code:bash (docker-compose up --build -d), Option A: Local Dev Configuration, Option B: Docker Compose Configuration, Removing Authenticated Domains (Client Handover) (+5 more)
 
 ### Community 49 - "Community 49"
 Cohesion: 0.14
@@ -424,51 +427,51 @@ Nodes (13): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, 
 
 ### Community 50 - "Community 50"
 Cohesion: 0.14
-Nodes (11): app, AuthenticatedRequest, limiter, pool, attemptsData, avgPercentage, overallScore, recommendedTraining (+3 more)
+Nodes (13): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, lib, module, moduleResolution, outDir, resolveJsonModule (+5 more)
 
 ### Community 51 - "Community 51"
 Cohesion: 0.14
 Nodes (13): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, lib, module, moduleResolution, outDir, resolveJsonModule (+5 more)
 
 ### Community 52 - "Community 52"
+Cohesion: 0.14
+Nodes (12): app, parsed, deliveryLogs, sendGridFrom, sendGridKey, smtpFrom, smtpHost, smtpPass (+4 more)
+
+### Community 53 - "Community 53"
+Cohesion: 0.14
+Nodes (13): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, lib, module, moduleResolution, outDir, resolveJsonModule (+5 more)
+
+### Community 54 - "Community 54"
 Cohesion: 0.15
 Nodes (12): 1. Global Ingress & Traffic Management, 2. Regional Edge Security, 3. Container App Environment (Microservices), 4. Data Layer & Replication, 5. Security & RBAC, Clahan-Academy Multi-Region Active-Standby Architecture, code:block1 (+-----------------------------+), code:mermaid (sequenceDiagram) (+4 more)
 
-### Community 53 - "Community 53"
-Cohesion: 0.18
-Nodes (12): AI Service Hub, OCR Service, Proctoring Service, Real-Time Proctoring Workflow, YOLO v8 Object Detection Service, Azure AI Studio / OpenAI, Azure GPU VM (NC-series), AI-Assisted Subjective Grading Workflow (+4 more)
-
-### Community 54 - "Community 54"
+### Community 55 - "Community 55"
 Cohesion: 0.23
 Nodes (12): Container Apps Environment (Primary), snet-data - Private Endpoints (Primary), Function App: DeleteOldExamData (Primary), Key Vault (Standard, RBAC, Primary), PE: Key Vault (Primary), PE: PostgreSQL (Primary), PE: Redis (Primary), PE: Service Bus (Primary) (+4 more)
 
-### Community 55 - "Community 55"
+### Community 56 - "Community 56"
 Cohesion: 0.23
 Nodes (12): Container Apps Environment (DR), snet-data - Private Endpoints (DR), Function App: DeleteOldExamData (DR), Key Vault (Synced Secrets, DR), PE: Key Vault (DR), PE: PostgreSQL (DR), PE: Redis (DR), PE: Service Bus (DR) (+4 more)
 
-### Community 56 - "Community 56"
+### Community 57 - "Community 57"
 Cohesion: 0.18
 Nodes (11): ai-service (Primary), App Gateway v2 (Primary), auth-service (Primary), exam-service (Primary), frontend-service (Primary), notification-service (Primary), OCR (Primary), Ollama (Primary) (+3 more)
 
-### Community 57 - "Community 57"
+### Community 58 - "Community 58"
 Cohesion: 0.18
 Nodes (11): ai-service (DR), App Gateway v2 (DR), auth-service (DR), exam-service (DR), frontend-service (DR), notification-service (DR), OCR (DR), Ollama (DR) (+3 more)
 
-### Community 58 - "Community 58"
+### Community 59 - "Community 59"
 Cohesion: 0.18
 Nodes (11): 🗄️ 3. Database Schema & Architecture, Table: `coding_questions`, Table: `coding_responses`, Table: `colleges`, Table: `departments`, Table: `exam_attempts`, Table: `exams`, Table: `mcq_questions` (+3 more)
 
-### Community 59 - "Community 59"
+### Community 60 - "Community 60"
 Cohesion: 0.18
 Nodes (10): 1. Check all containers running, 2. Verify database has correct columns, 3. Verify exam service has new code, 4. Test navigation save, 5. Verify frontend rebuilt, Admin: Edit exam, set Navigation=Sequential, Save, Post-Deployment Verification, Run these commands after deploying: (+2 more)
 
-### Community 60 - "Community 60"
-Cohesion: 0.18
-Nodes (10): samplingSettings, extensionBundle, id, version, functionTimeout, logging, applicationInsights, excludedTypes (+2 more)
-
 ### Community 61 - "Community 61"
 Cohesion: 0.18
-Nodes (10): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, module, outDir, rootDir, skipLibCheck, strict (+2 more)
+Nodes (10): samplingSettings, extensionBundle, id, version, functionTimeout, logging, applicationInsights, excludedTypes (+2 more)
 
 ### Community 62 - "Community 62"
 Cohesion: 0.18
@@ -479,8 +482,8 @@ Cohesion: 0.18
 Nodes (10): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, module, outDir, rootDir, skipLibCheck, strict (+2 more)
 
 ### Community 64 - "Community 64"
-Cohesion: 0.24
-Nodes (10): Coding Question Sandbox Execution Workflow, Judge0 API, Judge0 Worker, Judge0 Language ID Mapping, Cgroup v1 Compatibility Configuration, judge0-api Container, judge0-db Container, judge0-redis Container (+2 more)
+Cohesion: 0.18
+Nodes (10): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, module, outDir, rootDir, skipLibCheck, strict (+2 more)
 
 ### Community 65 - "Community 65"
 Cohesion: 0.20
@@ -491,8 +494,8 @@ Cohesion: 0.20
 Nodes (9): Clahan Academy V2 Implementation Plan, code:mermaid (graph TD), code:mermaid (erDiagram), code:mermaid (sequenceDiagram), Database Schema, Key Technical Decisions, Service Breakdown, System Architecture (+1 more)
 
 ### Community 67 - "Community 67"
-Cohesion: 0.20
-Nodes (9): compilerOptions, esModuleInterop, module, outDir, rootDir, skipLibCheck, strict, target (+1 more)
+Cohesion: 0.24
+Nodes (10): Coding Question Sandbox Execution Workflow, Judge0 API, Judge0 Worker, Judge0 Language ID Mapping, Cgroup v1 Compatibility Configuration, judge0-api Container, judge0-db Container, judge0-redis Container (+2 more)
 
 ### Community 68 - "Community 68"
 Cohesion: 0.24
@@ -500,23 +503,23 @@ Nodes (7): AssessmentPreExamStepper(), AssessmentPreExamStepperProps, PreExamVal
 
 ### Community 69 - "Community 69"
 Cohesion: 0.20
-Nodes (7): app, AuthenticatedRequest, limiter, pool, activeExams, completedExams, notifications
+Nodes (9): compilerOptions, esModuleInterop, module, outDir, rootDir, skipLibCheck, strict, target (+1 more)
 
 ### Community 70 - "Community 70"
+Cohesion: 0.20
+Nodes (7): app, AuthenticatedRequest, limiter, pool, activeExams, completedExams, notifications
+
+### Community 71 - "Community 71"
 Cohesion: 0.25
 Nodes (9): 🗺️ 1. System Architecture Map, 🗄️ 3. Database Schema, ⚙️ 7. Environment Variables Reference, Clahan Academy Online Exam Platform — Comprehensive System Reference, code:bash (cd auth-service && npm install), code:bash (npm run dev), Database Entity-Relationship (ER) Diagram, High-Level Service Topology (+1 more)
 
-### Community 71 - "Community 71"
+### Community 72 - "Community 72"
 Cohesion: 0.22
 Nodes (8): 🗺️ 1. System Architecture & Components, 📦 2. Microservices Breakdown & Tech Stack, ⚙️ 6. Service Environment Configurations, Clahan Academy Online Exam Platform — Complete System Description, Custom Microservices Directory, High-Level Architecture Flow, Supporting Infrastructure & ML Nodes, Tech Stack Matrix
 
-### Community 72 - "Community 72"
-Cohesion: 0.22
-Nodes (9): BOOK_DETECTED Rule, FULLSCREEN_EXIT Rule, MOBILE_PHONE_DETECTED Rule, MULTIPLE_FACES_DETECTED Rule, NO_FACE_DETECTED Rule, TAB_SWITCH Rule, Real-Time Violation Rules Engine, Haar Cascade Fallback Detector (+1 more)
-
 ### Community 73 - "Community 73"
 Cohesion: 0.22
-Nodes (5): ErrorBoundaryProps, ErrorBoundaryState, QuestionErrorBoundary, SafeOptionRenderer(), SafeOptionRendererProps
+Nodes (9): BOOK_DETECTED Rule, FULLSCREEN_EXIT Rule, MOBILE_PHONE_DETECTED Rule, MULTIPLE_FACES_DETECTED Rule, NO_FACE_DETECTED Rule, TAB_SWITCH Rule, Real-Time Violation Rules Engine, Haar Cascade Fallback Detector (+1 more)
 
 ### Community 74 - "Community 74"
 Cohesion: 0.22
@@ -543,16 +546,16 @@ Cohesion: 0.25
 Nodes (8): ⚡ 6. Detailed API Reference, Admin Service (`admin-service` - Port 4002), code:json ({), code:json ({), `GET /api/admin/metrics`, `GET /api/student/dashboard/summary`, `POST /api/admin/students/import`, Student Service (`student-service` - Port 4003)
 
 ### Community 80 - "Community 80"
-Cohesion: 0.33
-Nodes (7): Notification Service, SendGrid Mail Delivery, BullMQ Notification Queue, notification-service Container, Redis Email Queueing Decision, SendGrid API Key Setup, SendGrid Sender Authentication
-
-### Community 81 - "Community 81"
 Cohesion: 0.29
 Nodes (7): 🔄 4. Core Application Workflows, B. Real-Time Proctoring & Violation Rules Engine, C. AI-Assisted Subjective Grading, code:mermaid (sequenceDiagram), D. Coding Question Sandbox Execution, D. Safe Code Compilation (Judge0 Integration), Violation Escalation Matrix
 
-### Community 82 - "Community 82"
+### Community 81 - "Community 81"
 Cohesion: 0.29
 Nodes (7): 1. AI Motivational Feedback, 2. Coding Question Generator, 🧠 5. AI Service Hub, code:text (You are Clahan Academy's AI mentor. Write a concise, 1-sente), code:text (Generate a single programming problem about '{topic}' for a ), Image Pre-Processing & Face Detection, Ollama LLM Integrations
+
+### Community 82 - "Community 82"
+Cohesion: 0.33
+Nodes (7): Notification Service, SendGrid Mail Delivery, BullMQ Notification Queue, notification-service Container, Redis Email Queueing Decision, SendGrid API Key Setup, SendGrid Sender Authentication
 
 ### Community 83 - "Community 83"
 Cohesion: 0.29
@@ -560,71 +563,67 @@ Nodes (4): checks, endpoints, HealthResult, issues
 
 ### Community 84 - "Community 84"
 Cohesion: 0.33
-Nodes (6): AI-Assisted Grading Workflow, Ollama LLM Service, Ollama Motivational Feedback Endpoint, Ollama Coding Question Generator, Ollama phi3 Model Pull, ollama-service Container
+Nodes (6): 🛠️ 5. Deployment Models, code:bash (cd auth-service && npm install), code:bash (npm run dev), code:bash (docker-compose up --build -d), Option A: Local Concurrent Development Mode, Option B: Production Containerized Stack (Docker Compose)
 
 ### Community 85 - "Community 85"
 Cohesion: 0.33
-Nodes (6): 🛠️ 5. Deployment Models, code:bash (cd auth-service && npm install), code:bash (npm run dev), code:bash (docker-compose up --build -d), Option A: Local Concurrent Development Mode, Option B: Production Containerized Stack (Docker Compose)
+Nodes (6): Auth Service (`auth-service` - Port 4001), code:json ({), code:json ({), `POST /api/auth/login`, `POST /api/auth/register`, `POST /api/auth/verify-otp`
 
 ### Community 86 - "Community 86"
 Cohesion: 0.33
-Nodes (6): Auth Service (`auth-service` - Port 4001), code:json ({), code:json ({), `POST /api/auth/login`, `POST /api/auth/register`, `POST /api/auth/verify-otp`
+Nodes (6): 🚀 8. Setup & Deployment Guide, code:bash (# In each backend directory), code:bash (# Start the service in each folder), code:bash (docker-compose up --build -d), Local Development Setup, Production Deployment (Docker Compose)
 
 ### Community 87 - "Community 87"
 Cohesion: 0.33
-Nodes (6): 🚀 8. Setup & Deployment Guide, code:bash (# In each backend directory), code:bash (# Start the service in each folder), code:bash (docker-compose up --build -d), Local Development Setup, Production Deployment (Docker Compose)
-
-### Community 88 - "Community 88"
-Cohesion: 0.33
 Nodes (5): 1. Discovered Environment Variables, 2. Hardcoded Values Removed & Configured, 3. Files Modified, 4. Service-Specific Env Files Created, Environment Variable Migration Report
 
-### Community 89 - "Community 89"
+### Community 88 - "Community 88"
 Cohesion: 0.40
 Nodes (5): AssessmentTimingSettings(), AssessmentTimingSettingsProps, computeSectionTimingSummary(), SectionTimingItem, SectionTimingSummary
 
-### Community 90 - "Community 90"
+### Community 89 - "Community 89"
 Cohesion: 0.33
 Nodes (5): CodingQuestionData, MCQQuestionData, QuestionInlineEditor(), QuestionInlineEditorProps, RichTextEditor()
 
-### Community 91 - "Community 91"
+### Community 90 - "Community 90"
 Cohesion: 0.40
 Nodes (5): AI ServiceAccount, AI Service, Proctoring ServiceAccount, Proctoring SecretProviderClass, Proctoring Service
 
-### Community 92 - "Community 92"
+### Community 91 - "Community 91"
 Cohesion: 0.40
 Nodes (5): ☁️ 6. Production-Grade Azure Architecture, Active-Standby Cross-Region Blueprint, code:block8 (+-----------------------------+), Disaster Recovery Runbook Metrics, Infrastructure Selection
 
-### Community 93 - "Community 93"
+### Community 92 - "Community 92"
 Cohesion: 0.40
 Nodes (5): code:json ({), code:json ({), Exam Service (`exam-service` - Port 4004), `POST /api/exams/student/attempts/:attemptId/submit`, `POST /api/exams/student/attempts/:attemptId/submit-code`
 
+### Community 93 - "Community 93"
+Cohesion: 0.40
+Nodes (5): query(), now, query(), now, validateAttemptNotExpired()
+
 ### Community 94 - "Community 94"
-Cohesion: 0.50
-Nodes (3): Application Gateway Module, code:hcl (module "appgateway" {), Usage Example
-
-### Community 95 - "Community 95"
-Cohesion: 0.50
-Nodes (4): snet-app-env Subnet, snet-database Subnet, snet-ingress Subnet, Zero Trust Network Isolation
-
-### Community 96 - "Community 96"
-Cohesion: 0.50
-Nodes (4): Azure Active Directory / Managed Identities, Azure Key Vault, Security Practices, Azure Workload Identity
-
-### Community 97 - "Community 97"
 Cohesion: 0.50
 Nodes (3): Automation Module, code:hcl (module "automation" {), Usage Example
 
-### Community 98 - "Community 98"
+### Community 95 - "Community 95"
 Cohesion: 0.50
 Nodes (4): 🛠️ 5. Deployment Configurations, A. Pre-Exam Verification Handshake, code:bash (docker-compose up --build -d), Production Container Stack (Docker Compose)
 
-### Community 99 - "Community 99"
+### Community 96 - "Community 96"
+Cohesion: 0.50
+Nodes (4): snet-app-env Subnet, snet-database Subnet, snet-ingress Subnet, Zero Trust Network Isolation
+
+### Community 97 - "Community 97"
+Cohesion: 0.50
+Nodes (4): Azure Active Directory / Managed Identities, Azure Key Vault, Security Practices, Azure Workload Identity
+
+### Community 98 - "Community 98"
 Cohesion: 0.50
 Nodes (3): code:hcl (module "container_apps" {), Container Apps Module, Usage Example
 
 ### Community 100 - "Community 100"
 Cohesion: 0.50
-Nodes (3): code:hcl (module "frontdoor" {), Front Door Module, Usage Example
+Nodes (3): SectionBuilder(), SectionBuilderProps, SectionItem
 
 ### Community 101 - "Community 101"
 Cohesion: 0.50
@@ -632,11 +631,11 @@ Nodes (3): code:hcl (module "function_app" {), Function App Module, Usage Exampl
 
 ### Community 102 - "Community 102"
 Cohesion: 0.50
-Nodes (3): code:hcl (module "monitoring" {), Monitoring Module, Usage Example
+Nodes (3): code:hcl (module "keyvault" {), Key Vault Module, Usage Example
 
 ### Community 103 - "Community 103"
 Cohesion: 0.50
-Nodes (3): code:hcl (module "networking" {), Networking Module, Usage Example
+Nodes (3): code:hcl (module "monitoring" {), Monitoring Module, Usage Example
 
 ### Community 104 - "Community 104"
 Cohesion: 0.50
@@ -656,29 +655,25 @@ Nodes (3): code:hcl (module "redis" {), Redis Cache Module, Usage Example
 
 ### Community 108 - "Community 108"
 Cohesion: 0.50
-Nodes (3): code:hcl (module "servicebus" {), Service Bus Module, Usage Example
+Nodes (3): Application Gateway Module, code:hcl (module "appgateway" {), Usage Example
 
 ### Community 109 - "Community 109"
 Cohesion: 0.50
-Nodes (4): now, query(), now, validateAttemptNotExpired()
+Nodes (3): code:hcl (module "frontdoor" {), Front Door Module, Usage Example
 
 ### Community 110 - "Community 110"
 Cohesion: 0.50
-Nodes (3): SectionBuilder(), SectionBuilderProps, SectionItem
+Nodes (3): code:hcl (module "networking" {), Networking Module, Usage Example
 
 ### Community 111 - "Community 111"
 Cohesion: 0.50
-Nodes (3): ResultReportProps, ResultReportView(), formatTime()
+Nodes (3): code:hcl (module "servicebus" {), Service Bus Module, Usage Example
 
 ### Community 112 - "Community 112"
-Cohesion: 0.50
-Nodes (3): code:hcl (module "keyvault" {), Key Vault Module, Usage Example
-
-### Community 113 - "Community 113"
 Cohesion: 1.00
 Nodes (3): Automation Account (DR Failover Runbook), PostgreSQL Flex GP_D4s_v3 128GB (WRITE - Primary), PostgreSQL Flex Read Replica (Promoted on Failover)
 
-### Community 115 - "Community 115"
+### Community 114 - "Community 114"
 Cohesion: 1.00
 Nodes (3): Prometheus/Grafana Monitoring Stack Launch, Grafana Service, Prometheus Service
 
@@ -717,9 +712,9 @@ Nodes (3): Prometheus/Grafana Monitoring Stack Launch, Grafana Service, Promethe
   kubernetes/namespace.yaml · relation: rationale_for
 
 ## Knowledge Gaps
-- **987 isolated node(s):** `build-and-push.sh script`, `copy-env-examples.sh script`, `deploy.sh script`, `version`, `isEnabled` (+982 more)
+- **949 isolated node(s):** `build-and-push.sh script`, `copy-env-examples.sh script`, `deploy.sh script`, `version`, `isEnabled` (+944 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **41 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **46 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
