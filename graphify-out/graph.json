@@ -1938,7 +1938,7 @@
       "label": "otp",
       "file_type": "code",
       "source_file": "services/auth-service/src/index.ts",
-      "source_location": "L259",
+      "source_location": "L258",
       "id": "src_index_otp",
       "community": 8,
       "norm_label": "otp"
@@ -1947,7 +1947,7 @@
       "label": "accessToken",
       "file_type": "code",
       "source_file": "services/auth-service/src/index.ts",
-      "source_location": "L390",
+      "source_location": "L389",
       "id": "src_index_accesstoken",
       "community": 8,
       "norm_label": "accesstoken"
@@ -1956,7 +1956,7 @@
       "label": "refreshToken",
       "file_type": "code",
       "source_file": "services/auth-service/src/index.ts",
-      "source_location": "L407",
+      "source_location": "L406",
       "id": "src_index_refreshtoken",
       "community": 8,
       "norm_label": "refreshtoken"
@@ -1965,7 +1965,7 @@
       "label": "newAccessToken",
       "file_type": "code",
       "source_file": "services/auth-service/src/index.ts",
-      "source_location": "L468",
+      "source_location": "L467",
       "id": "src_index_newaccesstoken",
       "community": 8,
       "norm_label": "newaccesstoken"
@@ -1974,7 +1974,7 @@
       "label": "server",
       "file_type": "code",
       "source_file": "services/auth-service/src/index.ts",
-      "source_location": "L612",
+      "source_location": "L611",
       "id": "services_auth_service_src_index_ts_src_index_server",
       "community": 8,
       "norm_label": "server"
@@ -15029,9 +15029,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L737",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_hascontentblocks",
-      "confidence_score": 1.0
+      "target": "src_index_hascontentblocks"
     },
     {
       "relation": "contains",
@@ -15039,9 +15039,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L740",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_hasimages",
-      "confidence_score": 1.0
+      "target": "src_index_hasimages"
     },
     {
       "relation": "contains",
@@ -15229,9 +15229,9 @@
       "source_file": "services/exam-service/src/index.ts",
       "source_location": "L702",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "services_exam_service_src_index_ts",
-      "target": "src_index_sanitizejsonb",
-      "confidence_score": 1.0
+      "target": "src_index_sanitizejsonb"
     },
     {
       "relation": "contains",
@@ -25518,5 +25518,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "c8da7c3e4489aba7cddca9e97e642a176100dff5"
+  "built_at_commit": "c07ffbd21ded2541f5ea152638f37d17b993fb4c"
 }

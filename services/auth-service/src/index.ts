@@ -233,8 +233,8 @@ app.post('/api/auth/register', async (req, res) => {
       `INSERT INTO users (
         email, password_hash, role, full_name, phone, roll_number,
         college_id, department_id, batch_id, trainer_id, year, github_profile, linkedin_profile,
-        profile_photo_url, status, email_verified, raw_password
-      ) VALUES ($1, $2, 'student', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'pending', FALSE, $14) RETURNING id, email, full_name, batch_id`,
+        profile_photo_url, status, email_verified
+      ) VALUES ($1, $2, 'student', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'pending', FALSE) RETURNING id, email, full_name, batch_id`,
       [
         email,
         hashedPassword,
@@ -248,8 +248,7 @@ app.post('/api/auth/register', async (req, res) => {
         year,
         githubProfile || null,
         linkedinProfile || null,
-        profilePhotoUrl || null,
-        password
+        profilePhotoUrl || null
       ]
     );
 
