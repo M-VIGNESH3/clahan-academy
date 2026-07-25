@@ -1535,7 +1535,7 @@ export default function App() {
             batchId: formattedEx.batchId || '',
             trainerId: formattedEx.trainerId || '',
             year: formattedEx.year || '1st Year',
-            enableFaceDetection: formattedEx.enableFaceDetection !== false,
+            enableFaceDetection: formattedEx.enableFaceDetection === true || formattedEx.enableFaceDetection === 'true' || formattedEx.enable_face_detection === true || formattedEx.enable_face_detection === 'true',
             enableSectionCutoff: formattedEx.enableSectionCutoff === true,
             mcqCutoffPercentage: formattedEx.mcqCutoffPercentage || 50,
             codingCutoffPercentage: formattedEx.codingCutoffPercentage || 50,
@@ -2173,7 +2173,10 @@ export default function App() {
         ...examForm,
         durationMinutes: isNaN(durMins) ? 60 : durMins,
         cutoffPercentage: isNaN(cutPct) ? 50 : cutPct,
-        scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString()
+        scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
+        navigationMode: examForm.navigationMode || 'free',
+        submissionMode: examForm.submissionMode || 'manual',
+        enableFaceDetection: examForm.enableFaceDetection === true
       };
       const res = await fetch(`${API_EXAMS}`, {
         method: 'POST',
@@ -2243,7 +2246,10 @@ export default function App() {
         ...examForm,
         durationMinutes: isNaN(durMins) ? 60 : durMins,
         cutoffPercentage: isNaN(cutPct) ? 50 : cutPct,
-        scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString()
+        scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
+        navigationMode: examForm.navigationMode || 'free',
+        submissionMode: examForm.submissionMode || 'manual',
+        enableFaceDetection: examForm.enableFaceDetection === true
       };
       const res = await fetch(`${API_EXAMS}/${editingExamId}`, {
         method: 'PUT',
@@ -2314,6 +2320,10 @@ export default function App() {
     const schedDate = ex.schedule_date || ex.scheduleDate || new Date().toISOString();
     const exType = ex.exam_type || ex.examType || 'crt';
 
+    const faceDetectionValid = ex.enable_face_detection === true || ex.enable_face_detection === 'true' || ex.enableFaceDetection === true || ex.enableFaceDetection === 'true';
+    const navMode = ex.navigation_mode || ex.navigationMode || 'free';
+    const subMode = ex.submission_mode || ex.submissionMode || 'manual';
+
     return {
       ...ex,
       name: ex.name || '',
@@ -2341,8 +2351,8 @@ export default function App() {
       trainerId: ex.trainer_id || ex.trainerId || '',
       trainer_id: ex.trainer_id || ex.trainerId || '',
       year: ex.year || '1st Year',
-      enableFaceDetection: ex.enable_face_detection !== false,
-      enable_face_detection: ex.enable_face_detection !== false,
+      enableFaceDetection: faceDetectionValid,
+      enable_face_detection: faceDetectionValid,
       enableSectionCutoff: ex.enable_section_cutoff === true || ex.enableSectionCutoff === true,
       enable_section_cutoff: ex.enable_section_cutoff === true || ex.enableSectionCutoff === true,
       mcqCutoffPercentage: mcqCutPct,
@@ -2353,8 +2363,10 @@ export default function App() {
       mcq_cutoff_marks: mcqCutMarks,
       codingCutoffMarks: codingCutMarks,
       coding_cutoff_marks: codingCutMarks,
-      navigationMode: ex.navigation_mode || ex.navigationMode || 'free',
-      navigation_mode: ex.navigation_mode || ex.navigationMode || 'free'
+      navigationMode: navMode,
+      navigation_mode: navMode,
+      submissionMode: subMode,
+      submission_mode: subMode
     };
   };
 
@@ -2388,7 +2400,7 @@ export default function App() {
       batchId: ex.batch_id || ex.batchId || '',
       trainerId: ex.trainer_id || ex.trainerId || '',
       year: ex.year || '1st Year',
-      enableFaceDetection: ex.enable_face_detection !== false,
+      enableFaceDetection: ex.enable_face_detection === true || ex.enable_face_detection === 'true' || ex.enableFaceDetection === true || ex.enableFaceDetection === 'true',
       enableSectionCutoff: ex.enable_section_cutoff === true || ex.enableSectionCutoff === true,
       mcqCutoffPercentage: ex.mcq_cutoff_percentage !== undefined ? Number(ex.mcq_cutoff_percentage) : (ex.mcqCutoffPercentage !== undefined ? Number(ex.mcqCutoffPercentage) : 50),
       codingCutoffPercentage: ex.coding_cutoff_percentage !== undefined ? Number(ex.coding_cutoff_percentage) : (ex.codingCutoffPercentage !== undefined ? Number(ex.codingCutoffPercentage) : 50),
@@ -9309,7 +9321,7 @@ export default function App() {
                             Sections ({studentExamSections.length})
                           </span>
                           <span className="text-[8px] font-bold text-indigo-400 uppercase">
-                            {currentExam?.navigation_mode || 'Free'}
+                            {currentExam?.navigation_mode || currentExam?.navigationMode || 'Free'}
                           </span>
                         </div>
                           {/* Centralized Section Switch Request Functions */}
@@ -9364,7 +9376,7 @@ export default function App() {
                               const sCodings = examCodings.filter(q => q.section_id === sect.id || (!q.section_id && idx === 0));
                               const sTotal = sMcqs.length + sCodings.length;
                               
-                              const navMode = currentExam?.navigation_mode || 'free';
+                              const navMode = currentExam?.navigation_mode || currentExam?.navigationMode || 'free';
                               const isLocked = navMode !== 'free' && (
                                 completedSections[sect.id] === true || (
                                   (navMode === 'locked' || navMode === 'sequential_locked') && 
@@ -9410,7 +9422,7 @@ export default function App() {
                         <div className="flex flex-col items-center gap-3 py-4 border-b border-white/5">
                           {studentExamSections.map((sect, idx) => {
                             const isCurrent = sect.id === activeSectionId;
-                            const navMode = currentExam?.navigation_mode || 'free';
+                            const navMode = currentExam?.navigation_mode || currentExam?.navigationMode || 'free';
                             const currentIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
                             const isLocked = navMode !== 'free' && (
                               completedSections[sect.id] === true || (
@@ -9427,7 +9439,7 @@ export default function App() {
 
                                     const targetIdx = studentExamSections.findIndex(s => s.id === targetSectionId);
                                     const currentIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
-                                    const navMode = currentExam?.navigation_mode || 'free';
+                                    const navMode = currentExam?.navigation_mode || currentExam?.navigationMode || 'free';
 
                                     // Free Navigation Mode: Completely ignore locking & confirmation modal
                                     if (navMode === 'free') {
@@ -10504,7 +10516,7 @@ export default function App() {
                 const secUnanswered = currentSectionQuestions.length - secAnswered;
 
                 const activeSecObj = studentExamSections.find(s => s.id === activeSectionId);
-                const navMode = currentExam?.navigation_mode || 'free';
+                const navMode = currentExam?.navigation_mode || currentExam?.navigationMode || 'free';
                 const isLastSec = curSecIdx === studentExamSections.length - 1;
 
                 const secTimeStr = sectionTimeLeft !== null ? `${Math.floor(sectionTimeLeft / 60).toString().padStart(2, '0')}:${(sectionTimeLeft % 60).toString().padStart(2, '0')}` : null;

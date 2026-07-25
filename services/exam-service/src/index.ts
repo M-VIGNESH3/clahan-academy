@@ -39,8 +39,12 @@ pool.on('error', (err) => {
 });
 const query = (text: string, params?: any[]) => pool.query(text, params);
 
-pool.query(`ALTER TABLE exams ADD COLUMN IF NOT EXISTS navigation_mode VARCHAR(50) DEFAULT 'free'; ALTER TABLE exams ADD COLUMN IF NOT EXISTS skip_instructions BOOLEAN DEFAULT FALSE;`).catch(err => {
-  console.log('DB Column navigation_mode addition log:', err.message);
+pool.query(`
+  ALTER TABLE exams ADD COLUMN IF NOT EXISTS navigation_mode VARCHAR(50) DEFAULT 'free';
+  ALTER TABLE exams ADD COLUMN IF NOT EXISTS submission_mode VARCHAR(50) DEFAULT 'manual';
+  ALTER TABLE exams ADD COLUMN IF NOT EXISTS skip_instructions BOOLEAN DEFAULT FALSE;
+`).catch(err => {
+  console.log('DB Column navigation_mode & submission_mode addition log:', err.message);
 });
 
 pool.query(`
@@ -272,7 +276,7 @@ app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res)
 // Create Exam
 app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
   try {
-    const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId, enableFaceDetection, enableSectionCutoff, mcqCutoffPercentage, codingCutoffPercentage, mcqCutoffMarks, codingCutoffMarks } = req.body;
+    const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId, enableFaceDetection, enableSectionCutoff, mcqCutoffPercentage, codingCutoffPercentage, mcqCutoffMarks, codingCutoffMarks, navigationMode, submissionMode } = req.body;
     if (!name || !examType || !durationMinutes) {
       return res.status(400).json({ error: 'Missing required parameters: name, examType, durationMinutes' });
     }
@@ -294,15 +298,18 @@ app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
       finalYear = null;
     }
 
+    const submissionModeValue = req.body.submissionMode || req.body.submission_mode || 'manual';
+
     const result = await query(
       `INSERT INTO exams (
         name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts,
         schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published, trainer_id, enable_face_detection,
-        enable_section_cutoff, mcq_cutoff_percentage, coding_cutoff_percentage, mcq_cutoff_marks, coding_cutoff_marks, navigation_mode
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::uuid[], $11, $12, $13, FALSE, $14, $15, $16, $17, $18, $19, $20, $21) RETURNING *`,
+        enable_section_cutoff, mcq_cutoff_percentage, coding_cutoff_percentage, mcq_cutoff_marks, coding_cutoff_marks, navigation_mode, submission_mode
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::uuid[], $11, $12, $13, FALSE, $14, $15, $16, $17, $18, $19, $20, $21, $22) RETURNING *`,
       [
         name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, finalScheduleDate, finalCollegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, trainerId || null, enableFaceDetection !== false,
-        enableSectionCutoff === true, mcqCutoffPercentage !== undefined && mcqCutoffPercentage !== null ? mcqCutoffPercentage : 50.00, codingCutoffPercentage !== undefined && codingCutoffPercentage !== null ? codingCutoffPercentage : 50.00, mcqCutoffMarks !== undefined && mcqCutoffMarks !== null ? mcqCutoffMarks : 0.00, codingCutoffMarks !== undefined && codingCutoffMarks !== null ? codingCutoffMarks : 0.00, req.body.navigationMode || req.body.navigation_mode || 'free'
+        enableSectionCutoff === true, mcqCutoffPercentage !== undefined && mcqCutoffPercentage !== null ? mcqCutoffPercentage : 50.00, codingCutoffPercentage !== undefined && codingCutoffPercentage !== null ? codingCutoffPercentage : 50.00, mcqCutoffMarks !== undefined && mcqCutoffMarks !== null ? mcqCutoffMarks : 0.00, codingCutoffMarks !== undefined && codingCutoffMarks !== null ? codingCutoffMarks : 0.00, req.body.navigationMode || req.body.navigation_mode || 'free',
+        submissionModeValue
       ]
     );
 
@@ -364,7 +371,7 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
 // Update Exam
 app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) => {
   try {
-    const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId, enableFaceDetection, enableSectionCutoff, mcqCutoffPercentage, codingCutoffPercentage, mcqCutoffMarks, codingCutoffMarks } = req.body;
+    const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId, enableFaceDetection, enableSectionCutoff, mcqCutoffPercentage, codingCutoffPercentage, mcqCutoffMarks, codingCutoffMarks, navigationMode, submissionMode } = req.body;
     
     const exType = examType || req.body.exam_type || 'mcq';
     const durMins = parseInt(durationMinutes || req.body.duration_minutes || 60, 10);
@@ -412,17 +419,20 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
       : req.body.enable_section_cutoff;
     const sectionCutoffEnabled = rawSectionCutoff === true || rawSectionCutoff === 'true';
 
+    const submissionModeValue = req.body.submissionMode || req.body.submission_mode || 'manual';
+
     const result = await query(
       `UPDATE exams 
        SET name = $1, description = $2, exam_type = $3, duration_minutes = $4,
            cutoff_percentage = $5, allowed_attempts = $6, schedule_date = $7,
            college_id = $8, department_id = $9, department_ids = $10::uuid[], batch_id = $11, year = $12, window_open_minutes = $13, trainer_id = $14, enable_face_detection = $15,
-           enable_section_cutoff = $16, mcq_cutoff_percentage = $17, coding_cutoff_percentage = $18, mcq_cutoff_marks = $19, coding_cutoff_marks = $20, navigation_mode = $21
-       WHERE id = $22 RETURNING *`,
+           enable_section_cutoff = $16, mcq_cutoff_percentage = $17, coding_cutoff_percentage = $18, mcq_cutoff_marks = $19, coding_cutoff_marks = $20, navigation_mode = $21, submission_mode = $22
+       WHERE id = $23 RETURNING *`,
       [
         exName, description || '', exType, durMins, finalCutoffPct, finalAllowedAttempts, finalScheduleDate, finalCollegeId, finalDeptId, finalDeptIds, finalBatchId, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, finalTrainerId, faceDetectionEnabled,
         sectionCutoffEnabled, mcqCutoffPercentage !== undefined && mcqCutoffPercentage !== null ? mcqCutoffPercentage : 50.00, codingCutoffPercentage !== undefined && codingCutoffPercentage !== null ? codingCutoffPercentage : 50.00, mcqCutoffMarks !== undefined && mcqCutoffMarks !== null ? mcqCutoffMarks : 0.00, codingCutoffMarks !== undefined && codingCutoffMarks !== null ? codingCutoffMarks : 0.00,
         req.body.navigationMode || req.body.navigation_mode || 'free',
+        submissionModeValue,
         req.params.id
       ]
     );
