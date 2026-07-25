@@ -448,6 +448,11 @@ export default function App() {
   const [markedForReview, setMarkedForReview] = useState<Record<string, boolean>>({});
   const [activeResultReport, setActiveResultReport] = useState<any>(null);
 
+  // Question Upload & Save States
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isSavingQuestion, setIsSavingQuestion] = useState(false);
+
   // Dev Debug Panel States
   const [cameraConnected, setCameraConnected] = useState(false);
   const [cameraStreamActive, setCameraStreamActive] = useState(false);
@@ -2251,6 +2256,13 @@ export default function App() {
         submissionMode: examForm.submissionMode || 'manual',
         enableFaceDetection: examForm.enableFaceDetection === true
       };
+
+      console.log('=== UPDATING EXAM ===');
+      console.log('examId:', editingExamId);
+      console.log('navigationMode:', payload.navigationMode);
+      console.log('submissionMode:', payload.submissionMode);
+      console.log('enableFaceDetection:', payload.enableFaceDetection);
+
       const res = await fetch(`${API_EXAMS}/${editingExamId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -2258,52 +2270,26 @@ export default function App() {
       });
       if (res.ok) {
         const updatedExam = await res.json();
+        console.log('=== EXAM UPDATED RESPONSE ===');
+        console.log('navigation_mode from server:', updatedExam.navigation_mode);
+        console.log('submission_mode from server:', updatedExam.submission_mode);
+        console.log('enable_face_detection from server:', updatedExam.enable_face_detection);
+
         const formatted = formatExamItem(updatedExam);
         showToast('Assessment details updated successfully!');
         setSelectedExamIdForQuestions(editingExamId);
         await loadAdminExamQuestions(editingExamId);
         setAdminExams(prev => prev.map(e => e.id === editingExamId ? formatted : e));
         await loadAdminDashboard();
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMsg = errorData.error || errorData.message || `Server error: ${res.status}`;
+        console.error('updateExam API error:', errorMsg);
+        showToast(`Failed to save: ${errorMsg}`, 'error');
       }
-    } catch (err) {
-      setAdminExams(prev => prev.map(e => e.id === editingExamId ? {
-        ...e,
-        name: examForm.name,
-        exam_type: examForm.examType,
-        duration_minutes: examForm.durationMinutes,
-        cutoff_percentage: examForm.cutoffPercentage,
-        allowed_attempts: examForm.allowedAttempts,
-        schedule_date: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
-        window_open_minutes: examForm.windowOpenMinutes,
-        year: examForm.year,
-        college_id: examForm.collegeId,
-        department_id: examForm.departmentId,
-        department_ids: examForm.departmentIds,
-        batch_id: examForm.batchId,
-        trainer_id: examForm.trainerId,
-        enable_face_detection: examForm.enableFaceDetection !== false,
-        enable_section_cutoff: examForm.enableSectionCutoff === true,
-        mcq_cutoff_percentage: examForm.mcqCutoffPercentage || 50,
-        coding_cutoff_percentage: examForm.codingCutoffPercentage || 50,
-        mcq_cutoff_marks: examForm.mcqCutoffMarks || 0,
-        coding_cutoff_marks: examForm.codingCutoffMarks || 0
-      } : e));
-      if (!isCreatingNewExam) {
-        setEditingExamId(null);
-        setExamForm({
-          name: '', description: '', examType: 'mcq' as any,
-          durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
-          windowOpenMinutes: 10,
-          collegeId: '', departmentId: '', departmentIds: [], batchId: '', trainerId: '', year: '1st Year',
-          enableFaceDetection: true,
-          enableSectionCutoff: false,
-          mcqCutoffPercentage: 50,
-          codingCutoffPercentage: 50,
-          mcqCutoffMarks: 0,
-          codingCutoffMarks: 0
-        });
-      }
-      showToast('Exam configuration updated successfully (Simulated)');
+    } catch (err: any) {
+      console.error('updateExam network error:', err);
+      showToast('Failed to save exam settings. Please check your connection and try again.', 'error');
     }
   };
 
@@ -2813,7 +2799,9 @@ export default function App() {
   const saveMcqQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedExamIdForQuestions) return;
+    if (isSavingQuestion) return;
 
+    setIsSavingQuestion(true);
     showToast('Saving question with images... please wait', 'info');
 
     const payload = {
@@ -2831,47 +2819,47 @@ export default function App() {
       content_blocks: mcqForm.contentBlocks
     };
 
-    if (editingMcqId) {
-      // Edit / Update MCQ mode
-      setAdminSelectedExamMCQs(prev => prev.map(item => item.id === editingMcqId ? {
-        ...item,
-        question: mcqForm.question,
-        option_a: mcqForm.optionA,
-        option_b: mcqForm.optionB,
-        option_c: mcqForm.optionC,
-        option_d: mcqForm.optionD,
-        option_a_image: mcqForm.optionAImage,
-        option_b_image: mcqForm.optionBImage,
-        option_c_image: mcqForm.optionCImage,
-        option_d_image: mcqForm.optionDImage,
-        correct_answer: mcqForm.correctAnswer,
-        marks: mcqForm.marks,
-        difficulty: mcqForm.difficulty,
-        content_blocks: mcqForm.contentBlocks,
-        images: mcqForm.images
-      } : item));
-      if (!editingMcqId.startsWith('mock-')) {
-        try {
-          await fetch(`${API_EXAMS}/mcq/${editingMcqId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify(payload)
-          });
-          showToast('MCQ Question updated successfully!');
-        } catch {
-          showToast('MCQ Question updated (Simulated)');
-        }
-      } else {
-        showToast('MCQ Question updated');
-      }
-      setEditingMcqId(null);
-      setIsSectionModalOpen(false);
-      setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '', contentBlocks: [], images: [], correctAnswer: 'A', marks: 1, difficulty: 'medium' });
-      return;
-    }
-
-    // Create New MCQ mode
     try {
+      if (editingMcqId) {
+        // Edit / Update MCQ mode
+        setAdminSelectedExamMCQs(prev => prev.map(item => item.id === editingMcqId ? {
+          ...item,
+          question: mcqForm.question,
+          option_a: mcqForm.optionA,
+          option_b: mcqForm.optionB,
+          option_c: mcqForm.optionC,
+          option_d: mcqForm.optionD,
+          option_a_image: mcqForm.optionAImage,
+          option_b_image: mcqForm.optionBImage,
+          option_c_image: mcqForm.optionCImage,
+          option_d_image: mcqForm.optionDImage,
+          correct_answer: mcqForm.correctAnswer,
+          marks: mcqForm.marks,
+          difficulty: mcqForm.difficulty,
+          content_blocks: mcqForm.contentBlocks,
+          images: mcqForm.images
+        } : item));
+        if (!editingMcqId.startsWith('mock-')) {
+          try {
+            await fetch(`${API_EXAMS}/mcq/${editingMcqId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify(payload)
+            });
+            showToast('MCQ Question updated successfully!');
+          } catch {
+            showToast('MCQ Question updated (Simulated)');
+          }
+        } else {
+          showToast('MCQ Question updated');
+        }
+        setEditingMcqId(null);
+        setIsSectionModalOpen(false);
+        setMcqForm({ question: '', optionA: '', optionB: '', optionC: '', optionD: '', optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '', contentBlocks: [], images: [], correctAnswer: 'A', marks: 1, difficulty: 'medium' });
+        return;
+      }
+
+      // Create New MCQ mode
       const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/mcq`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -2901,6 +2889,8 @@ export default function App() {
       console.error("Save MCQ error:", err);
       showToast("Network error: Failed to save question", 'error');
       alert("Network error: Failed to save question");
+    } finally {
+      setIsSavingQuestion(false);
     }
   };
 
@@ -8094,6 +8084,25 @@ export default function App() {
                                     onChange={blocks => setMcqForm(prev => ({ ...prev, contentBlocks: blocks }))}
                                   />
                                 </div>
+                                
+                                {/* Image Upload Progress Bar UI */}
+                                {isUploadingImage && (
+                                  <div className="w-full mb-3 p-3 bg-slate-800 border border-indigo-500/30 rounded-xl">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-xs text-indigo-300 font-bold flex items-center gap-2">
+                                        <svg className="animate-spin h-3.5 w-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                        </svg>
+                                        Processing & compressing image...
+                                      </span>
+                                      <span className="text-xs text-indigo-300 font-bold">{uploadProgress}%</span>
+                                    </div>
+                                    <div className="w-full bg-slate-700 rounded-full h-2">
+                                      <div className="bg-indigo-500 h-2 rounded-full transition-all duration-200" style={{ width: `${uploadProgress}%` }} />
+                                    </div>
+                                  </div>
+                                )}
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                   {[
@@ -8132,14 +8141,40 @@ export default function App() {
                                                 accept="image/*"
                                                 onChange={async e => {
                                                   const file = e.target.files?.[0];
-                                                  if (file) {
-                                                    const reader = new FileReader();
-                                                    reader.onload = () => {
-                                                      if (typeof reader.result === 'string') {
-                                                        setMcqForm(prev => ({ ...prev, [opt.imgKey]: reader.result }));
+                                                  if (!file) return;
+
+                                                  if (file.size > 5 * 1024 * 1024) {
+                                                    showToast('Image is very large. Consider using a smaller image.', 'warning');
+                                                  }
+
+                                                  setIsUploadingImage(true);
+                                                  setUploadProgress(0);
+
+                                                  const progressInterval = setInterval(() => {
+                                                    setUploadProgress(prev => {
+                                                      if (prev >= 85) {
+                                                        clearInterval(progressInterval);
+                                                        return 85;
                                                       }
-                                                    };
-                                                    reader.readAsDataURL(file);
+                                                      return prev + 15;
+                                                    });
+                                                  }, 100);
+
+                                                  try {
+                                                    const base64 = await compressImageFile(file, 800, 0.5);
+                                                    clearInterval(progressInterval);
+                                                    setUploadProgress(100);
+                                                    setMcqForm(prev => ({ ...prev, [opt.imgKey]: base64 }));
+
+                                                    setTimeout(() => {
+                                                      setIsUploadingImage(false);
+                                                      setUploadProgress(0);
+                                                    }, 500);
+                                                  } catch (err) {
+                                                    clearInterval(progressInterval);
+                                                    setIsUploadingImage(false);
+                                                    setUploadProgress(0);
+                                                    showToast('Failed to process image. Please try again.', 'error');
                                                   }
                                                 }}
                                                 className="hidden"
@@ -8157,12 +8192,40 @@ export default function App() {
                                                     accept="image/*"
                                                     onChange={async e => {
                                                       const file = e.target.files?.[0];
-                                                      if (file) {
-                                                        if (file.size > 5 * 1024 * 1024) {
-                                                          showToast('Image is very large. Consider using a smaller image for faster upload.', 'warning');
-                                                        }
+                                                      if (!file) return;
+
+                                                      if (file.size > 5 * 1024 * 1024) {
+                                                        showToast('Image is very large. Consider using a smaller image.', 'warning');
+                                                      }
+
+                                                      setIsUploadingImage(true);
+                                                      setUploadProgress(0);
+
+                                                      const progressInterval = setInterval(() => {
+                                                        setUploadProgress(prev => {
+                                                          if (prev >= 85) {
+                                                            clearInterval(progressInterval);
+                                                            return 85;
+                                                          }
+                                                          return prev + 15;
+                                                        });
+                                                      }, 100);
+
+                                                      try {
                                                         const base64 = await compressImageFile(file, 800, 0.5);
+                                                        clearInterval(progressInterval);
+                                                        setUploadProgress(100);
                                                         setMcqForm(prev => ({ ...prev, [opt.imgKey]: base64 }));
+
+                                                        setTimeout(() => {
+                                                          setIsUploadingImage(false);
+                                                          setUploadProgress(0);
+                                                        }, 500);
+                                                      } catch (err) {
+                                                        clearInterval(progressInterval);
+                                                        setIsUploadingImage(false);
+                                                        setUploadProgress(0);
+                                                        showToast('Failed to process image. Please try again.', 'error');
                                                       }
                                                     }}
                                                     className="hidden"
@@ -8210,8 +8273,22 @@ export default function App() {
 
                                 <div className="flex justify-end gap-2 pt-2">
                                   <button type="button" onClick={() => { setIsSectionModalOpen(false); setEditingMcqId(null); }} className="px-3 py-1.5 text-[10px] border border-slate-200 dark:border-slate-800 rounded-lg text-muted-foreground">Cancel</button>
-                                  <button type="submit" className="px-4 py-1.5 text-[10px] bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500">
-                                    {editingMcqId ? 'Update MCQ' : 'Save Question'}
+                                  <button 
+                                    type="submit" 
+                                    disabled={isSavingQuestion || isUploadingImage}
+                                    className={`px-4 py-1.5 text-[10px] bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 transition-all ${
+                                      isSavingQuestion || isUploadingImage ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
+                                  >
+                                    {isSavingQuestion ? (
+                                      <span className="flex items-center gap-1.5">
+                                        <svg className="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                        </svg>
+                                        Saving...
+                                      </span>
+                                    ) : isUploadingImage ? 'Processing image...' : (editingMcqId ? 'Update MCQ' : 'Save Question')}
                                   </button>
                                 </div>
                               </form>
