@@ -1432,6 +1432,47 @@ export default function App() {
         setAdminSelectedExamCodings(data.codingQuestions || []);
         const fetchedSections = data.sections || [];
         setAdminSelectedExamSections(fetchedSections);
+
+        if (data.exam) {
+          const formattedEx = formatExamItem(data.exam);
+          let localSched = '';
+          if (formattedEx.scheduleDate) {
+            try {
+              const d = new Date(formattedEx.scheduleDate);
+              const tzoffset = d.getTimezoneOffset() * 60000;
+              localSched = new Date(d.getTime() - tzoffset).toISOString().slice(0, 16);
+            } catch (err) {
+              localSched = String(formattedEx.scheduleDate).slice(0, 16);
+            }
+          } else {
+            localSched = getLocalDatetimeString();
+          }
+          setExamForm({
+            name: formattedEx.name || '',
+            description: formattedEx.description || '',
+            examType: formattedEx.examType || 'crt',
+            durationMinutes: formattedEx.durationMinutes || 60,
+            cutoffPercentage: formattedEx.cutoffPercentage || 50,
+            allowedAttempts: formattedEx.allowedAttempts || 1,
+            scheduleDate: localSched,
+            windowOpenMinutes: formattedEx.windowOpenMinutes || 10,
+            collegeId: formattedEx.collegeId || '',
+            departmentId: formattedEx.departmentId || '',
+            departmentIds: formattedEx.departmentIds || [],
+            batchId: formattedEx.batchId || '',
+            trainerId: formattedEx.trainerId || '',
+            year: formattedEx.year || '1st Year',
+            enableFaceDetection: formattedEx.enableFaceDetection !== false,
+            enableSectionCutoff: formattedEx.enableSectionCutoff === true,
+            mcqCutoffPercentage: formattedEx.mcqCutoffPercentage || 50,
+            codingCutoffPercentage: formattedEx.codingCutoffPercentage || 50,
+            mcqCutoffMarks: formattedEx.mcqCutoffMarks || 0,
+            codingCutoffMarks: formattedEx.codingCutoffMarks || 0,
+            navigationMode: formattedEx.navigationMode || 'free',
+            submissionMode: formattedEx.submissionMode || 'manual',
+            timingMode: formattedEx.timingMode || 'overall'
+          });
+        }
         
         // Auto-select first MCQ section
         const mcqSec = fetchedSections.find((s: any) => s.section_type === 'mcq');
@@ -1481,7 +1522,7 @@ export default function App() {
         if (createdSec && createdSec.id) {
           setAdminSelectedExamSections(prev => [...prev.filter(s => s.id !== createdSec.id), createdSec]);
         }
-        loadAdminExamQuestions(targetExamId);
+        await loadAdminExamQuestions(targetExamId);
       }
     } catch (err) {
       console.error(err);
@@ -1516,6 +1557,8 @@ export default function App() {
         body: JSON.stringify({
           name: sectionForm.name,
           description: sectionForm.description,
+          sectionType: sectionForm.sectionType,
+          section_type: sectionForm.sectionType,
           durationMinutes: sectionForm.durationMinutes ? parseInt(sectionForm.durationMinutes) : null,
           randomizeQuestions: sectionForm.randomizeQuestions,
           isMandatory: sectionForm.isMandatory,

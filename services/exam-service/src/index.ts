@@ -933,7 +933,8 @@ app.put(['/api/sections/:id', '/api/exams/sections/:id', '/api/exams/:examId/sec
     if (!isValidUuid(sectionId)) {
       return res.json({ id: sectionId, ...req.body, message: 'Mock section updated' });
     }
-    const { name, description, durationMinutes, randomizeQuestions, isMandatory, enableCutoff, cutoffPercentage, cutoffMarks } = req.body;
+    const { name, description, sectionType, durationMinutes, randomizeQuestions, isMandatory, enableCutoff, cutoffPercentage, cutoffMarks } = req.body;
+    const sType = sectionType || req.body.section_type || null;
 
     const parsedDuration = durationMinutes !== undefined && durationMinutes !== null && String(durationMinutes).trim() !== '' ? parseInt(String(durationMinutes), 10) : null;
     const parsedCutoffPct = cutoffPercentage !== undefined && cutoffPercentage !== null && String(cutoffPercentage).trim() !== '' ? parseFloat(String(cutoffPercentage)) : null;
@@ -943,14 +944,15 @@ app.put(['/api/sections/:id', '/api/exams/sections/:id', '/api/exams/:examId/sec
       `UPDATE sections
        SET name = COALESCE($1, name),
            description = COALESCE($2, description),
-           duration_minutes = $3,
-           randomize_questions = COALESCE($4, randomize_questions),
-           is_mandatory = COALESCE($5, is_mandatory),
-           enable_cutoff = COALESCE($6, enable_cutoff),
-           cutoff_percentage = $7,
-           cutoff_marks = $8
-       WHERE id = $9 RETURNING *`,
-      [name, description, parsedDuration, randomizeQuestions !== undefined ? Boolean(randomizeQuestions) : null, isMandatory !== undefined ? Boolean(isMandatory) : null, enableCutoff !== undefined ? Boolean(enableCutoff) : null, parsedCutoffPct, parsedCutoffMarks, sectionId]
+           section_type = COALESCE($3, section_type),
+           duration_minutes = $4,
+           randomize_questions = COALESCE($5, randomize_questions),
+           is_mandatory = COALESCE($6, is_mandatory),
+           enable_cutoff = COALESCE($7, enable_cutoff),
+           cutoff_percentage = $8,
+           cutoff_marks = $9
+       WHERE id = $10 RETURNING *`,
+      [name, description, sType, parsedDuration, randomizeQuestions !== undefined ? Boolean(randomizeQuestions) : null, isMandatory !== undefined ? Boolean(isMandatory) : null, enableCutoff !== undefined ? Boolean(enableCutoff) : null, parsedCutoffPct, parsedCutoffMarks, sectionId]
     );
 
     if (result.rows.length === 0) return res.status(404).json({ error: 'Section not found' });
