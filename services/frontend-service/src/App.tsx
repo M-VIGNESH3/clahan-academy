@@ -9560,10 +9560,10 @@ export default function App() {
                   ) : allSectionsCompleted ? (
                     <div className="px-3.5 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-right">
                       <span className="text-[10px] text-emerald-300 font-extrabold uppercase block">
-                        ✓ All Sections Complete
+                        ✓ Reviewing Answers
                       </span>
                       <span className="text-[9px] text-slate-400 font-medium block">
-                        Waiting for timer to end
+                        Read-only • Auto-submits at 0:00
                       </span>
                     </div>
                   ) : (
@@ -9978,9 +9978,9 @@ export default function App() {
                                     setActiveQuestionIndex(idx);
                                     setVisitedQuestions(prev => ({ ...prev, [q.id]: true }));
                                   }}
-                                  disabled={isExamLocked || isWaitingForAutoSubmit || !isQuestionReachable(idx)}
+                                  disabled={isExamLocked || !isQuestionReachable(idx)}
                                   className={`h-9 w-9 flex items-center justify-center rounded-lg text-xs transition-all border ${bgClass} ${
-                                    isExamLocked || isWaitingForAutoSubmit || !isQuestionReachable(idx) ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                                    isExamLocked || !isQuestionReachable(idx) ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
                                   }`}
                                   title={`Go to Q${idx + 1} (${isMarked ? 'Flagged' : isAnswered ? 'Answered' : isVisited ? 'Visited' : 'Not Visited'})`}
                                 >
@@ -10033,48 +10033,8 @@ export default function App() {
                 </aside>
 
                 {/* DYNAMIC QUESTION WORKSPACE VIEW */}
-                {isWaitingForAutoSubmit ? (
-                  <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center p-8 space-y-6 flex-1 bg-slate-950">
-                    {/* Completion Icon */}
-                    <div className="h-20 w-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center">
-                      <svg className="h-10 w-10 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-
-                    {/* Message */}
-                    <div className="space-y-2">
-                      <h3 className="text-lg font-extrabold text-white">
-                        All Sections Completed
-                      </h3>
-                      <p className="text-sm text-slate-400 max-w-md">
-                        You have answered all sections. Your exam will be automatically submitted when the timer expires.
-                      </p>
-                      <p className="text-xs text-amber-400 font-bold mt-2">
-                        Please remain on this screen until your exam is submitted.
-                      </p>
-                    </div>
-
-                    {/* Timer reminder */}
-                    <div className="px-6 py-3 bg-slate-800 border border-slate-700 rounded-xl">
-                      <span className="text-xs text-slate-400 block">
-                        Time Remaining
-                      </span>
-                      <span className="text-2xl font-black text-white font-mono">
-                        {formatTime(timeLeft)}
-                      </span>
-                    </div>
-
-                    {/* Anti-cheat warning */}
-                    <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl max-w-md">
-                      <p className="text-[11px] text-amber-300 font-bold">
-                        ⚠️ Do not close this window or switch tabs. Your exam session is being monitored until automatic submission.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  (() => {
-                    const curSecIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
+                {(() => {
+                  const curSecIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
                   const activeSecMcqs = examMCQs.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
                   const activeSecCodings = examCodings.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
                   const currentSectionQuestions = [
@@ -10087,8 +10047,9 @@ export default function App() {
 
                   const currentItem = currentSectionQuestions[activeQuestionIndex];
 
-                  // Read-only mode: student is viewing a locked (completed) section
+                  // Read-only mode: student is viewing a locked (completed) section or waiting for auto-submit
                   const isCurrentSectionReadOnly = readOnlySections[activeSectionId] === true;
+                  const isAnswerLocked = isExamLocked || isCurrentSectionReadOnly || isWaitingForAutoSubmit;
 
                   if (!currentItem) {
                     return (
@@ -10108,8 +10069,24 @@ export default function App() {
 
                     return (
                       <div className="flex-1 flex flex-col bg-slate-950 overflow-y-auto w-full">
-                        {/* Read-Only Mode Banner */}
-                        {isCurrentSectionReadOnly && (
+                        {/* Read-Only Review Mode Banner (Auto-Submit Wait State) */}
+                        {isWaitingForAutoSubmit && (
+                          <div className="w-full px-4 py-2.5 bg-emerald-500/10 border-b border-emerald-500/30 flex items-center justify-between flex-shrink-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-emerald-400 text-base">✓</span>
+                              <div>
+                                <span className="text-xs font-extrabold text-emerald-300 block">Review Mode — All Sections Completed</span>
+                                <span className="text-[10px] text-slate-400">You can review your answers below. No changes allowed. Exam auto-submits when timer expires.</span>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0 ml-4">
+                              <span className="text-[9px] text-slate-500 block">Time Remaining</span>
+                              <span className="text-sm font-black text-white font-mono">{formatTime(timeLeft)}</span>
+                            </div>
+                          </div>
+                        )}
+                        {/* Read-Only Mode Banner (Locked Section) */}
+                        {!isWaitingForAutoSubmit && isCurrentSectionReadOnly && (
                           <div className="w-full px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/30 flex items-center gap-2 flex-shrink-0">
                             <span className="text-amber-400 text-lg">🔒</span>
                             <div>
@@ -10164,7 +10141,7 @@ export default function App() {
                                   return next;
                                 });
                               }}
-                              disabled={isExamLocked || isCurrentSectionReadOnly}
+                              disabled={isAnswerLocked}
                               rows={8}
                               placeholder="Type your descriptive response here..."
                               className="w-full bg-slate-950 border border-white/10 rounded-xl p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-sans leading-relaxed resize-y"
@@ -10233,8 +10210,24 @@ export default function App() {
                     const currentMcq = currentItem.data;
                     return (
                       <div className="flex-1 flex flex-col bg-slate-950 overflow-y-auto w-full">
-                        {/* Read-Only Mode Banner */}
-                        {isCurrentSectionReadOnly && (
+                        {/* Read-Only Review Mode Banner (Auto-Submit Wait State) */}
+                        {isWaitingForAutoSubmit && (
+                          <div className="w-full px-4 py-2.5 bg-emerald-500/10 border-b border-emerald-500/30 flex items-center justify-between flex-shrink-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-emerald-400 text-base">✓</span>
+                              <div>
+                                <span className="text-xs font-extrabold text-emerald-300 block">Review Mode — All Sections Completed</span>
+                                <span className="text-[10px] text-slate-400">You can review your answers below. No changes allowed. Exam auto-submits when timer expires.</span>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0 ml-4">
+                              <span className="text-[9px] text-slate-500 block">Time Remaining</span>
+                              <span className="text-sm font-black text-white font-mono">{formatTime(timeLeft)}</span>
+                            </div>
+                          </div>
+                        )}
+                        {/* Read-Only Mode Banner (Locked Section) */}
+                        {!isWaitingForAutoSubmit && isCurrentSectionReadOnly && (
                           <div className="w-full px-4 py-2.5 bg-amber-500/10 border-b border-amber-500/30 flex items-center gap-2 flex-shrink-0">
                             <span className="text-amber-400 text-lg">🔒</span>
                             <div>
@@ -10286,8 +10279,8 @@ export default function App() {
                                     optionText={optionText}
                                     optionImage={optionImg}
                                     isSelected={isSelected}
-                                    isDisabled={isExamLocked || isCurrentSectionReadOnly}
-                                    onSelect={() => { if (!isExamLocked && !isCurrentSectionReadOnly) saveMcqChoice(currentMcq.id, opt); }}
+                                    isDisabled={isAnswerLocked}
+                                    onSelect={() => { if (!isAnswerLocked) saveMcqChoice(currentMcq.id, opt); }}
                                     onImageClick={(url, alt) => setLightboxImage({ url, alt })}
                                   />
                                 );
@@ -10335,8 +10328,8 @@ export default function App() {
                             <div className="flex items-center gap-3">
                               {mcqAnswers[currentMcq.id] && (
                                 <button
-                                  onClick={() => { if (!isExamLocked) clearMcqChoice(currentMcq.id); }}
-                                  disabled={isExamLocked}
+                                  onClick={() => { if (!isAnswerLocked) clearMcqChoice(currentMcq.id); }}
+                                  disabled={isAnswerLocked}
                                   className="px-4 py-2.5 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 rounded-xl text-xs font-bold border border-rose-500/20 transition-all"
                                 >
                                   Clear Response
@@ -10370,7 +10363,24 @@ export default function App() {
 
                   const currentCoding = currentItem.data;
                   return (
-                    <div className="flex-1 flex flex-row overflow-hidden items-stretch w-full">
+                    <div className="flex-1 flex flex-col overflow-hidden w-full">
+                      {/* Read-Only Review Mode Banner (Auto-Submit Wait State) */}
+                      {isWaitingForAutoSubmit && (
+                        <div className="w-full px-4 py-2.5 bg-emerald-500/10 border-b border-emerald-500/30 flex items-center justify-between flex-shrink-0 z-30">
+                          <div className="flex items-center gap-2">
+                            <span className="text-emerald-400 text-base">✓</span>
+                            <div>
+                              <span className="text-xs font-extrabold text-emerald-300 block">Review Mode — All Sections Completed</span>
+                              <span className="text-[10px] text-slate-400">You can review your code below. No changes allowed. Exam auto-submits when timer expires.</span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0 ml-4">
+                            <span className="text-[9px] text-slate-500 block">Time Remaining</span>
+                            <span className="text-sm font-black text-white font-mono">{formatTime(timeLeft)}</span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex-1 flex flex-row overflow-hidden items-stretch w-full">
                       {/* Resizable Question Panel & Coding Workspace */}
                       {!isDescriptionCollapsed && (
                         <div 
@@ -10597,6 +10607,7 @@ export default function App() {
                         
                         <button
                           onClick={() => {
+                            if (isAnswerLocked) return;
                             const qId = currentCoding.id;
                             const lang = codingSolutions[qId]?.language || currentCoding.language || 'Python';
                             setCodingSolutions(prev => ({
@@ -10604,7 +10615,8 @@ export default function App() {
                             }));
                             showToast('Reset editor to starter template.', 'info');
                           }}
-                          className="text-[9px] text-slate-500 hover:text-indigo-400 font-semibold transition-all px-2 py-0.5 rounded border border-white/5 hover:border-indigo-500/30 bg-slate-950"
+                          disabled={isAnswerLocked}
+                          className="text-[9px] text-slate-500 hover:text-indigo-400 font-semibold transition-all px-2 py-0.5 rounded border border-white/5 hover:border-indigo-500/30 bg-slate-950 disabled:opacity-50"
                         >
                           Reset Starter Code
                         </button>
@@ -10689,11 +10701,10 @@ export default function App() {
                           }}
                           options={{
                             fontSize: editorFontSize,
-                            minimap: { enabled: false },
+                            readOnly: isAnswerLocked,
                             lineNumbers: 'on',
                             roundedSelection: false,
                             scrollBeyondLastLine: false,
-                            readOnly: isExamLocked,
                             automaticLayout: true,
                             cursorBlinking: 'smooth',
                             formatOnType: true,
@@ -10726,18 +10737,18 @@ export default function App() {
 
                         <div className="flex gap-2">
                           <button
-                            onClick={() => { if (!isExamLocked) runCodeSample(currentCoding.id); }}
+                            onClick={() => { if (!isAnswerLocked) runCodeSample(currentCoding.id); }}
                             className="px-4 py-2 bg-slate-950 hover:bg-slate-800 border border-white/10 rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 text-slate-300 transition-colors"
-                            disabled={isExamLocked || isRunningCode}
+                            disabled={isAnswerLocked || isRunningCode}
                           >
                             <Play className="h-3.5 w-3.5 text-indigo-400" /> 
                             {isRunningCode ? 'Running...' : 'Run Samples'}
                           </button>
                           
                           <button
-                            onClick={() => { if (!isExamLocked) submitCodingSolution(currentCoding.id); }}
-                            disabled={isExamLocked}
-                            className={`px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/30 text-white rounded-xl text-xs font-bold transition-all shadow-md ${isExamLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={() => { if (!isAnswerLocked) submitCodingSolution(currentCoding.id); }}
+                            disabled={isAnswerLocked}
+                            className={`px-4 py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/30 text-white rounded-xl text-xs font-bold transition-all shadow-md ${isAnswerLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
                             Submit Code
                           </button>
@@ -11030,11 +11041,11 @@ export default function App() {
                         )}
 
                       </div>
+                      </div>
                     </div>
                   </div>
                 );
-              })()
-            )}
+              })()}
               </div>
 
               {/* SECTION NAVIGATION BAR */}
@@ -11070,7 +11081,7 @@ export default function App() {
                       unansweredCount={secUnanswered}
                       isFirstQuestion={activeQuestionIndex === 0}
                       isLastQuestion={activeQuestionIndex === currentSectionQuestions.length - 1}
-                      isExamLocked={isExamLocked || isWaitingForAutoSubmit}
+                      isExamLocked={isExamLocked}
                       navigationMode={navMode}
                       onPrevious={() => {
                         saveCurrentCodeImmediately();
