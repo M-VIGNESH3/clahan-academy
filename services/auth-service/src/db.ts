@@ -3,8 +3,8 @@ types.setTypeParser(1114, (str) => new Date(str.replace(' ', 'T') + 'Z'));
 import * as bcrypt from 'bcryptjs';
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@postgres:5432/clahan_academy?sslmode=disable',
-  max: 50,
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@postgres:5432/clahan?sslmode=disable',
+  max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
 });

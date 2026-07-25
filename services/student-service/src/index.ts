@@ -24,7 +24,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Database Pool
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@postgres:5432/clahan_academy?sslmode=disable',
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@postgres:5432/clahan?sslmode=disable',
   max: 50,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,

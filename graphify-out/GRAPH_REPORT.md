@@ -1,16 +1,16 @@
 # Graph Report - clahan academy  (2026-07-25)
 
 ## Corpus Check
-- 83 files · ~140,400 words
+- 85 files · ~141,214 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 1313 nodes · 1360 edges · 95 communities (86 shown, 9 thin omitted)
+- 1326 nodes · 1371 edges · 97 communities (87 shown, 10 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 1 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `60a1590d`
+- Built from commit: `c1af3302`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -105,6 +105,8 @@
 - [[_COMMUNITY_Community 92|Community 92]]
 - [[_COMMUNITY_Community 93|Community 93]]
 - [[_COMMUNITY_Community 94|Community 94]]
+- [[_COMMUNITY_Community 95|Community 95]]
+- [[_COMMUNITY_Community 96|Community 96]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `compilerOptions` - 16 edges
@@ -130,7 +132,7 @@
 - `RichTextEditorProps` --references--> `ContentBlock`  [EXTRACTED]
   services/frontend-service/src/components/RichTextEditor.tsx → services/frontend-service/src/types/richQuestion.ts
 
-## Communities (95 total, 9 thin omitted)
+## Communities (97 total, 10 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
@@ -210,7 +212,7 @@ Nodes (9): Clahan Academy V2 Implementation Plan, code:mermaid (graph TD), code:
 
 ### Community 19 - "Community 19"
 Cohesion: 0.11
-Nodes (16): ExamSubmissionController(), ExamSubmissionControllerProps, NavigationRuleSettings(), NavigationRuleSettingsProps, QuestionFooter(), QuestionFooterProps, SubmissionPolicySettings(), SubmissionPolicySettingsProps (+8 more)
+Nodes (16): ExamSubmissionController(), ExamSubmissionControllerProps, ImageViewerModal(), ImageViewerModalProps, NavigationRuleSettings(), NavigationRuleSettingsProps, SubmissionPolicySettings(), SubmissionPolicySettingsProps (+8 more)
 
 ### Community 20 - "Community 20"
 Cohesion: 0.07
@@ -405,8 +407,8 @@ Cohesion: 0.08
 Nodes (24): dependencies, cors, dotenv, express, express-rate-limit, helmet, jsonwebtoken, pg (+16 more)
 
 ### Community 80 - "Community 80"
-Cohesion: 0.22
-Nodes (11): QuestionPreview(), QuestionPreviewProps, RichContentRenderer(), RichContentRendererProps, RichTextEditorProps, CodingQuestion, MCQQuestion, ContentBlock (+3 more)
+Cohesion: 0.21
+Nodes (11): QuestionPreview(), QuestionPreviewProps, RichContentRendererProps, RichTextEditor(), RichTextEditorProps, CodingQuestion, MCQQuestion, ContentBlock (+3 more)
 
 ### Community 81 - "Community 81"
 Cohesion: 0.14
@@ -425,8 +427,8 @@ Cohesion: 0.18
 Nodes (10): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, module, outDir, rootDir, skipLibCheck, strict (+2 more)
 
 ### Community 85 - "Community 85"
-Cohesion: 0.22
-Nodes (5): ErrorBoundaryProps, ErrorBoundaryState, QuestionErrorBoundary, SafeOptionRenderer(), SafeOptionRendererProps
+Cohesion: 0.20
+Nodes (6): ErrorBoundaryProps, ErrorBoundaryState, QuestionErrorBoundary, SafeOptionRenderer(), SafeOptionRendererProps, RichContentRenderer()
 
 ### Community 86 - "Community 86"
 Cohesion: 0.22
@@ -445,8 +447,12 @@ Cohesion: 0.40
 Nodes (5): AssessmentTimingSettings(), AssessmentTimingSettingsProps, computeSectionTimingSummary(), SectionTimingItem, SectionTimingSummary
 
 ### Community 90 - "Community 90"
-Cohesion: 0.33
-Nodes (5): CodingQuestionData, MCQQuestionData, QuestionInlineEditor(), QuestionInlineEditorProps, RichTextEditor()
+Cohesion: 0.40
+Nodes (4): CodingQuestionData, MCQQuestionData, QuestionInlineEditor(), QuestionInlineEditorProps
+
+### Community 91 - "Community 91"
+Cohesion: 0.18
+Nodes (10): 1. Check all containers running, 2. Verify database has correct columns, 3. Verify exam service has new code, 4. Test navigation save, 5. Verify frontend rebuilt, Admin: Edit exam, set Navigation=Sequential, Save, Post-Deployment Verification, Run these commands after deploying: (+2 more)
 
 ### Community 92 - "Community 92"
 Cohesion: 0.50
@@ -457,21 +463,21 @@ Cohesion: 0.50
 Nodes (3): ResultReportProps, ResultReportView(), formatTime()
 
 ## Knowledge Gaps
-- **823 isolated node(s):** `build-and-push.sh script`, `copy-env-examples.sh script`, `version`, `isEnabled`, `excludedTypes` (+818 more)
+- **831 isolated node(s):** `build-and-push.sh script`, `copy-env-examples.sh script`, `deploy.sh script`, `version`, `isEnabled` (+826 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Clahan Academy Online Exam Platform — Comprehensive System Reference` connect `Community 62` to `Community 64`, `Community 65`, `Community 66`, `Community 67`?**
+  _High betweenness centrality (0.002) - this node is a cross-community bridge._
+- **Why does `🔄 4. Core Application Workflows` connect `Community 65` to `Community 64`, `Community 68`, `Community 62`?**
   _High betweenness centrality (0.001) - this node is a cross-community bridge._
 - **Why does `Clahan Academy Online Exam Platform — Complete System Description` connect `Community 64` to `Community 65`, `Community 68`, `Community 63`?**
   _High betweenness centrality (0.001) - this node is a cross-community bridge._
-- **Why does `⚡ 6. Detailed API Reference` connect `Community 36` to `Community 35`?**
-  _High betweenness centrality (0.001) - this node is a cross-community bridge._
-- **What connects `build-and-push.sh script`, `copy-env-examples.sh script`, `version` to the rest of the system?**
-  _824 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `build-and-push.sh script`, `copy-env-examples.sh script`, `deploy.sh script` to the rest of the system?**
+  _832 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**

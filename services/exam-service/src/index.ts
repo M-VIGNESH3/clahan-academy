@@ -27,9 +27,12 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection in exam-service at:', promise, 'reason:', reason);
 });
 
+console.log('Exam Service starting - Build:', new Date().toISOString());
+console.log('Features: submission_mode support v2');
+
 // Database Pool
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@postgres:5432/clahan_academy?sslmode=disable',
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@postgres:5432/clahan?sslmode=disable',
   max: 50,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
