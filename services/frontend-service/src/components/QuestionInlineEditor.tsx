@@ -92,14 +92,46 @@ export const QuestionInlineEditor: React.FC<QuestionInlineEditorProps> = ({
     }))
   );
 
-  const handleOptionImageFileChange = (imgKey: keyof MCQQuestionData, file: File) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setMcqForm(prev => ({ ...prev, [imgKey]: reader.result }));
+  const compressImageFile = (file: File, maxWidth = 1024, quality = 0.8): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(String(e.target?.result || ''));
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(String(e.target?.result || ''));
+        img.src = String(e.target?.result || '');
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleOptionImageFileChange = async (imgKey: keyof MCQQuestionData, file: File) => {
+    try {
+      const compressed = await compressImageFile(file);
+      if (compressed) {
+        setMcqForm(prev => ({ ...prev, [imgKey]: compressed }));
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error("Image compression error:", err);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {

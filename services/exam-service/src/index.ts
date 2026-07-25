@@ -365,25 +365,37 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
 app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) => {
   try {
     const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId, enableFaceDetection, enableSectionCutoff, mcqCutoffPercentage, codingCutoffPercentage, mcqCutoffMarks, codingCutoffMarks } = req.body;
-    if (!name || !examType || !durationMinutes) {
+    
+    const exType = examType || req.body.exam_type || 'mcq';
+    const durMins = parseInt(durationMinutes || req.body.duration_minutes || 60, 10);
+    const exName = name || req.body.name;
+
+    if (!exName || !exType || isNaN(durMins)) {
       return res.status(400).json({ error: 'Missing required parameters: name, examType, durationMinutes' });
     }
 
     const finalScheduleDate = scheduleDate ? new Date(scheduleDate).toISOString() : new Date().toISOString();
-    const finalCollegeId = collegeId || null;
+    const finalCollegeId = isValidUuid(collegeId) ? collegeId : (isValidUuid(req.body.college_id) ? req.body.college_id : null);
+    const rawBatchId = batchId || req.body.batch_id;
+    const finalBatchId = isValidUuid(rawBatchId) ? rawBatchId : null;
+    const rawTrainerId = trainerId || req.body.trainer_id;
+    const finalTrainerId = isValidUuid(rawTrainerId) ? rawTrainerId : null;
 
-    let finalDeptId = null;
+    let finalDeptId: string | null = null;
     let finalDeptIds: string[] = [];
-    let finalYear = null;
+    let finalYear: string | null = null;
 
-    if (finalCollegeId && !batchId) {
-      finalDeptId = departmentId || (departmentIds && departmentIds[0]) || null;
-      finalDeptIds = departmentIds || (departmentId ? [departmentId] : []);
-      finalYear = year || null;
-    } else if (batchId) {
-      finalDeptId = null;
-      finalDeptIds = [];
-      finalYear = null;
+    const rawDeptId = departmentId || req.body.department_id;
+    const rawDeptIds = departmentIds || req.body.department_ids;
+
+    if (finalCollegeId && !finalBatchId) {
+      if (isValidUuid(rawDeptId)) finalDeptId = rawDeptId;
+      if (Array.isArray(rawDeptIds)) {
+        finalDeptIds = rawDeptIds.filter((d: string) => isValidUuid(d));
+      } else if (finalDeptId) {
+        finalDeptIds = [finalDeptId];
+      }
+      finalYear = year || req.body.year || null;
     }
 
     const result = await query(
@@ -394,7 +406,7 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
            enable_section_cutoff = $16, mcq_cutoff_percentage = $17, coding_cutoff_percentage = $18, mcq_cutoff_marks = $19, coding_cutoff_marks = $20, navigation_mode = $21
        WHERE id = $22 RETURNING *`,
       [
-        name, description, examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, finalScheduleDate, finalCollegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, trainerId || null, enableFaceDetection !== false,
+        exName, description || '', exType, durMins, cutoffPercentage || 50, allowedAttempts || 1, finalScheduleDate, finalCollegeId, finalDeptId, finalDeptIds, finalBatchId, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, finalTrainerId, enableFaceDetection !== false,
         enableSectionCutoff === true, mcqCutoffPercentage !== undefined && mcqCutoffPercentage !== null ? mcqCutoffPercentage : 50.00, codingCutoffPercentage !== undefined && codingCutoffPercentage !== null ? codingCutoffPercentage : 50.00, mcqCutoffMarks !== undefined && mcqCutoffMarks !== null ? mcqCutoffMarks : 0.00, codingCutoffMarks !== undefined && codingCutoffMarks !== null ? codingCutoffMarks : 0.00,
         req.body.navigationMode || req.body.navigation_mode || 'free',
         req.params.id
@@ -622,7 +634,8 @@ app.post('/api/exams/:id/mcq/import', authenticate, requireRole('admin'), async 
     const lines = csvContent.replace(/\r/g, '').split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
     const dataRows = lines.slice(1);
 
-    let inserted = 0;
+    const validItems: Array<{ question: string; optA: string; optB: string; optC: string; optD: string; correct: string; marks: number; difficulty: string }> = [];
+
     for (const row of dataRows) {
       const parts = parseCsvLine(row);
       if (parts.length < 8) continue;
@@ -651,12 +664,28 @@ app.post('/api/exams/:id/mcq/import', authenticate, requireRole('admin'), async 
         continue;
       }
 
-      await query(
-        `INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-        [id, finalSectionId, question, optA, optB, optC, optD, correct, marks, difficulty]
-      );
-      inserted++;
+      validItems.push({ question, optA, optB, optC, optD, correct, marks, difficulty });
+    }
+
+    let inserted = 0;
+    const batchSize = 50;
+    for (let i = 0; i < validItems.length; i += batchSize) {
+      const chunk = validItems.slice(i, i + batchSize);
+      const valueClauses: string[] = [];
+      const queryParams: any[] = [];
+      let paramIdx = 1;
+
+      for (const item of chunk) {
+        valueClauses.push(`($${paramIdx}, $${paramIdx+1}, $${paramIdx+2}, $${paramIdx+3}, $${paramIdx+4}, $${paramIdx+5}, $${paramIdx+6}, $${paramIdx+7}, $${paramIdx+8}, $${paramIdx+9})`);
+        queryParams.push(id, finalSectionId, item.question, item.optA, item.optB, item.optC, item.optD, item.correct, item.marks, item.difficulty);
+        paramIdx += 10;
+      }
+
+      if (valueClauses.length > 0) {
+        const bulkQuery = `INSERT INTO mcq_questions (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty) VALUES ${valueClauses.join(', ')}`;
+        await query(bulkQuery, queryParams);
+        inserted += chunk.length;
+      }
     }
 
     res.json({ message: 'MCQ questions imported successfully', count: inserted });
@@ -890,26 +919,30 @@ app.post(['/api/exams/:id/sections', '/api/assessments/:id/sections', '/api/exam
 const isValidUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
 // Update Section
-app.put(['/api/sections/:id', '/api/exams/sections/:id'], authenticate, requireRole('admin'), async (req, res) => {
+app.put(['/api/sections/:id', '/api/exams/sections/:id', '/api/exams/:examId/sections/:id'], authenticate, requireRole('admin'), async (req, res) => {
   try {
-    const { id } = req.params;
-    if (!isValidUuid(id)) {
-      return res.json({ id, ...req.body, message: 'Mock section updated' });
+    const sectionId = req.params.id || req.params.sectionId;
+    if (!isValidUuid(sectionId)) {
+      return res.json({ id: sectionId, ...req.body, message: 'Mock section updated' });
     }
     const { name, description, durationMinutes, randomizeQuestions, isMandatory, enableCutoff, cutoffPercentage, cutoffMarks } = req.body;
+
+    const parsedDuration = durationMinutes !== undefined && durationMinutes !== null && String(durationMinutes).trim() !== '' ? parseInt(String(durationMinutes), 10) : null;
+    const parsedCutoffPct = cutoffPercentage !== undefined && cutoffPercentage !== null && String(cutoffPercentage).trim() !== '' ? parseFloat(String(cutoffPercentage)) : null;
+    const parsedCutoffMarks = cutoffMarks !== undefined && cutoffMarks !== null && String(cutoffMarks).trim() !== '' ? parseFloat(String(cutoffMarks)) : null;
 
     const result = await query(
       `UPDATE sections
        SET name = COALESCE($1, name),
            description = COALESCE($2, description),
-           duration_minutes = $3,
+           duration_minutes = COALESCE($3, duration_minutes),
            randomize_questions = COALESCE($4, randomize_questions),
            is_mandatory = COALESCE($5, is_mandatory),
            enable_cutoff = COALESCE($6, enable_cutoff),
            cutoff_percentage = $7,
            cutoff_marks = $8
        WHERE id = $9 RETURNING *`,
-      [name, description, durationMinutes || null, randomizeQuestions, isMandatory, enableCutoff, cutoffPercentage || null, cutoffMarks || null, id]
+      [name, description, parsedDuration, randomizeQuestions !== undefined ? Boolean(randomizeQuestions) : null, isMandatory !== undefined ? Boolean(isMandatory) : null, enableCutoff !== undefined ? Boolean(enableCutoff) : null, parsedCutoffPct, parsedCutoffMarks, sectionId]
     );
 
     if (result.rows.length === 0) return res.status(404).json({ error: 'Section not found' });

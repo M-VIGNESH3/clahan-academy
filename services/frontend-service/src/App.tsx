@@ -3322,7 +3322,6 @@ export default function App() {
 
   const handleVisibilityChange = () => {
     if (currentPageRef.current !== 'exam-env' || isSubmittingRef.current) {
-      cleanupProctoring();
       return;
     }
     if (document.visibilityState === 'hidden') {
@@ -3332,7 +3331,6 @@ export default function App() {
 
   const handleTabSwitch = () => {
     if (currentPageRef.current !== 'exam-env' || isSubmittingRef.current) {
-      cleanupProctoring();
       return;
     }
     setTabWarnings(prev => {
