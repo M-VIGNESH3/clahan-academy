@@ -3064,17 +3064,14 @@ export default function App() {
 
     try {
       setHardwareProgress(25);
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const combinedStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setCameraPermission(true);
-      setCameraStream(stream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-      setHardwareProgress(50);
-
-      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioStream.getTracks().forEach(track => track.stop());
       setMicPermission(true);
+      setCameraStream(combinedStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = combinedStream;
+        videoRef.current.play().catch(() => {});
+      }
       setHardwareProgress(75);
 
       setTimeout(() => {

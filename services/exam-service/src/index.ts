@@ -400,6 +400,9 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
 
     const finalCutoffPct = cutoffPercentage !== undefined && cutoffPercentage !== null && String(cutoffPercentage).trim() !== '' ? parseFloat(String(cutoffPercentage)) : 50.00;
     const finalAllowedAttempts = allowedAttempts !== undefined && allowedAttempts !== null && String(allowedAttempts).trim() !== '' ? parseInt(String(allowedAttempts), 10) : 1;
+    const faceDetectionEnabled = enableFaceDetection !== undefined
+      ? Boolean(enableFaceDetection)
+      : (req.body.enable_face_detection !== undefined ? Boolean(req.body.enable_face_detection) : true);
 
     const result = await query(
       `UPDATE exams 
@@ -409,7 +412,7 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
            enable_section_cutoff = $16, mcq_cutoff_percentage = $17, coding_cutoff_percentage = $18, mcq_cutoff_marks = $19, coding_cutoff_marks = $20, navigation_mode = $21
        WHERE id = $22 RETURNING *`,
       [
-        exName, description || '', exType, durMins, finalCutoffPct, finalAllowedAttempts, finalScheduleDate, finalCollegeId, finalDeptId, finalDeptIds, finalBatchId, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, finalTrainerId, enableFaceDetection !== false,
+        exName, description || '', exType, durMins, finalCutoffPct, finalAllowedAttempts, finalScheduleDate, finalCollegeId, finalDeptId, finalDeptIds, finalBatchId, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, finalTrainerId, faceDetectionEnabled,
         enableSectionCutoff === true, mcqCutoffPercentage !== undefined && mcqCutoffPercentage !== null ? mcqCutoffPercentage : 50.00, codingCutoffPercentage !== undefined && codingCutoffPercentage !== null ? codingCutoffPercentage : 50.00, mcqCutoffMarks !== undefined && mcqCutoffMarks !== null ? mcqCutoffMarks : 0.00, codingCutoffMarks !== undefined && codingCutoffMarks !== null ? codingCutoffMarks : 0.00,
         req.body.navigationMode || req.body.navigation_mode || 'free',
         req.params.id

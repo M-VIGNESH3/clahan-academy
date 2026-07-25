@@ -491,7 +491,7 @@ io.on('connection', (socket: Socket) => {
         const consec = consecutiveViolations[attemptId];
 
         // Determine if face detection is currently losing/lost tracking
-        const isLosingFace = result.trackingStatus === 'Face Lost' || result.trackingStatus === 'Temporary Detection Loss';
+        const isLosingFace = faceDetectionEnabled && (result.trackingStatus === 'Face Lost' || result.trackingStatus === 'Temporary Detection Loss');
 
         if (!isLosingFace) {
           consec['NO_FACE_DETECTED'] = 0;
