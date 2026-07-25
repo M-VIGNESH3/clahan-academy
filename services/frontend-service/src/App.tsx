@@ -3974,14 +3974,21 @@ export default function App() {
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
     }
-    if (mode === 'result' && currentAttemptRef.current) {
-      setSelectedResultAttemptId(currentAttemptRef.current.id);
-      fetchResultDetails(currentAttemptRef.current.id);
-      setCurrentPage('result-view');
-    } else {
-      setCurrentPage('student-dash');
-      loadStudentDashboard();
-    }
+    showToast(
+      'Exam submitted successfully! Your results are being calculated.',
+      'success'
+    );
+    // Brief delay before showing results to prevent immediate result sharing
+    setTimeout(() => {
+      if (mode === 'result' && currentAttemptRef.current) {
+        setSelectedResultAttemptId(currentAttemptRef.current.id);
+        fetchResultDetails(currentAttemptRef.current.id);
+        setCurrentPage('result-view');
+      } else {
+        setCurrentPage('student-dash');
+        loadStudentDashboard();
+      }
+    }, 3000);
   };
 
   const fetchResultDetails = async (attemptId: string) => {
@@ -9409,8 +9416,11 @@ export default function App() {
             />
           )}
 
-          {validationStep === 'active' && currentAttempt && (
-            <div className="h-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
+          {validationStep === 'active' && currentAttempt && (() => {
+            const isWaitingForAutoSubmit = allSectionsCompleted && 
+              (currentExam?.submission_mode === 'auto' || currentExam?.submissionMode === 'auto');
+            return (
+              <div className="h-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans select-none">
               
               {/* STICKY EXAM HEADER */}
               <header className="flex-shrink-0 flex items-center justify-between px-6 py-3 border-b border-white/10 bg-slate-900/95 backdrop-blur-md z-40 relative">
@@ -9548,30 +9558,13 @@ export default function App() {
                       Submit Assessment
                     </button>
                   ) : allSectionsCompleted ? (
-                    /* Early completion state: all sections done, show submit override */
-                    <div className="flex items-center gap-2">
-                      <div className="px-3.5 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-right">
-                        <span className="text-[10px] text-emerald-300 font-extrabold uppercase block">
-                          All Sections Complete
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-medium block">
-                          Auto-submits when timer ends
-                        </span>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          const confirmed = window.confirm(
-                            'You have completed all sections. Do you want to submit now instead of waiting for the timer to expire?'
-                          );
-                          if (confirmed) {
-                            await submitEntireExam();
-                          }
-                        }}
-                        disabled={isExamLocked}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-extrabold rounded-lg transition-all shadow-md"
-                      >
-                        Submit Early
-                      </button>
+                    <div className="px-3.5 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-right">
+                      <span className="text-[10px] text-emerald-300 font-extrabold uppercase block">
+                        ✓ All Sections Complete
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-medium block">
+                        Waiting for timer to end
+                      </span>
                     </div>
                   ) : (
                     <div className="px-3.5 py-1.5 bg-amber-500/10 border border-amber-500/30 rounded-lg text-right">
@@ -9812,7 +9805,7 @@ export default function App() {
                                 <button
                                   key={sect.id || idx}
                                   onClick={() => requestSectionSwitch(sect.id)}
-                                  disabled={isExamLocked}
+                                  disabled={isExamLocked || isWaitingForAutoSubmit}
                                   className={`w-full py-2.5 px-3 text-left rounded-xl transition-all border flex flex-col gap-1 ${
                                     isCurrent && isViewingReadOnly
                                       ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 font-bold shadow-sm'
@@ -9911,7 +9904,7 @@ export default function App() {
                                   };
                                   requestSectionSwitch(sect.id);
                                 }}
-                                disabled={isExamLocked || isLocked}
+                                disabled={isExamLocked || isLocked || isWaitingForAutoSubmit}
                                 className={`p-2 rounded-lg border transition-all ${isCurrent ? 'bg-indigo-600/20 border-indigo-500/30 text-indigo-400 font-bold' : 'border-transparent text-slate-400 hover:bg-slate-800'} ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                                 title={`${sect.name} (${sect.section_type || 'General'})`}
                               >
@@ -9985,9 +9978,9 @@ export default function App() {
                                     setActiveQuestionIndex(idx);
                                     setVisitedQuestions(prev => ({ ...prev, [q.id]: true }));
                                   }}
-                                  disabled={isExamLocked || !isQuestionReachable(idx)}
+                                  disabled={isExamLocked || isWaitingForAutoSubmit || !isQuestionReachable(idx)}
                                   className={`h-9 w-9 flex items-center justify-center rounded-lg text-xs transition-all border ${bgClass} ${
-                                    isExamLocked || !isQuestionReachable(idx) ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                                    isExamLocked || isWaitingForAutoSubmit || !isQuestionReachable(idx) ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
                                   }`}
                                   title={`Go to Q${idx + 1} (${isMarked ? 'Flagged' : isAnswered ? 'Answered' : isVisited ? 'Visited' : 'Not Visited'})`}
                                 >
@@ -10040,8 +10033,48 @@ export default function App() {
                 </aside>
 
                 {/* DYNAMIC QUESTION WORKSPACE VIEW */}
-                {(() => {
-                  const curSecIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
+                {isWaitingForAutoSubmit ? (
+                  <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center p-8 space-y-6 flex-1 bg-slate-950">
+                    {/* Completion Icon */}
+                    <div className="h-20 w-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500/40 flex items-center justify-center">
+                      <svg className="h-10 w-10 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+
+                    {/* Message */}
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-extrabold text-white">
+                        All Sections Completed
+                      </h3>
+                      <p className="text-sm text-slate-400 max-w-md">
+                        You have answered all sections. Your exam will be automatically submitted when the timer expires.
+                      </p>
+                      <p className="text-xs text-amber-400 font-bold mt-2">
+                        Please remain on this screen until your exam is submitted.
+                      </p>
+                    </div>
+
+                    {/* Timer reminder */}
+                    <div className="px-6 py-3 bg-slate-800 border border-slate-700 rounded-xl">
+                      <span className="text-xs text-slate-400 block">
+                        Time Remaining
+                      </span>
+                      <span className="text-2xl font-black text-white font-mono">
+                        {formatTime(timeLeft)}
+                      </span>
+                    </div>
+
+                    {/* Anti-cheat warning */}
+                    <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl max-w-md">
+                      <p className="text-[11px] text-amber-300 font-bold">
+                        ⚠️ Do not close this window or switch tabs. Your exam session is being monitored until automatic submission.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  (() => {
+                    const curSecIdx = studentExamSections.findIndex(s => s.id === activeSectionId);
                   const activeSecMcqs = examMCQs.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
                   const activeSecCodings = examCodings.filter(q => q.section_id === activeSectionId || (!q.section_id && (curSecIdx === 0 || curSecIdx === -1)));
                   const currentSectionQuestions = [
@@ -11000,7 +11033,8 @@ export default function App() {
                     </div>
                   </div>
                 );
-              })()}
+              })()
+            )}
               </div>
 
               {/* SECTION NAVIGATION BAR */}
@@ -11036,7 +11070,7 @@ export default function App() {
                       unansweredCount={secUnanswered}
                       isFirstQuestion={activeQuestionIndex === 0}
                       isLastQuestion={activeQuestionIndex === currentSectionQuestions.length - 1}
-                      isExamLocked={isExamLocked}
+                      isExamLocked={isExamLocked || isWaitingForAutoSubmit}
                       navigationMode={navMode}
                       onPrevious={() => {
                         saveCurrentCodeImmediately();
@@ -11131,7 +11165,8 @@ export default function App() {
               )}
 
             </div>
-          )}
+          );
+        })()}
         </main>
       )}
       {/* DETAILED RESULT VIEW ROUTE */}

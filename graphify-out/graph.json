@@ -3728,7 +3728,7 @@
       "label": "AssessmentTimingSettings()",
       "file_type": "code",
       "source_file": "services/frontend-service/src/components/AssessmentTimingSettings.tsx",
-      "source_location": "L117",
+      "source_location": "L119",
       "id": "components_assessmenttimingsettings_assessmenttimingsettings",
       "community": 89,
       "norm_label": "assessmenttimingsettings()"
@@ -3739,7 +3739,7 @@
       "source_file": "services/frontend-service/src/components/ImageViewerModal.tsx",
       "source_location": "L1",
       "id": "services_frontend_service_src_components_imageviewermodal_tsx",
-      "community": 19,
+      "community": 95,
       "norm_label": "imageviewermodal.tsx"
     },
     {
@@ -3748,7 +3748,7 @@
       "source_file": "services/frontend-service/src/components/ImageViewerModal.tsx",
       "source_location": "L4",
       "id": "components_imageviewermodal_imageviewermodalprops",
-      "community": 19,
+      "community": 95,
       "norm_label": "imageviewermodalprops"
     },
     {
@@ -3757,7 +3757,7 @@
       "source_file": "services/frontend-service/src/components/ImageViewerModal.tsx",
       "source_location": "L10",
       "id": "components_imageviewermodal_imageviewermodal",
-      "community": 19,
+      "community": 95,
       "norm_label": "imageviewermodal()"
     },
     {
@@ -3793,7 +3793,7 @@
       "source_file": "services/frontend-service/src/components/QuestionFooter.tsx",
       "source_location": "L1",
       "id": "services_frontend_service_src_components_questionfooter_tsx",
-      "community": 95,
+      "community": 19,
       "norm_label": "questionfooter.tsx"
     },
     {
@@ -3802,7 +3802,7 @@
       "source_file": "services/frontend-service/src/components/QuestionFooter.tsx",
       "source_location": "L4",
       "id": "components_questionfooter_questionfooterprops",
-      "community": 95,
+      "community": 19,
       "norm_label": "questionfooterprops"
     },
     {
@@ -3811,7 +3811,7 @@
       "source_file": "services/frontend-service/src/components/QuestionFooter.tsx",
       "source_location": "L21",
       "id": "components_questionfooter_questionfooter",
-      "community": 95,
+      "community": 19,
       "norm_label": "questionfooter()"
     },
     {
@@ -3937,7 +3937,7 @@
       "source_file": "services/frontend-service/src/components/RichContentRenderer.tsx",
       "source_location": "L13",
       "id": "components_richcontentrenderer_richcontentrenderer",
-      "community": 85,
+      "community": 80,
       "norm_label": "richcontentrenderer()"
     },
     {
@@ -3964,7 +3964,7 @@
       "source_file": "services/frontend-service/src/components/RichTextEditor.tsx",
       "source_location": "L14",
       "id": "components_richtexteditor_richtexteditor",
-      "community": 80,
+      "community": 90,
       "norm_label": "richtexteditor()"
     },
     {
@@ -12105,9 +12105,9 @@
       "source_file": "deploy.sh",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "deploy_sh",
-      "target": "c_users_91901_onedrive_desktop_clahan_academy_deploy_sh__entry",
-      "confidence_score": 1.0
+      "target": "c_users_91901_onedrive_desktop_clahan_academy_deploy_sh__entry"
     },
     {
       "relation": "contains",
@@ -23779,9 +23779,9 @@
       "source_file": "VERIFY.md",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "verify_md",
-      "target": "clahan_academy_verify_admin_edit_exam_set_navigation_sequential_save",
-      "confidence_score": 1.0
+      "target": "clahan_academy_verify_admin_edit_exam_set_navigation_sequential_save"
     },
     {
       "relation": "contains",
@@ -23789,9 +23789,9 @@
       "source_file": "VERIFY.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "verify_md",
-      "target": "clahan_academy_verify_post_deployment_verification",
-      "confidence_score": 1.0
+      "target": "clahan_academy_verify_post_deployment_verification"
     },
     {
       "relation": "contains",
@@ -23799,9 +23799,9 @@
       "source_file": "VERIFY.md",
       "source_location": "L20",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "verify_md",
-      "target": "clahan_academy_verify_should_show_sequential_auto_not_free_manual",
-      "confidence_score": 1.0
+      "target": "clahan_academy_verify_should_show_sequential_auto_not_free_manual"
     },
     {
       "relation": "contains",
@@ -23809,9 +23809,9 @@
       "source_file": "VERIFY.md",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "verify_md",
-      "target": "clahan_academy_verify_then_run",
-      "confidence_score": 1.0
+      "target": "clahan_academy_verify_then_run"
     },
     {
       "relation": "contains",
@@ -23819,9 +23819,9 @@
       "source_file": "VERIFY.md",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "clahan_academy_verify_post_deployment_verification",
-      "target": "clahan_academy_verify_run_these_commands_after_deploying",
-      "confidence_score": 1.0
+      "target": "clahan_academy_verify_run_these_commands_after_deploying"
     },
     {
       "relation": "contains",
@@ -23829,9 +23829,9 @@
       "source_file": "VERIFY.md",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "clahan_academy_verify_run_these_commands_after_deploying",
-      "target": "clahan_academy_verify_1_check_all_containers_running",
-      "confidence_score": 1.0
+      "target": "clahan_academy_verify_1_check_all_containers_running"
     },
     {
       "relation": "contains",
@@ -23839,9 +23839,9 @@
       "source_file": "VERIFY.md",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "clahan_academy_verify_run_these_commands_after_deploying",
-      "target": "clahan_academy_verify_2_verify_database_has_correct_columns",
-      "confidence_score": 1.0
+      "target": "clahan_academy_verify_2_verify_database_has_correct_columns"
     },
     {
       "relation": "contains",
@@ -23849,9 +23849,9 @@
       "source_file": "VERIFY.md",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "clahan_academy_verify_run_these_commands_after_deploying",
-      "target": "clahan_academy_verify_3_verify_exam_service_has_new_code",
-      "confidence_score": 1.0
+      "target": "clahan_academy_verify_3_verify_exam_service_has_new_code"
     },
     {
       "relation": "contains",
@@ -23859,9 +23859,9 @@
       "source_file": "VERIFY.md",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "clahan_academy_verify_run_these_commands_after_deploying",
-      "target": "clahan_academy_verify_4_test_navigation_save",
-      "confidence_score": 1.0
+      "target": "clahan_academy_verify_4_test_navigation_save"
     },
     {
       "relation": "contains",
@@ -23869,9 +23869,9 @@
       "source_file": "VERIFY.md",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "clahan_academy_verify_should_show_sequential_auto_not_free_manual",
-      "target": "clahan_academy_verify_5_verify_frontend_rebuilt",
-      "confidence_score": 1.0
+      "target": "clahan_academy_verify_5_verify_frontend_rebuilt"
     },
     {
       "relation": "contains",
@@ -25908,5 +25908,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "c1af3302b746d0de032f569f7181c7c2e43ed10b"
+  "built_at_commit": "9beafc822467a2834a4dc0dedca06646241226d7"
 }

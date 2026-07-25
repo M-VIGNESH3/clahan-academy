@@ -1,7 +1,7 @@
 # Graph Report - clahan academy  (2026-07-25)
 
 ## Corpus Check
-- 85 files · ~141,214 words
+- 85 files · ~142,694 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c1af3302`
+- Built from commit: `9beafc82`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -212,7 +212,7 @@ Nodes (9): Clahan Academy V2 Implementation Plan, code:mermaid (graph TD), code:
 
 ### Community 19 - "Community 19"
 Cohesion: 0.11
-Nodes (16): ExamSubmissionController(), ExamSubmissionControllerProps, ImageViewerModal(), ImageViewerModalProps, NavigationRuleSettings(), NavigationRuleSettingsProps, SubmissionPolicySettings(), SubmissionPolicySettingsProps (+8 more)
+Nodes (16): ExamSubmissionController(), ExamSubmissionControllerProps, NavigationRuleSettings(), NavigationRuleSettingsProps, QuestionFooter(), QuestionFooterProps, SubmissionPolicySettings(), SubmissionPolicySettingsProps (+8 more)
 
 ### Community 20 - "Community 20"
 Cohesion: 0.07
@@ -407,8 +407,8 @@ Cohesion: 0.08
 Nodes (24): dependencies, cors, dotenv, express, express-rate-limit, helmet, jsonwebtoken, pg (+16 more)
 
 ### Community 80 - "Community 80"
-Cohesion: 0.21
-Nodes (11): QuestionPreview(), QuestionPreviewProps, RichContentRendererProps, RichTextEditor(), RichTextEditorProps, CodingQuestion, MCQQuestion, ContentBlock (+3 more)
+Cohesion: 0.22
+Nodes (11): QuestionPreview(), QuestionPreviewProps, RichContentRenderer(), RichContentRendererProps, RichTextEditorProps, CodingQuestion, MCQQuestion, ContentBlock (+3 more)
 
 ### Community 81 - "Community 81"
 Cohesion: 0.14
@@ -427,8 +427,8 @@ Cohesion: 0.18
 Nodes (10): compilerOptions, esModuleInterop, forceConsistentCasingInFileNames, module, outDir, rootDir, skipLibCheck, strict (+2 more)
 
 ### Community 85 - "Community 85"
-Cohesion: 0.20
-Nodes (6): ErrorBoundaryProps, ErrorBoundaryState, QuestionErrorBoundary, SafeOptionRenderer(), SafeOptionRendererProps, RichContentRenderer()
+Cohesion: 0.22
+Nodes (5): ErrorBoundaryProps, ErrorBoundaryState, QuestionErrorBoundary, SafeOptionRenderer(), SafeOptionRendererProps
 
 ### Community 86 - "Community 86"
 Cohesion: 0.22
@@ -447,8 +447,8 @@ Cohesion: 0.40
 Nodes (5): AssessmentTimingSettings(), AssessmentTimingSettingsProps, computeSectionTimingSummary(), SectionTimingItem, SectionTimingSummary
 
 ### Community 90 - "Community 90"
-Cohesion: 0.40
-Nodes (4): CodingQuestionData, MCQQuestionData, QuestionInlineEditor(), QuestionInlineEditorProps
+Cohesion: 0.33
+Nodes (5): CodingQuestionData, MCQQuestionData, QuestionInlineEditor(), QuestionInlineEditorProps, RichTextEditor()
 
 ### Community 91 - "Community 91"
 Cohesion: 0.18
