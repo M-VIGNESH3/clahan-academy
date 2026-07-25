@@ -1386,7 +1386,8 @@ export default function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (examRes.ok) {
-        setAdminExams(await examRes.json());
+        const rawExams = await examRes.json();
+        setAdminExams((Array.isArray(rawExams) ? rawExams : []).map(formatExamItem));
       }
 
       // Load departments for settings
@@ -2044,8 +2045,12 @@ export default function App() {
   const createExam = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const durMins = examForm.durationMinutes === ('' as any) || examForm.durationMinutes === undefined || examForm.durationMinutes === null ? 60 : parseInt(String(examForm.durationMinutes), 10);
+      const cutPct = examForm.cutoffPercentage === ('' as any) || examForm.cutoffPercentage === undefined || examForm.cutoffPercentage === null ? 50 : parseFloat(String(examForm.cutoffPercentage));
       const payload = {
         ...examForm,
+        durationMinutes: isNaN(durMins) ? 60 : durMins,
+        cutoffPercentage: isNaN(cutPct) ? 50 : cutPct,
         scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString()
       };
       const res = await fetch(`${API_EXAMS}`, {
@@ -2071,13 +2076,13 @@ export default function App() {
       }
     } catch (err) {
       const mockId = `exam-${Date.now()}`;
-      const mockE = {
+      const mockE = formatExamItem({
         id: mockId,
         name: examForm.name,
         exam_type: examForm.examType,
-        duration_minutes: examForm.durationMinutes,
-        cutoff_percentage: examForm.cutoffPercentage,
-        allowed_attempts: examForm.allowedAttempts,
+        duration_minutes: examForm.durationMinutes || 60,
+        cutoff_percentage: examForm.cutoffPercentage || 50,
+        allowed_attempts: examForm.allowedAttempts || 1,
         schedule_date: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
         window_open_minutes: examForm.windowOpenMinutes || 10,
         is_published: false,
@@ -2092,7 +2097,7 @@ export default function App() {
         coding_cutoff_percentage: examForm.codingCutoffPercentage || 50,
         mcq_cutoff_marks: examForm.mcqCutoffMarks || 0,
         coding_cutoff_marks: examForm.codingCutoffMarks || 0
-      };
+      });
       setAdminExams(prev => [mockE, ...prev]);
       setSelectedExamIdForQuestions(mockId);
       setEditingExamId(mockId);
@@ -2110,8 +2115,12 @@ export default function App() {
     e.preventDefault();
     if (!editingExamId) return;
     try {
+      const durMins = examForm.durationMinutes === ('' as any) || examForm.durationMinutes === undefined || examForm.durationMinutes === null ? 60 : parseInt(String(examForm.durationMinutes), 10);
+      const cutPct = examForm.cutoffPercentage === ('' as any) || examForm.cutoffPercentage === undefined || examForm.cutoffPercentage === null ? 50 : parseFloat(String(examForm.cutoffPercentage));
       const payload = {
         ...examForm,
+        durationMinutes: isNaN(durMins) ? 60 : durMins,
+        cutoffPercentage: isNaN(cutPct) ? 50 : cutPct,
         scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString()
       };
       const res = await fetch(`${API_EXAMS}/${editingExamId}`, {
@@ -2121,10 +2130,11 @@ export default function App() {
       });
       if (res.ok) {
         const updatedExam = await res.json();
+        const formatted = formatExamItem(updatedExam);
         showToast('Assessment details updated successfully!');
         setSelectedExamIdForQuestions(editingExamId);
         await loadAdminExamQuestions(editingExamId);
-        setAdminExams(prev => prev.map(e => e.id === editingExamId ? { ...e, ...updatedExam } : e));
+        setAdminExams(prev => prev.map(e => e.id === editingExamId ? formatted : e));
         await loadAdminDashboard();
       }
     } catch (err) {
@@ -2169,7 +2179,65 @@ export default function App() {
     }
   };
 
-  const startEditingExam = (ex: any) => {
+  const formatExamItem = (ex: any) => {
+    if (!ex) return ex;
+    const dur = ex.duration_minutes !== undefined && ex.duration_minutes !== null ? Number(ex.duration_minutes) : (ex.durationMinutes !== undefined && ex.durationMinutes !== null ? Number(ex.durationMinutes) : 60);
+    const cutPct = ex.cutoff_percentage !== undefined && ex.cutoff_percentage !== null ? Number(ex.cutoff_percentage) : (ex.cutoffPercentage !== undefined && ex.cutoffPercentage !== null ? Number(ex.cutoffPercentage) : 50);
+    const attempts = ex.allowed_attempts !== undefined && ex.allowed_attempts !== null ? Number(ex.allowed_attempts) : (ex.allowedAttempts !== undefined && ex.allowedAttempts !== null ? Number(ex.allowedAttempts) : 1);
+    const windowOpen = ex.window_open_minutes !== undefined && ex.window_open_minutes !== null ? Number(ex.window_open_minutes) : (ex.windowOpenMinutes !== undefined && ex.windowOpenMinutes !== null ? Number(ex.windowOpenMinutes) : 10);
+    const mcqCutPct = ex.mcq_cutoff_percentage !== undefined && ex.mcq_cutoff_percentage !== null ? Number(ex.mcq_cutoff_percentage) : (ex.mcqCutoffPercentage !== undefined && ex.mcqCutoffPercentage !== null ? Number(ex.mcqCutoffPercentage) : 50);
+    const codingCutPct = ex.coding_cutoff_percentage !== undefined && ex.coding_cutoff_percentage !== null ? Number(ex.coding_cutoff_percentage) : (ex.codingCutoffPercentage !== undefined && ex.codingCutoffPercentage !== null ? Number(ex.codingCutoffPercentage) : 50);
+    const mcqCutMarks = ex.mcq_cutoff_marks !== undefined && ex.mcq_cutoff_marks !== null ? Number(ex.mcq_cutoff_marks) : (ex.mcqCutoffMarks !== undefined && ex.mcqCutoffMarks !== null ? Number(ex.mcqCutoffMarks) : 0);
+    const codingCutMarks = ex.coding_cutoff_marks !== undefined && ex.coding_cutoff_marks !== null ? Number(ex.coding_cutoff_marks) : (ex.codingCutoffMarks !== undefined && ex.codingCutoffMarks !== null ? Number(ex.codingCutoffMarks) : 0);
+    const schedDate = ex.schedule_date || ex.scheduleDate || new Date().toISOString();
+    const exType = ex.exam_type || ex.examType || 'crt';
+
+    return {
+      ...ex,
+      name: ex.name || '',
+      description: ex.description || '',
+      examType: exType,
+      exam_type: exType,
+      durationMinutes: dur,
+      duration_minutes: dur,
+      cutoffPercentage: cutPct,
+      cutoff_percentage: cutPct,
+      allowedAttempts: attempts,
+      allowed_attempts: attempts,
+      scheduleDate: schedDate,
+      schedule_date: schedDate,
+      windowOpenMinutes: windowOpen,
+      window_open_minutes: windowOpen,
+      collegeId: ex.college_id || ex.collegeId || '',
+      college_id: ex.college_id || ex.collegeId || '',
+      departmentId: ex.department_id || ex.departmentId || '',
+      department_id: ex.department_id || ex.departmentId || '',
+      departmentIds: ex.department_ids || ex.departmentIds || (ex.department_id ? [ex.department_id] : []),
+      department_ids: ex.department_ids || ex.departmentIds || (ex.department_id ? [ex.department_id] : []),
+      batchId: ex.batch_id || ex.batchId || '',
+      batch_id: ex.batch_id || ex.batchId || '',
+      trainerId: ex.trainer_id || ex.trainerId || '',
+      trainer_id: ex.trainer_id || ex.trainerId || '',
+      year: ex.year || '1st Year',
+      enableFaceDetection: ex.enable_face_detection !== false,
+      enable_face_detection: ex.enable_face_detection !== false,
+      enableSectionCutoff: ex.enable_section_cutoff === true || ex.enableSectionCutoff === true,
+      enable_section_cutoff: ex.enable_section_cutoff === true || ex.enableSectionCutoff === true,
+      mcqCutoffPercentage: mcqCutPct,
+      mcq_cutoff_percentage: mcqCutPct,
+      codingCutoffPercentage: codingCutPct,
+      coding_cutoff_percentage: codingCutPct,
+      mcqCutoffMarks: mcqCutMarks,
+      mcq_cutoff_marks: mcqCutMarks,
+      codingCutoffMarks: codingCutMarks,
+      coding_cutoff_marks: codingCutMarks,
+      navigationMode: ex.navigation_mode || ex.navigationMode || 'free',
+      navigation_mode: ex.navigation_mode || ex.navigationMode || 'free'
+    };
+  };
+
+  const startEditingExam = (rawEx: any) => {
+    const ex = formatExamItem(rawEx);
     let localSched = '';
     if (ex.schedule_date || ex.scheduleDate) {
       try {
@@ -6924,7 +6992,10 @@ export default function App() {
                         <input
                           type="number"
                           value={examForm.durationMinutes}
-                          onChange={e => setExamForm({ ...examForm, durationMinutes: parseInt(e.target.value) || 60 })}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setExamForm({ ...examForm, durationMinutes: val === '' ? ('' as any) : (parseInt(val, 10) || 0) });
+                          }}
                           className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white"
                           required
                         />
@@ -6935,7 +7006,16 @@ export default function App() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs font-semibold text-muted-foreground">Cutoff Percentage (%)</label>
-                      <input type="number" value={examForm.cutoffPercentage} onChange={e => setExamForm({...examForm, cutoffPercentage: parseInt(e.target.value) || 50})} className="w-full p-3 border rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800" required />
+                      <input
+                        type="number"
+                        value={examForm.cutoffPercentage}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setExamForm({ ...examForm, cutoffPercentage: val === '' ? ('' as any) : parseFloat(val) });
+                        }}
+                        className="w-full p-3 border rounded-xl text-xs bg-transparent mt-1 text-slate-900 dark:text-white border-slate-200 dark:border-slate-800"
+                        required
+                      />
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-muted-foreground">Allowed Attempts</label>

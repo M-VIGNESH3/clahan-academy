@@ -398,6 +398,9 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
       finalYear = year || req.body.year || null;
     }
 
+    const finalCutoffPct = cutoffPercentage !== undefined && cutoffPercentage !== null && String(cutoffPercentage).trim() !== '' ? parseFloat(String(cutoffPercentage)) : 50.00;
+    const finalAllowedAttempts = allowedAttempts !== undefined && allowedAttempts !== null && String(allowedAttempts).trim() !== '' ? parseInt(String(allowedAttempts), 10) : 1;
+
     const result = await query(
       `UPDATE exams 
        SET name = $1, description = $2, exam_type = $3, duration_minutes = $4,
@@ -406,7 +409,7 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
            enable_section_cutoff = $16, mcq_cutoff_percentage = $17, coding_cutoff_percentage = $18, mcq_cutoff_marks = $19, coding_cutoff_marks = $20, navigation_mode = $21
        WHERE id = $22 RETURNING *`,
       [
-        exName, description || '', exType, durMins, cutoffPercentage || 50, allowedAttempts || 1, finalScheduleDate, finalCollegeId, finalDeptId, finalDeptIds, finalBatchId, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, finalTrainerId, enableFaceDetection !== false,
+        exName, description || '', exType, durMins, finalCutoffPct, finalAllowedAttempts, finalScheduleDate, finalCollegeId, finalDeptId, finalDeptIds, finalBatchId, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, finalTrainerId, enableFaceDetection !== false,
         enableSectionCutoff === true, mcqCutoffPercentage !== undefined && mcqCutoffPercentage !== null ? mcqCutoffPercentage : 50.00, codingCutoffPercentage !== undefined && codingCutoffPercentage !== null ? codingCutoffPercentage : 50.00, mcqCutoffMarks !== undefined && mcqCutoffMarks !== null ? mcqCutoffMarks : 0.00, codingCutoffMarks !== undefined && codingCutoffMarks !== null ? codingCutoffMarks : 0.00,
         req.body.navigationMode || req.body.navigation_mode || 'free',
         req.params.id
