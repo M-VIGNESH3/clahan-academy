@@ -134,11 +134,30 @@ app.get('/api/reports/skills/:studentId', authenticate, async (req: Authenticate
       if (category && skillScores[category] !== undefined) {
         skillScores[category].push(pct);
       } else {
-        // Uncategorized exams: use exam_type to guess category
-        if (attempt.exam_type === 'coding') {
-          skillScores.coding.push(pct);
-        } else if (attempt.exam_type === 'mcq') {
-          skillScores.aptitude.push(pct);
+        // Uncategorized exams: use exam_type to guess category.
+        // exam_type is a separate field from skill_category (chosen in the "Assessment Type"
+        // dropdown), but several of its values are skill names themselves or map cleanly to one.
+        switch (attempt.exam_type) {
+          case 'coding':
+            skillScores.coding.push(pct);
+            break;
+          case 'mcq':
+          case 'crt':
+          case 'aptitude':
+            skillScores.aptitude.push(pct);
+            break;
+          case 'technical':
+          case 'corporate_test':
+            skillScores.technical.push(pct);
+            break;
+          case 'mock_interview':
+            skillScores.communication.push(pct);
+            break;
+          case 'both':
+            skillScores.aptitude.push(pct);
+            skillScores.coding.push(pct);
+            break;
+          // 'custom' and any unrecognized exam_type: no reliable mapping, leave uncategorized
         }
       }
     });

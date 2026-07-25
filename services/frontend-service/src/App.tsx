@@ -1403,9 +1403,13 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setSkillGapData(data);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        showToast(`Failed to load skill analysis: ${errorData.error || `Server error (${res.status})`}`, 'error');
       }
     } catch (err) {
       console.error('Failed to load skill gap:', err);
+      showToast('Failed to load skill analysis. Please check your connection and try again.', 'error');
     } finally {
       setIsLoadingSkillGap(false);
     }
@@ -5465,6 +5469,7 @@ export default function App() {
                 { id: 'students', label: 'Students', icon: Users },
                 { id: 'training', label: 'Training', icon: BookOpen },
                 { id: 'exams', label: 'Assessments', icon: Layers },
+                { id: 'live', label: 'Live Exam Proctor', icon: Video },
                 { id: 'placement', label: 'Placement', icon: Laptop },
                 { id: 'companies', label: 'Companies', icon: Sparkles },
                 { id: 'reports', label: 'Reports', icon: Download },
