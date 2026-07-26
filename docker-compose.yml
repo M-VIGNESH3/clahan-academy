@@ -187,6 +187,7 @@ services:
       - training-service
       - placement-service
       - report-service
+      - super-admin-service
 
   # --- JUDGE0 COMPILATION STACK ---
   judge0-db:

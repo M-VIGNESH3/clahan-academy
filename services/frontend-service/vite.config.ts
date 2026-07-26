@@ -64,6 +64,10 @@ export default defineConfig({
         target: 'http://localhost:4009',
         changeOrigin: true,
       },
+      '/api/super': {
+        target: 'http://localhost:4010',
+        changeOrigin: true,
+      },
     }
   },
 });

@@ -147,7 +147,7 @@ export default function App() {
   });
 
   // App Routing
-  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login' | 'skill-gap'>(() => {
+  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login' | 'skill-gap' | 'super-dashboard' | 'super-organizations' | 'super-org-detail' | 'super-audit-logs'>(() => {
     const path = window.location.pathname.toLowerCase();
     if (path === '/admin-login' || path === '/admin-login/') {
       return 'admin-login';
@@ -229,6 +229,38 @@ export default function App() {
   const [adminMetrics, setAdminMetrics] = useState<any>({
     totalStudents: 0, totalExams: 0, liveExams: 0, completedExams: 0, averageScore: 0, passPercentage: 0, failPercentage: 0
   });
+
+  // Super admin state
+  const [superStats, setSuperStats] = useState<any>(null);
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [selectedOrg, setSelectedOrg] = useState<any>(null);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [isLoadingSuperData, setIsLoadingSuperData] = useState(false);
+
+  // Modals for super admin
+  const [showCreateOrgModal, setShowCreateOrgModal] = useState(false);
+  const [showCreateOrgAdminModal, setShowCreateOrgAdminModal] = useState(false);
+  const [orgAdminTargetOrg, setOrgAdminTargetOrg] = useState<any>(null);
+
+  // Create org form
+  const [orgForm, setOrgForm] = useState({
+    name: '',
+    slug: '',
+    orgType: 'college',
+    address: '',
+    contactEmail: '',
+    contactPhone: ''
+  });
+
+  // Create org admin form
+  const [orgAdminForm, setOrgAdminForm] = useState({
+    fullName: '',
+    email: '',
+    phone: ''
+  });
+
+  // Newly created credentials to show
+  const [newCredentials, setNewCredentials] = useState<any>(null);
 
   // Settings State
   const [companySettings, setCompanySettings] = useState({
@@ -1169,6 +1201,9 @@ export default function App() {
   const API_STUDENT = '/api/student';
   const API_EXAMS = '/api/exams';
   const API_REPORTS = '/api/reports';
+  // Relative path, proxied to super-admin-service (see nginx.conf / vite.config.ts) —
+  // matches the pattern of every other API_* constant above, not an absolute host:port.
+  const API_SUPER = '/api/super';
 
   // Toggle Dark/Light Mode
   useEffect(() => {
@@ -1254,6 +1289,19 @@ export default function App() {
     }
   };
 
+  // Mirrors auth-service's getDashboardRoute() so we can route correctly even
+  // when the server didn't send dashboardRoute (older cached tokens, the
+  // offline/simulated-login fallback in handleLogin).
+  const getDashboardRouteForRole = (role: string | undefined): 'super-dashboard' | 'admin-dash' | 'student-dash' => {
+    switch (role) {
+      case 'super_admin': return 'super-dashboard';
+      case 'org_admin':
+      case 'faculty': // Sprint 2 — faculty gets its own dashboard later
+      case 'admin': return 'admin-dash';
+      default: return 'student-dash';
+    }
+  };
+
   const fetchCurrentUser = async () => {
     const tryLocalDecode = () => {
       if (token) {
@@ -1281,7 +1329,11 @@ export default function App() {
             setCurrentUser(decodedUser);
             setBatchUpdate(decodedUser.batchId || decodedUser.batch_id || '');
             setTrainerUpdate(decodedUser.trainerId || decodedUser.trainer_id || '');
-            if (decodedUser.role === 'admin') {
+            const localRoute = payload.dashboardRoute || getDashboardRouteForRole(decodedUser.role);
+            if (localRoute === 'super-dashboard') {
+              setCurrentPage('super-dashboard');
+              loadSuperDashboard();
+            } else if (localRoute === 'admin-dash') {
               setCurrentPage('admin-dash');
               loadAdminDashboard();
             } else {
@@ -1328,7 +1380,11 @@ export default function App() {
         setCurrentUser(mappedUser);
         setBatchUpdate(mappedUser.batchId || mappedUser.batch_id || '');
         setTrainerUpdate(mappedUser.trainerId || mappedUser.trainer_id || '');
-        if (mappedUser.role === 'admin') {
+        const route = mappedUser.dashboardRoute || getDashboardRouteForRole(mappedUser.role);
+        if (route === 'super-dashboard') {
+          setCurrentPage('super-dashboard');
+          loadSuperDashboard();
+        } else if (route === 'admin-dash') {
           setCurrentPage('admin-dash');
           loadAdminDashboard();
         } else {
@@ -1475,6 +1531,113 @@ export default function App() {
       showToast('Password updated successfully (Simulated)');
       setCurrentPassword('');
       setNewProfilePassword('');
+    }
+  };
+
+  // --- SUPER ADMIN API CALLS ---
+  const loadSuperDashboard = async () => {
+    setIsLoadingSuperData(true);
+    try {
+      const [statsRes, orgsRes] = await Promise.all([
+        fetch(`${API_SUPER}/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_SUPER}/organizations`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      if (statsRes.ok) {
+        const data = await statsRes.json();
+        setSuperStats(data);
+      }
+      if (orgsRes.ok) {
+        const data = await orgsRes.json();
+        setOrganizations(data);
+      }
+    } catch (err) {
+      console.error('Super dashboard load:', err);
+    } finally {
+      setIsLoadingSuperData(false);
+    }
+  };
+
+  const createOrganization = async () => {
+    try {
+      const res = await fetch(`${API_SUPER}/organizations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: orgForm.name,
+          slug: orgForm.slug,
+          orgType: orgForm.orgType,
+          address: orgForm.address,
+          contactEmail: orgForm.contactEmail,
+          contactPhone: orgForm.contactPhone
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowCreateOrgModal(false);
+        setOrgForm({
+          name: '', slug: '', orgType: 'college',
+          address: '', contactEmail: '', contactPhone: ''
+        });
+        loadSuperDashboard();
+        showToast('Organization created successfully', 'success');
+      } else {
+        showToast(data.error || 'Failed', 'error');
+      }
+    } catch (err) {
+      showToast('Network error', 'error');
+    }
+  };
+
+  const createOrgAdmin = async () => {
+    if (!orgAdminTargetOrg) return;
+    try {
+      const res = await fetch(`${API_SUPER}/organizations/${orgAdminTargetOrg.id}/admin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          fullName: orgAdminForm.fullName,
+          email: orgAdminForm.email,
+          phone: orgAdminForm.phone
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowCreateOrgAdminModal(false);
+        setOrgAdminForm({ fullName: '', email: '', phone: '' });
+        setNewCredentials(data.credentials);
+        showToast('Admin account created', 'success');
+        loadSuperDashboard();
+      } else {
+        showToast(data.error || 'Failed', 'error');
+      }
+    } catch (err) {
+      showToast('Network error', 'error');
+    }
+  };
+
+  const toggleOrgStatus = async (orgId: string, currentStatus: boolean) => {
+    const action = currentStatus ? 'deactivate' : 'activate';
+    try {
+      const res = await fetch(`${API_SUPER}/organizations/${orgId}/${action}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast(`Organization ${action}d`, 'success');
+        loadSuperDashboard();
+      }
+    } catch (err) {
+      showToast('Network error', 'error');
     }
   };
 
@@ -11785,6 +11948,548 @@ export default function App() {
 
             </div>
           )}
+        </div>
+      )}
+
+      {currentPage === 'super-dashboard' && (
+        <div className="min-h-screen bg-slate-950 text-white">
+
+          {/* Header */}
+          <div className="border-b border-white/10 bg-slate-900/50 px-6 py-4">
+            <div className="flex items-center justify-between max-w-7xl mx-auto">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-sm font-black">
+                  ⚡
+                </div>
+                <div>
+                  <h1 className="font-black text-white text-sm">
+                    Clahan Academy
+                  </h1>
+                  <p className="text-[10px] text-violet-400 font-bold">
+                    SUPER ADMIN
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => loadSuperDashboard()}
+                  className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-slate-800"
+                >
+                  Refresh
+                </button>
+                <button
+                  onClick={() => {
+                    setCurrentPage('super-audit-logs');
+                  }}
+                  className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg hover:bg-slate-800"
+                >
+                  Audit Logs
+                </button>
+                <button
+                  onClick={() => {
+                    setToken(null);
+                    setCurrentUser(null);
+                    setCurrentPage('landing');
+                  }}
+                  className="text-xs text-red-400 hover:text-red-300 px-3 py-1.5 rounded-lg hover:bg-red-500/10"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-w-7xl mx-auto p-6 space-y-6">
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                {
+                  label: 'Organizations',
+                  value: superStats?.stats?.totalOrgs ?? '—',
+                  sub: `${superStats?.stats?.activeOrgs ?? 0} active`,
+                  icon: '🏫',
+                  color: 'violet'
+                },
+                {
+                  label: 'Total Students',
+                  value: superStats?.stats?.totalStudents ?? '—',
+                  sub: 'across all orgs',
+                  icon: '👥',
+                  color: 'blue'
+                },
+                {
+                  label: 'Total Exams',
+                  value: superStats?.stats?.totalExams ?? '—',
+                  sub: 'created',
+                  icon: '📝',
+                  color: 'emerald'
+                },
+                {
+                  label: 'Completed Attempts',
+                  value: superStats?.stats?.totalAttempts ?? '—',
+                  sub: 'all time',
+                  icon: '✅',
+                  color: 'amber'
+                }
+              ].map((stat) => (
+                <div key={stat.label}
+                  className="p-5 bg-slate-900 border border-white/10 rounded-2xl">
+                  <div className="text-2xl mb-2">
+                    {stat.icon}
+                  </div>
+                  <div className="text-2xl font-black text-white mb-0.5">
+                    {isLoadingSuperData ? '...' : stat.value}
+                  </div>
+                  <div className="text-xs font-bold text-slate-300">
+                    {stat.label}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">
+                    {stat.sub}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Organizations List */}
+            <div className="bg-slate-900 border border-white/10 rounded-2xl overflow-hidden">
+              <div className="flex items-center justify-between p-5 border-b border-white/10">
+                <h2 className="font-extrabold text-sm text-white">
+                  🏫 Organizations
+                </h2>
+                <button
+                  onClick={() => setShowCreateOrgModal(true)}
+                  className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-extrabold rounded-xl"
+                >
+                  + New Organization
+                </button>
+              </div>
+
+              {isLoadingSuperData ? (
+                <div className="p-8 text-center text-slate-400 text-sm">
+                  Loading...
+                </div>
+              ) : organizations.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-slate-400 text-sm">
+                    No organizations yet.
+                  </p>
+                  <p className="text-slate-500 text-xs mt-1">
+                    Create your first college to get started.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-white/5">
+                  {organizations.map((org) => (
+                    <div key={org.id}
+                      className="flex items-center justify-between p-4 hover:bg-slate-800/50">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-violet-500/20 flex items-center justify-center text-lg">
+                          {org.org_type === 'college' ? '🏫' : '🏢'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white">
+                            {org.name}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {org.slug} • {org.org_type}
+                            {' • '}
+                            {org.student_count || 0} students
+                            {' • '}
+                            {org.exam_count || 0} exams
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            org.is_active
+                              ? 'bg-emerald-500/20 text-emerald-400'
+                              : 'bg-red-500/20 text-red-400'
+                          }`}>
+                          {org.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setOrgAdminTargetOrg(org);
+                            setShowCreateOrgAdminModal(true);
+                          }}
+                          className="px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 text-blue-300 text-[10px] font-bold rounded-lg hover:bg-blue-500/30"
+                        >
+                          + Admin
+                        </button>
+                        <button
+                          onClick={() => toggleOrgStatus(org.id, org.is_active)}
+                          className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${
+                            org.is_active
+                              ? 'bg-red-500/20 border-red-500/30 text-red-300 hover:bg-red-500/30'
+                              : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30'
+                          }`}
+                        >
+                          {org.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Recent Activity */}
+            {superStats?.recentActivity?.length > 0 && (
+              <div className="bg-slate-900 border border-white/10 rounded-2xl p-5">
+                <h2 className="font-extrabold text-sm text-white mb-4">
+                  📋 Recent Activity
+                </h2>
+                <div className="space-y-2">
+                  {superStats.recentActivity.map((log: any, i: number) => (
+                    <div key={i}
+                      className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                      <div>
+                        <span className="text-xs font-bold text-white">
+                          {log.action}
+                        </span>
+                        {log.org_name && (
+                          <span className="text-[10px] text-slate-400 ml-2">
+                            {log.org_name}
+                          </span>
+                        )}
+                        {log.full_name && (
+                          <span className="text-[10px] text-slate-500 ml-2">
+                            by {log.full_name}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-500">
+                        {new Date(log.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          {/* CREATE ORG MODAL */}
+          {showCreateOrgModal && (
+            <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
+                <h3 className="font-black text-white mb-5">
+                  Create New Organization
+                </h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Organization Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={orgForm.name}
+                      onChange={e => {
+                        const name = e.target.value;
+                        const slug = name
+                          .toLowerCase()
+                          .replace(/\s+/g, '-')
+                          .replace(/[^a-z0-9-]/g, '');
+                        setOrgForm({ ...orgForm, name, slug });
+                      }}
+                      placeholder="MIT College"
+                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Slug (URL-friendly) *
+                    </label>
+                    <input
+                      type="text"
+                      value={orgForm.slug}
+                      onChange={e => setOrgForm({ ...orgForm, slug: e.target.value })}
+                      placeholder="mit-college"
+                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Type
+                    </label>
+                    <select
+                      value={orgForm.orgType}
+                      onChange={e => setOrgForm({ ...orgForm, orgType: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white"
+                    >
+                      <option value="college">
+                        College / University
+                      </option>
+                      <option value="corporate">
+                        Corporate / Training Center
+                      </option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Contact Email *
+                    </label>
+                    <input
+                      type="email"
+                      value={orgForm.contactEmail}
+                      onChange={e => setOrgForm({ ...orgForm, contactEmail: e.target.value })}
+                      placeholder="admin@college.edu"
+                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Contact Phone
+                    </label>
+                    <input
+                      type="text"
+                      value={orgForm.contactPhone}
+                      onChange={e => setOrgForm({ ...orgForm, contactPhone: e.target.value })}
+                      placeholder="+91 98765 43210"
+                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Address
+                    </label>
+                    <textarea
+                      value={orgForm.address}
+                      onChange={e => setOrgForm({ ...orgForm, address: e.target.value })}
+                      placeholder="College address..."
+                      rows={2}
+                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 resize-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={() => setShowCreateOrgModal(false)}
+                    className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={createOrganization}
+                    disabled={!orgForm.name || !orgForm.contactEmail}
+                    className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-extrabold rounded-xl"
+                  >
+                    Create Organization
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CREATE ORG ADMIN MODAL */}
+          {showCreateOrgAdminModal && (
+            <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
+                <h3 className="font-black text-white mb-1">
+                  Create Admin Account
+                </h3>
+                <p className="text-xs text-slate-400 mb-5">
+                  For: {orgAdminTargetOrg?.name}
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={orgAdminForm.fullName}
+                      onChange={e => setOrgAdminForm({ ...orgAdminForm, fullName: e.target.value })}
+                      placeholder="Dr. Rajesh Kumar"
+                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Email *
+                    </label>
+                    <input
+                      type="email"
+                      value={orgAdminForm.email}
+                      onChange={e => setOrgAdminForm({ ...orgAdminForm, email: e.target.value })}
+                      placeholder="admin@college.edu"
+                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Phone
+                    </label>
+                    <input
+                      type="text"
+                      value={orgAdminForm.phone}
+                      onChange={e => setOrgAdminForm({ ...orgAdminForm, phone: e.target.value })}
+                      placeholder="+91 98765 43210"
+                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={() => {
+                      setShowCreateOrgAdminModal(false);
+                      setOrgAdminTargetOrg(null);
+                    }}
+                    className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={createOrgAdmin}
+                    disabled={!orgAdminForm.fullName || !orgAdminForm.email}
+                    className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-extrabold rounded-xl"
+                  >
+                    Create Admin
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CREDENTIALS DISPLAY MODAL */}
+          {newCredentials && (
+            <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-6 w-full max-w-md">
+                <div className="text-center mb-4">
+                  <div className="text-4xl mb-2">
+                    ✅
+                  </div>
+                  <h3 className="font-black text-white">
+                    Admin Account Created
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Share these credentials securely
+                  </p>
+                </div>
+                <div className="bg-slate-800 rounded-xl p-4 space-y-2 mb-5">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase">
+                      Email
+                    </span>
+                    <p className="text-sm font-bold text-white">
+                      {newCredentials.email}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase">
+                      Password
+                    </span>
+                    <p className="text-sm font-bold text-white font-mono">
+                      {newCredentials.password}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase">
+                      Login URL
+                    </span>
+                    <p className="text-sm font-bold text-violet-400">
+                      /admin-login
+                    </p>
+                  </div>
+                </div>
+                <p className="text-[10px] text-amber-400 text-center mb-4">
+                  ⚠️ Copy these now. Password cannot be retrieved later.
+                </p>
+                <button
+                  onClick={() => setNewCredentials(null)}
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl"
+                >
+                  Done — I've Copied the Credentials
+                </button>
+              </div>
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {currentPage === 'super-audit-logs' && (
+        <div className="min-h-screen bg-slate-950 text-white p-6">
+
+          <div className="max-w-5xl mx-auto">
+            <div className="flex items-center gap-4 mb-6">
+              <button
+                onClick={() => setCurrentPage('super-dashboard')}
+                className="p-2 rounded-xl border border-white/10 hover:bg-slate-800 text-slate-400 text-sm"
+              >
+                ← Back
+              </button>
+              <div>
+                <h1 className="text-lg font-black text-white">
+                  Audit Logs
+                </h1>
+                <p className="text-xs text-slate-400">
+                  All platform activity
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  const res = await fetch(`${API_SUPER}/audit-logs`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                  });
+                  if (res.ok) {
+                    setAuditLogs(await res.json());
+                  }
+                }}
+                className="ml-auto px-4 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-700"
+              >
+                Refresh
+              </button>
+            </div>
+
+            <div className="bg-slate-900 border border-white/10 rounded-2xl overflow-hidden">
+              {auditLogs.length === 0 ? (
+                <div className="p-8 text-center text-slate-400 text-sm">
+                  No audit logs yet. Logs appear as actions are taken.
+                </div>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-white/10 bg-slate-800/50">
+                      <th className="text-left p-3 font-bold text-slate-400">
+                        Action
+                      </th>
+                      <th className="text-left p-3 font-bold text-slate-400">
+                        User
+                      </th>
+                      <th className="text-left p-3 font-bold text-slate-400">
+                        Organization
+                      </th>
+                      <th className="text-left p-3 font-bold text-slate-400">
+                        Time
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {auditLogs.map((log, i) => (
+                      <tr key={i} className="hover:bg-slate-800/30">
+                        <td className="p-3">
+                          <span className="px-2 py-0.5 bg-violet-500/20 text-violet-300 rounded font-mono text-[10px]">
+                            {log.action}
+                          </span>
+                        </td>
+                        <td className="p-3 text-slate-300">
+                          {log.user_name || log.user_email || '—'}
+                        </td>
+                        <td className="p-3 text-slate-400">
+                          {log.org_name || '—'}
+                        </td>
+                        <td className="p-3 text-slate-500">
+                          {new Date(log.created_at).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
