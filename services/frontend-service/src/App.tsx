@@ -1292,12 +1292,15 @@ export default function App() {
   // Mirrors auth-service's getDashboardRoute() so we can route correctly even
   // when the server didn't send dashboardRoute (older cached tokens, the
   // offline/simulated-login fallback in handleLogin).
-  const getDashboardRouteForRole = (role: string | undefined): 'super-dashboard' | 'admin-dash' | 'student-dash' => {
+  // Return values match auth-service's dashboardRoute strings exactly
+  // ('admin-dashboard', not the 'admin-dash' currentPage state name) so this
+  // can be compared uniformly with a server-provided dashboardRoute below.
+  const getDashboardRouteForRole = (role: string | undefined): 'super-dashboard' | 'admin-dashboard' | 'student-dash' => {
     switch (role) {
       case 'super_admin': return 'super-dashboard';
       case 'org_admin':
       case 'faculty': // Sprint 2 — faculty gets its own dashboard later
-      case 'admin': return 'admin-dash';
+      case 'admin': return 'admin-dashboard';
       default: return 'student-dash';
     }
   };
@@ -1333,7 +1336,8 @@ export default function App() {
             if (localRoute === 'super-dashboard') {
               setCurrentPage('super-dashboard');
               loadSuperDashboard();
-            } else if (localRoute === 'admin-dash') {
+            } else if (localRoute === 'admin-dashboard' || localRoute === 'faculty-dashboard') {
+              // faculty-dashboard: Sprint 2 — for now faculty also lands on admin-dash
               setCurrentPage('admin-dash');
               loadAdminDashboard();
             } else {
@@ -1384,7 +1388,8 @@ export default function App() {
         if (route === 'super-dashboard') {
           setCurrentPage('super-dashboard');
           loadSuperDashboard();
-        } else if (route === 'admin-dash') {
+        } else if (route === 'admin-dashboard' || route === 'faculty-dashboard') {
+          // faculty-dashboard: Sprint 2 — for now faculty also lands on admin-dash
           setCurrentPage('admin-dash');
           loadAdminDashboard();
         } else {
