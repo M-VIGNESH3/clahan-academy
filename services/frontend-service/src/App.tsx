@@ -158,7 +158,7 @@ export default function App() {
   });
 
   // App Routing
-  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login' | 'skill-gap' | 'super-dashboard' | 'super-organizations' | 'super-org-detail' | 'super-audit-logs'>(() => {
+  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login' | 'skill-gap' | 'super-dashboard' | 'super-organizations' | 'super-org-detail' | 'super-audit-logs' | 'faculty-dashboard' | 'faculty-questions' | 'faculty-students'>(() => {
     const path = window.location.pathname.toLowerCase();
     if (path === '/admin-login' || path === '/admin-login/') {
       return 'admin-login';
@@ -263,6 +263,35 @@ export default function App() {
     canViewAllResults: false,
     canBulkImport: false,
     canViewAllQuestions: false
+  });
+
+  // Faculty's own dashboard (faculty logged in as themselves)
+  const [facultyDashData, setFacultyDashData] = useState<any>(null);
+  const [facultyQuestionBatches, setFacultyQuestionBatches] = useState<any[]>([]);
+  const [facultyStudentsList, setFacultyStudentsList] = useState<any[]>([]);
+  const [facultyNotifications, setFacultyNotifications] = useState<any[]>([]);
+  const [isLoadingFacultyDash, setIsLoadingFacultyDash] = useState(false);
+  const [showCreateBatchModal, setShowCreateBatchModal] = useState(false);
+  const [newBatchForm, setNewBatchForm] = useState({
+    name: '',
+    subject: '',
+    topic: '',
+    difficulty: 'mixed',
+    description: ''
+  });
+  const [selectedQuestionBatch, setSelectedQuestionBatch] = useState<any>(null);
+  const [showAddQuestionModal, setShowAddQuestionModal] = useState(false);
+  const [newQuestion, setNewQuestion] = useState({
+    questionType: 'mcq',
+    questionText: '',
+    optionA: '',
+    optionB: '',
+    optionC: '',
+    optionD: '',
+    correctAnswer: 'a',
+    marks: 1,
+    difficulty: 'medium',
+    explanation: ''
   });
 
   // Super admin state
@@ -1258,6 +1287,7 @@ export default function App() {
   // Relative path, proxied to super-admin-service (see nginx.conf / vite.config.ts) —
   // matches the pattern of every other API_* constant above, not an absolute host:port.
   const API_SUPER = '/api/super';
+  const API_FACULTY = '/api/faculty';
 
   // Toggle Dark/Light Mode
   useEffect(() => {
@@ -1349,11 +1379,11 @@ export default function App() {
   // Return values match auth-service's dashboardRoute strings exactly
   // ('admin-dashboard', not the 'admin-dash' currentPage state name) so this
   // can be compared uniformly with a server-provided dashboardRoute below.
-  const getDashboardRouteForRole = (role: string | undefined): 'super-dashboard' | 'admin-dashboard' | 'student-dash' => {
+  const getDashboardRouteForRole = (role: string | undefined): 'super-dashboard' | 'admin-dashboard' | 'faculty-dashboard' | 'student-dash' => {
     switch (role) {
       case 'super_admin': return 'super-dashboard';
+      case 'faculty': return 'faculty-dashboard';
       case 'org_admin':
-      case 'faculty': // Sprint 2 — faculty gets its own dashboard later
       case 'admin': return 'admin-dashboard';
       default: return 'student-dash';
     }
@@ -1390,10 +1420,12 @@ export default function App() {
             if (localRoute === 'super-dashboard') {
               setCurrentPage('super-dashboard');
               loadSuperDashboard();
-            } else if (localRoute === 'admin-dashboard' || localRoute === 'faculty-dashboard') {
-              // faculty-dashboard: Sprint 2 — for now faculty also lands on admin-dash
+            } else if (localRoute === 'admin-dashboard') {
               setCurrentPage('admin-dash');
               loadAdminDashboard();
+            } else if (localRoute === 'faculty-dashboard') {
+              setCurrentPage('faculty-dashboard');
+              loadFacultyDashboard();
             } else {
               setCurrentPage('student-dash');
               loadStudentDashboard();
@@ -1442,10 +1474,12 @@ export default function App() {
         if (route === 'super-dashboard') {
           setCurrentPage('super-dashboard');
           loadSuperDashboard();
-        } else if (route === 'admin-dashboard' || route === 'faculty-dashboard') {
-          // faculty-dashboard: Sprint 2 — for now faculty also lands on admin-dash
+        } else if (route === 'admin-dashboard') {
           setCurrentPage('admin-dash');
           loadAdminDashboard();
+        } else if (route === 'faculty-dashboard') {
+          setCurrentPage('faculty-dashboard');
+          loadFacultyDashboard();
         } else {
           setCurrentPage('student-dash');
           loadStudentDashboard();
@@ -1866,6 +1900,117 @@ export default function App() {
       }
     } catch (err) {
       showToast('Reset failed', 'error');
+    }
+  };
+
+  // --- FACULTY'S OWN DASHBOARD (faculty-service, port 4011) ---
+  const loadFacultyDashboard = async () => {
+    setIsLoadingFacultyDash(true);
+    try {
+      const [dashRes, notifsRes] = await Promise.all([
+        fetch(`${API_FACULTY}/dashboard`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_FACULTY}/notifications`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      if (dashRes.ok) {
+        setFacultyDashData(await dashRes.json());
+      }
+      if (notifsRes.ok) {
+        setFacultyNotifications(await notifsRes.json());
+      }
+    } catch (err) {
+      console.error('Faculty dashboard:', err);
+    } finally {
+      setIsLoadingFacultyDash(false);
+    }
+  };
+
+  const loadFacultyQuestionBatches = async () => {
+    try {
+      const res = await fetch(`${API_FACULTY}/question-batches`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setFacultyQuestionBatches(await res.json());
+      }
+    } catch (err) {
+      console.error('Faculty questions:', err);
+    }
+  };
+
+  const loadFacultyStudentsList = async () => {
+    try {
+      const res = await fetch(`${API_FACULTY}/students`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setFacultyStudentsList(await res.json());
+      }
+    } catch (err) {
+      console.error('Faculty students:', err);
+    }
+  };
+
+  const createQuestionBatch = async () => {
+    try {
+      const res = await fetch(`${API_FACULTY}/question-batches`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(newBatchForm)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowCreateBatchModal(false);
+        setNewBatchForm({ name: '', subject: '', topic: '', difficulty: 'mixed', description: '' });
+        loadFacultyQuestionBatches();
+        showToast('Question batch created', 'success');
+      } else {
+        showToast(data.error || 'Failed', 'error');
+      }
+    } catch (err) {
+      showToast('Network error', 'error');
+    }
+  };
+
+  const addFacultyQuestion = async () => {
+    if (!selectedQuestionBatch) return;
+    try {
+      const res = await fetch(`${API_FACULTY}/questions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          batchId: selectedQuestionBatch.id,
+          ...newQuestion
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowAddQuestionModal(false);
+        setNewQuestion({
+          questionType: 'mcq',
+          questionText: '',
+          optionA: '', optionB: '', optionC: '', optionD: '',
+          correctAnswer: 'a',
+          marks: 1,
+          difficulty: 'medium',
+          explanation: ''
+        });
+        loadFacultyQuestionBatches();
+        showToast('Question added', 'success');
+      } else {
+        showToast(data.error || 'Failed', 'error');
+      }
+    } catch (err) {
+      showToast('Network error', 'error');
     }
   };
 
@@ -13268,6 +13413,622 @@ export default function App() {
                 </table>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {currentPage === 'faculty-dashboard' && (
+        <div className="min-h-screen bg-slate-950 text-white">
+
+          {/* HEADER */}
+          <div className="border-b border-white/10 bg-slate-900/50 px-6 py-4">
+            <div className="flex items-center justify-between max-w-6xl mx-auto">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center text-sm">
+                  🎓
+                </div>
+                <div>
+                  <h1 className="font-black text-white text-sm">
+                    {currentUser?.fullName || 'Faculty'}
+                  </h1>
+                  <p className="text-[10px] text-violet-400 font-bold">
+                    {currentUser?.orgName || 'Faculty Portal'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Nav tabs */}
+              <div className="flex items-center gap-1">
+                {[
+                  { id: 'faculty-dashboard', label: '🏠 Home' },
+                  { id: 'faculty-questions', label: '📚 Questions', onLoad: loadFacultyQuestionBatches },
+                  { id: 'faculty-students', label: '👥 Students', onLoad: loadFacultyStudentsList }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setCurrentPage(tab.id as any);
+                      if (tab.onLoad) tab.onLoad();
+                    }}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg ${
+                      currentPage === tab.id
+                        ? 'bg-violet-600 text-white'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Notifications + Logout */}
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <button className="p-2 rounded-lg hover:bg-slate-800 text-slate-400">
+                    🔔
+                    {facultyNotifications.filter(n => !n.is_read).length > 0 && (
+                      <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                        {facultyNotifications.filter(n => !n.is_read).length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="text-xs text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-500/10"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* MAIN CONTENT */}
+          <div className="max-w-6xl mx-auto p-6 space-y-6">
+
+            {isLoadingFacultyDash ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-slate-400 text-sm">Loading dashboard...</div>
+              </div>
+            ) : (
+              <>
+                {/* Stats Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    {
+                      label: 'Question Batches',
+                      value: facultyDashData?.stats?.questionBatches ?? '—',
+                      icon: '📦',
+                      sub: facultyDashData?.stats?.pendingApproval > 0
+                        ? `${facultyDashData.stats.pendingApproval} pending`
+                        : 'all approved'
+                    },
+                    {
+                      label: 'My Students',
+                      value: facultyDashData?.stats?.totalStudents ?? '—',
+                      icon: '👥',
+                      sub: 'across my batches'
+                    },
+                    {
+                      label: 'Assigned Batches',
+                      value: facultyDashData?.stats?.assignedBatches ?? '—',
+                      icon: '🎓',
+                      sub: 'active batches'
+                    },
+                    {
+                      label: 'Pending Approval',
+                      value: facultyDashData?.stats?.pendingApproval ?? 0,
+                      icon: '⏳',
+                      sub: 'question batches'
+                    }
+                  ].map(stat => (
+                    <div key={stat.label} className="p-4 bg-slate-900 border border-white/10 rounded-2xl">
+                      <div className="text-xl mb-2">{stat.icon}</div>
+                      <div className="text-2xl font-black text-white mb-0.5">{stat.value}</div>
+                      <div className="text-xs font-bold text-slate-300">{stat.label}</div>
+                      <div className="text-[10px] text-slate-500">{stat.sub}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* My Permissions */}
+                <div className="p-5 bg-slate-900 border border-white/10 rounded-2xl">
+                  <h3 className="font-extrabold text-sm text-white mb-3">
+                    ⚙️ My Permissions
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { key: 'can_upload_questions', label: 'Upload Questions' },
+                      { key: 'can_create_drafts', label: 'Create Exam Drafts' },
+                      { key: 'can_publish_exams', label: 'Publish Exams' },
+                      { key: 'can_manage_students', label: 'Manage Students' },
+                      { key: 'can_view_all_results', label: 'View All Results' }
+                    ].map(perm => (
+                      <span key={perm.key}
+                        className={`px-3 py-1 rounded-full text-[10px] font-bold border ${
+                          facultyDashData?.permissions?.[perm.key]
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                            : 'bg-slate-800 text-slate-600 border-white/5'
+                        }`}>
+                        {facultyDashData?.permissions?.[perm.key] ? '✓' : '×'} {perm.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* My Batches */}
+                {facultyDashData?.myBatches?.length > 0 && (
+                  <div className="p-5 bg-slate-900 border border-white/10 rounded-2xl">
+                    <h3 className="font-extrabold text-sm text-white mb-3">
+                      🎓 My Assigned Batches
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {facultyDashData.myBatches.map((batch: any) => (
+                        <div key={batch.id} className="p-3 bg-slate-800 rounded-xl border border-white/5">
+                          <p className="text-xs font-bold text-white">{batch.name}</p>
+                          <p className="text-[10px] text-slate-400">
+                            {batch.student_count} students
+                            {' • '}
+                            <span className="capitalize">{batch.batch_type}</span>
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent Exam Results */}
+                {facultyDashData?.recentExamResults?.length > 0 && (
+                  <div className="p-5 bg-slate-900 border border-white/10 rounded-2xl">
+                    <h3 className="font-extrabold text-sm text-white mb-3">
+                      📊 Recent Exam Results
+                    </h3>
+                    <div className="space-y-2">
+                      {facultyDashData.recentExamResults.map((exam: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between p-3 bg-slate-800 rounded-xl">
+                          <div>
+                            <p className="text-xs font-bold text-white">{exam.exam_name}</p>
+                            <p className="text-[10px] text-slate-400">{exam.attempt_count} attempts</p>
+                          </div>
+                          <div className={`text-sm font-black ${
+                              exam.avg_score >= 75
+                                ? 'text-emerald-400'
+                                : exam.avg_score >= 50
+                                  ? 'text-amber-400'
+                                  : 'text-red-400'
+                            }`}>
+                            {exam.avg_score}%
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Actions */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <button
+                    onClick={() => {
+                      setCurrentPage('faculty-questions');
+                      loadFacultyQuestionBatches();
+                    }}
+                    className="p-4 bg-slate-900 border border-white/10 rounded-2xl hover:border-violet-500/30 text-left"
+                  >
+                    <div className="text-2xl mb-2">📚</div>
+                    <p className="text-sm font-extrabold text-white">My Questions</p>
+                    <p className="text-[10px] text-slate-400">Upload and manage question bank</p>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCurrentPage('faculty-students');
+                      loadFacultyStudentsList();
+                    }}
+                    className="p-4 bg-slate-900 border border-white/10 rounded-2xl hover:border-blue-500/30 text-left"
+                  >
+                    <div className="text-2xl mb-2">👥</div>
+                    <p className="text-sm font-extrabold text-white">My Students</p>
+                    <p className="text-[10px] text-slate-400">View your assigned students</p>
+                  </button>
+                  <button
+                    onClick={() => setShowCreateBatchModal(true)}
+                    className="p-4 bg-slate-900 border border-white/10 rounded-2xl hover:border-emerald-500/30 text-left"
+                  >
+                    <div className="text-2xl mb-2">➕</div>
+                    <p className="text-sm font-extrabold text-white">New Question Batch</p>
+                    <p className="text-[10px] text-slate-400">Start uploading questions</p>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {currentPage === 'faculty-questions' && (
+        <div className="min-h-screen bg-slate-950 text-white p-6">
+          <div className="max-w-5xl mx-auto">
+
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setCurrentPage('faculty-dashboard')}
+                  className="p-2 rounded-xl border border-white/10 hover:bg-slate-800 text-slate-400 text-sm"
+                >
+                  ←
+                </button>
+                <div>
+                  <h1 className="text-lg font-black text-white">My Question Bank</h1>
+                  <p className="text-xs text-slate-400">{facultyQuestionBatches.length} batches</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCreateBatchModal(true)}
+                className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-extrabold rounded-xl"
+              >
+                + New Batch
+              </button>
+            </div>
+
+            {/* Question Batches */}
+            {facultyQuestionBatches.length === 0 ? (
+              <div className="text-center py-16 bg-slate-900 border border-white/10 rounded-2xl">
+                <p className="text-4xl mb-3">📚</p>
+                <p className="text-sm font-bold text-white mb-1">No Question Batches Yet</p>
+                <p className="text-xs text-slate-400 mb-4">
+                  Create a batch and start adding MCQ or coding questions
+                </p>
+                <button
+                  onClick={() => setShowCreateBatchModal(true)}
+                  className="px-4 py-2 bg-violet-600 text-white text-xs font-bold rounded-xl"
+                >
+                  + Create First Batch
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {facultyQuestionBatches.map((batch: any) => (
+                  <div key={batch.id} className="p-5 bg-slate-900 border border-white/10 rounded-2xl">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-extrabold text-white">{batch.name}</h3>
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                              batch.status === 'approved'
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : batch.status === 'pending'
+                                  ? 'bg-amber-500/20 text-amber-400'
+                                  : 'bg-red-500/20 text-red-400'
+                            }`}>
+                            {batch.status}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          {batch.subject && `${batch.subject} • `}
+                          {batch.topic && `${batch.topic} • `}
+                          {batch.difficulty}
+                          {' • '}
+                          {batch.actual_count || 0} questions
+                        </p>
+                        {batch.status === 'rejected' && batch.review_note && (
+                          <p className="text-[10px] text-red-400 mt-1">
+                            Rejected: {batch.review_note}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedQuestionBatch(batch);
+                          setShowAddQuestionModal(true);
+                        }}
+                        className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[10px] font-bold rounded-lg hover:bg-violet-500/30"
+                      >
+                        + Add Question
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* CREATE BATCH MODAL */}
+          {showCreateBatchModal && (
+            <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
+                <h3 className="font-black text-white mb-5">Create Question Batch</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Batch Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={newBatchForm.name}
+                      onChange={e => setNewBatchForm({ ...newBatchForm, name: e.target.value })}
+                      placeholder="Java OOP Questions"
+                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">
+                        Subject
+                      </label>
+                      <input
+                        type="text"
+                        value={newBatchForm.subject}
+                        onChange={e => setNewBatchForm({ ...newBatchForm, subject: e.target.value })}
+                        placeholder="Java"
+                        className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">
+                        Difficulty
+                      </label>
+                      <select
+                        value={newBatchForm.difficulty}
+                        onChange={e => setNewBatchForm({ ...newBatchForm, difficulty: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white"
+                      >
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                        <option value="mixed">Mixed</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Topic
+                    </label>
+                    <input
+                      type="text"
+                      value={newBatchForm.topic}
+                      onChange={e => setNewBatchForm({ ...newBatchForm, topic: e.target.value })}
+                      placeholder="OOP Concepts"
+                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={newBatchForm.description}
+                      onChange={e => setNewBatchForm({ ...newBatchForm, description: e.target.value })}
+                      placeholder="Optional description..."
+                      rows={2}
+                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 resize-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={() => setShowCreateBatchModal(false)}
+                    className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={createQuestionBatch}
+                    disabled={!newBatchForm.name}
+                    className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-extrabold rounded-xl"
+                  >
+                    Create Batch
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ADD QUESTION MODAL */}
+          {showAddQuestionModal && selectedQuestionBatch && (
+            <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto">
+                <h3 className="font-black text-white mb-1">Add Question</h3>
+                <p className="text-xs text-slate-400 mb-4">
+                  To: {selectedQuestionBatch.name}
+                </p>
+
+                <div className="space-y-3">
+                  {/* Question type toggle */}
+                  <div className="flex gap-2">
+                    {['mcq', 'coding'].map(type => (
+                      <button
+                        key={type}
+                        onClick={() => setNewQuestion({ ...newQuestion, questionType: type })}
+                        className={`flex-1 py-2 text-xs font-bold rounded-xl ${
+                          newQuestion.questionType === type
+                            ? 'bg-violet-600 text-white'
+                            : 'bg-slate-800 text-slate-400'
+                        }`}
+                      >
+                        {type === 'mcq' ? '📝 MCQ' : '💻 Coding'}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Question text */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Question *
+                    </label>
+                    <textarea
+                      value={newQuestion.questionText}
+                      onChange={e => setNewQuestion({ ...newQuestion, questionText: e.target.value })}
+                      placeholder="Enter your question..."
+                      rows={3}
+                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 resize-none"
+                    />
+                  </div>
+
+                  {/* MCQ Options */}
+                  {newQuestion.questionType === 'mcq' && (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        {['A', 'B', 'C', 'D'].map(opt => (
+                          <div key={opt}>
+                            <label className="text-[10px] font-bold text-slate-400 block mb-1">
+                              Option {opt}
+                            </label>
+                            <input
+                              type="text"
+                              value={newQuestion[`option${opt}` as keyof typeof newQuestion] as string}
+                              onChange={e => setNewQuestion({ ...newQuestion, [`option${opt}`]: e.target.value })}
+                              className="w-full px-2 py-1.5 bg-slate-800 border border-white/10 rounded-lg text-xs text-white"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <label className="text-xs font-bold text-slate-300 block mb-1">
+                          Correct Answer
+                        </label>
+                        <select
+                          value={newQuestion.correctAnswer}
+                          onChange={e => setNewQuestion({ ...newQuestion, correctAnswer: e.target.value })}
+                          className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white"
+                        >
+                          {['a', 'b', 'c', 'd'].map(o => (
+                            <option key={o} value={o}>Option {o.toUpperCase()}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Marks + Difficulty */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">
+                        Marks
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={newQuestion.marks}
+                        onChange={e => setNewQuestion({ ...newQuestion, marks: parseInt(e.target.value) })}
+                        className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">
+                        Difficulty
+                      </label>
+                      <select
+                        value={newQuestion.difficulty}
+                        onChange={e => setNewQuestion({ ...newQuestion, difficulty: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white"
+                      >
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Explanation */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Explanation (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={newQuestion.explanation}
+                      onChange={e => setNewQuestion({ ...newQuestion, explanation: e.target.value })}
+                      placeholder="Why is this the answer?"
+                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={() => setShowAddQuestionModal(false)}
+                    className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={addFacultyQuestion}
+                    disabled={!newQuestion.questionText}
+                    className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-extrabold rounded-xl"
+                  >
+                    Add Question
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {currentPage === 'faculty-students' && (
+        <div className="min-h-screen bg-slate-950 text-white p-6">
+          <div className="max-w-5xl mx-auto">
+
+            <div className="flex items-center gap-3 mb-6">
+              <button
+                onClick={() => setCurrentPage('faculty-dashboard')}
+                className="p-2 rounded-xl border border-white/10 hover:bg-slate-800 text-slate-400 text-sm"
+              >
+                ←
+              </button>
+              <div>
+                <h1 className="text-lg font-black text-white">My Students</h1>
+                <p className="text-xs text-slate-400">
+                  {facultyStudentsList.length} students in your batches
+                </p>
+              </div>
+            </div>
+
+            {facultyStudentsList.length === 0 ? (
+              <div className="text-center py-16 bg-slate-900 border border-white/10 rounded-2xl">
+                <p className="text-4xl mb-3">👥</p>
+                <p className="text-sm font-bold text-white mb-1">No Students Yet</p>
+                <p className="text-xs text-slate-400">
+                  Ask your admin to assign you to student batches
+                </p>
+              </div>
+            ) : (
+              <div className="bg-slate-900 border border-white/10 rounded-2xl overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-white/10 bg-slate-800/50">
+                      <th className="text-left p-3 font-bold text-slate-400">Student</th>
+                      <th className="text-left p-3 font-bold text-slate-400">Roll No</th>
+                      <th className="text-left p-3 font-bold text-slate-400">Department</th>
+                      <th className="text-left p-3 font-bold text-slate-400">Batch</th>
+                      <th className="text-left p-3 font-bold text-slate-400">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {facultyStudentsList.map((student: any) => (
+                      <tr key={student.id} className="hover:bg-slate-800/30">
+                        <td className="p-3">
+                          <p className="font-bold text-white">{student.full_name}</p>
+                          <p className="text-slate-500 text-[10px]">{student.email}</p>
+                        </td>
+                        <td className="p-3 text-slate-300">{student.roll_number || '—'}</td>
+                        <td className="p-3 text-slate-400">{student.department || '—'}</td>
+                        <td className="p-3 text-slate-400">{student.batch_name || '—'}</td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                              student.status === 'active'
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : 'bg-red-500/20 text-red-400'
+                            }`}>
+                            {student.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
