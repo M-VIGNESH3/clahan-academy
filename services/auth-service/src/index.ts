@@ -26,6 +26,73 @@ const PORT = process.env.PORT || 4001;
 const JWT_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'super_secret_access_token_key';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_token_key';
 
+// Maps a role to the frontend dashboard it should land on after login.
+// 'admin' is mapped alongside 'org_admin' (not left to fall through to the
+// student default) to keep existing admin accounts routing correctly.
+function getDashboardRoute(role: string): string {
+  switch (role) {
+    case 'super_admin': return 'super-dashboard';
+    case 'org_admin':
+    case 'admin': return 'admin-dashboard';
+    case 'faculty': return 'faculty-dashboard';
+    case 'student': return 'student-dash';
+    default: return 'student-dash';
+  }
+}
+
+// Shared token shape for login/refresh/impersonation so every issued token
+// carries the same fields other services (student-service, exam-service)
+// already destructure directly off the decoded JWT (id, college_id, etc.).
+function generateAccessToken(user: any, extra: Record<string, any> = {}) {
+  return jwt.sign(
+    {
+      id: user.id,
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      full_name: user.full_name,
+      roll_number: user.roll_number,
+      college_id: user.college_id,
+      department_id: user.department_id,
+      batch_id: user.batch_id,
+      trainer_id: user.trainer_id,
+      year: user.year,
+      orgId: user.org_id || user.college_id || null,
+      dashboardRoute: getDashboardRoute(user.role),
+      ...extra,
+    },
+    JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+}
+
+// Role-check middleware helpers. 'admin' stays in every allowed list for
+// backward compatibility with existing pre-multi-tenant admin accounts.
+const requireSuperAdmin = (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
+  if (req.user?.role !== 'super_admin') {
+    return res.status(403).json({ error: 'Super admin access required' });
+  }
+  next();
+};
+
+const requireOrgAdmin = (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
+  const allowed = ['super_admin', 'org_admin', 'admin'];
+  if (!allowed.includes(req.user?.role || '')) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
+
+const requireFaculty = (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
+  const allowed = ['super_admin', 'org_admin', 'faculty', 'admin'];
+  if (!allowed.includes(req.user?.role || '')) {
+    return res.status(403).json({ error: 'Faculty access required' });
+  }
+  next();
+};
+
+const requireAuth = authenticateToken;
+
 // Redis Client
 const redisClient = createClient({
   url: process.env.REDIS_URL || 'redis://redis:6379',
@@ -206,6 +273,17 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ error: 'Required fields are missing' });
     }
 
+    // Org-level self-register gate. This is a no-op until organizations rows
+    // exist for a college (organizations is empty as of Sprint 1 Day 1), so
+    // today every college behaves exactly as before.
+    const orgSettingsResult = await query('SELECT settings FROM organizations WHERE id = $1', [collegeId]);
+    const orgSettings = orgSettingsResult.rows[0]?.settings || {};
+    if (orgSettings.allowStudentSelfRegister === false) {
+      return res.status(403).json({
+        error: 'Self-registration is not enabled for this college. Contact your administrator.'
+      });
+    }
+
     const checkUser = await query('SELECT id, email_verified FROM users WHERE email = $1', [email]);
     if (checkUser.rows.length > 0) {
       const existing = checkUser.rows[0];
@@ -290,13 +368,35 @@ app.post('/api/auth/verify-otp', async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired OTP' });
     }
 
-    await query('UPDATE users SET email_verified = TRUE, status = \'active\' WHERE email = $1', [email]);
-    
+    // Determine the post-verification status: 'active' unless the student's
+    // college requires admin approval after self-registration (org lookup is
+    // a no-op today since organizations has no rows yet).
+    const collegeRes = await query('SELECT college_id FROM users WHERE email = $1', [email]);
+    const collegeId = collegeRes.rows[0]?.college_id;
+    let finalStatus = 'active';
+    if (collegeId) {
+      const orgSettingsResult = await query('SELECT settings FROM organizations WHERE id = $1', [collegeId]);
+      const orgSettings = orgSettingsResult.rows[0]?.settings || {};
+      if (orgSettings.requireSelfRegisterApproval) {
+        finalStatus = 'pending_approval';
+      }
+    }
+
+    await query('UPDATE users SET email_verified = TRUE, status = $1 WHERE email = $2', [finalStatus, email]);
+
     // Clear OTP
     if (redisClient.isOpen) {
       await redisClient.del(`otp:${email}`);
     } else {
       delete memoryCache[`otp:${email}`];
+    }
+
+    if (finalStatus === 'pending_approval') {
+      // Do not send the verified/welcome notification yet - the account
+      // still needs college admin approval before it's usable.
+      return res.json({
+        message: 'Registration successful. Your account is pending approval by your college administrator.'
+      });
     }
 
     // Queue Welcome / Verified notification
@@ -364,6 +464,14 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(403).json({ error: 'Your account has been suspended' });
     }
 
+    if (user.status === 'pending_approval') {
+      return res.status(403).json({ error: 'Your account is pending approval by your college admin.' });
+    }
+
+    if (user.status === 'inactive') {
+      return res.status(403).json({ error: 'Your account has been deactivated. Contact your administrator.' });
+    }
+
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -385,23 +493,11 @@ app.post('/api/auth/login', async (req, res) => {
       });
     }
 
-    // Generate tokens
-    const accessToken = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        full_name: user.full_name,
-        roll_number: user.roll_number,
-        college_id: user.college_id,
-        department_id: user.department_id,
-        batch_id: user.batch_id,
-        trainer_id: user.trainer_id,
-        year: user.year
-      },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+    // Generate tokens. This single endpoint serves all 4 roles (super_admin,
+    // org_admin, faculty, student) plus legacy 'admin' accounts - there is no
+    // separate admin-login route in this codebase, so no role restriction is
+    // applied here.
+    const accessToken = generateAccessToken(user);
 
     const refreshToken = jwt.sign(
       { id: user.id },
@@ -418,7 +514,11 @@ app.post('/api/auth/login', async (req, res) => {
       [user.id, 'LOGIN', `User ${user.email} logged in successfully`]
     );
 
+    const orgId = user.org_id || user.college_id || null;
+    const dashboardRoute = getDashboardRoute(user.role);
+
     res.json({
+      token: accessToken,
       accessToken,
       refreshToken,
       user: {
@@ -431,7 +531,9 @@ app.post('/api/auth/login', async (req, res) => {
         departmentId: user.department_id,
         batchId: user.batch_id,
         year: user.year,
-        status: user.status
+        status: user.status,
+        orgId,
+        dashboardRoute
       }
     });
   } catch (err: any) {
@@ -464,22 +566,7 @@ app.post('/api/auth/refresh', async (req, res) => {
       }
 
       const user = userResult.rows[0];
-      const newAccessToken = jwt.sign(
-        {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          full_name: user.full_name,
-          roll_number: user.roll_number,
-          college_id: user.college_id,
-          department_id: user.department_id,
-          batch_id: user.batch_id,
-          trainer_id: user.trainer_id,
-          year: user.year
-        },
-        JWT_SECRET,
-        { expiresIn: '24h' }
-      );
+      const newAccessToken = generateAccessToken(user);
 
       res.json({ accessToken: newAccessToken });
     });
@@ -495,14 +582,20 @@ app.get('/api/auth/me', authenticateToken, async (req: AuthenticatedRequest, res
 
     const result = await query(
       `SELECT u.id, u.email, u.role, u.full_name, u.phone, u.roll_number,
-              u.college_id, u.department_id, u.year, u.status, u.github_profile, u.linkedin_profile, u.profile_photo_url,
+              u.org_id, u.college_id, u.department_id, u.year, u.status, u.github_profile, u.linkedin_profile, u.profile_photo_url,
               c.name as college_name, d.name as department_name, u.batch_id, b.name as batch_name,
-              u.trainer_id, t.name as trainer_name
+              u.trainer_id, t.name as trainer_name,
+              o.name as org_name, o.org_type, o.settings as org_settings,
+              fp.can_upload_questions, fp.can_create_drafts, fp.can_publish_exams,
+              fp.can_manage_students, fp.can_view_all_results, fp.can_bulk_import,
+              fp.can_view_all_questions
        FROM users u
        LEFT JOIN colleges c ON u.college_id = c.id
        LEFT JOIN departments d ON u.department_id = d.id
        LEFT JOIN batches b ON u.batch_id = b.id
        LEFT JOIN trainers t ON u.trainer_id = t.id
+       LEFT JOIN organizations o ON o.id = u.org_id OR o.id = u.college_id
+       LEFT JOIN faculty_permissions fp ON fp.faculty_id = u.id
        WHERE u.id = $1`,
       [req.user.id]
     );
@@ -511,7 +604,23 @@ app.get('/api/auth/me', authenticateToken, async (req: AuthenticatedRequest, res
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(result.rows[0]);
+    const row = result.rows[0];
+    res.json({
+      ...row,
+      orgId: row.org_id || row.college_id || null,
+      orgName: row.org_name || null,
+      orgSettings: row.org_settings || null,
+      dashboardRoute: getDashboardRoute(row.role),
+      permissions: row.role === 'faculty' ? {
+        canUploadQuestions: row.can_upload_questions ?? false,
+        canCreateDrafts: row.can_create_drafts ?? false,
+        canPublishExams: row.can_publish_exams ?? false,
+        canManageStudents: row.can_manage_students ?? false,
+        canViewAllResults: row.can_view_all_results ?? false,
+        canBulkImport: row.can_bulk_import ?? false,
+        canViewAllQuestions: row.can_view_all_questions ?? false,
+      } : null
+    });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -603,6 +712,93 @@ app.post('/api/auth/change-password', authenticateToken, async (req: Authenticat
 
     res.json({ message: 'Password has been updated successfully' });
   } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Impersonation: super_admin can act as another (non-super_admin) user for
+// support/debugging purposes. The issued token is a normal access token plus
+// isImpersonating/originalUserId so the session can be unwound later.
+app.post('/api/auth/impersonate/:targetUserId', authenticateToken, requireSuperAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const { targetUserId } = req.params;
+
+    const targetResult = await query('SELECT * FROM users WHERE id = $1', [targetUserId]);
+    if (targetResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Target user not found' });
+    }
+    const targetUser = targetResult.rows[0];
+
+    if (targetUser.role === 'super_admin') {
+      return res.status(403).json({ error: 'Cannot impersonate another super admin' });
+    }
+
+    const impersonateToken = generateAccessToken(targetUser, {
+      isImpersonating: true,
+      originalUserId: req.user.userId,
+    });
+
+    await query(
+      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details, ip_address) VALUES ($1, $2, $3, $4, $5, $6)',
+      [
+        req.user.userId,
+        'impersonation.started',
+        'user',
+        targetUser.id,
+        JSON.stringify({ targetEmail: targetUser.email, targetRole: targetUser.role }),
+        req.ip
+      ]
+    );
+
+    res.json({
+      impersonateToken,
+      targetUser: {
+        id: targetUser.id,
+        email: targetUser.email,
+        fullName: targetUser.full_name,
+        role: targetUser.role,
+        orgId: targetUser.org_id || targetUser.college_id || null
+      },
+      message: `Impersonation started. You are now viewing as ${targetUser.full_name}`
+    });
+  } catch (err: any) {
+    console.error('Impersonation start error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/impersonate/end', authenticateToken, async (req: AuthenticatedRequest, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+
+    if (!req.user.isImpersonating || !req.user.originalUserId) {
+      return res.status(400).json({ error: 'Not currently impersonating' });
+    }
+
+    const originalResult = await query('SELECT * FROM users WHERE id = $1', [req.user.originalUserId]);
+    if (originalResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Original user no longer exists' });
+    }
+    const originalUser = originalResult.rows[0];
+
+    const token = generateAccessToken(originalUser);
+
+    await query(
+      'INSERT INTO audit_logs (user_id, action, resource_type, resource_id, details, ip_address) VALUES ($1, $2, $3, $4, $5, $6)',
+      [
+        originalUser.id,
+        'impersonation.ended',
+        'user',
+        req.user.userId,
+        JSON.stringify({ impersonatedEmail: req.user.email }),
+        req.ip
+      ]
+    );
+
+    res.json({ token, message: 'Returned to your account' });
+  } catch (err: any) {
+    console.error('Impersonation end error:', err);
     res.status(500).json({ error: err.message });
   }
 });
