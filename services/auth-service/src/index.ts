@@ -211,9 +211,17 @@ async function sendNotification(event: string, payload: any) {
 }
 
 // Get Colleges & Departments (for Registration)
+// Sources from organizations (not the legacy colleges table directly) so
+// registration shows both migrated legacy colleges and new orgs created via
+// super-admin-service, while hiding inactive orgs and corporate orgs (Phase 2).
 app.get('/api/auth/colleges', async (req, res) => {
   try {
-    const result = await query('SELECT * FROM colleges ORDER BY name ASC');
+    const result = await query(
+      `SELECT id, name, slug, org_type, contact_email, contact_phone
+       FROM organizations
+       WHERE is_active = true AND org_type = 'college'
+       ORDER BY name ASC`
+    );
     res.json(result.rows);
   } catch (err: any) {
     res.status(500).json({ error: err.message });

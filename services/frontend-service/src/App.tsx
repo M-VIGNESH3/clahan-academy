@@ -274,6 +274,15 @@ export default function App() {
   // Newly created credentials to show
   const [newCredentials, setNewCredentials] = useState<any>(null);
 
+  // Super admin: org detail / credentials view + edit org/admin
+  const [selectedOrgDetail, setSelectedOrgDetail] = useState<any>(null);
+  const [showOrgDetailModal, setShowOrgDetailModal] = useState(false);
+  const [showEditOrgModal, setShowEditOrgModal] = useState(false);
+  const [editOrgForm, setEditOrgForm] = useState<any>({});
+  const [editAdminTarget, setEditAdminTarget] = useState<any>(null);
+  const [showEditAdminModal, setShowEditAdminModal] = useState(false);
+  const [editAdminForm, setEditAdminForm] = useState({ fullName: '', email: '', phone: '' });
+
   // Settings State
   const [companySettings, setCompanySettings] = useState({
     companyName: 'Clahan Academy',
@@ -1655,6 +1664,63 @@ export default function App() {
       }
     } catch (err) {
       showToast('Network error', 'error');
+    }
+  };
+
+  const loadOrgDetail = async (orgId: string) => {
+    try {
+      const res = await fetch(`${API_SUPER}/organizations/${orgId}/credentials`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedOrgDetail(data);
+        setShowOrgDetailModal(true);
+      }
+    } catch (err) {
+      console.error('Load org detail:', err);
+    }
+  };
+
+  const updateOrg = async () => {
+    if (!selectedOrgDetail?.org?.id) return;
+    try {
+      const res = await fetch(`${API_SUPER}/organizations/${selectedOrgDetail.org.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(editOrgForm)
+      });
+      if (res.ok) {
+        showToast('Organization updated', 'success');
+        setShowEditOrgModal(false);
+        loadSuperDashboard();
+        loadOrgDetail(selectedOrgDetail.org.id);
+      }
+    } catch (err) {
+      showToast('Update failed', 'error');
+    }
+  };
+
+  const resetOrgAdminPassword = async (orgId: string, adminId: string) => {
+    try {
+      const res = await fetch(`${API_SUPER}/organizations/${orgId}/admin/${adminId}/reset-password`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNewCredentials({
+          email: editAdminTarget?.email || '',
+          password: data.newPassword,
+          note: 'Password has been reset'
+        });
+        loadOrgDetail(orgId);
+      }
+    } catch (err) {
+      showToast('Reset failed', 'error');
     }
   };
 
@@ -12235,6 +12301,12 @@ export default function App() {
                           {org.is_active ? 'Active' : 'Inactive'}
                         </span>
                         <button
+                          onClick={() => loadOrgDetail(org.id)}
+                          className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[10px] font-bold rounded-lg hover:bg-violet-500/30"
+                        >
+                          🔑 Credentials
+                        </button>
+                        <button
                           onClick={() => {
                             setOrgAdminTargetOrg(org);
                             setShowCreateOrgAdminModal(true);
@@ -12252,19 +12324,6 @@ export default function App() {
                           }`}
                         >
                           {org.is_active ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            // Navigates to the admin dashboard view. Not yet
-                            // scoped to this specific org — full impersonation
-                            // drill-down is a later sprint; for now this shows
-                            // the super admin's own (platform-wide) view.
-                            setCurrentPage('admin-dash');
-                            loadAdminDashboard();
-                          }}
-                          className="px-3 py-1.5 bg-slate-700 border border-white/10 text-slate-300 text-[10px] font-bold rounded-lg hover:bg-slate-600"
-                        >
-                          View →
                         </button>
                       </div>
                     </div>
@@ -12500,7 +12559,7 @@ export default function App() {
                     ✅
                   </div>
                   <h3 className="font-black text-white">
-                    Admin Account Created
+                    {newCredentials.note || 'Admin Account Created'}
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">
                     Share these credentials securely
@@ -12533,7 +12592,7 @@ export default function App() {
                   </div>
                 </div>
                 <p className="text-[10px] text-amber-400 text-center mb-4">
-                  ⚠️ Copy these now. Password cannot be retrieved later.
+                  ⚠️ Copy this now. It's also viewable anytime from Credentials on the org's card.
                 </p>
                 <button
                   onClick={() => setNewCredentials(null)}
@@ -12541,6 +12600,273 @@ export default function App() {
                 >
                   Done — I've Copied the Credentials
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* ORG DETAIL MODAL (credentials + admin accounts) */}
+          {showOrgDetailModal && selectedOrgDetail && (
+            <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto">
+
+                {/* Header */}
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h3 className="font-black text-white text-lg">
+                      {selectedOrgDetail.org?.name}
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      {selectedOrgDetail.org?.slug} • {selectedOrgDetail.org?.org_type}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setEditOrgForm({
+                          name: selectedOrgDetail.org?.name,
+                          address: selectedOrgDetail.org?.address,
+                          contactEmail: selectedOrgDetail.org?.contact_email,
+                          contactPhone: selectedOrgDetail.org?.contact_phone
+                        });
+                        setShowEditOrgModal(true);
+                      }}
+                      className="px-3 py-1.5 bg-violet-500/20 text-violet-300 text-[10px] font-bold rounded-lg border border-violet-500/30"
+                    >
+                      ✏️ Edit Org
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowOrgDetailModal(false);
+                        setSelectedOrgDetail(null);
+                      }}
+                      className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+
+                {/* Org Info */}
+                <div className="bg-slate-800/50 rounded-xl p-4 mb-5 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Contact Email</span>
+                    <span className="text-xs text-white">{selectedOrgDetail.org?.contact_email || '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Phone</span>
+                    <span className="text-xs text-white">{selectedOrgDetail.org?.contact_phone || '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Address</span>
+                    <span className="text-xs text-white text-right max-w-[60%]">{selectedOrgDetail.org?.address || '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold">Status</span>
+                    <span className={`text-xs font-bold ${selectedOrgDetail.org?.is_active ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {selectedOrgDetail.org?.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Admin Accounts */}
+                <h4 className="font-bold text-sm text-white mb-3">
+                  👤 Admin Accounts ({selectedOrgDetail.admins?.length || 0})
+                </h4>
+
+                {selectedOrgDetail.admins?.length === 0 ? (
+                  <div className="p-4 bg-slate-800/50 rounded-xl text-center">
+                    <p className="text-xs text-slate-400">No admin accounts yet.</p>
+                    <button
+                      onClick={() => {
+                        setShowOrgDetailModal(false);
+                        setOrgAdminTargetOrg(selectedOrgDetail.org);
+                        setShowCreateOrgAdminModal(true);
+                      }}
+                      className="mt-2 px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg"
+                    >
+                      + Create First Admin
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {selectedOrgDetail.admins.map((admin: any) => (
+                      <div key={admin.id} className="p-4 bg-slate-800/50 rounded-xl border border-white/5">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <p className="text-sm font-bold text-white">{admin.full_name}</p>
+                            <p className="text-[10px] text-slate-400">{admin.phone || 'No phone added'}</p>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                              admin.status === 'active'
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : 'bg-red-500/20 text-red-400'
+                            }`}>
+                            {admin.status}
+                          </span>
+                        </div>
+
+                        {/* Credentials box */}
+                        <div className="bg-slate-900 rounded-lg p-3 space-y-1.5 mb-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[9px] text-slate-500 uppercase font-bold">Email</span>
+                            <span className="text-xs text-white font-mono">{admin.email}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[9px] text-slate-500 uppercase font-bold">Password</span>
+                            <span className="text-xs text-amber-300 font-mono">{admin.raw_password || '(hidden)'}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-[9px] text-slate-500 uppercase font-bold">Login URL</span>
+                            <span className="text-xs text-violet-400">/admin-login</span>
+                          </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditAdminTarget(admin);
+                              setEditAdminForm({
+                                fullName: admin.full_name,
+                                email: admin.email,
+                                phone: admin.phone || ''
+                              });
+                              setShowEditAdminModal(true);
+                            }}
+                            className="flex-1 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg hover:bg-slate-600"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditAdminTarget(admin);
+                              resetOrgAdminPassword(selectedOrgDetail.org.id, admin.id);
+                            }}
+                            className="flex-1 py-1.5 bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[10px] font-bold rounded-lg hover:bg-amber-500/30"
+                          >
+                            🔄 Reset PW
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Add another admin button */}
+                    <button
+                      onClick={() => {
+                        setShowOrgDetailModal(false);
+                        setOrgAdminTargetOrg(selectedOrgDetail.org);
+                        setShowCreateOrgAdminModal(true);
+                      }}
+                      className="w-full py-2 bg-slate-800 border border-dashed border-white/20 text-slate-400 text-xs font-bold rounded-xl hover:bg-slate-700"
+                    >
+                      + Add Another Admin
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* EDIT ORG MODAL */}
+          {showEditOrgModal && (
+            <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
+                <h3 className="font-black text-white mb-5">Edit Organization</h3>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Name', key: 'name', type: 'text' },
+                    { label: 'Contact Email', key: 'contactEmail', type: 'email' },
+                    { label: 'Contact Phone', key: 'contactPhone', type: 'text' },
+                    { label: 'Address', key: 'address', type: 'text' }
+                  ].map(field => (
+                    <div key={field.key}>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">
+                        {field.label}
+                      </label>
+                      <input
+                        type={field.type}
+                        value={editOrgForm[field.key] || ''}
+                        onChange={e => setEditOrgForm({ ...editOrgForm, [field.key]: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={() => setShowEditOrgModal(false)}
+                    className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={updateOrg}
+                    className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-extrabold rounded-xl"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* EDIT ADMIN MODAL */}
+          {showEditAdminModal && editAdminTarget && (
+            <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
+                <h3 className="font-black text-white mb-5">Edit Admin Account</h3>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Full Name', key: 'fullName', type: 'text' },
+                    { label: 'Email', key: 'email', type: 'email' },
+                    { label: 'Phone', key: 'phone', type: 'text' }
+                  ].map(field => (
+                    <div key={field.key}>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">
+                        {field.label}
+                      </label>
+                      <input
+                        type={field.type}
+                        value={editAdminForm[field.key as keyof typeof editAdminForm] || ''}
+                        onChange={e => setEditAdminForm({ ...editAdminForm, [field.key]: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={() => setShowEditAdminModal(false)}
+                    className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!editAdminTarget || !selectedOrgDetail) return;
+                      try {
+                        const res = await fetch(`${API_SUPER}/organizations/${selectedOrgDetail.org.id}/admin/${editAdminTarget.id}`, {
+                          method: 'PUT',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`
+                          },
+                          body: JSON.stringify(editAdminForm)
+                        });
+                        if (res.ok) {
+                          showToast('Admin updated', 'success');
+                          setShowEditAdminModal(false);
+                          loadOrgDetail(selectedOrgDetail.org.id);
+                        }
+                      } catch (err) {
+                        showToast('Update failed', 'error');
+                      }
+                    }}
+                    className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold rounded-xl"
+                  >
+                    Save Changes
+                  </button>
+                </div>
               </div>
             </div>
           )}

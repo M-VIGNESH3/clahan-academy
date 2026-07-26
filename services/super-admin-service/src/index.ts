@@ -607,6 +607,121 @@ app.post('/api/super/organizations/:id/admin',
   }
 );
 
+// GET /api/super/organizations/:id/credentials
+// Returns org admins with their credentials
+app.get(
+  '/api/super/organizations/:id/credentials',
+  authenticate, requireSuperAdmin,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+
+      const admins = await pool.query(
+        `SELECT
+           id, full_name, email, raw_password,
+           phone, status, created_at
+         FROM users
+         WHERE org_id = $1 AND role = 'org_admin'
+         ORDER BY created_at ASC`,
+        [id]
+      );
+
+      const org = await pool.query(
+        `SELECT id, name, slug, org_type,
+                contact_email, contact_phone,
+                address, is_active, settings
+         FROM organizations WHERE id = $1`,
+        [id]
+      );
+
+      if (org.rows.length === 0) {
+        return res.status(404).json({ error: 'Organization not found' });
+      }
+
+      res.json({
+        org: org.rows[0],
+        admins: admins.rows
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// PUT /api/super/organizations/:id/admin/:adminId
+// Edit org admin details
+app.put(
+  '/api/super/organizations/:id/admin/:adminId',
+  authenticate, requireSuperAdmin,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { adminId } = req.params;
+      const { fullName, email, phone } = req.body;
+
+      const result = await pool.query(
+        `UPDATE users SET
+           full_name = COALESCE($1, full_name),
+           email = COALESCE($2, email),
+           phone = COALESCE($3, phone)
+         WHERE id = $4
+           AND role = 'org_admin'
+         RETURNING id, full_name, email, phone, status`,
+        [fullName, email, phone, adminId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Admin not found' });
+      }
+
+      res.json(result.rows[0]);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// POST /api/super/organizations/:id/admin/:adminId/reset-password
+// Reset org admin password
+app.post(
+  '/api/super/organizations/:id/admin/:adminId/reset-password',
+  authenticate, requireSuperAdmin,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id, adminId } = req.params;
+
+      const rawPassword = Math.random().toString(36).slice(-8) + 'Admin1!';
+      const passwordHash = await bcrypt.hash(rawPassword, 10);
+
+      const result = await pool.query(
+        `UPDATE users SET
+           password_hash = $1,
+           raw_password = $2
+         WHERE id = $3
+           AND role = 'org_admin'
+         RETURNING id`,
+        [passwordHash, rawPassword, adminId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Admin not found' });
+      }
+
+      await auditLog(
+        id, req.user!.userId,
+        'org_admin.password_reset', 'user', adminId,
+        {}, req.ip || ''
+      );
+
+      res.json({
+        message: 'Password reset successfully',
+        newPassword: rawPassword
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
 // ─────────────────────────────────────
 // ANALYTICS
 // ─────────────────────────────────────

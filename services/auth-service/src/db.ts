@@ -748,6 +748,63 @@ export async function initDb() {
       console.error('in_app_notifications migration:', err.message);
     }
 
+    // Migration 15: migrate existing colleges into organizations
+    // Reuses each college's own id as the organization id, so
+    // users.college_id (and departments/batches/trainers.college_id)
+    // keep matching without any data changes - this is what bridges the
+    // legacy colleges table to the multi-tenant organizations table.
+    // Slug gets a short id suffix to guarantee uniqueness even if two
+    // college names collide or a name already matches an existing org's slug.
+    try {
+      await client.query('SAVEPOINT sp_colleges_to_orgs');
+      const collegesExist = await client.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables
+          WHERE table_name = 'colleges'
+        ) as exists
+      `);
+
+      if (collegesExist.rows[0].exists) {
+        await client.query(`
+          INSERT INTO organizations
+            (id, name, slug, org_type, is_active, created_at)
+          SELECT
+            id,
+            name,
+            LOWER(REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '-', 'g'))
+              || '-' || SUBSTRING(id::text, 1, 8) as slug,
+            'college' as org_type,
+            true as is_active,
+            created_at
+          FROM colleges
+          WHERE id NOT IN (
+            SELECT id FROM organizations WHERE id IS NOT NULL
+          )
+          ON CONFLICT (id) DO NOTHING
+        `);
+        console.log('✅ Existing colleges migrated to organizations');
+      }
+      await client.query('RELEASE SAVEPOINT sp_colleges_to_orgs');
+    } catch (err: any) {
+      await client.query('ROLLBACK TO SAVEPOINT sp_colleges_to_orgs');
+      console.error('colleges->organizations migration:', err.message);
+    }
+
+    // Migration 16: verify student college_id now resolves via organizations
+    try {
+      await client.query('SAVEPOINT sp_verify_student_org_links');
+      const linked = await client.query(`
+        SELECT COUNT(*) FROM users u
+        JOIN organizations o ON o.id = u.college_id
+        WHERE u.role = 'student'
+      `);
+      await client.query('RELEASE SAVEPOINT sp_verify_student_org_links');
+      console.log(`✅ Student college_id links verified (${linked.rows[0].count} students linked)`);
+    } catch (err: any) {
+      await client.query('ROLLBACK TO SAVEPOINT sp_verify_student_org_links');
+      console.error('College link check:', err.message);
+    }
+
     await client.query('COMMIT');
     console.log('Database tables successfully verified/created.');
   } catch (err) {
