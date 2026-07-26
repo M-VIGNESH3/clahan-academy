@@ -298,7 +298,24 @@ export default function App() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
   const [uploadResult, setUploadResult] = useState<any>(null);
-  const [newQuestion, setNewQuestion] = useState({
+  const [newQuestion, setNewQuestion] = useState<{
+    questionType: string;
+    questionText: string;
+    optionA: string;
+    optionB: string;
+    optionC: string;
+    optionD: string;
+    correctAnswer: string;
+    marks: number;
+    difficulty: string;
+    explanation: string;
+    contentBlocks: ContentBlock[];
+    images: string[];
+    optionAImage: string;
+    optionBImage: string;
+    optionCImage: string;
+    optionDImage: string;
+  }>({
     questionType: 'mcq',
     questionText: '',
     optionA: '',
@@ -308,7 +325,13 @@ export default function App() {
     correctAnswer: 'a',
     marks: 1,
     difficulty: 'medium',
-    explanation: ''
+    explanation: '',
+    contentBlocks: [],
+    images: [],
+    optionAImage: '',
+    optionBImage: '',
+    optionCImage: '',
+    optionDImage: ''
   });
 
   // Super admin state
@@ -2155,7 +2178,10 @@ export default function App() {
           correctAnswer: 'a',
           marks: 1,
           difficulty: 'medium',
-          explanation: ''
+          explanation: '',
+          contentBlocks: [],
+          images: [],
+          optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: ''
         });
         loadFacultyQuestionBatches();
         showToast('Question added', 'success');
@@ -14306,24 +14332,70 @@ export default function App() {
                     />
                   </div>
 
+                  {/* Rich content: images, code snippets, tables, diagrams */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Rich Content (optional images, code, tables)
+                    </label>
+                    <RichTextEditor
+                      contentBlocks={newQuestion.contentBlocks || []}
+                      onChange={blocks => setNewQuestion({ ...newQuestion, contentBlocks: blocks })}
+                    />
+                  </div>
+
                   {/* MCQ Options */}
                   {newQuestion.questionType === 'mcq' && (
                     <>
                       <div className="grid grid-cols-2 gap-2">
-                        {['A', 'B', 'C', 'D'].map(opt => (
-                          <div key={opt}>
-                            <label className="text-[10px] font-bold text-slate-400 block mb-1">
-                              Option {opt}
-                            </label>
-                            <input
-                              type="text"
-                              value={newQuestion[`option${opt}` as keyof typeof newQuestion] as string}
-                              onChange={e => setNewQuestion({ ...newQuestion, [`option${opt}`]: e.target.value })}
-                              className="w-full px-2 py-1.5 bg-slate-800 border border-white/10 rounded-lg text-xs text-white"
-                            />
-                          </div>
-                        ))}
+                        {['A', 'B', 'C', 'D'].map(opt => {
+                          const imgKey = `option${opt}Image` as keyof typeof newQuestion;
+                          const currentImg = (newQuestion[imgKey] as string) || '';
+                          return (
+                            <div key={opt} className="space-y-1.5">
+                              <label className="text-[10px] font-bold text-slate-400 block">
+                                Option {opt}
+                              </label>
+                              <input
+                                type="text"
+                                value={newQuestion[`option${opt}` as keyof typeof newQuestion] as string}
+                                onChange={e => setNewQuestion({ ...newQuestion, [`option${opt}`]: e.target.value })}
+                                className="w-full px-2 py-1.5 bg-slate-800 border border-white/10 rounded-lg text-xs text-white"
+                              />
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="text"
+                                  value={currentImg}
+                                  onChange={e => setNewQuestion({ ...newQuestion, [imgKey]: e.target.value })}
+                                  placeholder="Image URL (optional)"
+                                  className="w-full px-2 py-1 bg-slate-800 border border-white/10 rounded-lg text-[10px] text-white placeholder-slate-500"
+                                />
+                                <label className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold cursor-pointer shrink-0">
+                                  Upload
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={async e => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      setIsUploadingImage(true);
+                                      try {
+                                        const base64 = await compressImageFile(file, 800, 0.5);
+                                        setNewQuestion(prev => ({ ...prev, [imgKey]: base64 }));
+                                      } finally {
+                                        setIsUploadingImage(false);
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
+                      {isUploadingImage && (
+                        <p className="text-[10px] text-indigo-300">Processing image...</p>
+                      )}
                       <div>
                         <label className="text-xs font-bold text-slate-300 block mb-1">
                           Correct Answer
@@ -14987,12 +15059,21 @@ export default function App() {
                     <p className="text-xs font-bold text-white mb-2">
                       {idx + 1}. {q.question_text}
                     </p>
+                    {(q.content_blocks?.length > 0 || q.images?.length > 0) && (
+                      <div className="mb-2">
+                        <RichContentRenderer blocks={q.content_blocks} legacyImages={q.images} />
+                      </div>
+                    )}
                     {q.question_type === 'mcq' && (
                       <div className="grid grid-cols-2 gap-1.5 text-[10px] text-slate-400">
-                        <p className={q.correct_answer === 'a' ? 'text-emerald-400 font-bold' : ''}>A. {q.option_a}</p>
-                        <p className={q.correct_answer === 'b' ? 'text-emerald-400 font-bold' : ''}>B. {q.option_b}</p>
-                        <p className={q.correct_answer === 'c' ? 'text-emerald-400 font-bold' : ''}>C. {q.option_c}</p>
-                        <p className={q.correct_answer === 'd' ? 'text-emerald-400 font-bold' : ''}>D. {q.option_d}</p>
+                        {['a', 'b', 'c', 'd'].map(letter => (
+                          <div key={letter} className={q.correct_answer === letter ? 'text-emerald-400 font-bold' : ''}>
+                            <p>{letter.toUpperCase()}. {q[`option_${letter}`]}</p>
+                            {q[`option_${letter}_image`] && (
+                              <img src={q[`option_${letter}_image`]} alt={`Option ${letter.toUpperCase()}`} className="mt-1 max-h-20 rounded-lg border border-white/10" />
+                            )}
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>

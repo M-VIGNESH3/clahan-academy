@@ -7,6 +7,7 @@ import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import * as XLSX from 'xlsx';
+import { randomUUID } from 'crypto';
 
 const app = express();
 app.use(cors());
@@ -16,6 +17,19 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL
+});
+
+// Rich question content (images, code snippets) — matches the columns
+// exam-service already added to mcq_questions/coding_questions.
+pool.query(`
+  ALTER TABLE question_bank ADD COLUMN IF NOT EXISTS content_blocks JSONB DEFAULT '[]'::jsonb;
+  ALTER TABLE question_bank ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'::jsonb;
+  ALTER TABLE question_bank ADD COLUMN IF NOT EXISTS option_a_image TEXT DEFAULT '';
+  ALTER TABLE question_bank ADD COLUMN IF NOT EXISTS option_b_image TEXT DEFAULT '';
+  ALTER TABLE question_bank ADD COLUMN IF NOT EXISTS option_c_image TEXT DEFAULT '';
+  ALTER TABLE question_bank ADD COLUMN IF NOT EXISTS option_d_image TEXT DEFAULT '';
+`).catch(err => {
+  console.log('DB Column rich questions addition log (faculty-service):', err.message);
 });
 
 // Matches the fallback chain used by every other service so tokens issued
@@ -298,8 +312,11 @@ app.post('/api/faculty/questions',
         difficulty, marks, tags, explanation,
         // MCQ
         optionA, optionB, optionC, optionD, correctAnswer,
+        optionAImage, optionBImage, optionCImage, optionDImage,
         // Coding
-        title, codingLanguage, starterCode, timeLimit, memoryLimit
+        title, codingLanguage, starterCode, timeLimit, memoryLimit,
+        // Rich content (shared)
+        contentBlocks, images
       } = req.body;
 
       if (!batchId || !questionType || !questionText) {
@@ -324,8 +341,10 @@ app.post('/api/faculty/questions',
           subject, topic, difficulty,
           marks, tags, explanation,
           option_a, option_b, option_c, option_d, correct_answer,
-          title, coding_language, starter_code, time_limit, memory_limit, status)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,'approved')
+          option_a_image, option_b_image, option_c_image, option_d_image,
+          title, coding_language, starter_code, time_limit, memory_limit,
+          content_blocks, images, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,'approved')
          RETURNING *`,
         [
           req.user!.orgId,
@@ -344,11 +363,17 @@ app.post('/api/faculty/questions',
           optionC || null,
           optionD || null,
           correctAnswer || null,
+          optionAImage || '',
+          optionBImage || '',
+          optionCImage || '',
+          optionDImage || '',
           title || null,
           codingLanguage || null,
           starterCode || null,
           timeLimit || 30,
-          memoryLimit || 256
+          memoryLimit || 256,
+          JSON.stringify(contentBlocks || []),
+          JSON.stringify(images || [])
         ]
       );
 
@@ -375,8 +400,16 @@ app.get('/api/faculty/questions/excel-template',
   authenticate, requireFaculty,
   async (req: AuthenticatedRequest, res) => {
     try {
-      const headers = ['Question', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer', 'Marks', 'Difficulty', 'Explanation'];
-      const sample = ['What is the correct way to write a Python comment?', '# Comment', '// Comment', '/* Comment */', '<! Comment >', 'A', 1, 'easy', 'Python uses # for single-line comments'];
+      const headers = [
+        'Question', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer', 'Marks', 'Difficulty', 'Explanation',
+        'Question Image URL', 'Option A Image URL', 'Option B Image URL', 'Option C Image URL', 'Option D Image URL',
+        'Code Snippet', 'Code Language'
+      ];
+      const sample = [
+        'What is the correct way to write a Python comment?', '# Comment', '// Comment', '/* Comment */', '<! Comment >', 'A', 1, 'easy', 'Python uses # for single-line comments',
+        '', '', '', '', '',
+        'print("hello")  # this is a comment', 'python'
+      ];
       const worksheet = XLSX.utils.aoa_to_sheet([headers, sample]);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Questions');
@@ -445,14 +478,29 @@ app.post('/api/faculty/questions/bulk-upload',
         const difficulty = row['Difficulty'] || 'medium';
         const explanation = row['Explanation'] || null;
 
+        const questionImageUrl = row['Question Image URL'] || null;
+        const optionAImage = row['Option A Image URL'] || '';
+        const optionBImage = row['Option B Image URL'] || '';
+        const optionCImage = row['Option C Image URL'] || '';
+        const optionDImage = row['Option D Image URL'] || '';
+        const codeSnippet = row['Code Snippet'] || null;
+        const codeLanguage = row['Code Language'] || 'text';
+
+        const images = questionImageUrl ? [questionImageUrl] : [];
+        const contentBlocks = codeSnippet
+          ? [{ id: randomUUID(), type: 'code', content: String(codeSnippet), language: codeLanguage }]
+          : [];
+
         try {
           await pool.query(
             `INSERT INTO question_bank
              (org_id, batch_id, created_by,
               question_type, question_text,
               difficulty, marks, explanation,
-              option_a, option_b, option_c, option_d, correct_answer, status)
-             VALUES ($1,$2,$3,'mcq',$4,$5,$6,$7,$8,$9,$10,$11,$12,'approved')`,
+              option_a, option_b, option_c, option_d, correct_answer,
+              option_a_image, option_b_image, option_c_image, option_d_image,
+              content_blocks, images, status)
+             VALUES ($1,$2,$3,'mcq',$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'approved')`,
             [
               batch.rows[0].org_id,
               batchId,
@@ -462,7 +510,9 @@ app.post('/api/faculty/questions/bulk-upload',
               marks,
               explanation,
               optionA, optionB, optionC, optionD,
-              correctAnswer
+              correctAnswer,
+              optionAImage, optionBImage, optionCImage, optionDImage,
+              JSON.stringify(contentBlocks), JSON.stringify(images)
             ]
           );
           imported++;
