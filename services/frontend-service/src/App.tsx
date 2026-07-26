@@ -4,7 +4,7 @@ import {
   Trash2, Copy, Send, Download, Upload, Plus, Play, Check, Moon, Sun, ArrowRight, User, 
   LogOut, RefreshCw, Layers, Cpu, Laptop, Terminal, Mail, Phone, MapPin, Eye, EyeOff, Lock,
   Maximize2, ShieldAlert, X, Sparkles, ChevronLeft, ChevronRight, Star, Minimize2, Bookmark, Clock, Edit3,
-  GraduationCap
+  GraduationCap, Database
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import * as XLSX from 'xlsx';
@@ -212,7 +212,7 @@ export default function App() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [skillGapData, setSkillGapData] = useState<any>(null);
   const [isLoadingSkillGap, setIsLoadingSkillGap] = useState(false);
-  const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'colleges' | 'students' | 'faculty' | 'trainers' | 'training' | 'exams' | 'placement' | 'companies' | 'reports' | 'settings' | 'live'>('metrics');
+  const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'colleges' | 'students' | 'faculty' | 'question-bank' | 'trainers' | 'training' | 'exams' | 'placement' | 'companies' | 'reports' | 'settings' | 'live'>('metrics');
   const [adminTrainers, setAdminTrainers] = useState<any[]>([]);
   const [studentTrainers, setStudentTrainers] = useState<any[]>([]);
   const [trainerForm, setTrainerForm] = useState({
@@ -268,6 +268,17 @@ export default function App() {
     canViewAllQuestions: false
   });
 
+  // Question Bank (org_admin reviewing faculty-submitted batches)
+  const [adminQuestionBatches, setAdminQuestionBatches] = useState<any[]>([]);
+  const [pendingBatches, setPendingBatches] = useState<any[]>([]);
+  const [bankSubTab, setBankSubTab] = useState<'pending' | 'approved'>('pending');
+  const [isLoadingBank, setIsLoadingBank] = useState(false);
+  const [selectedBankBatch, setSelectedBankBatch] = useState<any>(null);
+  const [batchQuestions, setBatchQuestions] = useState<any[]>([]);
+  const [showBatchPreviewModal, setShowBatchPreviewModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectNote, setRejectNote] = useState('');
+
   // Faculty's own dashboard (faculty logged in as themselves)
   const [facultyDashData, setFacultyDashData] = useState<any>(null);
   const [facultyQuestionBatches, setFacultyQuestionBatches] = useState<any[]>([]);
@@ -284,6 +295,9 @@ export default function App() {
   });
   const [selectedQuestionBatch, setSelectedQuestionBatch] = useState<any>(null);
   const [showAddQuestionModal, setShowAddQuestionModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [isUploadingExcel, setIsUploadingExcel] = useState(false);
+  const [uploadResult, setUploadResult] = useState<any>(null);
   const [newQuestion, setNewQuestion] = useState({
     questionType: 'mcq',
     questionText: '',
@@ -1910,6 +1924,86 @@ export default function App() {
     }
   };
 
+  // --- QUESTION BANK (org_admin reviewing faculty-submitted batches) ---
+  const loadQuestionBank = async () => {
+    setIsLoadingBank(true);
+    try {
+      const [approvedRes, pendingRes] = await Promise.all([
+        fetch(`${API_ADMIN}/question-batches`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_ADMIN}/question-batches/pending`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+      if (approvedRes.ok) {
+        setAdminQuestionBatches(await approvedRes.json());
+      }
+      if (pendingRes.ok) {
+        setPendingBatches(await pendingRes.json());
+      }
+    } catch (err) {
+      console.error('Load question bank:', err);
+    } finally {
+      setIsLoadingBank(false);
+    }
+  };
+
+  const loadBatchQuestions = async (batchId: string) => {
+    try {
+      const res = await fetch(`${API_ADMIN}/question-batches/${batchId}/questions`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setBatchQuestions(await res.json());
+      }
+    } catch (err) {
+      showToast('Failed to load questions', 'error');
+    }
+  };
+
+  const approveBatch = async (batchId: string) => {
+    try {
+      const res = await fetch(`${API_ADMIN}/question-batches/${batchId}/approve`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('Batch approved', 'success');
+        setShowBatchPreviewModal(false);
+        loadQuestionBank();
+      } else {
+        showToast('Approve failed', 'error');
+      }
+    } catch (err) {
+      showToast('Network error', 'error');
+    }
+  };
+
+  const rejectBatch = async (batchId: string) => {
+    try {
+      const res = await fetch(`${API_ADMIN}/question-batches/${batchId}/reject`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ reviewNote: rejectNote || null })
+      });
+      if (res.ok) {
+        showToast('Batch rejected', 'success');
+        setShowRejectModal(false);
+        setShowBatchPreviewModal(false);
+        setRejectNote('');
+        loadQuestionBank();
+      } else {
+        showToast('Reject failed', 'error');
+      }
+    } catch (err) {
+      showToast('Network error', 'error');
+    }
+  };
+
   // --- FACULTY'S OWN DASHBOARD (faculty-service, port 4011) ---
   const loadFacultyDashboard = async () => {
     setIsLoadingFacultyDash(true);
@@ -1945,6 +2039,58 @@ export default function App() {
       }
     } catch (err) {
       console.error('Faculty questions:', err);
+    }
+  };
+
+  const downloadExcelTemplate = async () => {
+    try {
+      const res = await fetch(`${API_FACULTY}/questions/excel-template`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        showToast('Failed to download template', 'error');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'question_bank_template.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      showToast('Network error', 'error');
+    }
+  };
+
+  const uploadExcelFile = async (file: File) => {
+    if (!selectedQuestionBatch) return;
+    setIsUploadingExcel(true);
+    setUploadResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('batchId', selectedQuestionBatch.id);
+      const res = await fetch(`${API_FACULTY}/questions/bulk-upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUploadResult(data);
+        if (data.imported > 0) {
+          loadFacultyQuestionBatches();
+        }
+      } else {
+        showToast(data.error || 'Upload failed', 'error');
+      }
+    } catch (err) {
+      showToast('Network error', 'error');
+    } finally {
+      setIsUploadingExcel(false);
     }
   };
 
@@ -6176,16 +6322,17 @@ export default function App() {
                 <span className="text-xs text-muted-foreground uppercase font-black tracking-widest">Admin Control Center</span>
               </div>
               {[
-                { id: 'metrics', label: 'Dashboard', icon: Award },
-                { id: 'students', label: 'Students', icon: Users },
-                { id: 'faculty', label: 'Faculty', icon: GraduationCap },
-                { id: 'training', label: 'Training', icon: BookOpen },
-                { id: 'exams', label: 'Assessments', icon: Layers },
-                { id: 'live', label: 'Live Exam Proctor', icon: Video },
-                { id: 'placement', label: 'Placement', icon: Laptop },
-                { id: 'companies', label: 'Companies', icon: Sparkles },
-                { id: 'reports', label: 'Reports', icon: Download },
-                { id: 'settings', label: 'Settings', icon: Settings }
+                { id: 'metrics', label: 'Dashboard', icon: Award, badge: 0 },
+                { id: 'students', label: 'Students', icon: Users, badge: 0 },
+                { id: 'faculty', label: 'Faculty', icon: GraduationCap, badge: 0 },
+                { id: 'question-bank', label: 'Question Bank', icon: Database, badge: pendingBatches.length },
+                { id: 'training', label: 'Training', icon: BookOpen, badge: 0 },
+                { id: 'exams', label: 'Assessments', icon: Layers, badge: 0 },
+                { id: 'live', label: 'Live Exam Proctor', icon: Video, badge: 0 },
+                { id: 'placement', label: 'Placement', icon: Laptop, badge: 0 },
+                { id: 'companies', label: 'Companies', icon: Sparkles, badge: 0 },
+                { id: 'reports', label: 'Reports', icon: Download, badge: 0 },
+                { id: 'settings', label: 'Settings', icon: Settings, badge: 0 }
               ].map(item => {
                 const Icon = item.icon;
                 return (
@@ -6194,11 +6341,17 @@ export default function App() {
                     onClick={() => {
                       setActiveAdminTab(item.id as any);
                       if (item.id === 'faculty') loadFaculty();
+                      if (item.id === 'question-bank') loadQuestionBank();
                     }}
                     className={`flex items-center gap-3 w-full p-3 rounded-xl text-sm font-bold transition-all ${activeAdminTab === item.id ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10' : 'text-muted-foreground hover:bg-slate-100/50 dark:hover:bg-slate-900/50 hover:text-foreground'}`}
                   >
                     <Icon className="h-4.5 w-4.5" />
                     {item.label}
+                    {!!item.badge && (
+                      <span className="ml-auto px-1.5 py-0.5 bg-amber-500/90 text-white text-[10px] font-black rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -6495,6 +6648,121 @@ export default function App() {
                               >
                                 Deactivate
                               </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeAdminTab === 'question-bank' && (
+                <div className="space-y-4">
+
+                  {/* Header + sub-tabs */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-sm font-extrabold">Question Bank</h2>
+                      <p className="text-[10px] text-muted-foreground">Review faculty-submitted question batches</p>
+                    </div>
+                    <div className="flex gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50">
+                      <button
+                        onClick={() => setBankSubTab('pending')}
+                        className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${bankSubTab === 'pending' ? 'bg-indigo-600 text-white' : 'text-muted-foreground'}`}
+                      >
+                        Pending ({pendingBatches.length})
+                      </button>
+                      <button
+                        onClick={() => setBankSubTab('approved')}
+                        className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all ${bankSubTab === 'approved' ? 'bg-indigo-600 text-white' : 'text-muted-foreground'}`}
+                      >
+                        Approved ({adminQuestionBatches.length})
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Batch List */}
+                  {isLoadingBank ? (
+                    <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
+                  ) : (bankSubTab === 'pending' ? pendingBatches : adminQuestionBatches).length === 0 ? (
+                    <div className="text-center py-12 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
+                      <p className="text-4xl mb-3">📚</p>
+                      <p className="text-sm font-bold mb-1">
+                        {bankSubTab === 'pending' ? 'No Pending Batches' : 'No Approved Batches'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {bankSubTab === 'pending'
+                          ? 'Faculty submissions awaiting review will appear here'
+                          : 'Approved question batches will appear here'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {(bankSubTab === 'pending' ? pendingBatches : adminQuestionBatches).map((batch: any) => (
+                        <div key={batch.id}
+                          className="p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                                <Database className="h-5 w-5 text-indigo-600" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold">{batch.name}</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {batch.subject || 'General'}{batch.topic ? ` • ${batch.topic}` : ''} • {batch.difficulty}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  By {batch.creator_name || 'Unknown'} • {batch.actual_count || 0} questions
+                                </p>
+                              </div>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                                batch.status === 'approved'
+                                  ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                                  : batch.status === 'rejected'
+                                  ? 'bg-red-500/10 text-red-600 border border-red-500/20'
+                                  : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
+                              }`}>
+                              {batch.status}
+                            </span>
+                          </div>
+
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={() => {
+                                setSelectedBankBatch(batch);
+                                setBatchQuestions([]);
+                                loadBatchQuestions(batch.id);
+                                setShowBatchPreviewModal(true);
+                              }}
+                              className="px-3 py-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 text-[10px] font-bold rounded-lg hover:bg-indigo-500/20"
+                            >
+                              👁️ Preview
+                            </button>
+                            {batch.status === 'pending' && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    if (confirm(`Approve batch "${batch.name}"?`)) {
+                                      approveBatch(batch.id);
+                                    }
+                                  }}
+                                  className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 text-[10px] font-bold rounded-lg hover:bg-emerald-500/20"
+                                >
+                                  ✓ Approve
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedBankBatch(batch);
+                                    setRejectNote('');
+                                    setShowRejectModal(true);
+                                  }}
+                                  className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-600 text-[10px] font-bold rounded-lg hover:bg-red-500/20"
+                                >
+                                  ✕ Reject
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>
@@ -13878,15 +14146,27 @@ export default function App() {
                           </p>
                         )}
                       </div>
-                      <button
-                        onClick={() => {
-                          setSelectedQuestionBatch(batch);
-                          setShowAddQuestionModal(true);
-                        }}
-                        className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[10px] font-bold rounded-lg hover:bg-violet-500/30"
-                      >
-                        + Add Question
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedQuestionBatch(batch);
+                            setUploadResult(null);
+                            setShowUploadModal(true);
+                          }}
+                          className="px-3 py-1.5 bg-slate-800 border border-white/10 text-slate-300 text-[10px] font-bold rounded-lg hover:bg-slate-700"
+                        >
+                          📊 Upload Excel
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedQuestionBatch(batch);
+                            setShowAddQuestionModal(true);
+                          }}
+                          className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[10px] font-bold rounded-lg hover:bg-violet-500/30"
+                        >
+                          + Add Question
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -14119,6 +14399,70 @@ export default function App() {
                     className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-extrabold rounded-xl"
                   >
                     Add Question
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showUploadModal && selectedQuestionBatch && (
+            <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+              <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-lg">
+                <h3 className="font-black text-white mb-1">Upload Excel</h3>
+                <p className="text-xs text-slate-400 mb-4">
+                  To: {selectedQuestionBatch.name}
+                </p>
+
+                <button
+                  onClick={downloadExcelTemplate}
+                  className="w-full py-2.5 mb-4 bg-slate-800 border border-white/10 text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-700"
+                >
+                  ⬇️ Download Template
+                </button>
+
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Select File
+                </label>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  disabled={isUploadingExcel}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadExcelFile(file);
+                    e.target.value = '';
+                  }}
+                  className="w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-violet-600 file:text-white file:text-xs file:font-bold"
+                />
+
+                {isUploadingExcel && (
+                  <p className="text-xs text-slate-400 mt-3">Uploading...</p>
+                )}
+
+                {uploadResult && (
+                  <div className="mt-4 p-3 bg-slate-800/50 rounded-xl">
+                    <p className="text-xs font-bold text-emerald-400">
+                      {uploadResult.imported || 0} question(s) imported
+                    </p>
+                    {uploadResult.errors && uploadResult.errors.length > 0 && (
+                      <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                        {uploadResult.errors.map((e: string, i: number) => (
+                          <p key={i} className="text-[10px] text-red-400">{e}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={() => {
+                      setShowUploadModal(false);
+                      setUploadResult(null);
+                    }}
+                    className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+                  >
+                    Close
                   </button>
                 </div>
               </div>
@@ -14611,6 +14955,103 @@ export default function App() {
                 className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl"
               >
                 Save Permissions
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBatchPreviewModal && selectedBankBatch && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-2xl max-h-[85vh] flex flex-col">
+            <div className="flex items-start justify-between mb-1">
+              <div>
+                <h3 className="font-black text-white">
+                  {selectedBankBatch.name}
+                </h3>
+                <p className="text-[10px] text-slate-400">
+                  {selectedBankBatch.subject || 'General'} • {selectedBankBatch.difficulty} • {batchQuestions.length} questions
+                </p>
+              </div>
+              <button onClick={() => setShowBatchPreviewModal(false)} className="text-slate-400 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto mt-4 space-y-3">
+              {batchQuestions.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 text-xs">No questions in this batch yet</div>
+              ) : (
+                batchQuestions.map((q: any, idx: number) => (
+                  <div key={q.id} className="p-3 bg-slate-800/50 rounded-xl">
+                    <p className="text-xs font-bold text-white mb-2">
+                      {idx + 1}. {q.question_text}
+                    </p>
+                    {q.question_type === 'mcq' && (
+                      <div className="grid grid-cols-2 gap-1.5 text-[10px] text-slate-400">
+                        <p className={q.correct_answer === 'a' ? 'text-emerald-400 font-bold' : ''}>A. {q.option_a}</p>
+                        <p className={q.correct_answer === 'b' ? 'text-emerald-400 font-bold' : ''}>B. {q.option_b}</p>
+                        <p className={q.correct_answer === 'c' ? 'text-emerald-400 font-bold' : ''}>C. {q.option_c}</p>
+                        <p className={q.correct_answer === 'd' ? 'text-emerald-400 font-bold' : ''}>D. {q.option_d}</p>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {selectedBankBatch.status === 'pending' && (
+              <div className="flex gap-3 mt-5">
+                <button
+                  onClick={() => {
+                    setShowBatchPreviewModal(false);
+                    setRejectNote('');
+                    setShowRejectModal(true);
+                  }}
+                  className="flex-1 py-2.5 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold rounded-xl hover:bg-red-500/20"
+                >
+                  ✕ Reject
+                </button>
+                <button
+                  onClick={() => approveBatch(selectedBankBatch.id)}
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl"
+                >
+                  ✓ Approve
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showRejectModal && selectedBankBatch && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
+            <h3 className="font-black text-white mb-1">
+              Reject Batch
+            </h3>
+            <p className="text-xs text-slate-400 mb-4">
+              {selectedBankBatch.name}
+            </p>
+            <textarea
+              value={rejectNote}
+              onChange={(e) => setRejectNote(e.target.value)}
+              placeholder="Reason for rejection (optional)"
+              rows={4}
+              className="w-full px-3 py-2.5 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => setShowRejectModal(false)}
+                className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => rejectBatch(selectedBankBatch.id)}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold rounded-xl"
+              >
+                Confirm Reject
               </button>
             </div>
           </div>

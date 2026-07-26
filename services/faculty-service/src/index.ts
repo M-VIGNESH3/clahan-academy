@@ -5,10 +5,14 @@ import express from 'express';
 import cors from 'cors';
 import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
+import * as XLSX from 'xlsx';
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL
@@ -360,6 +364,126 @@ app.post('/api/faculty/questions',
       );
 
       res.status(201).json(result.rows[0]);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// GET /api/faculty/questions/excel-template
+app.get('/api/faculty/questions/excel-template',
+  authenticate, requireFaculty,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const headers = ['Question', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer', 'Marks', 'Difficulty', 'Explanation'];
+      const sample = ['What is the correct way to write a Python comment?', '# Comment', '// Comment', '/* Comment */', '<! Comment >', 'A', 1, 'easy', 'Python uses # for single-line comments'];
+      const worksheet = XLSX.utils.aoa_to_sheet([headers, sample]);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Questions');
+      const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="question_bank_template.xlsx"');
+      res.send(buffer);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// POST /api/faculty/questions/bulk-upload
+// Parses an uploaded XLSX file and inserts MCQ questions into a batch
+app.post('/api/faculty/questions/bulk-upload',
+  authenticate, requireFaculty, upload.single('file'),
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { batchId } = req.body;
+      if (!batchId) {
+        return res.status(400).json({ error: 'batchId is required' });
+      }
+      if (!req.file) {
+        return res.status(400).json({ error: 'Excel file is required' });
+      }
+
+      // Verify batch belongs to this faculty
+      const batch = await pool.query(
+        `SELECT id, org_id FROM question_batches WHERE id = $1 AND created_by = $2`,
+        [batchId, req.user!.userId]
+      );
+      if (batch.rows.length === 0) {
+        return res.status(403).json({ error: 'Batch not found or not owned by you' });
+      }
+
+      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: null });
+
+      let imported = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rowNum = i + 2; // account for header row
+        const questionText = row['Question'];
+        const optionA = row['Option A'];
+        const optionB = row['Option B'];
+        const optionC = row['Option C'];
+        const optionD = row['Option D'];
+        const rawAnswer = row['Correct Answer'];
+        const correctAnswer = typeof rawAnswer === 'string' ? rawAnswer.trim().toLowerCase() : rawAnswer;
+
+        if (!questionText || !optionA || !optionB || !optionC || !optionD) {
+          errors.push(`Row ${rowNum}: missing question text or options`);
+          continue;
+        }
+        if (!['a', 'b', 'c', 'd'].includes(correctAnswer)) {
+          errors.push(`Row ${rowNum}: Correct Answer must be A, B, C or D`);
+          continue;
+        }
+
+        const marks = Number(row['Marks']) || 1;
+        const difficulty = row['Difficulty'] || 'medium';
+        const explanation = row['Explanation'] || null;
+
+        try {
+          await pool.query(
+            `INSERT INTO question_bank
+             (org_id, batch_id, created_by,
+              question_type, question_text,
+              difficulty, marks, explanation,
+              option_a, option_b, option_c, option_d, correct_answer, status)
+             VALUES ($1,$2,$3,'mcq',$4,$5,$6,$7,$8,$9,$10,$11,$12,'approved')`,
+            [
+              batch.rows[0].org_id,
+              batchId,
+              req.user!.userId,
+              questionText,
+              difficulty,
+              marks,
+              explanation,
+              optionA, optionB, optionC, optionD,
+              correctAnswer
+            ]
+          );
+          imported++;
+        } catch (rowErr: any) {
+          errors.push(`Row ${rowNum}: ${rowErr.message}`);
+        }
+      }
+
+      if (imported > 0) {
+        await pool.query(
+          `UPDATE question_batches
+           SET question_count = (
+             SELECT COUNT(*) FROM question_bank WHERE batch_id = $1
+           ),
+           updated_at = NOW()
+           WHERE id = $1`,
+          [batchId]
+        );
+      }
+
+      res.json({ imported, total: rows.length, errors });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
