@@ -68,6 +68,10 @@ export default defineConfig({
         target: 'http://localhost:4010',
         changeOrigin: true,
       },
+      '/api/faculty': {
+        target: 'http://localhost:4011',
+        changeOrigin: true,
+      },
     }
   },
 });

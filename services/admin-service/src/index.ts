@@ -634,7 +634,8 @@ app.post('/api/admin/students/:id/reset-password', authenticateAdmin, requireOrg
   try {
     const orgId = getOrgId(req);
     const { id } = req.params;
-    const plainPassword = 'Clahan@' + Math.floor(1000 + Math.random() * 9000).toString();
+    const { newPassword } = req.body;
+    const plainPassword = newPassword || ('Clahan@' + Math.floor(1000 + Math.random() * 9000).toString());
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
     const check = await query(
@@ -1114,7 +1115,7 @@ app.get('/api/admin/faculty', authenticateAdmin, requireOrgAdmin, async (req: Au
 // Create a faculty account
 app.post('/api/admin/faculty', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   const orgId = getOrgId(req);
-  const { fullName, email, phone } = req.body;
+  const { fullName, email, phone, password } = req.body;
   // org_admin is forced onto their own org; only an unscoped super_admin
   // request may target an arbitrary org via body.orgId.
   const targetOrgId = orgId || req.body.orgId;
@@ -1137,7 +1138,7 @@ app.post('/api/admin/faculty', authenticateAdmin, requireOrgAdmin, async (req: A
       });
     }
 
-    const rawPassword = Math.random().toString(36).slice(-8) + 'Aa1!';
+    const rawPassword = password || (Math.random().toString(36).slice(-8) + 'Aa1!');
     const passwordHash = await bcrypt.hash(rawPassword, 10);
 
     // Create faculty user
@@ -1263,7 +1264,8 @@ app.post('/api/admin/faculty/:id/reset-password', authenticateAdmin, requireOrgA
         return res.status(404).json({ error: 'Faculty not found' });
       }
     }
-    const rawPassword = Math.random().toString(36).slice(-8) + 'Aa1!';
+    const { newPassword } = req.body;
+    const rawPassword = newPassword || (Math.random().toString(36).slice(-8) + 'Aa1!');
     const passwordHash = await bcrypt.hash(rawPassword, 10);
     await query(
       `UPDATE users SET password_hash = $1, raw_password = $2 WHERE id = $3`,

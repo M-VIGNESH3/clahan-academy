@@ -3,7 +3,8 @@ import {
   BookOpen, Code, Shield, Video, Bell, Settings, Award, Users, CheckCircle, AlertTriangle, 
   Trash2, Copy, Send, Download, Upload, Plus, Play, Check, Moon, Sun, ArrowRight, User, 
   LogOut, RefreshCw, Layers, Cpu, Laptop, Terminal, Mail, Phone, MapPin, Eye, EyeOff, Lock,
-  Maximize2, ShieldAlert, X, Sparkles, ChevronLeft, ChevronRight, Star, Minimize2, Bookmark, Clock, Edit3
+  Maximize2, ShieldAlert, X, Sparkles, ChevronLeft, ChevronRight, Star, Minimize2, Bookmark, Clock, Edit3,
+  GraduationCap
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import * as XLSX from 'xlsx';
@@ -208,7 +209,7 @@ export default function App() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [skillGapData, setSkillGapData] = useState<any>(null);
   const [isLoadingSkillGap, setIsLoadingSkillGap] = useState(false);
-  const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'colleges' | 'students' | 'trainers' | 'training' | 'exams' | 'placement' | 'companies' | 'reports' | 'settings' | 'live'>('metrics');
+  const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'colleges' | 'students' | 'faculty' | 'trainers' | 'training' | 'exams' | 'placement' | 'companies' | 'reports' | 'settings' | 'live'>('metrics');
   const [adminTrainers, setAdminTrainers] = useState<any[]>([]);
   const [studentTrainers, setStudentTrainers] = useState<any[]>([]);
   const [trainerForm, setTrainerForm] = useState({
@@ -242,6 +243,28 @@ export default function App() {
   const [adminAnalytics, setAdminAnalytics] = useState<any>(null);
   const [isLoadingAdminAnalytics, setIsLoadingAdminAnalytics] = useState(false);
 
+  // Faculty management (org_admin managing their faculty)
+  const [facultyList, setFacultyList] = useState<any[]>([]);
+  const [isLoadingFaculty, setIsLoadingFaculty] = useState(false);
+  const [showCreateFacultyModal, setShowCreateFacultyModal] = useState(false);
+  const [showFacultyPermissionsModal, setShowFacultyPermissionsModal] = useState(false);
+  const [selectedFaculty, setSelectedFaculty] = useState<any>(null);
+  const [facultyForm, setFacultyForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    password: ''
+  });
+  const [facultyPermissions, setFacultyPermissions] = useState({
+    canUploadQuestions: true,
+    canCreateDrafts: true,
+    canPublishExams: false,
+    canManageStudents: false,
+    canViewAllResults: false,
+    canBulkImport: false,
+    canViewAllQuestions: false
+  });
+
   // Super admin state
   const [superStats, setSuperStats] = useState<any>(null);
   const [organizations, setOrganizations] = useState<any[]>([]);
@@ -268,7 +291,8 @@ export default function App() {
   const [orgAdminForm, setOrgAdminForm] = useState({
     fullName: '',
     email: '',
-    phone: ''
+    phone: '',
+    password: ''
   });
 
   // Newly created credentials to show
@@ -282,6 +306,15 @@ export default function App() {
   const [editAdminTarget, setEditAdminTarget] = useState<any>(null);
   const [showEditAdminModal, setShowEditAdminModal] = useState(false);
   const [editAdminForm, setEditAdminForm] = useState({ fullName: '', email: '', phone: '' });
+
+  // Reusable reset-password modal (used for org admins, faculty, students).
+  // Callback takes the password as a parameter (read fresh at confirm-click
+  // time) rather than closing over resetPwValue at creation time, since the
+  // callback is created before the user has typed anything into the modal.
+  const [showResetPwModal, setShowResetPwModal] = useState(false);
+  const [resetPwTarget, setResetPwTarget] = useState<any>(null);
+  const [resetPwValue, setResetPwValue] = useState('');
+  const [resetPwCallback, setResetPwCallback] = useState<((password: string) => void) | null>(null);
 
   // Settings State
   const [companySettings, setCompanySettings] = useState({
@@ -1633,13 +1666,14 @@ export default function App() {
         body: JSON.stringify({
           fullName: orgAdminForm.fullName,
           email: orgAdminForm.email,
-          phone: orgAdminForm.phone
+          phone: orgAdminForm.phone,
+          password: orgAdminForm.password || null
         })
       });
       const data = await res.json();
       if (res.ok) {
         setShowCreateOrgAdminModal(false);
-        setOrgAdminForm({ fullName: '', email: '', phone: '' });
+        setOrgAdminForm({ fullName: '', email: '', phone: '', password: '' });
         setNewCredentials(data.credentials);
         showToast('Admin account created', 'success');
         loadSuperDashboard();
@@ -1704,20 +1738,131 @@ export default function App() {
     }
   };
 
-  const resetOrgAdminPassword = async (orgId: string, adminId: string) => {
+  const resetOrgAdminPassword = async (orgId: string, adminId: string, customPassword?: string) => {
     try {
       const res = await fetch(`${API_SUPER}/organizations/${orgId}/admin/${adminId}/reset-password`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ newPassword: customPassword || null })
       });
       if (res.ok) {
         const data = await res.json();
         setNewCredentials({
-          email: editAdminTarget?.email || '',
+          email: resetPwTarget?.email || editAdminTarget?.email || '',
           password: data.newPassword,
           note: 'Password has been reset'
         });
         loadOrgDetail(orgId);
+      }
+    } catch (err) {
+      showToast('Reset failed', 'error');
+    }
+  };
+
+  // --- FACULTY MANAGEMENT (org_admin) API CALLS ---
+  const loadFaculty = async () => {
+    setIsLoadingFaculty(true);
+    try {
+      const res = await fetch(`${API_ADMIN}/faculty`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setFacultyList(await res.json());
+      }
+    } catch (err) {
+      console.error('Load faculty:', err);
+    } finally {
+      setIsLoadingFaculty(false);
+    }
+  };
+
+  const createFaculty = async () => {
+    try {
+      const res = await fetch(`${API_ADMIN}/faculty`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          fullName: facultyForm.fullName,
+          email: facultyForm.email,
+          phone: facultyForm.phone,
+          password: facultyForm.password || null
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setShowCreateFacultyModal(false);
+        setFacultyForm({ fullName: '', email: '', phone: '', password: '' });
+        setNewCredentials(data.credentials);
+        loadFaculty();
+        showToast('Faculty account created', 'success');
+      } else {
+        showToast(data.error || 'Failed', 'error');
+      }
+    } catch (err) {
+      showToast('Network error', 'error');
+    }
+  };
+
+  const saveFacultyPermissions = async () => {
+    if (!selectedFaculty) return;
+    try {
+      const res = await fetch(`${API_ADMIN}/faculty/${selectedFaculty.id}/permissions`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(facultyPermissions)
+      });
+      if (res.ok) {
+        showToast('Permissions updated', 'success');
+        setShowFacultyPermissionsModal(false);
+        loadFaculty();
+      }
+    } catch (err) {
+      showToast('Update failed', 'error');
+    }
+  };
+
+  const deactivateFaculty = async (id: string) => {
+    try {
+      const res = await fetch(`${API_ADMIN}/faculty/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('Faculty deactivated', 'success');
+        loadFaculty();
+      }
+    } catch (err) {
+      showToast('Failed', 'error');
+    }
+  };
+
+  const resetFacultyPassword = async (faculty: any, customPassword?: string) => {
+    try {
+      const res = await fetch(`${API_ADMIN}/faculty/${faculty.id}/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ newPassword: customPassword || null })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNewCredentials({
+          email: faculty.email,
+          password: data.newPassword,
+          note: 'Password has been reset'
+        });
+        loadFaculty();
       }
     } catch (err) {
       showToast('Reset failed', 'error');
@@ -5726,6 +5871,7 @@ export default function App() {
               {[
                 { id: 'metrics', label: 'Dashboard', icon: Award },
                 { id: 'students', label: 'Students', icon: Users },
+                { id: 'faculty', label: 'Faculty', icon: GraduationCap },
                 { id: 'training', label: 'Training', icon: BookOpen },
                 { id: 'exams', label: 'Assessments', icon: Layers },
                 { id: 'live', label: 'Live Exam Proctor', icon: Video },
@@ -5738,7 +5884,10 @@ export default function App() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveAdminTab(item.id as any)}
+                    onClick={() => {
+                      setActiveAdminTab(item.id as any);
+                      if (item.id === 'faculty') loadFaculty();
+                    }}
                     className={`flex items-center gap-3 w-full p-3 rounded-xl text-sm font-bold transition-all ${activeAdminTab === item.id ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10' : 'text-muted-foreground hover:bg-slate-100/50 dark:hover:bg-slate-900/50 hover:text-foreground'}`}
                   >
                     <Icon className="h-4.5 w-4.5" />
@@ -5911,6 +6060,140 @@ export default function App() {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {activeAdminTab === 'faculty' && (
+                <div className="space-y-4">
+
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-sm font-extrabold">Faculty Management</h2>
+                      <p className="text-[10px] text-muted-foreground">{facultyList.length} faculty members</p>
+                    </div>
+                    <button
+                      onClick={() => setShowCreateFacultyModal(true)}
+                      className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-extrabold rounded-xl"
+                    >
+                      + Add Faculty
+                    </button>
+                  </div>
+
+                  {/* Faculty List */}
+                  {isLoadingFaculty ? (
+                    <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
+                  ) : facultyList.length === 0 ? (
+                    <div className="text-center py-12 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
+                      <p className="text-4xl mb-3">🎓</p>
+                      <p className="text-sm font-bold mb-1">No Faculty Yet</p>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        Add faculty members to let them upload questions and manage students
+                      </p>
+                      <button
+                        onClick={() => setShowCreateFacultyModal(true)}
+                        className="px-4 py-2 bg-violet-600 text-white text-xs font-bold rounded-xl"
+                      >
+                        + Add First Faculty
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {facultyList.map((faculty) => (
+                        <div key={faculty.id}
+                          className="p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                                <GraduationCap className="h-5 w-5 text-violet-600" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold">{faculty.full_name}</p>
+                                <p className="text-[10px] text-muted-foreground">{faculty.email}</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {faculty.assigned_batches || 0} batches
+                                  {' • '}
+                                  {faculty.question_batches || 0} question sets
+                                </p>
+                              </div>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                                faculty.status === 'active'
+                                  ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
+                                  : 'bg-red-500/10 text-red-600 border border-red-500/20'
+                              }`}>
+                              {faculty.status}
+                            </span>
+                          </div>
+
+                          {/* Permissions summary */}
+                          <div className="flex flex-wrap gap-1.5 mt-3">
+                            {[
+                              { key: 'can_upload_questions', label: 'Upload Questions' },
+                              { key: 'can_create_drafts', label: 'Create Drafts' },
+                              { key: 'can_publish_exams', label: 'Publish Exams' },
+                              { key: 'can_manage_students', label: 'Manage Students' },
+                              { key: 'can_view_all_results', label: 'All Results' }
+                            ].map(perm => (
+                              <span key={perm.key}
+                                className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                                  faculty[perm.key]
+                                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border-slate-200 dark:border-white/5'
+                                }`}>
+                                {faculty[perm.key] ? '✓' : '×'} {perm.label}
+                              </span>
+                            ))}
+                          </div>
+
+                          {/* Action buttons */}
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={() => {
+                                setSelectedFaculty(faculty);
+                                setFacultyPermissions({
+                                  canUploadQuestions: faculty.can_upload_questions ?? true,
+                                  canCreateDrafts: faculty.can_create_drafts ?? true,
+                                  canPublishExams: faculty.can_publish_exams ?? false,
+                                  canManageStudents: faculty.can_manage_students ?? false,
+                                  canViewAllResults: faculty.can_view_all_results ?? false,
+                                  canBulkImport: faculty.can_bulk_import ?? false,
+                                  canViewAllQuestions: faculty.can_view_all_questions ?? false
+                                });
+                                setShowFacultyPermissionsModal(true);
+                              }}
+                              className="px-3 py-1.5 bg-violet-500/10 border border-violet-500/20 text-violet-600 text-[10px] font-bold rounded-lg hover:bg-violet-500/20"
+                            >
+                              ⚙️ Permissions
+                            </button>
+                            <button
+                              onClick={() => {
+                                setResetPwTarget(faculty);
+                                setResetPwValue('');
+                                setResetPwCallback(() => (pw: string) => resetFacultyPassword(faculty, pw || undefined));
+                                setShowResetPwModal(true);
+                              }}
+                              className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 text-[10px] font-bold rounded-lg hover:bg-amber-500/20"
+                            >
+                              🔄 Reset PW
+                            </button>
+                            {faculty.status === 'active' && (
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Deactivate ${faculty.full_name}?`)) {
+                                    deactivateFaculty(faculty.id);
+                                  }
+                                }}
+                                className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-600 text-[10px] font-bold rounded-lg hover:bg-red-500/20"
+                              >
+                                Deactivate
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -12527,6 +12810,33 @@ export default function App() {
                       className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500"
                     />
                   </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">
+                      Password
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={orgAdminForm.password}
+                        onChange={e => setOrgAdminForm({ ...orgAdminForm, password: e.target.value })}
+                        placeholder="Set a password"
+                        className="flex-1 px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const auto = Math.random().toString(36).slice(-8) + 'Aa1!';
+                          setOrgAdminForm({ ...orgAdminForm, password: auto });
+                        }}
+                        className="px-3 py-2 bg-slate-700 border border-white/10 text-slate-300 text-[10px] font-bold rounded-xl hover:bg-slate-600 whitespace-nowrap"
+                      >
+                        ⚡ Generate
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Leave blank to auto-generate
+                    </p>
+                  </div>
                 </div>
                 <div className="flex gap-3 mt-5">
                   <button
@@ -12739,8 +13049,12 @@ export default function App() {
                           </button>
                           <button
                             onClick={() => {
-                              setEditAdminTarget(admin);
-                              resetOrgAdminPassword(selectedOrgDetail.org.id, admin.id);
+                              setResetPwTarget(admin);
+                              setResetPwValue('');
+                              setResetPwCallback(() => (pw: string) =>
+                                resetOrgAdminPassword(selectedOrgDetail.org.id, admin.id, pw || undefined)
+                              );
+                              setShowResetPwModal(true);
                             }}
                             className="flex-1 py-1.5 bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[10px] font-bold rounded-lg hover:bg-amber-500/30"
                           >
@@ -13165,6 +13479,219 @@ export default function App() {
             isSubmittingRef.current = false;
           }}
         />
+      )}
+
+      {/* RESET PASSWORD MODAL (reusable — global so it works from both
+          the super-dashboard and the admin-dash Faculty tab) */}
+      {showResetPwModal && (
+        <div className="fixed inset-0 z-[70] bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-sm">
+            <h3 className="font-black text-white mb-1">
+              Reset Password
+            </h3>
+            <p className="text-xs text-slate-400 mb-4">
+              For: {resetPwTarget?.email || resetPwTarget?.full_name || resetPwTarget?.name || ''}
+            </p>
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                value={resetPwValue}
+                onChange={e => setResetPwValue(e.target.value)}
+                placeholder="Enter new password"
+                className="flex-1 px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 font-mono"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const auto = Math.random().toString(36).slice(-8) + 'Aa1!';
+                  setResetPwValue(auto);
+                }}
+                className="px-3 py-2 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-xl hover:bg-slate-600"
+              >
+                ⚡
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-500 mb-4">
+              Leave blank to auto-generate a secure password
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowResetPwModal(false);
+                  setResetPwValue('');
+                  setResetPwTarget(null);
+                }}
+                className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (resetPwCallback) {
+                    resetPwCallback(resetPwValue);
+                  }
+                  setShowResetPwModal(false);
+                  setResetPwValue('');
+                  setResetPwTarget(null);
+                }}
+                className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-extrabold rounded-xl"
+              >
+                Reset Password
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE FACULTY MODAL */}
+      {showCreateFacultyModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
+            <h3 className="font-black text-white mb-5">
+              Add Faculty Member
+            </h3>
+            <div className="space-y-3">
+              {[
+                { label: 'Full Name *', key: 'fullName', type: 'text', placeholder: 'Prof. Sharma' },
+                { label: 'Email *', key: 'email', type: 'email', placeholder: 'sharma@college.edu' },
+                { label: 'Phone', key: 'phone', type: 'text', placeholder: '+91 98765 43210' }
+              ].map(field => (
+                <div key={field.key}>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    {field.label}
+                  </label>
+                  <input
+                    type={field.type}
+                    value={facultyForm[field.key as keyof typeof facultyForm]}
+                    onChange={e => setFacultyForm({ ...facultyForm, [field.key]: e.target.value })}
+                    placeholder={field.placeholder}
+                    className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500"
+                  />
+                </div>
+              ))}
+
+              {/* Password field with generate */}
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Password
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={facultyForm.password}
+                    onChange={e => setFacultyForm({ ...facultyForm, password: e.target.value })}
+                    placeholder="Set a password"
+                    className="flex-1 px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const auto = Math.random().toString(36).slice(-8) + 'Aa1!';
+                      setFacultyForm({ ...facultyForm, password: auto });
+                    }}
+                    className="px-3 py-2 bg-slate-700 border border-white/10 text-slate-300 text-[10px] font-bold rounded-xl hover:bg-slate-600"
+                  >
+                    ⚡ Generate
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Leave blank to auto-generate
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => {
+                  setShowCreateFacultyModal(false);
+                  setFacultyForm({ fullName: '', email: '', phone: '', password: '' });
+                }}
+                className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createFaculty}
+                disabled={!facultyForm.fullName || !facultyForm.email}
+                className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-extrabold rounded-xl"
+              >
+                Create Faculty
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FACULTY PERMISSIONS MODAL */}
+      {showFacultyPermissionsModal && selectedFaculty && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
+            <h3 className="font-black text-white mb-1">
+              Faculty Permissions
+            </h3>
+            <p className="text-xs text-slate-400 mb-5">
+              {selectedFaculty.full_name}
+            </p>
+
+            <div className="space-y-3">
+              {[
+                { key: 'canUploadQuestions', label: 'Upload Questions', desc: 'Can add questions to the bank' },
+                { key: 'canCreateDrafts', label: 'Create Exam Drafts', desc: 'Can create exam drafts for review' },
+                { key: 'canPublishExams', label: 'Publish Exams', desc: 'Can publish exams directly' },
+                { key: 'canManageStudents', label: 'Manage Students', desc: 'Can create and edit students' },
+                { key: 'canViewAllResults', label: 'View All Results', desc: 'Can see all students results' },
+                { key: 'canBulkImport', label: 'Bulk Import Students', desc: 'Can upload student CSV files' },
+                { key: 'canViewAllQuestions', label: 'View All Questions', desc: 'Can see other faculty questions' }
+              ].map(perm => (
+                <div key={perm.key}
+                  className="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl">
+                  <div className="flex-1 mr-3">
+                    <p className="text-xs font-bold text-white">
+                      {perm.label}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      {perm.desc}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() =>
+                      setFacultyPermissions(prev => ({
+                        ...prev,
+                        [perm.key]: !prev[perm.key as keyof typeof facultyPermissions]
+                      }))
+                    }
+                    className={`relative w-10 h-5 rounded-full transition-colors ${
+                      facultyPermissions[perm.key as keyof typeof facultyPermissions]
+                        ? 'bg-emerald-500'
+                        : 'bg-slate-600'
+                    }`}
+                  >
+                    <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${
+                        facultyPermissions[perm.key as keyof typeof facultyPermissions]
+                          ? 'translate-x-5'
+                          : 'translate-x-0.5'
+                      }`}
+                    />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => setShowFacultyPermissionsModal(false)}
+                className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveFacultyPermissions}
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl"
+              >
+                Save Permissions
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

@@ -519,7 +519,7 @@ app.post('/api/super/organizations/:id/admin',
   async (req: AuthenticatedRequest, res) => {
     try {
       const { id: orgId } = req.params;
-      const { fullName, email, phone } = req.body;
+      const { fullName, email, phone, password } = req.body;
 
       if (!fullName || !email) {
         return res.status(400).json({
@@ -551,9 +551,9 @@ app.post('/api/super/organizations/:id/admin',
         });
       }
 
-      // Generate password
-      const rawPassword = Math.random()
-        .toString(36).slice(-8) + 'A1!';
+      // Use the caller-supplied password if given, otherwise generate one
+      const rawPassword = password
+        || (Math.random().toString(36).slice(-8) + 'A1!');
 
       const passwordHash = await bcrypt.hash(
         rawPassword, 10
@@ -688,8 +688,10 @@ app.post(
   async (req: AuthenticatedRequest, res) => {
     try {
       const { id, adminId } = req.params;
+      const { newPassword } = req.body;
 
-      const rawPassword = Math.random().toString(36).slice(-8) + 'Admin1!';
+      const rawPassword = newPassword
+        || (Math.random().toString(36).slice(-8) + 'Admin1!');
       const passwordHash = await bcrypt.hash(rawPassword, 10);
 
       const result = await pool.query(
