@@ -8,6 +8,10 @@ import {
 import { io, Socket } from 'socket.io-client';
 import * as XLSX from 'xlsx';
 import Editor from '@monaco-editor/react';
+import {
+  PieChart, Pie, Cell, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
 
 // Custom Modular Components
 import { GenericQuestion, ContentBlock } from './types/richQuestion';
@@ -33,7 +37,7 @@ import { ExamSubmissionController } from './components/assessment/ExamSubmission
 interface College { id: string; name: string; }
 interface Department { id: string; college_id: string; name: string; }
 interface UserProfile {
-  id: string; email: string; role?: 'admin' | 'student'; fullName: string; rollNumber?: string;
+  id: string; email: string; role?: 'admin' | 'student' | 'super_admin' | 'org_admin' | 'faculty'; fullName: string; rollNumber?: string;
   full_name?: string; roll_number?: string;
   collegeId?: string; departmentId?: string; year?: string; phone?: string;
   githubProfile?: string; linkedinProfile?: string; profilePhotoUrl?: string;
@@ -42,6 +46,12 @@ interface UserProfile {
   batchId?: string | null; batch_id?: string | null; batchName?: string | null; batch_name?: string | null; college_id?: string | null;
   trainer_id?: string | null; trainerId?: string | null; trainer_name?: string | null; trainerName?: string | null;
   raw_password?: string; rawPassword?: string;
+  orgId?: string | null; orgName?: string | null; orgType?: string | null; orgSettings?: any;
+  dashboardRoute?: string;
+  permissions?: {
+    canUploadQuestions?: boolean; canCreateDrafts?: boolean; canPublishExams?: boolean;
+    canManageStudents?: boolean; canViewAllResults?: boolean; canBulkImport?: boolean; canViewAllQuestions?: boolean;
+  } | null;
 }
 interface Exam {
   id: string; name: string; description: string; exam_type: 'mcq' | 'coding' | 'both';
@@ -229,6 +239,8 @@ export default function App() {
   const [adminMetrics, setAdminMetrics] = useState<any>({
     totalStudents: 0, totalExams: 0, liveExams: 0, completedExams: 0, averageScore: 0, passPercentage: 0, failPercentage: 0
   });
+  const [adminAnalytics, setAdminAnalytics] = useState<any>(null);
+  const [isLoadingAdminAnalytics, setIsLoadingAdminAnalytics] = useState(false);
 
   // Super admin state
   const [superStats, setSuperStats] = useState<any>(null);
@@ -1658,7 +1670,20 @@ export default function App() {
       } else {
         throw new Error(`Metrics API returned status ${metricsRes.status}`);
       }
-      
+
+      // Load analytics (charts: pass/fail, department + exam performance, top scorers)
+      setIsLoadingAdminAnalytics(true);
+      try {
+        const analyticsRes = await fetch(`${API_ADMIN}/analytics`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (analyticsRes.ok) {
+          setAdminAnalytics(await analyticsRes.json());
+        }
+      } finally {
+        setIsLoadingAdminAnalytics(false);
+      }
+
       // Load students
       const studRes = await fetch(`${API_ADMIN}/students`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -5662,6 +5687,25 @@ export default function App() {
               
               {activeAdminTab === 'metrics' && (
                 <div className="space-y-8">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="font-black text-lg">
+                        {currentUser?.orgName || 'Dashboard Overview'}
+                      </h2>
+                      {currentUser?.role === 'super_admin' && (
+                        <p className="text-xs text-muted-foreground">Platform Overview</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={loadAdminDashboard}
+                      className="px-3 py-2 border border-slate-200 dark:border-slate-800 text-muted-foreground text-xs font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-900 flex items-center gap-1.5"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Refresh
+                    </button>
+                  </div>
+
                   {/* Dashboard Metrics grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     {[
@@ -5685,20 +5729,32 @@ export default function App() {
                   {/* Analytics Section */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
-                      <h3 className="font-extrabold text-base mb-4">Assessment Performance</h3>
-                      <div className="h-44 flex items-end justify-between px-4 pb-4 gap-2">
-                        {[
-                          { name: 'Pass Percentage', pct: adminMetrics.passPercentage, color: 'bg-emerald-500' },
-                          { name: 'Fail Percentage', pct: adminMetrics.failPercentage, color: 'bg-rose-500' },
-                          { name: 'Avg Attempt Score', pct: adminMetrics.averageScore, color: 'bg-indigo-500' }
-                        ].map((bar, idx) => (
-                          <div key={idx} className="flex-1 flex flex-col items-center gap-2">
-                            <span className="text-xs font-bold">{bar.pct}%</span>
-                            <div className={`w-12 rounded-t-lg transition-all ${bar.color}`} style={{ height: `${bar.pct * 1.2}px` }} />
-                            <span className="text-[10px] font-semibold text-muted-foreground text-center">{bar.name}</span>
-                          </div>
-                        ))}
-                      </div>
+                      <h3 className="font-extrabold text-base mb-4">Pass vs Fail Rate</h3>
+                      {isLoadingAdminAnalytics ? (
+                        <div className="h-44 flex items-center justify-center text-xs text-muted-foreground">Loading...</div>
+                      ) : adminMetrics.completedExams > 0 ? (
+                        <ResponsiveContainer width="100%" height={180}>
+                          <PieChart>
+                            <Pie
+                              data={[
+                                { name: 'Passed', value: Math.round(adminMetrics.passPercentage || 0) },
+                                { name: 'Failed', value: Math.round(adminMetrics.failPercentage || 0) }
+                              ]}
+                              cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value"
+                            >
+                              <Cell fill="#10b981" />
+                              <Cell fill="#f43f5e" />
+                            </Pie>
+                            <Tooltip
+                              formatter={(value: any) => `${value}%`}
+                              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', fontSize: '11px' }}
+                            />
+                            <Legend formatter={(value) => <span style={{ color: '#64748b', fontSize: '11px' }}>{value}</span>} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-44 flex items-center justify-center text-xs text-muted-foreground">No completed attempts yet</div>
+                      )}
                     </div>
 
                     <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm flex flex-col justify-between">
@@ -5722,6 +5778,71 @@ export default function App() {
                           <p className="text-sm font-extrabold mt-1 text-indigo-500">Active</p>
                         </div>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Charts: department performance, top performers, exam performance */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
+                      <h3 className="font-extrabold text-base mb-4">Department Performance</h3>
+                      {adminAnalytics?.departmentPerformance?.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={220}>
+                          <BarChart data={adminAnalytics.departmentPerformance.slice(0, 6)} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,116,139,0.15)" />
+                            <XAxis dataKey="department" tick={{ fill: '#64748b', fontSize: 9 }} tickLine={false} />
+                            <YAxis tick={{ fill: '#64748b', fontSize: 9 }} tickLine={false} domain={[0, 100]} />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', fontSize: '11px' }}
+                              formatter={(value: any) => [`${value}%`, 'Avg Score']}
+                            />
+                            <Bar dataKey="avgScore" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">No department data yet</div>
+                      )}
+                    </div>
+
+                    <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
+                      <h3 className="font-extrabold text-base mb-4">Top Performers</h3>
+                      {adminAnalytics?.topScorers?.length > 0 ? (
+                        <div className="space-y-3">
+                          {adminAnalytics.topScorers.slice(0, 5).map((s: any, i: number) => (
+                            <div key={i} className="flex items-center gap-3">
+                              <span className={`text-xs font-black w-5 text-center ${i === 0 ? 'text-amber-500' : i === 1 ? 'text-slate-400' : i === 2 ? 'text-amber-700' : 'text-slate-500'}`}>
+                                {i + 1}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold truncate">{s.student_name}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">{s.department || s.roll_number || ''}</p>
+                              </div>
+                              <span className="text-sm font-black text-emerald-500">{Math.round(s.avg_score)}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="h-[160px] flex items-center justify-center text-xs text-muted-foreground">No scores yet</div>
+                      )}
+                    </div>
+
+                    <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm md:col-span-2">
+                      <h3 className="font-extrabold text-base mb-4">Recent Exam Scores</h3>
+                      {adminAnalytics?.examPerformance?.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={220}>
+                          <BarChart data={adminAnalytics.examPerformance.slice(0, 5)} margin={{ top: 5, right: 10, left: -20, bottom: 5 }} layout="vertical">
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,116,139,0.15)" horizontal={false} />
+                            <XAxis type="number" domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 9 }} tickLine={false} />
+                            <YAxis type="category" dataKey="exam_name" tick={{ fill: '#64748b', fontSize: 9 }} tickLine={false} width={110} />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', fontSize: '11px' }}
+                              formatter={(value: any) => [`${value}%`, 'Avg Score']}
+                            />
+                            <Bar dataKey="avg_percentage" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">No exam data yet</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -12131,6 +12252,19 @@ export default function App() {
                           }`}
                         >
                           {org.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            // Navigates to the admin dashboard view. Not yet
+                            // scoped to this specific org — full impersonation
+                            // drill-down is a later sprint; for now this shows
+                            // the super admin's own (platform-wide) view.
+                            setCurrentPage('admin-dash');
+                            loadAdminDashboard();
+                          }}
+                          className="px-3 py-1.5 bg-slate-700 border border-white/10 text-slate-300 text-[10px] font-bold rounded-lg hover:bg-slate-600"
+                        >
+                          View →
                         </button>
                       </div>
                     </div>

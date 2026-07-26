@@ -852,93 +852,91 @@ app.get('/api/admin/dashboard/metrics', authenticateAdmin, requireOrgAdmin, asyn
   }
 });
 
+// Response shape consumed by the frontend's Recharts dashboard (Sprint 2 Day 2):
+// topScorers: { student_name, roll_number, department, avg_score }
+// departmentPerformance: { department, avgScore, studentCount }
+// examPerformance: { exam_name, avg_percentage, attempt_count }
 app.get('/api/admin/analytics', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const orgId = getOrgId(req);
 
-    const scores = await query(
-      orgId
-        ? `SELECT ea.percentage, ea.passed FROM exam_attempts ea JOIN exams e ON e.id = ea.exam_id WHERE ea.status = 'completed' AND e.college_id = $1`
-        : "SELECT percentage, passed FROM exam_attempts WHERE status = 'completed'",
-      orgId ? [orgId] : []
-    );
-    let passCount = 0;
-    let failCount = 0;
-    let avgScore = 0;
-
-    if (scores.rows.length > 0) {
-      passCount = scores.rows.filter(r => r.passed).length;
-      failCount = scores.rows.length - passCount;
-      avgScore = scores.rows.reduce((acc, r) => acc + parseFloat(r.percentage), 0) / scores.rows.length;
-    }
-
-    // Top scorers
+    // Top scorers - per-student average, not per-attempt
     const topScorers = await query(
       orgId
-        ? `SELECT u.full_name, u.roll_number, d.name as department_name, e.name as exam_name, ea.percentage
+        ? `SELECT u.full_name as student_name, u.roll_number, d.name as department,
+                  ROUND(AVG(ea.percentage)::numeric, 1) as avg_score
            FROM exam_attempts ea
-           JOIN users u ON ea.student_id = u.id
-           JOIN exams e ON ea.exam_id = e.id
-           LEFT JOIN departments d ON u.department_id = d.id
-           WHERE ea.status = 'completed' AND e.college_id = $1
-           ORDER BY ea.percentage DESC
-           LIMIT 5`
-        : `SELECT u.full_name, u.roll_number, d.name as department_name, e.name as exam_name, ea.percentage
+           JOIN users u ON u.id = ea.student_id
+           JOIN exams e ON e.id = ea.exam_id
+           LEFT JOIN departments d ON d.id = u.department_id
+           WHERE e.college_id = $1 AND ea.status = 'completed'
+           GROUP BY u.id, u.full_name, u.roll_number, d.name
+           ORDER BY avg_score DESC
+           LIMIT 10`
+        : `SELECT u.full_name as student_name, u.roll_number, d.name as department,
+                  ROUND(AVG(ea.percentage)::numeric, 1) as avg_score
            FROM exam_attempts ea
-           JOIN users u ON ea.student_id = u.id
-           JOIN exams e ON ea.exam_id = e.id
-           LEFT JOIN departments d ON u.department_id = d.id
+           JOIN users u ON u.id = ea.student_id
+           JOIN exams e ON e.id = ea.exam_id
+           LEFT JOIN departments d ON d.id = u.department_id
            WHERE ea.status = 'completed'
-           ORDER BY ea.percentage DESC
-           LIMIT 5`,
+           GROUP BY u.id, u.full_name, u.roll_number, d.name
+           ORDER BY avg_score DESC
+           LIMIT 10`,
       orgId ? [orgId] : []
     );
 
     // Department performance
     const deptPerformance = await query(
       orgId
-        ? `SELECT d.name as department_name, AVG(ea.percentage) as avg_score,
-                  COUNT(ea.id) as total_attempts,
-                  SUM(CASE WHEN ea.passed = TRUE THEN 1 ELSE 0 END) as passed_count
+        ? `SELECT d.name as department,
+                  ROUND(AVG(ea.percentage)::numeric, 1) as "avgScore",
+                  COUNT(DISTINCT u.id) as "studentCount"
            FROM exam_attempts ea
-           JOIN users u ON ea.student_id = u.id
-           JOIN exams e ON ea.exam_id = e.id
-           JOIN departments d ON u.department_id = d.id
-           WHERE ea.status = 'completed' AND e.college_id = $1
-           GROUP BY d.name`
-        : `SELECT d.name as department_name, AVG(ea.percentage) as avg_score,
-                  COUNT(ea.id) as total_attempts,
-                  SUM(CASE WHEN ea.passed = TRUE THEN 1 ELSE 0 END) as passed_count
+           JOIN users u ON u.id = ea.student_id
+           JOIN exams e ON e.id = ea.exam_id
+           LEFT JOIN departments d ON d.id = u.department_id
+           WHERE e.college_id = $1 AND ea.status = 'completed' AND d.name IS NOT NULL
+           GROUP BY d.id, d.name
+           ORDER BY "avgScore" DESC`
+        : `SELECT d.name as department,
+                  ROUND(AVG(ea.percentage)::numeric, 1) as "avgScore",
+                  COUNT(DISTINCT u.id) as "studentCount"
            FROM exam_attempts ea
-           JOIN users u ON ea.student_id = u.id
-           JOIN departments d ON u.department_id = d.id
-           WHERE ea.status = 'completed'
-           GROUP BY d.name`,
+           JOIN users u ON u.id = ea.student_id
+           JOIN exams e ON e.id = ea.exam_id
+           LEFT JOIN departments d ON d.id = u.department_id
+           WHERE ea.status = 'completed' AND d.name IS NOT NULL
+           GROUP BY d.id, d.name
+           ORDER BY "avgScore" DESC`,
       orgId ? [orgId] : []
     );
 
     // Exam performance
     const examPerformance = await query(
       orgId
-        ? `SELECT e.name as exam_name, AVG(ea.percentage) as avg_score,
-                  COUNT(ea.id) as total_attempts
+        ? `SELECT e.name as exam_name,
+                  ROUND(AVG(ea.percentage)::numeric, 1) as avg_percentage,
+                  COUNT(ea.id) as attempt_count
            FROM exam_attempts ea
-           JOIN exams e ON ea.exam_id = e.id
-           WHERE ea.status = 'completed' AND e.college_id = $1
-           GROUP BY e.name`
-        : `SELECT e.name as exam_name, AVG(ea.percentage) as avg_score,
-                  COUNT(ea.id) as total_attempts
+           JOIN exams e ON e.id = ea.exam_id
+           WHERE e.college_id = $1 AND ea.status = 'completed'
+           GROUP BY e.id, e.name
+           ORDER BY MAX(ea.created_at) DESC
+           LIMIT 10`
+        : `SELECT e.name as exam_name,
+                  ROUND(AVG(ea.percentage)::numeric, 1) as avg_percentage,
+                  COUNT(ea.id) as attempt_count
            FROM exam_attempts ea
-           JOIN exams e ON ea.exam_id = e.id
+           JOIN exams e ON e.id = ea.exam_id
            WHERE ea.status = 'completed'
-           GROUP BY e.name`,
+           GROUP BY e.id, e.name
+           ORDER BY MAX(ea.created_at) DESC
+           LIMIT 10`,
       orgId ? [orgId] : []
     );
 
     res.json({
-      passPercent: scores.rows.length > 0 ? (passCount / scores.rows.length) * 100 : 0,
-      failPercent: scores.rows.length > 0 ? (failCount / scores.rows.length) * 100 : 0,
-      averageScore: avgScore,
       topScorers: topScorers.rows,
       departmentPerformance: deptPerformance.rows,
       examPerformance: examPerformance.rows
