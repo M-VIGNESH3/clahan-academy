@@ -146,11 +146,17 @@ app.use(limiter);
 // JWT Middleware
 interface AuthenticatedRequest extends express.Request {
   user?: {
-    id: string;
+    userId: string;
+    role: string;
     email: string;
-    role: 'admin' | 'student';
+    orgId: string | null;
+    dashboardRoute?: string;
   };
 }
+
+// Roles allowed into admin-service at all. Individual routes narrow this
+// further with requireOrgAdmin (excludes faculty) or requireFacultyOrAbove.
+const adminRoles = ['admin', 'org_admin', 'super_admin', 'faculty'];
 
 function authenticateAdmin(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
   const authHeader = req.headers['authorization'];
@@ -159,13 +165,54 @@ function authenticateAdmin(req: AuthenticatedRequest, res: express.Response, nex
   if (!token) return res.status(401).json({ error: 'Auth token required' });
 
   jwt.verify(token, JWT_SECRET, (err: any, decoded: any) => {
-    if (err || decoded.role !== 'admin') {
+    if (err || !adminRoles.includes(decoded.role)) {
       return res.status(403).json({ error: 'Requires admin privileges' });
     }
-    req.user = decoded;
+    req.user = {
+      userId: decoded.userId || decoded.id,
+      role: decoded.role,
+      email: decoded.email,
+      orgId: decoded.orgId || null,
+      dashboardRoute: decoded.dashboardRoute,
+    };
     next();
   });
 }
+
+// Get the org ID for the current user.
+// Super admin can pass ?orgId= query param to view any org's data (or none,
+// for platform-wide totals). org_admin and faculty are always scoped to
+// their own org — the query param is intentionally ignored for them so a
+// non-super-admin can never widen or redirect their own scope.
+// NOTE: for students/departments/batches/trainers (legacy tables), the org's
+// "college_id" IS the organization id — see [[project context: college_id =
+// org_id for students]] from Sprint 1 planning. This only resolves real data
+// for organizations created via super-admin-service; legacy colleges/students
+// predating multi-tenancy have no owning organization and won't match.
+const getOrgId = (req: AuthenticatedRequest): string | null => {
+  if (req.user?.role === 'super_admin') {
+    return (req.query.orgId as string) || null;
+  }
+  return req.user?.orgId || null;
+};
+
+// Middleware: require org_admin or above (excludes faculty)
+const requireOrgAdmin = (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
+  const allowed = ['admin', 'org_admin', 'super_admin'];
+  if (!allowed.includes(req.user?.role || '')) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+};
+
+// Middleware: require faculty or above
+const requireFacultyOrAbove = (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
+  const allowed = ['admin', 'org_admin', 'super_admin', 'faculty'];
+  if (!allowed.includes(req.user?.role || '')) {
+    return res.status(403).json({ error: 'Faculty access required' });
+  }
+  next();
+};
 
 // Health Check
 app.get('/health', (req, res) => {
@@ -173,7 +220,10 @@ app.get('/health', (req, res) => {
 });
 
 // --- Colleges ---
-app.get('/api/admin/colleges', authenticateAdmin, async (req, res) => {
+// NOTE: `colleges` is the legacy pre-multi-tenant table and has no owning
+// organization column, so it cannot be org-scoped without a schema change
+// (out of scope for admin-service-only changes). Left platform-wide.
+app.get('/api/admin/colleges', authenticateAdmin, requireOrgAdmin, async (req, res) => {
   try {
     const result = await query('SELECT * FROM colleges ORDER BY name ASC');
     res.json(result.rows);
@@ -182,7 +232,7 @@ app.get('/api/admin/colleges', authenticateAdmin, async (req, res) => {
   }
 });
 
-app.post('/api/admin/colleges', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/colleges', authenticateAdmin, requireOrgAdmin, async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'College name is required' });
@@ -197,7 +247,7 @@ app.post('/api/admin/colleges', authenticateAdmin, async (req, res) => {
   }
 });
 
-app.delete('/api/admin/colleges/:id', authenticateAdmin, async (req, res) => {
+app.delete('/api/admin/colleges/:id', authenticateAdmin, requireOrgAdmin, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -232,23 +282,29 @@ app.delete('/api/admin/colleges/:id', authenticateAdmin, async (req, res) => {
 });
 
 // --- Departments ---
-app.get('/api/admin/departments', authenticateAdmin, async (req, res) => {
+app.get('/api/admin/departments', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const result = await query(`
-      SELECT d.*, c.name as college_name 
-      FROM departments d 
-      LEFT JOIN colleges c ON d.college_id = c.id 
+      SELECT d.*, c.name as college_name
+      FROM departments d
+      LEFT JOIN colleges c ON d.college_id = c.id
+      ${orgId ? 'WHERE d.college_id = $1' : ''}
       ORDER BY c.name ASC, d.name ASC
-    `);
+    `, orgId ? [orgId] : []);
     res.json(result.rows);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/admin/departments', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/departments', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
-    const { collegeId, name } = req.body;
+    const orgId = getOrgId(req);
+    const { name } = req.body;
+    // org_admin/faculty are forced onto their own org; only an unscoped
+    // super_admin request may target an arbitrary college via body.collegeId.
+    const collegeId = orgId || req.body.collegeId;
     if (!collegeId || !name) return res.status(400).json({ error: 'College ID and department name are required' });
 
     const result = await query(
@@ -261,11 +317,19 @@ app.post('/api/admin/departments', authenticateAdmin, async (req, res) => {
   }
 });
 
-app.delete('/api/admin/departments/:id', authenticateAdmin, async (req, res) => {
+app.delete('/api/admin/departments/:id', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   const client = await pool.connect();
   try {
+    const orgId = getOrgId(req);
     await client.query('BEGIN');
     const { id } = req.params;
+    if (orgId) {
+      const owns = await client.query('SELECT id FROM departments WHERE id = $1 AND college_id = $2', [id, orgId]);
+      if (owns.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Department not found' });
+      }
+    }
     await client.query('DELETE FROM exams WHERE department_id = $1', [id]);
     await client.query('UPDATE users SET department_id = NULL WHERE department_id = $1', [id]);
     await client.query('DELETE FROM departments WHERE id = $1', [id]);
@@ -280,23 +344,29 @@ app.delete('/api/admin/departments/:id', authenticateAdmin, async (req, res) => 
 });
 
 // --- Batches ---
-app.get('/api/admin/batches', authenticateAdmin, async (req, res) => {
+app.get('/api/admin/batches', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const result = await query(`
-      SELECT b.*, c.name as college_name 
-      FROM batches b 
-      LEFT JOIN colleges c ON b.college_id = c.id 
+      SELECT b.*, c.name as college_name
+      FROM batches b
+      LEFT JOIN colleges c ON b.college_id = c.id
+      ${orgId ? 'WHERE b.college_id = $1' : ''}
       ORDER BY c.name ASC, b.name ASC
-    `);
+    `, orgId ? [orgId] : []);
     res.json(result.rows);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get('/api/admin/colleges/:collegeId/batches', authenticateAdmin, async (req, res) => {
+app.get('/api/admin/colleges/:collegeId/batches', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const { collegeId } = req.params;
+    if (orgId && collegeId !== orgId) {
+      return res.status(403).json({ error: 'Cannot view another organization\'s batches' });
+    }
     const result = await query('SELECT * FROM batches WHERE college_id = $1 ORDER BY name ASC', [collegeId]);
     res.json(result.rows);
   } catch (err: any) {
@@ -304,10 +374,14 @@ app.get('/api/admin/colleges/:collegeId/batches', authenticateAdmin, async (req,
   }
 });
 
-app.post('/api/admin/colleges/:collegeId/batches', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/colleges/:collegeId/batches', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const { collegeId } = req.params;
     const { name } = req.body;
+    if (orgId && collegeId !== orgId) {
+      return res.status(403).json({ error: 'Cannot create a batch for another organization' });
+    }
     if (!name) return res.status(400).json({ error: 'Batch name is required' });
 
     const result = await query(
@@ -320,11 +394,19 @@ app.post('/api/admin/colleges/:collegeId/batches', authenticateAdmin, async (req
   }
 });
 
-app.delete('/api/admin/batches/:id', authenticateAdmin, async (req, res) => {
+app.delete('/api/admin/batches/:id', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   const client = await pool.connect();
   try {
+    const orgId = getOrgId(req);
     await client.query('BEGIN');
     const { id } = req.params;
+    if (orgId) {
+      const owns = await client.query('SELECT id FROM batches WHERE id = $1 AND college_id = $2', [id, orgId]);
+      if (owns.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Batch not found' });
+      }
+    }
     await client.query('UPDATE exams SET batch_id = NULL WHERE batch_id = $1', [id]);
     await client.query('UPDATE users SET batch_id = NULL WHERE batch_id = $1', [id]);
     await client.query('UPDATE trainers SET batch_id = NULL WHERE batch_id = $1', [id]);
@@ -340,8 +422,9 @@ app.delete('/api/admin/batches/:id', authenticateAdmin, async (req, res) => {
 });
 
 // --- Students ---
-app.get('/api/admin/students', authenticateAdmin, async (req, res) => {
+app.get('/api/admin/students', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const result = await query(`
       SELECT u.id, u.email, u.full_name, u.phone, u.roll_number, u.year, u.status, u.email_verified, u.created_at,
              c.name as college_name, d.name as department_name, b.name as batch_name, u.college_id, u.department_id, u.batch_id,
@@ -352,8 +435,9 @@ app.get('/api/admin/students', authenticateAdmin, async (req, res) => {
       LEFT JOIN batches b ON u.batch_id = b.id
       LEFT JOIN trainers t ON u.trainer_id = t.id
       WHERE u.role = 'student'
+      ${orgId ? 'AND u.college_id = $1' : ''}
       ORDER BY u.created_at DESC
-    `);
+    `, orgId ? [orgId] : []);
     res.json(result.rows);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -361,9 +445,13 @@ app.get('/api/admin/students', authenticateAdmin, async (req, res) => {
 });
 
 // Manual Student Creation
-app.post('/api/admin/students', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/students', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
-    const { email, fullName, phone, rollNumber, collegeId, departmentId, batchId, year } = req.body;
+    const orgId = getOrgId(req);
+    const { email, fullName, phone, rollNumber, departmentId, batchId, year } = req.body;
+    // org_admin/faculty are forced onto their own org; only an unscoped
+    // super_admin request may target an arbitrary college via body.collegeId.
+    const collegeId = orgId || req.body.collegeId;
     if (!email || !fullName || !rollNumber || !collegeId || !departmentId || !year) {
       return res.status(400).json({ error: 'Required fields missing' });
     }
@@ -410,8 +498,9 @@ app.get('/api/admin/students/template', (req, res) => {
 });
 
 // CSV/Excel Student Bulk Import
-app.post('/api/admin/students/import', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/students/import', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const { csvContent } = req.body;
     if (!csvContent) {
       return res.status(400).json({ error: 'CSV data is required' });
@@ -478,8 +567,10 @@ app.post('/api/admin/students/import', authenticateAdmin, async (req, res) => {
       }
 
       try {
-        // Resolve College ID
-        let collegeId = colMap[colName.toLowerCase()];
+        // Resolve College ID. org_admin/faculty are forced onto their own
+        // org regardless of the CSV's college column, so a crafted CSV can't
+        // be used to bulk-import students into another organization.
+        let collegeId = orgId || colMap[colName.toLowerCase()];
         if (!collegeId) {
           const newCol = await query('INSERT INTO colleges (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id', [colName]);
           collegeId = newCol.rows[0].id;
@@ -539,13 +630,19 @@ app.post('/api/admin/students/import', authenticateAdmin, async (req, res) => {
 });
 
 // Reset Password / View Password / Resend credentials
-app.post('/api/admin/students/:id/reset-password', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/students/:id/reset-password', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const { id } = req.params;
     const plainPassword = 'Clahan@' + Math.floor(1000 + Math.random() * 9000).toString();
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
-    const check = await query('UPDATE users SET password_hash = $1, raw_password = $2 WHERE id = $3 RETURNING email, full_name', [hashedPassword, plainPassword, id]);
+    const check = await query(
+      orgId
+        ? 'UPDATE users SET password_hash = $1, raw_password = $2 WHERE id = $3 AND college_id = $4 RETURNING email, full_name'
+        : 'UPDATE users SET password_hash = $1, raw_password = $2 WHERE id = $3 RETURNING email, full_name',
+      orgId ? [hashedPassword, plainPassword, id, orgId] : [hashedPassword, plainPassword, id]
+    );
     if (check.rows.length === 0) {
       return res.status(404).json({ error: 'Student not found' });
     }
@@ -565,13 +662,19 @@ app.post('/api/admin/students/:id/reset-password', authenticateAdmin, async (req
   }
 });
 
-app.post('/api/admin/students/:id/resend-credentials', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/students/:id/resend-credentials', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const { id } = req.params;
     const plainPassword = 'Clahan@' + Math.floor(1000 + Math.random() * 9000).toString();
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
-    const check = await query('UPDATE users SET password_hash = $1, raw_password = $2 WHERE id = $3 RETURNING email, full_name', [hashedPassword, plainPassword, id]);
+    const check = await query(
+      orgId
+        ? 'UPDATE users SET password_hash = $1, raw_password = $2 WHERE id = $3 AND college_id = $4 RETURNING email, full_name'
+        : 'UPDATE users SET password_hash = $1, raw_password = $2 WHERE id = $3 RETURNING email, full_name',
+      orgId ? [hashedPassword, plainPassword, id, orgId] : [hashedPassword, plainPassword, id]
+    );
     if (check.rows.length === 0) {
       return res.status(404).json({ error: 'Student not found' });
     }
@@ -590,45 +693,59 @@ app.post('/api/admin/students/:id/resend-credentials', authenticateAdmin, async 
 });
 
 // Set password for all students
-app.post('/api/admin/students/set-password-all', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/students/set-password-all', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const { password } = req.body;
     if (!password) {
       return res.status(400).json({ error: 'Password is required' });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await query(
-      `UPDATE users 
-       SET password_hash = $1, raw_password = $2 
-       WHERE role = 'student' 
-       RETURNING id, email, full_name`,
-      [hashedPassword, password]
+      orgId
+        ? `UPDATE users SET password_hash = $1, raw_password = $2 WHERE role = 'student' AND college_id = $3 RETURNING id, email, full_name`
+        : `UPDATE users SET password_hash = $1, raw_password = $2 WHERE role = 'student' RETURNING id, email, full_name`,
+      orgId ? [hashedPassword, password, orgId] : [hashedPassword, password]
     );
-    res.json({ 
-      message: `Successfully set password for all ${result.rows.length} students.`, 
-      updatedCount: result.rows.length 
+    res.json({
+      message: `Successfully set password for all ${result.rows.length} students.`,
+      updatedCount: result.rows.length
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.delete('/api/admin/students/:id', authenticateAdmin, async (req, res) => {
+app.delete('/api/admin/students/:id', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const { id } = req.params;
-    await query('DELETE FROM users WHERE id = $1 AND role = \'student\'', [id]);
+    await query(
+      orgId
+        ? 'DELETE FROM users WHERE id = $1 AND role = \'student\' AND college_id = $2'
+        : 'DELETE FROM users WHERE id = $1 AND role = \'student\'',
+      orgId ? [id, orgId] : [id]
+    );
     res.json({ message: 'Student deleted successfully' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.put('/api/admin/students/:id', authenticateAdmin, async (req, res) => {
+app.put('/api/admin/students/:id', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const { id } = req.params;
-    const { fullName, email, phone, rollNumber, collegeId, departmentId, batchId, year, status, trainerId } = req.body;
-    
-    const check = await query('SELECT id, batch_id, trainer_id FROM users WHERE id = $1 AND role = \'student\'', [id]);
+    const { fullName, email, phone, rollNumber, departmentId, batchId, year, status, trainerId } = req.body;
+    // org_admin/faculty can never reassign a student to another organization
+    const collegeId = orgId || req.body.collegeId;
+
+    const check = await query(
+      orgId
+        ? 'SELECT id, batch_id, trainer_id FROM users WHERE id = $1 AND role = \'student\' AND college_id = $2'
+        : 'SELECT id, batch_id, trainer_id FROM users WHERE id = $1 AND role = \'student\'',
+      orgId ? [id, orgId] : [id]
+    );
     if (check.rows.length === 0) {
       return res.status(404).json({ error: 'Student not found' });
     }
@@ -671,16 +788,41 @@ app.put('/api/admin/students/:id', authenticateAdmin, async (req, res) => {
 });
 
 // --- Metrics & Analytics ---
-app.get('/api/admin/dashboard/metrics', authenticateAdmin, async (req, res) => {
+// Response shape is unchanged from before multi-tenancy so the existing
+// frontend admin dashboard keeps working; only added org-scoping per query.
+app.get('/api/admin/dashboard/metrics', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
-    const totalStudents = await query("SELECT count(*) FROM users WHERE role = 'student'");
-    const totalExams = await query("SELECT count(*) FROM exams");
-    const liveExams = await query("SELECT count(*) FROM exams WHERE is_published = TRUE AND schedule_date <= (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')");
-    const completedExams = await query(`
-      SELECT count(distinct exam_id) FROM exam_attempts WHERE status = 'completed'
-    `);
-    
-    const scores = await query("SELECT score, percentage, passed FROM exam_attempts WHERE status = 'completed'");
+    const orgId = getOrgId(req);
+
+    const totalStudents = await query(
+      orgId
+        ? "SELECT count(*) FROM users WHERE role = 'student' AND college_id = $1"
+        : "SELECT count(*) FROM users WHERE role = 'student'",
+      orgId ? [orgId] : []
+    );
+    const totalExams = await query(
+      orgId ? "SELECT count(*) FROM exams WHERE college_id = $1" : "SELECT count(*) FROM exams",
+      orgId ? [orgId] : []
+    );
+    const liveExams = await query(
+      orgId
+        ? "SELECT count(*) FROM exams WHERE is_published = TRUE AND schedule_date <= (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') AND college_id = $1"
+        : "SELECT count(*) FROM exams WHERE is_published = TRUE AND schedule_date <= (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')",
+      orgId ? [orgId] : []
+    );
+    const completedExams = await query(
+      orgId
+        ? `SELECT count(distinct ea.exam_id) FROM exam_attempts ea JOIN exams e ON e.id = ea.exam_id WHERE ea.status = 'completed' AND e.college_id = $1`
+        : `SELECT count(distinct exam_id) FROM exam_attempts WHERE status = 'completed'`,
+      orgId ? [orgId] : []
+    );
+
+    const scores = await query(
+      orgId
+        ? `SELECT ea.score, ea.percentage, ea.passed FROM exam_attempts ea JOIN exams e ON e.id = ea.exam_id WHERE ea.status = 'completed' AND e.college_id = $1`
+        : "SELECT score, percentage, passed FROM exam_attempts WHERE status = 'completed'",
+      orgId ? [orgId] : []
+    );
     let averageScore = 0;
     let passCount = 0;
     let failCount = 0;
@@ -710,9 +852,16 @@ app.get('/api/admin/dashboard/metrics', authenticateAdmin, async (req, res) => {
   }
 });
 
-app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
+app.get('/api/admin/analytics', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
-    const scores = await query("SELECT percentage, passed FROM exam_attempts WHERE status = 'completed'");
+    const orgId = getOrgId(req);
+
+    const scores = await query(
+      orgId
+        ? `SELECT ea.percentage, ea.passed FROM exam_attempts ea JOIN exams e ON e.id = ea.exam_id WHERE ea.status = 'completed' AND e.college_id = $1`
+        : "SELECT percentage, passed FROM exam_attempts WHERE status = 'completed'",
+      orgId ? [orgId] : []
+    );
     let passCount = 0;
     let failCount = 0;
     let avgScore = 0;
@@ -724,38 +873,67 @@ app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
     }
 
     // Top scorers
-    const topScorers = await query(`
-      SELECT u.full_name, u.roll_number, d.name as department_name, e.name as exam_name, ea.percentage
-      FROM exam_attempts ea
-      JOIN users u ON ea.student_id = u.id
-      JOIN exams e ON ea.exam_id = e.id
-      LEFT JOIN departments d ON u.department_id = d.id
-      WHERE ea.status = 'completed'
-      ORDER BY ea.percentage DESC
-      LIMIT 5
-    `);
+    const topScorers = await query(
+      orgId
+        ? `SELECT u.full_name, u.roll_number, d.name as department_name, e.name as exam_name, ea.percentage
+           FROM exam_attempts ea
+           JOIN users u ON ea.student_id = u.id
+           JOIN exams e ON ea.exam_id = e.id
+           LEFT JOIN departments d ON u.department_id = d.id
+           WHERE ea.status = 'completed' AND e.college_id = $1
+           ORDER BY ea.percentage DESC
+           LIMIT 5`
+        : `SELECT u.full_name, u.roll_number, d.name as department_name, e.name as exam_name, ea.percentage
+           FROM exam_attempts ea
+           JOIN users u ON ea.student_id = u.id
+           JOIN exams e ON ea.exam_id = e.id
+           LEFT JOIN departments d ON u.department_id = d.id
+           WHERE ea.status = 'completed'
+           ORDER BY ea.percentage DESC
+           LIMIT 5`,
+      orgId ? [orgId] : []
+    );
 
     // Department performance
-    const deptPerformance = await query(`
-      SELECT d.name as department_name, AVG(ea.percentage) as avg_score,
-             COUNT(ea.id) as total_attempts,
-             SUM(CASE WHEN ea.passed = TRUE THEN 1 ELSE 0 END) as passed_count
-      FROM exam_attempts ea
-      JOIN users u ON ea.student_id = u.id
-      JOIN departments d ON u.department_id = d.id
-      WHERE ea.status = 'completed'
-      GROUP BY d.name
-    `);
+    const deptPerformance = await query(
+      orgId
+        ? `SELECT d.name as department_name, AVG(ea.percentage) as avg_score,
+                  COUNT(ea.id) as total_attempts,
+                  SUM(CASE WHEN ea.passed = TRUE THEN 1 ELSE 0 END) as passed_count
+           FROM exam_attempts ea
+           JOIN users u ON ea.student_id = u.id
+           JOIN exams e ON ea.exam_id = e.id
+           JOIN departments d ON u.department_id = d.id
+           WHERE ea.status = 'completed' AND e.college_id = $1
+           GROUP BY d.name`
+        : `SELECT d.name as department_name, AVG(ea.percentage) as avg_score,
+                  COUNT(ea.id) as total_attempts,
+                  SUM(CASE WHEN ea.passed = TRUE THEN 1 ELSE 0 END) as passed_count
+           FROM exam_attempts ea
+           JOIN users u ON ea.student_id = u.id
+           JOIN departments d ON u.department_id = d.id
+           WHERE ea.status = 'completed'
+           GROUP BY d.name`,
+      orgId ? [orgId] : []
+    );
 
     // Exam performance
-    const examPerformance = await query(`
-      SELECT e.name as exam_name, AVG(ea.percentage) as avg_score,
-             COUNT(ea.id) as total_attempts
-      FROM exam_attempts ea
-      JOIN exams e ON ea.exam_id = e.id
-      WHERE ea.status = 'completed'
-      GROUP BY e.name
-    `);
+    const examPerformance = await query(
+      orgId
+        ? `SELECT e.name as exam_name, AVG(ea.percentage) as avg_score,
+                  COUNT(ea.id) as total_attempts
+           FROM exam_attempts ea
+           JOIN exams e ON ea.exam_id = e.id
+           WHERE ea.status = 'completed' AND e.college_id = $1
+           GROUP BY e.name`
+        : `SELECT e.name as exam_name, AVG(ea.percentage) as avg_score,
+                  COUNT(ea.id) as total_attempts
+           FROM exam_attempts ea
+           JOIN exams e ON ea.exam_id = e.id
+           WHERE ea.status = 'completed'
+           GROUP BY e.name`,
+      orgId ? [orgId] : []
+    );
 
     res.json({
       passPercent: scores.rows.length > 0 ? (passCount / scores.rows.length) * 100 : 0,
@@ -771,7 +949,10 @@ app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
 });
 
 // --- Settings ---
-app.get('/api/admin/settings', authenticateAdmin, async (req, res) => {
+// NOTE: `settings` is a global platform key-value store (company branding,
+// SMTP config, etc.) with no org column, so it isn't org-scoped. Per-org
+// settings live on organizations.settings — see /api/admin/org-settings below.
+app.get('/api/admin/settings', authenticateAdmin, requireOrgAdmin, async (req, res) => {
   try {
     const result = await query('SELECT * FROM settings');
     const settingsMap: Record<string, any> = {};
@@ -784,7 +965,7 @@ app.get('/api/admin/settings', authenticateAdmin, async (req, res) => {
   }
 });
 
-app.post('/api/admin/settings', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/settings', authenticateAdmin, requireOrgAdmin, async (req, res) => {
   try {
     const settings = req.body; // Map of key-value pairs
     for (const key of Object.keys(settings)) {
@@ -800,30 +981,34 @@ app.post('/api/admin/settings', authenticateAdmin, async (req, res) => {
 });
 
 // --- Trainers CRUD ---
-app.get('/api/admin/trainers', authenticateAdmin, async (req, res) => {
+app.get('/api/admin/trainers', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const result = await query(`
-      SELECT t.*, c.name as college_name, b.name as batch_name 
-      FROM trainers t 
-      LEFT JOIN colleges c ON t.college_id = c.id 
-      LEFT JOIN batches b ON t.batch_id = b.id 
+      SELECT t.*, c.name as college_name, b.name as batch_name
+      FROM trainers t
+      LEFT JOIN colleges c ON t.college_id = c.id
+      LEFT JOIN batches b ON t.batch_id = b.id
+      ${orgId ? 'WHERE t.college_id = $1' : ''}
       ORDER BY t.created_at DESC
-    `);
+    `, orgId ? [orgId] : []);
     res.json(result.rows);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/admin/trainers', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/trainers', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
-    const { name, email, phone, specialization, collegeId, batchId } = req.body;
+    const orgId = getOrgId(req);
+    const { name, email, phone, specialization, batchId } = req.body;
+    const collegeId = orgId || req.body.collegeId;
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email are required' });
     }
     const result = await query(
-      `INSERT INTO trainers (name, email, phone, specialization, college_id, batch_id) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
+      `INSERT INTO trainers (name, email, phone, specialization, college_id, batch_id)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
       [name, email, phone || null, specialization || null, collegeId || null, batchId || null]
     );
@@ -836,19 +1021,28 @@ app.post('/api/admin/trainers', authenticateAdmin, async (req, res) => {
   }
 });
 
-app.put('/api/admin/trainers/:id', authenticateAdmin, async (req, res) => {
+app.put('/api/admin/trainers/:id', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const { id } = req.params;
-    const { name, email, phone, specialization, collegeId, batchId } = req.body;
+    const { name, email, phone, specialization, batchId } = req.body;
+    const collegeId = orgId || req.body.collegeId;
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email are required' });
     }
     const result = await query(
-      `UPDATE trainers 
-       SET name = $1, email = $2, phone = $3, specialization = $4, college_id = $5, batch_id = $6 
-       WHERE id = $7 
-       RETURNING *`,
-      [name, email, phone || null, specialization || null, collegeId || null, batchId || null, id]
+      orgId
+        ? `UPDATE trainers
+           SET name = $1, email = $2, phone = $3, specialization = $4, college_id = $5, batch_id = $6
+           WHERE id = $7 AND college_id = $8
+           RETURNING *`
+        : `UPDATE trainers
+           SET name = $1, email = $2, phone = $3, specialization = $4, college_id = $5, batch_id = $6
+           WHERE id = $7
+           RETURNING *`,
+      orgId
+        ? [name, email, phone || null, specialization || null, collegeId || null, batchId || null, id, orgId]
+        : [name, email, phone || null, specialization || null, collegeId || null, batchId || null, id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Trainer not found' });
     res.json(result.rows[0]);
@@ -860,10 +1054,16 @@ app.put('/api/admin/trainers/:id', authenticateAdmin, async (req, res) => {
   }
 });
 
-app.delete('/api/admin/trainers/:id', authenticateAdmin, async (req, res) => {
+app.delete('/api/admin/trainers/:id', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const { id } = req.params;
-    const result = await query('DELETE FROM trainers WHERE id = $1 RETURNING *', [id]);
+    const result = await query(
+      orgId
+        ? 'DELETE FROM trainers WHERE id = $1 AND college_id = $2 RETURNING *'
+        : 'DELETE FROM trainers WHERE id = $1 RETURNING *',
+      orgId ? [id, orgId] : [id]
+    );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Trainer not found' });
     res.json({ message: 'Trainer deleted successfully' });
   } catch (err: any) {
@@ -871,6 +1071,275 @@ app.delete('/api/admin/trainers/:id', authenticateAdmin, async (req, res) => {
   }
 });
 
+
+// --- Faculty Management ---
+
+// GET /api/admin/faculty
+// List all faculty in this org
+app.get('/api/admin/faculty', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  const orgId = getOrgId(req);
+  try {
+    const result = await query(
+      `SELECT
+         u.id, u.full_name, u.email,
+         u.phone, u.status, u.created_at,
+         fp.can_upload_questions,
+         fp.can_create_drafts,
+         fp.can_publish_exams,
+         fp.can_manage_students,
+         fp.can_view_all_results,
+         fp.can_bulk_import,
+         fp.can_view_all_questions,
+         COUNT(DISTINCT fb.batch_id) as assigned_batches,
+         COUNT(DISTINCT qb.id) as question_batches
+       FROM users u
+       LEFT JOIN faculty_permissions fp ON fp.faculty_id = u.id
+       LEFT JOIN faculty_batches fb ON fb.faculty_id = u.id
+       LEFT JOIN question_batches qb ON qb.created_by = u.id
+       WHERE u.role = 'faculty'
+         ${orgId ? 'AND u.org_id = $1' : ''}
+       GROUP BY u.id, u.full_name, u.email, u.phone, u.status,
+         u.created_at, fp.can_upload_questions,
+         fp.can_create_drafts, fp.can_publish_exams,
+         fp.can_manage_students, fp.can_view_all_results,
+         fp.can_bulk_import, fp.can_view_all_questions
+       ORDER BY u.created_at DESC`,
+      orgId ? [orgId] : []
+    );
+    res.json(result.rows);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/faculty
+// Create a faculty account
+app.post('/api/admin/faculty', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  const orgId = getOrgId(req);
+  const { fullName, email, phone } = req.body;
+  // org_admin is forced onto their own org; only an unscoped super_admin
+  // request may target an arbitrary org via body.orgId.
+  const targetOrgId = orgId || req.body.orgId;
+
+  if (!fullName || !email || !targetOrgId) {
+    return res.status(400).json({
+      error: 'fullName, email and orgId are required'
+    });
+  }
+
+  try {
+    // Check email not taken
+    const existing = await query(
+      `SELECT id FROM users WHERE email = $1`,
+      [email.toLowerCase()]
+    );
+    if (existing.rows.length > 0) {
+      return res.status(409).json({
+        error: 'Email already in use'
+      });
+    }
+
+    const rawPassword = Math.random().toString(36).slice(-8) + 'Aa1!';
+    const passwordHash = await bcrypt.hash(rawPassword, 10);
+
+    // Create faculty user
+    const userResult = await query(
+      `INSERT INTO users
+       (email, password_hash, raw_password,
+        full_name, phone, role, org_id,
+        email_verified, status)
+       VALUES ($1,$2,$3,$4,$5,'faculty',$6,true,'active')
+       RETURNING id, email, full_name, role, org_id`,
+      [email.toLowerCase(), passwordHash, rawPassword, fullName, phone || null, targetOrgId]
+    );
+
+    const faculty = userResult.rows[0];
+
+    // Create default permissions
+    await query(
+      `INSERT INTO faculty_permissions
+       (faculty_id, org_id,
+        can_upload_questions, can_create_drafts,
+        can_publish_exams, can_manage_students,
+        can_view_all_results, can_bulk_import,
+        can_view_all_questions)
+       VALUES ($1,$2,true,true,false,false,false,false,false)`,
+      [faculty.id, targetOrgId]
+    );
+
+    res.status(201).json({
+      faculty,
+      credentials: {
+        email: email.toLowerCase(),
+        password: rawPassword
+      },
+      message: 'Faculty account created'
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/admin/faculty/:id/permissions
+// Update faculty permissions
+app.put('/api/admin/faculty/:id/permissions', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  const { id } = req.params;
+  const orgId = getOrgId(req);
+  const {
+    canUploadQuestions,
+    canCreateDrafts,
+    canPublishExams,
+    canManageStudents,
+    canViewAllResults,
+    canBulkImport,
+    canViewAllQuestions
+  } = req.body;
+
+  try {
+    if (orgId) {
+      const owns = await query(
+        `SELECT id FROM users WHERE id = $1 AND org_id = $2 AND role = 'faculty'`,
+        [id, orgId]
+      );
+      if (owns.rows.length === 0) {
+        return res.status(404).json({ error: 'Faculty not found' });
+      }
+    }
+
+    await query(
+      `UPDATE faculty_permissions SET
+         can_upload_questions = $1,
+         can_create_drafts = $2,
+         can_publish_exams = $3,
+         can_manage_students = $4,
+         can_view_all_results = $5,
+         can_bulk_import = $6,
+         can_view_all_questions = $7,
+         updated_at = NOW()
+       WHERE faculty_id = $8`,
+      [canUploadQuestions, canCreateDrafts,
+       canPublishExams, canManageStudents,
+       canViewAllResults, canBulkImport,
+       canViewAllQuestions, id]
+    );
+    res.json({ message: 'Permissions updated' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/admin/faculty/:id
+app.delete('/api/admin/faculty/:id', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  const { id } = req.params;
+  const orgId = getOrgId(req);
+  try {
+    // Verify faculty belongs to this org
+    const check = await query(
+      orgId
+        ? `SELECT id FROM users WHERE id = $1 AND org_id = $2 AND role = 'faculty'`
+        : `SELECT id FROM users WHERE id = $1 AND role = 'faculty'`,
+      orgId ? [id, orgId] : [id]
+    );
+    if (check.rows.length === 0) {
+      return res.status(404).json({ error: 'Faculty not found' });
+    }
+    // Soft delete
+    await query(`UPDATE users SET status = 'inactive' WHERE id = $1`, [id]);
+    res.json({ message: 'Faculty deactivated' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/faculty/:id/reset-password
+app.post('/api/admin/faculty/:id/reset-password', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  const { id } = req.params;
+  const orgId = getOrgId(req);
+  try {
+    if (orgId) {
+      const owns = await query(
+        `SELECT id FROM users WHERE id = $1 AND org_id = $2 AND role = 'faculty'`,
+        [id, orgId]
+      );
+      if (owns.rows.length === 0) {
+        return res.status(404).json({ error: 'Faculty not found' });
+      }
+    }
+    const rawPassword = Math.random().toString(36).slice(-8) + 'Aa1!';
+    const passwordHash = await bcrypt.hash(rawPassword, 10);
+    await query(
+      `UPDATE users SET password_hash = $1, raw_password = $2 WHERE id = $3`,
+      [passwordHash, rawPassword, id]
+    );
+    res.json({
+      message: 'Password reset',
+      newPassword: rawPassword
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Org Settings ---
+
+// GET /api/admin/org-settings
+app.get('/api/admin/org-settings', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  const orgId = getOrgId(req);
+  if (!orgId) {
+    return res.status(400).json({ error: 'orgId is required (super admin must pass ?orgId=)' });
+  }
+  try {
+    const result = await query(
+      `SELECT id, name, slug, org_type,
+              address, contact_email,
+              contact_phone, is_active,
+              settings, created_at
+       FROM organizations
+       WHERE id = $1`,
+      [orgId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/admin/org-settings
+app.put('/api/admin/org-settings', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  const orgId = getOrgId(req);
+  if (!orgId) {
+    return res.status(400).json({ error: 'orgId is required (super admin must pass ?orgId=)' });
+  }
+  const { name, address, contactEmail, contactPhone, settings } = req.body;
+  try {
+    const result = await query(
+      `UPDATE organizations SET
+         name = COALESCE($1, name),
+         address = COALESCE($2, address),
+         contact_email = COALESCE($3, contact_email),
+         contact_phone = COALESCE($4, contact_phone),
+         settings = CASE
+           WHEN $5::jsonb IS NOT NULL THEN $5::jsonb
+           ELSE settings
+         END,
+         updated_at = NOW()
+       WHERE id = $6
+       RETURNING *`,
+      [name, address, contactEmail, contactPhone,
+       settings ? JSON.stringify(settings) : null,
+       orgId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Health check endpoints for Kubernetes liveness and readiness probes
 app.get('/healthz', (_req, res) => {
