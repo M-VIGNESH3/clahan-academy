@@ -238,10 +238,11 @@ interface AuthenticatedRequest extends express.Request {
   user?: {
     id: string;
     email: string;
-    role: 'admin' | 'student';
+    role: string;
     college_id?: string;
     department_id?: string;
     year?: string;
+    orgId?: string | null;
   };
 }
 
@@ -771,6 +772,107 @@ const sanitizeJsonb = (val: any): string => {
   }
   return JSON.stringify([]);
 };
+
+// POST /api/exams/:id/questions/from-bank
+// Copy selected questions from the org's question bank into this exam.
+// This FREEZES the questions — edits to the bank afterward do not affect
+// the exam. Scoped to the requester's org (unless super_admin) so a bank
+// question id from another organization can't be copied in by guessing IDs.
+app.post('/api/exams/:id/questions/from-bank', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
+  const { id: examId } = req.params;
+  const { questionIds, sectionId } = req.body;
+
+  if (!questionIds || !Array.isArray(questionIds) || questionIds.length === 0) {
+    return res.status(400).json({ error: 'questionIds array is required' });
+  }
+
+  try {
+    const isSuperAdmin = req.user?.role === 'super_admin';
+    const idPlaceholders = questionIds.map((_: any, i: number) => `$${i + 1}`).join(',');
+
+    const bankQuestions = await query(
+      isSuperAdmin
+        ? `SELECT * FROM question_bank WHERE id IN (${idPlaceholders})`
+        : `SELECT * FROM question_bank WHERE id IN (${idPlaceholders}) AND org_id = $${questionIds.length + 1}`,
+      isSuperAdmin ? questionIds : [...questionIds, req.user?.orgId]
+    );
+
+    let mcqInserted = 0;
+    let codingInserted = 0;
+
+    for (const q of bankQuestions.rows) {
+      if (q.question_type === 'mcq') {
+        await query(
+          `INSERT INTO mcq_questions
+           (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+          [
+            examId,
+            sectionId || null,
+            q.question_text,
+            q.option_a,
+            q.option_b,
+            q.option_c,
+            q.option_d,
+            q.correct_answer,
+            q.marks || 1,
+            q.difficulty || 'medium'
+          ]
+        );
+        mcqInserted++;
+      } else if (q.question_type === 'coding') {
+        const cqResult = await query(
+          `INSERT INTO coding_questions
+           (exam_id, section_id, title, description, difficulty, marks, language, starter_code, time_limit, memory_limit)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+           RETURNING id`,
+          [
+            examId,
+            sectionId || null,
+            q.title || q.question_text.substring(0, 100),
+            q.question_text,
+            q.difficulty || 'medium',
+            q.marks || 10,
+            q.coding_language || 'python',
+            q.starter_code || '',
+            q.time_limit || 30,
+            q.memory_limit || 256
+          ]
+        );
+
+        // Copy test cases if any
+        const testCases = await query(
+          `SELECT * FROM question_bank_test_cases WHERE question_id = $1`,
+          [q.id]
+        );
+
+        for (const tc of testCases.rows) {
+          await query(
+            `INSERT INTO coding_test_cases (question_id, input, expected_output, is_hidden)
+             VALUES ($1,$2,$3,$4)`,
+            [cqResult.rows[0].id, tc.input, tc.expected_output, tc.is_hidden]
+          );
+        }
+        codingInserted++;
+      }
+
+      // Increment usage count in bank
+      await query(
+        `UPDATE question_bank SET usage_count = usage_count + 1 WHERE id = $1`,
+        [q.id]
+      );
+    }
+
+    res.json({
+      message: 'Questions copied to exam',
+      mcqInserted,
+      codingInserted,
+      total: mcqInserted + codingInserted
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Add MCQ manually
 app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, res) => {

@@ -158,10 +158,13 @@ export default function App() {
   });
 
   // App Routing
-  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login' | 'skill-gap' | 'super-dashboard' | 'super-organizations' | 'super-org-detail' | 'super-audit-logs' | 'faculty-dashboard' | 'faculty-questions' | 'faculty-students'>(() => {
+  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login' | 'faculty-login' | 'skill-gap' | 'super-dashboard' | 'super-organizations' | 'super-org-detail' | 'super-audit-logs' | 'faculty-dashboard' | 'faculty-questions' | 'faculty-students'>(() => {
     const path = window.location.pathname.toLowerCase();
     if (path === '/admin-login' || path === '/admin-login/') {
       return 'admin-login';
+    }
+    if (path === '/faculty-login' || path === '/faculty-login/') {
+      return 'faculty-login';
     }
     if (path === '/login' || path === '/login/') {
       return 'login';
@@ -183,7 +186,7 @@ export default function App() {
   // Forms state
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  const [loginRole, setLoginRole] = useState<'student' | 'admin'>('student');
+  const [loginRole, setLoginRole] = useState<'student' | 'admin' | 'faculty'>('student');
   const [resetEmail, setResetEmail] = useState('');
   const [resetOtp, setResetOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -999,6 +1002,10 @@ export default function App() {
     if (currentPage === 'admin-login') {
       if (window.location.pathname !== '/admin-login') {
         window.history.pushState(null, '', '/admin-login');
+      }
+    } else if (currentPage === 'faculty-login') {
+      if (window.location.pathname !== '/faculty-login') {
+        window.history.pushState(null, '', '/faculty-login');
       }
     } else if (currentPage === 'landing') {
       if (window.location.pathname !== '/') {
@@ -4632,6 +4639,32 @@ export default function App() {
       });
       const data = await res.json();
       if (res.ok) {
+        // Same /api/auth/login endpoint serves student/faculty/admin login
+        // pages alike; gate by role here (before ever storing the token) so
+        // a valid login on the wrong portal never establishes a session.
+        const role = data.user?.role;
+        if (currentPage === 'login' && role !== 'student') {
+          showToast('Please use the correct login page for your role.', 'error');
+          return;
+        }
+        if (currentPage === 'faculty-login' && role !== 'faculty') {
+          showToast('This portal is for faculty members only. Please use the correct login page.', 'error');
+          return;
+        }
+        if (currentPage === 'admin-login') {
+          if (role === 'faculty') {
+            showToast('Faculty members should use the Faculty Login page.', 'error');
+            return;
+          }
+          if (role === 'student') {
+            showToast('Students should use the Student Login page.', 'error');
+            return;
+          }
+          if (!['admin', 'org_admin', 'super_admin'].includes(role)) {
+            showToast('Please use the correct login page for your role.', 'error');
+            return;
+          }
+        }
         sessionStorage.setItem('token', data.accessToken);
         setToken(data.accessToken);
         showToast('Login successful!');
@@ -4938,19 +4971,33 @@ export default function App() {
               <p className="max-w-2xl mx-auto text-lg text-muted-foreground mb-8">
                 Attend secure AI-proctored technical evaluations, practice production-grade software engineering challenges, and benchmark your programming skills for enterprise roles.
               </p>
-              <div className="flex items-center justify-center gap-4">
-                <button 
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <button
                   onClick={() => setCurrentPage('register')}
                   className="inline-flex items-center gap-2 text-base font-bold px-6 py-3.5 rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-500 transition-all hover:translate-y-[-2px]"
                 >
                   Get Started Free <ArrowRight className="h-5 w-5" />
                 </button>
-                <button 
-                  onClick={() => setCurrentPage('login')}
-                  className="text-base font-bold px-6 py-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
-                >
-                  Attend Assessment
-                </button>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    onClick={() => setCurrentPage('login')}
+                    className="text-sm font-bold px-5 py-3 rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 transition-all"
+                  >
+                    Student Login
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage('faculty-login')}
+                    className="text-sm font-bold px-5 py-3 rounded-xl border border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-500/20 transition-all"
+                  >
+                    Faculty Login
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage('admin-login')}
+                    className="text-sm font-bold px-5 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                  >
+                    Admin Login
+                  </button>
+                </div>
               </div>
             </div>
           </section>
@@ -5172,6 +5219,14 @@ export default function App() {
               New to Clahan Academy?{' '}
               <span onClick={() => setCurrentPage('register')} className="text-indigo-600 font-bold hover:underline cursor-pointer">Register</span>
             </p>
+            <div className="flex justify-center gap-4 mt-3 text-xs">
+              <span onClick={() => setCurrentPage('faculty-login')} className="text-violet-600 font-semibold hover:underline cursor-pointer">
+                Are you a faculty member?
+              </span>
+              <span onClick={() => setCurrentPage('admin-login')} className="text-slate-500 font-semibold hover:underline cursor-pointer">
+                Are you an admin?
+              </span>
+            </div>
           </div>
         </main>
       )}
@@ -5260,6 +5315,113 @@ export default function App() {
                 </button>
               </form>
             )}
+            <div className="flex justify-center gap-4 mt-6 text-xs">
+              <span onClick={() => setCurrentPage('faculty-login')} className="text-violet-600 font-semibold hover:underline cursor-pointer">
+                Are you a faculty member?
+              </span>
+              <span onClick={() => setCurrentPage('login')} className="text-indigo-600 font-semibold hover:underline cursor-pointer">
+                Are you a student?
+              </span>
+            </div>
+          </div>
+        </main>
+      )}
+
+      {/* FACULTY LOGIN ROUTE */}
+      {currentPage === 'faculty-login' && (
+        <main className="max-w-md mx-auto py-24 px-4">
+          <div className="p-8 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-violet-600 to-purple-600" />
+            <h2 className="text-2xl font-extrabold text-center mb-1">Faculty Portal</h2>
+            <p className="text-xs text-center text-muted-foreground mb-6">
+              Sign in to manage your students and question bank
+            </p>
+
+            {showOtpVerification ? (
+              <form onSubmit={verifyOtp} className="space-y-4">
+                <div className="bg-violet-50 dark:bg-violet-950/20 p-4 rounded-xl border border-violet-500/20 text-xs text-violet-600 dark:text-violet-400 mb-2">
+                  Enter the verification code sent to {unverifiedEmail} to activate your account.
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground">OTP Code</label>
+                  <input
+                    type="text"
+                    value={otpInput}
+                    onChange={e => setOtpInput(e.target.value)}
+                    placeholder="Enter 6-digit OTP"
+                    className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl bg-transparent focus:outline-violet-500 text-center font-bold tracking-widest text-lg"
+                    required
+                  />
+                </div>
+                <button type="submit" className="w-full p-3.5 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl shadow-md transition-colors">
+                  Verify & Activate
+                </button>
+                <div className="flex justify-between items-center text-xs mt-4">
+                  <button
+                    type="button"
+                    onClick={handleResendOtp}
+                    className="text-violet-600 font-bold hover:underline"
+                  >
+                    Resend OTP
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowOtpVerification(false); setCurrentPage('faculty-login'); }}
+                    className="text-slate-500 font-semibold hover:underline"
+                  >
+                    Back to Faculty Login
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={(e) => { setLoginRole('faculty'); handleLogin(e); }} className="space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground">Faculty Email Address</label>
+                  <input
+                    type="email"
+                    value={loginEmail}
+                    onChange={e => setLoginEmail(e.target.value)}
+                    placeholder="faculty@college.edu"
+                    className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl bg-transparent focus:outline-violet-500 text-sm"
+                    required
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-semibold text-muted-foreground">Password</label>
+                    <span onClick={() => setCurrentPage('forgot-pw')} className="text-xs font-semibold text-violet-600 hover:underline cursor-pointer">Forgot?</span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showLoginPassword ? "text" : "password"}
+                      value={loginPassword}
+                      onChange={e => setLoginPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full p-3.5 pr-10 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl bg-transparent focus:outline-violet-500 text-sm"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 mt-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+                <button type="submit" className="w-full p-3.5 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl shadow-md transition-colors">
+                  Log In as Faculty
+                </button>
+              </form>
+            )}
+            <div className="flex justify-center gap-4 mt-6 text-xs">
+              <span onClick={() => setCurrentPage('login')} className="text-indigo-600 font-semibold hover:underline cursor-pointer">
+                Are you a student? Sign in here →
+              </span>
+              <span onClick={() => setCurrentPage('admin-login')} className="text-slate-500 font-semibold hover:underline cursor-pointer">
+                Are you an admin? Sign in here →
+              </span>
+            </div>
           </div>
         </main>
       )}

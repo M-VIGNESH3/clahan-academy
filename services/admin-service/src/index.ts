@@ -1341,6 +1341,213 @@ app.put('/api/admin/org-settings', authenticateAdmin, requireOrgAdmin, async (re
   }
 });
 
+// --- Question Bank Oversight (org_admin browsing faculty-uploaded content) ---
+
+// GET /api/admin/question-batches
+// All approved question batches in this org
+app.get('/api/admin/question-batches', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  const orgId = getOrgId(req);
+  try {
+    const result = await query(
+      orgId
+        ? `SELECT qb.*, u.full_name as creator_name, COUNT(q.id) as actual_count
+           FROM question_batches qb
+           LEFT JOIN users u ON u.id = qb.created_by
+           LEFT JOIN question_bank q ON q.batch_id = qb.id
+           WHERE qb.org_id = $1 AND qb.status = 'approved'
+           GROUP BY qb.id, u.full_name
+           ORDER BY qb.created_at DESC`
+        : `SELECT qb.*, u.full_name as creator_name, COUNT(q.id) as actual_count
+           FROM question_batches qb
+           LEFT JOIN users u ON u.id = qb.created_by
+           LEFT JOIN question_bank q ON q.batch_id = qb.id
+           WHERE qb.status = 'approved'
+           GROUP BY qb.id, u.full_name
+           ORDER BY qb.created_at DESC`,
+      orgId ? [orgId] : []
+    );
+    res.json(result.rows);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/question-batches/pending
+// Batches waiting for approval
+app.get('/api/admin/question-batches/pending', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  const orgId = getOrgId(req);
+  try {
+    const result = await query(
+      orgId
+        ? `SELECT qb.*, u.full_name as creator_name, COUNT(q.id) as actual_count
+           FROM question_batches qb
+           LEFT JOIN users u ON u.id = qb.created_by
+           LEFT JOIN question_bank q ON q.batch_id = qb.id
+           WHERE qb.org_id = $1 AND qb.status = 'pending'
+           GROUP BY qb.id, u.full_name
+           ORDER BY qb.created_at DESC`
+        : `SELECT qb.*, u.full_name as creator_name, COUNT(q.id) as actual_count
+           FROM question_batches qb
+           LEFT JOIN users u ON u.id = qb.created_by
+           LEFT JOIN question_bank q ON q.batch_id = qb.id
+           WHERE qb.status = 'pending'
+           GROUP BY qb.id, u.full_name
+           ORDER BY qb.created_at DESC`,
+      orgId ? [orgId] : []
+    );
+    res.json(result.rows);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/question-batches/:id/questions
+// All questions in a specific batch
+app.get('/api/admin/question-batches/:id/questions', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  const orgId = getOrgId(req);
+  try {
+    const result = await query(
+      orgId
+        ? `SELECT q.*, u.full_name as creator_name
+           FROM question_bank q
+           LEFT JOIN users u ON u.id = q.created_by
+           WHERE q.batch_id = $1 AND q.org_id = $2
+           ORDER BY q.created_at ASC`
+        : `SELECT q.*, u.full_name as creator_name
+           FROM question_bank q
+           LEFT JOIN users u ON u.id = q.created_by
+           WHERE q.batch_id = $1
+           ORDER BY q.created_at ASC`,
+      orgId ? [req.params.id, orgId] : [req.params.id]
+    );
+    res.json(result.rows);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/admin/question-batches/preview
+// Preview questions from multiple batches — used in exam creation picker
+app.post('/api/admin/question-batches/preview', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  const orgId = getOrgId(req);
+  const { batchIds } = req.body;
+
+  if (!batchIds || !Array.isArray(batchIds) || batchIds.length === 0) {
+    return res.status(400).json({ error: 'batchIds array is required' });
+  }
+
+  try {
+    const idPlaceholders = orgId
+      ? batchIds.map((_: any, i: number) => `$${i + 2}`).join(',')
+      : batchIds.map((_: any, i: number) => `$${i + 1}`).join(',');
+
+    const result = await query(
+      orgId
+        ? `SELECT q.*, qb.name as batch_name, u.full_name as creator_name
+           FROM question_bank q
+           JOIN question_batches qb ON qb.id = q.batch_id
+           LEFT JOIN users u ON u.id = q.created_by
+           WHERE q.org_id = $1 AND q.batch_id IN (${idPlaceholders}) AND qb.status = 'approved'
+           ORDER BY qb.name, q.created_at`
+        : `SELECT q.*, qb.name as batch_name, u.full_name as creator_name
+           FROM question_bank q
+           JOIN question_batches qb ON qb.id = q.batch_id
+           LEFT JOIN users u ON u.id = q.created_by
+           WHERE q.batch_id IN (${idPlaceholders}) AND qb.status = 'approved'
+           ORDER BY qb.name, q.created_at`,
+      orgId ? [orgId, ...batchIds] : batchIds
+    );
+
+    res.json({
+      questions: result.rows,
+      total: result.rows.length,
+      byBatch: batchIds.map((id: string) => ({
+        batchId: id,
+        count: result.rows.filter((q: any) => q.batch_id === id).length
+      }))
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/admin/question-batches/:id/approve
+app.put('/api/admin/question-batches/:id/approve', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    await query(
+      `UPDATE question_batches SET
+         status = 'approved',
+         reviewed_by = $1,
+         review_note = NULL,
+         updated_at = NOW()
+       WHERE id = $2`,
+      [req.user!.userId, req.params.id]
+    );
+
+    // Notify faculty. Uses the batch's own org_id (not the reviewer's) so a
+    // super_admin approving on another org's behalf still notifies correctly.
+    const batch = await query(
+      `SELECT created_by, name, org_id FROM question_batches WHERE id = $1`,
+      [req.params.id]
+    );
+    if (batch.rows[0]) {
+      await query(
+        `INSERT INTO in_app_notifications (org_id, user_id, title, message, type)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          batch.rows[0].org_id,
+          batch.rows[0].created_by,
+          'Question Batch Approved ✅',
+          `Your batch "${batch.rows[0].name}" has been approved and is now available for exams.`,
+          'question_approved'
+        ]
+      );
+    }
+
+    res.json({ message: 'Batch approved' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/admin/question-batches/:id/reject
+app.put('/api/admin/question-batches/:id/reject', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  const { reviewNote } = req.body;
+  try {
+    await query(
+      `UPDATE question_batches SET
+         status = 'rejected',
+         reviewed_by = $1,
+         review_note = $2,
+         updated_at = NOW()
+       WHERE id = $3`,
+      [req.user!.userId, reviewNote || 'No reason given', req.params.id]
+    );
+
+    const batch = await query(
+      `SELECT created_by, name, org_id FROM question_batches WHERE id = $1`,
+      [req.params.id]
+    );
+    if (batch.rows[0]) {
+      await query(
+        `INSERT INTO in_app_notifications (org_id, user_id, title, message, type)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          batch.rows[0].org_id,
+          batch.rows[0].created_by,
+          'Question Batch Needs Revision',
+          `Your batch "${batch.rows[0].name}" was returned: ${reviewNote || 'Please review and resubmit.'}`,
+          'question_rejected'
+        ]
+      );
+    }
+
+    res.json({ message: 'Batch rejected' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Health check endpoints for Kubernetes liveness and readiness probes
 app.get('/healthz', (_req, res) => {
   res.status(200).json({ status: 'ok', service: 'admin-service' });
