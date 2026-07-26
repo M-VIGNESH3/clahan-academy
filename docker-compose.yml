@@ -142,6 +142,19 @@ services:
       postgres:
         condition: service_healthy
 
+  super-admin-service:
+    build: ./services/super-admin-service
+    container_name: clahan-super-admin-service
+    ports:
+      - "4010:4010"
+    env_file:
+      - ./services/super-admin-service/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   ai-service:
     build: ./services/ai-service
     container_name: clahan-ai-service
