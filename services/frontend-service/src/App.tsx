@@ -14443,16 +14443,6 @@ export default function App() {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => {
-                            setSelectedQuestionBatch(batch);
-                            setUploadResult(null);
-                            setShowUploadModal(true);
-                          }}
-                          className="px-3 py-1.5 bg-slate-800 border border-white/10 text-slate-300 text-[10px] font-bold rounded-lg hover:bg-slate-700"
-                        >
-                          📊 Upload Excel
-                        </button>
-                        <button
                           onClick={() => openBankQuestionEditor(batch)}
                           className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[10px] font-bold rounded-lg hover:bg-violet-500/30"
                         >
