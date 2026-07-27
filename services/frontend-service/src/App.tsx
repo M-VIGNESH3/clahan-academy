@@ -14861,52 +14861,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground">Subject</label>
-                      <input
-                        type="text"
-                        value={bankMcqForm.subject}
-                        onChange={e => setBankMcqForm({ ...bankMcqForm, subject: e.target.value })}
-                        placeholder="Java, Python..."
-                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground">Topic</label>
-                      <input
-                        type="text"
-                        value={bankMcqForm.topic}
-                        onChange={e => setBankMcqForm({ ...bankMcqForm, topic: e.target.value })}
-                        placeholder="OOP, Arrays..."
-                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground">Tags (comma separated)</label>
-                      <input
-                        type="text"
-                        value={bankMcqForm.tags}
-                        onChange={e => setBankMcqForm({ ...bankMcqForm, tags: e.target.value })}
-                        placeholder="recursion, sorting..."
-                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground">Explanation (shown after exam)</label>
-                      <input
-                        type="text"
-                        value={bankMcqForm.explanation}
-                        onChange={e => setBankMcqForm({ ...bankMcqForm, explanation: e.target.value })}
-                        placeholder="Why is this correct?"
-                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
-                      />
-                    </div>
-                  </div>
-
                   <div className="flex justify-end gap-2 pt-2">
                     {bankQuestionEditorMode === 'edit' && (
                       <button
@@ -14953,7 +14907,11 @@ export default function App() {
                       <label className="text-[10px] font-semibold text-muted-foreground">Programming Language (Starter code context)</label>
                       <select
                         value={bankMcqForm.codingLanguage}
-                        onChange={e => setBankMcqForm({ ...bankMcqForm, codingLanguage: e.target.value })}
+                        onChange={e => {
+                          const lang = e.target.value;
+                          const templateMap: Record<string, string> = { python: 'Python', java: 'Java', cpp: 'C++', javascript: 'JavaScript' };
+                          setBankMcqForm({ ...bankMcqForm, codingLanguage: lang, starterCode: STARTER_TEMPLATES[templateMap[lang]] || '' });
+                        }}
                         className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-slate-900 text-slate-100 mt-1"
                       >
                         <option value="python">Python</option>
@@ -15011,47 +14969,13 @@ export default function App() {
 
                   <div>
                     <label className="text-[10px] font-semibold text-muted-foreground">Starter Skeleton Code</label>
-                    <div className="rounded-xl overflow-hidden border border-slate-800 mt-1">
-                      <Editor
-                        height="250px"
-                        language={bankMcqForm.codingLanguage}
-                        value={bankMcqForm.starterCode}
-                        onChange={(val) => setBankMcqForm({ ...bankMcqForm, starterCode: val || '' })}
-                        theme="vs-dark"
-                        options={{
-                          fontSize: 13,
-                          minimap: { enabled: false },
-                          scrollBeyondLastLine: false,
-                          lineNumbers: 'on',
-                          roundedSelection: true,
-                          padding: { top: 12, bottom: 12 },
-                          fontFamily: 'JetBrains Mono, Fira Code, monospace'
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground">Subject</label>
-                      <input
-                        type="text"
-                        value={bankMcqForm.subject}
-                        onChange={e => setBankMcqForm({ ...bankMcqForm, subject: e.target.value })}
-                        placeholder="Data Structures..."
-                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground">Tags (comma separated)</label>
-                      <input
-                        type="text"
-                        value={bankMcqForm.tags}
-                        onChange={e => setBankMcqForm({ ...bankMcqForm, tags: e.target.value })}
-                        placeholder="arrays, sorting..."
-                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
-                      />
-                    </div>
+                    <textarea
+                      value={bankMcqForm.starterCode}
+                      onChange={e => setBankMcqForm({ ...bankMcqForm, starterCode: e.target.value })}
+                      className="w-full p-2 font-mono text-[10px] border border-slate-800 rounded-lg bg-transparent mt-1 text-white"
+                      rows={4}
+                      required
+                    />
                   </div>
 
                   <div className="flex justify-end gap-2 pt-2">
