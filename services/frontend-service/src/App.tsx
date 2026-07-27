@@ -158,7 +158,7 @@ export default function App() {
   });
 
   // App Routing
-  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login' | 'faculty-login' | 'skill-gap' | 'super-dashboard' | 'super-organizations' | 'super-org-detail' | 'super-audit-logs' | 'faculty-dashboard' | 'faculty-questions' | 'faculty-students' | 'bank-question-editor'>(() => {
+  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login' | 'faculty-login' | 'skill-gap' | 'super-dashboard' | 'super-organizations' | 'super-org-detail' | 'super-audit-logs' | 'faculty-dashboard' | 'faculty-questions' | 'faculty-students' | 'bank-question-editor' | 'faculty-proctor'>(() => {
     const path = window.location.pathname.toLowerCase();
     if (path === '/admin-login' || path === '/admin-login/') {
       return 'admin-login';
@@ -212,7 +212,7 @@ export default function App() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [skillGapData, setSkillGapData] = useState<any>(null);
   const [isLoadingSkillGap, setIsLoadingSkillGap] = useState(false);
-  const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'colleges' | 'students' | 'faculty' | 'question-bank' | 'trainers' | 'training' | 'exams' | 'placement' | 'companies' | 'reports' | 'settings' | 'live'>('metrics');
+  const [activeAdminTab, setActiveAdminTab] = useState<'metrics' | 'colleges' | 'students' | 'faculty' | 'departments' | 'batches' | 'question-bank' | 'trainers' | 'training' | 'exams' | 'placement' | 'companies' | 'reports' | 'settings' | 'live'>('metrics');
   const [adminTrainers, setAdminTrainers] = useState<any[]>([]);
   const [studentTrainers, setStudentTrainers] = useState<any[]>([]);
   const [trainerForm, setTrainerForm] = useState({
@@ -245,6 +245,24 @@ export default function App() {
   });
   const [adminAnalytics, setAdminAnalytics] = useState<any>(null);
   const [isLoadingAdminAnalytics, setIsLoadingAdminAnalytics] = useState(false);
+
+  // Departments tab (admin dashboard) — separate state from the Settings
+  // tab's multi-college newDeptName/newDeptCollegeId flow to avoid sharing
+  // an input across two different forms.
+  const [showCreateDeptModal, setShowCreateDeptModal] = useState(false);
+  const [newDeptModalName, setNewDeptModalName] = useState('');
+  const [adminDepartments, setAdminDepartments] = useState<any[]>([]);
+  const [isLoadingDepts, setIsLoadingDepts] = useState(false);
+
+  // Batches tab (admin dashboard)
+  const [showCreateBatchModal2, setShowCreateBatchModal2] = useState(false);
+  const [newBatch2, setNewBatch2] = useState({
+    name: '',
+    batchType: 'academic' as string,
+    description: ''
+  });
+  const [isLoadingBatches2, setIsLoadingBatches2] = useState(false);
+  const [selectedBatchTypeFilter, setSelectedBatchTypeFilter] = useState('all');
 
   // Faculty management (org_admin managing their faculty)
   const [facultyList, setFacultyList] = useState<any[]>([]);
@@ -285,6 +303,13 @@ export default function App() {
   const [facultyStudentsList, setFacultyStudentsList] = useState<any[]>([]);
   const [facultyNotifications, setFacultyNotifications] = useState<any[]>([]);
   const [isLoadingFacultyDash, setIsLoadingFacultyDash] = useState(false);
+
+  // Faculty proctoring live monitor
+  const [facultyLiveSessions, setFacultyLiveSessions] = useState<any[]>([]);
+  const [selectedProctorAttempt, setSelectedProctorAttempt] = useState<any>(null);
+  const [facultyViolationLogs, setFacultyViolationLogs] = useState<any[]>([]);
+  const [isLoadingProctor, setIsLoadingProctor] = useState(false);
+  const [proctorAutoRefresh, setProctorAutoRefresh] = useState(false);
   const [showCreateBatchModal, setShowCreateBatchModal] = useState(false);
   const [newBatchForm, setNewBatchForm] = useState({
     name: '',
@@ -2032,6 +2057,95 @@ export default function App() {
     }
   };
 
+  // --- DEPARTMENTS TAB (admin dashboard) ---
+  const loadAdminDepartments = async () => {
+    setIsLoadingDepts(true);
+    try {
+      const res = await fetch(`${API_ADMIN}/departments`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setAdminDepartments(await res.json());
+      }
+    } catch (err) {
+      console.error('Load depts:', err);
+    } finally {
+      setIsLoadingDepts(false);
+    }
+  };
+
+  const createAdminDepartment = async () => {
+    if (!newDeptModalName.trim()) return;
+    try {
+      const res = await fetch(`${API_ADMIN}/departments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: newDeptModalName.trim() })
+      });
+      if (res.ok) {
+        showToast('Department created', 'success');
+        setShowCreateDeptModal(false);
+        setNewDeptModalName('');
+        loadAdminDepartments();
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'Failed', 'error');
+      }
+    } catch {
+      showToast('Network error', 'error');
+    }
+  };
+
+  // --- BATCHES TAB (admin dashboard) ---
+  const loadAdminBatches2 = async () => {
+    setIsLoadingBatches2(true);
+    try {
+      const res = await fetch(`${API_ADMIN}/batches`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setAdminBatches(await res.json());
+      }
+    } catch (err) {
+      console.error('Load batches:', err);
+    } finally {
+      setIsLoadingBatches2(false);
+    }
+  };
+
+  const createAdminBatch = async () => {
+    if (!newBatch2.name.trim()) return;
+    try {
+      const orgId = currentUser?.orgId || currentUser?.collegeId;
+      const res = await fetch(`${API_ADMIN}/colleges/${orgId}/batches`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: newBatch2.name.trim(),
+          batchType: newBatch2.batchType,
+          description: newBatch2.description
+        })
+      });
+      if (res.ok) {
+        showToast('Batch created', 'success');
+        setShowCreateBatchModal2(false);
+        setNewBatch2({ name: '', batchType: 'academic', description: '' });
+        loadAdminBatches2();
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'Failed', 'error');
+      }
+    } catch {
+      showToast('Network error', 'error');
+    }
+  };
+
   // --- FACULTY'S OWN DASHBOARD (faculty-service, port 4011) ---
   const loadFacultyDashboard = async () => {
     setIsLoadingFacultyDash(true);
@@ -2056,6 +2170,63 @@ export default function App() {
       setIsLoadingFacultyDash(false);
     }
   };
+
+  const loadFacultyLiveSessions = async () => {
+    setIsLoadingProctor(true);
+    try {
+      const res = await fetch('/api/proctor/faculty/live', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setFacultyLiveSessions(await res.json());
+      }
+    } catch (err) {
+      console.error('Proctor load:', err);
+    } finally {
+      setIsLoadingProctor(false);
+    }
+  };
+
+  const loadFacultyViolationLogs = async (attemptId: string) => {
+    try {
+      const res = await fetch(`/api/proctor/faculty/attempts/${attemptId}/logs`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setFacultyViolationLogs(await res.json());
+      }
+    } catch (err) {
+      console.error('Violation logs:', err);
+    }
+  };
+
+  const warnStudent = async (attemptId: string, studentName: string) => {
+    try {
+      const res = await fetch(`/api/proctor/faculty/warn/${attemptId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast(`Warning sent to ${studentName}`, 'success');
+        loadFacultyViolationLogs(attemptId);
+      }
+    } catch {
+      showToast('Failed to send warning', 'error');
+    }
+  };
+
+  useEffect(() => {
+    if (!proctorAutoRefresh || currentPage !== 'faculty-proctor') {
+      return;
+    }
+    const interval = setInterval(() => {
+      loadFacultyLiveSessions();
+      if (selectedProctorAttempt) {
+        loadFacultyViolationLogs(selectedProctorAttempt.attempt_id);
+      }
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [proctorAutoRefresh, currentPage, selectedProctorAttempt]);
 
   const loadFacultyQuestionBatches = async () => {
     try {
@@ -6620,6 +6791,8 @@ export default function App() {
                 { id: 'metrics', label: 'Dashboard', icon: Award, badge: 0 },
                 { id: 'students', label: 'Students', icon: Users, badge: 0 },
                 { id: 'faculty', label: 'Faculty', icon: GraduationCap, badge: 0 },
+                { id: 'departments', label: 'Departments', icon: MapPin, badge: 0 },
+                { id: 'batches', label: 'Batches', icon: Bookmark, badge: 0 },
                 { id: 'question-bank', label: 'Question Bank', icon: Database, badge: pendingBatches.length },
                 { id: 'training', label: 'Training', icon: BookOpen, badge: 0 },
                 { id: 'exams', label: 'Assessments', icon: Layers, badge: 0 },
@@ -6636,6 +6809,8 @@ export default function App() {
                     onClick={() => {
                       setActiveAdminTab(item.id as any);
                       if (item.id === 'faculty') loadFaculty();
+                      if (item.id === 'departments') loadAdminDepartments();
+                      if (item.id === 'batches') loadAdminBatches2();
                       if (item.id === 'question-bank') loadQuestionBank();
                     }}
                     className={`flex items-center gap-3 w-full p-3 rounded-xl text-sm font-bold transition-all ${activeAdminTab === item.id ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10' : 'text-muted-foreground hover:bg-slate-100/50 dark:hover:bg-slate-900/50 hover:text-foreground'}`}
@@ -6949,6 +7124,268 @@ export default function App() {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {activeAdminTab === 'departments' && (
+                <div className="space-y-4">
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-sm font-extrabold">Departments</h2>
+                      <p className="text-[10px] text-muted-foreground">Manage college departments</p>
+                    </div>
+                    <button
+                      onClick={() => setShowCreateDeptModal(true)}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold rounded-xl"
+                    >
+                      + Add Department
+                    </button>
+                  </div>
+
+                  {isLoadingDepts ? (
+                    <div className="space-y-2">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="h-16 bg-slate-100 dark:bg-slate-800/50 rounded-xl animate-pulse" />
+                      ))}
+                    </div>
+                  ) : adminDepartments.length === 0 ? (
+                    <div className="text-center py-12 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
+                      <p className="text-3xl mb-3">🏛️</p>
+                      <p className="text-sm font-bold mb-1">No Departments Yet</p>
+                      <p className="text-xs text-muted-foreground mb-4">Add departments to organize your students</p>
+                      <button
+                        onClick={() => setShowCreateDeptModal(true)}
+                        className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl"
+                      >
+                        + Add First Department
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {adminDepartments.map((dept: any) => (
+                        <div key={dept.id}
+                          className="flex items-center justify-between p-4 rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-900 shadow-sm">
+                          <div>
+                            <p className="text-sm font-bold">{dept.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{dept.student_count || 0} students</p>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Delete ${dept.name}?`)) return;
+                              await fetch(`${API_ADMIN}/departments/${dept.id}`, {
+                                method: 'DELETE',
+                                headers: { Authorization: `Bearer ${token}` }
+                              });
+                              loadAdminDepartments();
+                            }}
+                            className="px-3 py-1.5 bg-red-500/20 border border-red-500/30 text-red-500 dark:text-red-300 text-[10px] font-bold rounded-lg hover:bg-red-500/30"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeAdminTab === 'batches' && (
+                <div className="space-y-4">
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-sm font-extrabold">Batches</h2>
+                      <p className="text-[10px] text-muted-foreground">Academic batches and CRT groups</p>
+                    </div>
+                    <button
+                      onClick={() => setShowCreateBatchModal2(true)}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold rounded-xl"
+                    >
+                      + Create Batch
+                    </button>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {[
+                      { type: 'all', label: 'All' },
+                      { type: 'academic', label: '🎓 Academic' },
+                      { type: 'crt', label: '🏆 CRT' },
+                      { type: 'training', label: '📚 Training' }
+                    ].map(({ type, label }) => (
+                      <button
+                        key={type}
+                        onClick={() => setSelectedBatchTypeFilter(type)}
+                        className={`px-3 py-1.5 text-[10px] font-bold rounded-lg ${
+                          selectedBatchTypeFilter === type
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-slate-100 dark:bg-slate-800 text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {isLoadingBatches2 ? (
+                    <div className="space-y-2">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="h-16 bg-slate-100 dark:bg-slate-800/50 rounded-xl animate-pulse" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {adminBatches
+                        .filter((b: any) => selectedBatchTypeFilter === 'all' || b.batch_type === selectedBatchTypeFilter)
+                        .map((batch: any) => (
+                          <div key={batch.id}
+                            className="flex items-center justify-between p-4 rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-900 shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                                batch.batch_type === 'crt'
+                                  ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                                  : batch.batch_type === 'training'
+                                    ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                                    : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                              }`}>
+                                {batch.batch_type || 'academic'}
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold">{batch.name}</p>
+                                <p className="text-[10px] text-muted-foreground">{batch.student_count || 0} students</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Delete batch ${batch.name}?`)) return;
+                                const res = await fetch(`${API_ADMIN}/batches/${batch.id}`, {
+                                  method: 'DELETE',
+                                  headers: { Authorization: `Bearer ${token}` }
+                                });
+                                if (res.ok) {
+                                  showToast('Batch deleted', 'success');
+                                  loadAdminBatches2();
+                                }
+                              }}
+                              className="px-3 py-1.5 bg-red-500/20 border border-red-500/30 text-red-500 dark:text-red-300 text-[10px] font-bold rounded-lg hover:bg-red-500/30"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        ))}
+                      {adminBatches.filter((b: any) => selectedBatchTypeFilter === 'all' || b.batch_type === selectedBatchTypeFilter).length === 0 && (
+                        <div className="text-center py-12 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
+                          <p className="text-3xl mb-3">👥</p>
+                          <p className="text-sm font-bold mb-1">No Batches Found</p>
+                          <p className="text-xs text-muted-foreground">Create a batch to group students</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {showCreateDeptModal && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+                  <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-sm">
+                    <h3 className="font-black text-white mb-4">Add Department</h3>
+                    <input
+                      type="text"
+                      value={newDeptModalName}
+                      onChange={e => setNewDeptModalName(e.target.value)}
+                      placeholder="e.g. Computer Science"
+                      className="w-full px-3 py-2.5 bg-slate-800 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:border-indigo-500/50 focus:outline-none mb-4"
+                      autoFocus
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          createAdminDepartment();
+                        }
+                      }}
+                    />
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          setShowCreateDeptModal(false);
+                          setNewDeptModalName('');
+                        }}
+                        className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={createAdminDepartment}
+                        disabled={!newDeptModalName.trim()}
+                        className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-extrabold rounded-xl"
+                      >
+                        Create
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {showCreateBatchModal2 && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+                  <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-sm">
+                    <h3 className="font-black text-white mb-4">Create Batch</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Batch Name *</label>
+                        <input
+                          type="text"
+                          value={newBatch2.name}
+                          onChange={e => setNewBatch2({ ...newBatch2, name: e.target.value })}
+                          placeholder="e.g. CS-2024-A"
+                          className="w-full px-3 py-2.5 bg-slate-800 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:border-indigo-500/50 focus:outline-none"
+                          autoFocus
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Type</label>
+                        <select
+                          value={newBatch2.batchType}
+                          onChange={e => setNewBatch2({ ...newBatch2, batchType: e.target.value })}
+                          className="w-full px-3 py-2.5 bg-slate-800 border border-white/10 rounded-xl text-sm text-white focus:border-indigo-500/50 focus:outline-none"
+                        >
+                          <option value="academic">🎓 Academic (CS-2024, IT-2023)</option>
+                          <option value="crt">🏆 CRT (Placement Training)</option>
+                          <option value="training">📚 Training (Special Program)</option>
+                        </select>
+                        <p className="text-[10px] text-slate-500 mt-1">
+                          CRT and Training batches can include students from any department
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 block mb-1">Description (optional)</label>
+                        <input
+                          type="text"
+                          value={newBatch2.description}
+                          onChange={e => setNewBatch2({ ...newBatch2, description: e.target.value })}
+                          placeholder="Brief description..."
+                          className="w-full px-3 py-2.5 bg-slate-800 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:border-indigo-500/50 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mt-5">
+                      <button
+                        onClick={() => {
+                          setShowCreateBatchModal2(false);
+                          setNewBatch2({ name: '', batchType: 'academic', description: '' });
+                        }}
+                        className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={createAdminBatch}
+                        disabled={!newBatch2.name.trim()}
+                        className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-extrabold rounded-xl"
+                      >
+                        Create Batch
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -14256,6 +14693,30 @@ export default function App() {
                   ))}
                 </div>
 
+                {/* Quick Actions */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <button
+                    onClick={() => {
+                      setCurrentPage('faculty-proctor');
+                      loadFacultyLiveSessions();
+                    }}
+                    className="p-4 bg-slate-900 border border-white/10 rounded-2xl hover:border-red-500/30 text-left group transition-all"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                      <span className="text-[10px] font-bold text-red-400 uppercase tracking-wide">
+                        Live
+                      </span>
+                    </div>
+                    <p className="text-sm font-extrabold text-white">
+                      Monitor Exams
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      Watch students taking exams live
+                    </p>
+                  </button>
+                </div>
+
                 {/* My Permissions */}
                 <div className="p-5 bg-slate-900 border border-white/10 rounded-2xl">
                   <h3 className="font-extrabold text-sm text-white mb-3">
@@ -15250,6 +15711,208 @@ export default function App() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {currentPage === 'faculty-proctor' && (
+        <div className="min-h-screen bg-slate-950 text-white">
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-slate-900">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setCurrentPage('faculty-dashboard')}
+                className="p-2 rounded-xl border border-white/10 hover:bg-slate-800 text-slate-400"
+              >
+                ←
+              </button>
+              <div>
+                <h1 className="text-lg font-black text-white flex items-center gap-2">
+                  <span className="h-2 w-2 bg-red-500 rounded-full animate-pulse inline-block" />
+                  Live Exam Monitor
+                </h1>
+                <p className="text-xs text-slate-400">
+                  {facultyLiveSessions.length} students currently taking exams
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={proctorAutoRefresh}
+                  onChange={e => setProctorAutoRefresh(e.target.checked)}
+                  className="rounded"
+                />
+                Auto-refresh (30s)
+              </label>
+              <button
+                onClick={loadFacultyLiveSessions}
+                className="px-3 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl border border-white/10 hover:bg-slate-700"
+              >
+                ↻ Refresh
+              </button>
+            </div>
+          </div>
+
+          <div className="flex h-[calc(100vh-73px)]">
+
+            {/* Left: Student grid */}
+            <div className="flex-1 overflow-y-auto p-4">
+              {isLoadingProctor ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {[1, 2, 3, 4, 5, 6].map(i => (
+                    <div key={i} className="h-32 bg-slate-800/50 rounded-2xl animate-pulse" />
+                  ))}
+                </div>
+              ) : facultyLiveSessions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <div className="text-6xl mb-4 opacity-30">📹</div>
+                  <h3 className="text-lg font-bold text-white mb-2">No Active Exams</h3>
+                  <p className="text-sm text-slate-400">
+                    None of your students are currently taking an exam
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {facultyLiveSessions.map((session: any) => {
+                    const violations = parseInt(session.violation_count || 0);
+                    const highViolations = parseInt(session.high_violations || 0);
+                    const isSelected = selectedProctorAttempt?.attempt_id === session.attempt_id;
+
+                    return (
+                      <div
+                        key={session.attempt_id}
+                        onClick={() => {
+                          setSelectedProctorAttempt(session);
+                          loadFacultyViolationLogs(session.attempt_id);
+                        }}
+                        className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-indigo-500 bg-indigo-500/10'
+                            : violations > 3
+                              ? 'border-red-500/50 bg-red-500/5 hover:border-red-500'
+                              : 'border-white/10 bg-slate-900 hover:border-white/30'
+                        }`}
+                      >
+                        {violations > 0 && (
+                          <div className={`flex items-center gap-1 mb-2 ${highViolations > 0 ? 'text-red-400' : 'text-amber-400'}`}>
+                            <span className="text-[9px] font-black">
+                              ⚠️ {violations} alerts
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg mb-2">
+                          👤
+                        </div>
+                        <p className="text-xs font-bold text-white truncate">
+                          {session.student_name}
+                        </p>
+                        <p className="text-[10px] text-slate-400 truncate">
+                          {session.roll_number || '—'}
+                        </p>
+                        <p className="text-[9px] text-slate-500 mt-1 truncate">
+                          {session.exam_name}
+                        </p>
+
+                        <div className="mt-2 text-[9px] text-slate-400">
+                          Started: {new Date(session.started_at).toLocaleTimeString()}
+                        </div>
+
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            warnStudent(session.attempt_id, session.student_name);
+                          }}
+                          className="mt-2 w-full py-1 bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[9px] font-bold rounded-lg hover:bg-amber-500/30"
+                        >
+                          ⚠️ Warn
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Right: Violation detail panel */}
+            {selectedProctorAttempt && (
+              <div className="w-80 border-l border-white/10 bg-slate-900 flex flex-col">
+
+                <div className="p-4 border-b border-white/10">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-sm font-black text-white">
+                      {selectedProctorAttempt.student_name}
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setSelectedProctorAttempt(null);
+                        setFacultyViolationLogs([]);
+                      }}
+                      className="text-slate-500 hover:text-white text-lg"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    {selectedProctorAttempt.exam_name}
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    Roll: {selectedProctorAttempt.roll_number || '—'}
+                  </p>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase px-1">
+                    Activity Log ({facultyViolationLogs.length} events)
+                  </p>
+                  {facultyViolationLogs.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-xs text-slate-500">
+                        No violations recorded
+                      </p>
+                    </div>
+                  ) : (
+                    facultyViolationLogs.map((log: any, i: number) => (
+                      <div
+                        key={i}
+                        className={`p-3 rounded-xl border text-[10px] ${
+                          log.severity === 'high'
+                            ? 'border-red-500/30 bg-red-500/5'
+                            : log.severity === 'medium'
+                              ? 'border-amber-500/30 bg-amber-500/5'
+                              : 'border-white/5 bg-slate-800/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`font-bold capitalize ${
+                            log.severity === 'high'
+                              ? 'text-red-400'
+                              : log.severity === 'medium'
+                                ? 'text-amber-400'
+                                : 'text-slate-400'
+                          }`}>
+                            {(log.event_type || '').replace(/_/g, ' ')}
+                          </span>
+                          <span className="text-slate-600">
+                            {new Date(log.created_at).toLocaleTimeString()}
+                          </span>
+                        </div>
+                        {log.details && (
+                          <p className="text-slate-500">
+                            {typeof log.details === 'string'
+                              ? log.details
+                              : log.details.message || JSON.stringify(log.details)}
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

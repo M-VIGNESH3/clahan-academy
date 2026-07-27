@@ -286,10 +286,12 @@ app.get('/api/admin/departments', authenticateAdmin, requireOrgAdmin, async (req
   try {
     const orgId = getOrgId(req);
     const result = await query(`
-      SELECT d.*, c.name as college_name
+      SELECT d.*, c.name as college_name, COUNT(u.id) as student_count
       FROM departments d
       LEFT JOIN colleges c ON d.college_id = c.id
+      LEFT JOIN users u ON u.department_id = d.id AND u.role = 'student' AND u.status = 'active'
       ${orgId ? 'WHERE d.college_id = $1' : ''}
+      GROUP BY d.id, c.name
       ORDER BY c.name ASC, d.name ASC
     `, orgId ? [orgId] : []);
     res.json(result.rows);
@@ -348,11 +350,13 @@ app.get('/api/admin/batches', authenticateAdmin, requireOrgAdmin, async (req: Au
   try {
     const orgId = getOrgId(req);
     const result = await query(`
-      SELECT b.*, c.name as college_name
+      SELECT b.*, c.name as college_name, COUNT(u.id) as student_count
       FROM batches b
       LEFT JOIN colleges c ON b.college_id = c.id
+      LEFT JOIN users u ON u.batch_id = b.id AND u.role = 'student' AND u.status = 'active'
       ${orgId ? 'WHERE b.college_id = $1' : ''}
-      ORDER BY c.name ASC, b.name ASC
+      GROUP BY b.id, c.name
+      ORDER BY b.batch_type ASC, b.name ASC
     `, orgId ? [orgId] : []);
     res.json(result.rows);
   } catch (err: any) {
@@ -378,15 +382,21 @@ app.post('/api/admin/colleges/:collegeId/batches', authenticateAdmin, requireOrg
   try {
     const orgId = getOrgId(req);
     const { collegeId } = req.params;
-    const { name } = req.body;
+    const { name, batchType, description } = req.body;
     if (orgId && collegeId !== orgId) {
       return res.status(403).json({ error: 'Cannot create a batch for another organization' });
     }
     if (!name) return res.status(400).json({ error: 'Batch name is required' });
 
     const result = await query(
-      'INSERT INTO batches (college_id, name) VALUES ($1, $2) ON CONFLICT (college_id, name) DO UPDATE SET name = EXCLUDED.name RETURNING *',
-      [collegeId, name]
+      `INSERT INTO batches (college_id, name, batch_type, description)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (college_id, name) DO UPDATE SET
+         name = EXCLUDED.name,
+         batch_type = EXCLUDED.batch_type,
+         description = EXCLUDED.description
+       RETURNING *`,
+      [collegeId, name, batchType || 'academic', description || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err: any) {

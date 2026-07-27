@@ -54,6 +54,31 @@ app.use((req, res, next) => {
   next();
 });
 
+interface AuthenticatedRequest extends express.Request {
+  user?: {
+    userId: string;
+    id: string;
+    role: string;
+    full_name?: string;
+  };
+}
+
+// JWT auth for the faculty-scoped REST endpoints below. The admin live-monitor
+// flow uses socket.io with its own inline role check, so this middleware is
+// only wired into the new /api/proctor/faculty/* routes.
+const authenticate = (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) {
+    return res.status(401).json({ error: 'No token' });
+  }
+  try {
+    req.user = jwt.verify(token, JWT_SECRET) as any;
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
 // Health Check
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', service: 'proctoring-service' });
@@ -116,6 +141,114 @@ app.post('/api/proctor/verify-face', async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
+// GET /api/proctor/faculty/live
+// Faculty-scoped live sessions — only students in the faculty's assigned batches
+app.get('/api/proctor/faculty/live',
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const facultyId = req.user!.userId;
+
+      const result = await query(
+        `SELECT DISTINCT
+           ea.id as attempt_id,
+           ea.exam_id,
+           ea.student_id,
+           ea.status,
+           ea.created_at as started_at,
+           u.full_name as student_name,
+           u.roll_number,
+           e.name as exam_name,
+           e.duration_minutes,
+           COUNT(pl.id) as violation_count,
+           COUNT(pl.id) FILTER (WHERE pl.severity = 'high') as high_violations
+         FROM exam_attempts ea
+         JOIN users u ON u.id = ea.student_id
+         JOIN exams e ON e.id = ea.exam_id
+         LEFT JOIN proctoring_logs pl ON pl.attempt_id = ea.id
+         WHERE ea.status = 'ongoing'
+           AND u.batch_id IN (
+             SELECT batch_id FROM faculty_batches WHERE faculty_id = $1
+           )
+         GROUP BY ea.id, u.full_name, u.roll_number, e.name, e.duration_minutes
+         ORDER BY violation_count DESC`,
+        [facultyId]
+      );
+
+      res.json(result.rows);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// GET /api/proctor/faculty/attempts/:attemptId/logs
+app.get('/api/proctor/faculty/attempts/:attemptId/logs',
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { attemptId } = req.params;
+      const facultyId = req.user!.userId;
+
+      // Verify this attempt belongs to a student in the faculty's batch
+      const verify = await query(
+        `SELECT ea.id FROM exam_attempts ea
+         JOIN users u ON u.id = ea.student_id
+         JOIN faculty_batches fb ON fb.batch_id = u.batch_id
+         WHERE ea.id = $1 AND fb.faculty_id = $2`,
+        [attemptId, facultyId]
+      );
+
+      if (verify.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const logs = await query(
+        `SELECT * FROM proctoring_logs
+         WHERE attempt_id = $1
+         ORDER BY created_at DESC`,
+        [attemptId]
+      );
+
+      res.json(logs.rows);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
+// POST /api/proctor/faculty/warn/:attemptId
+app.post('/api/proctor/faculty/warn/:attemptId',
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { attemptId } = req.params;
+      const facultyId = req.user!.userId;
+
+      const faculty = await query(`SELECT full_name FROM users WHERE id = $1`, [facultyId]);
+      const facultyName = faculty.rows[0]?.full_name || 'Faculty';
+
+      await query(
+        `INSERT INTO proctoring_logs (attempt_id, event_type, details, severity)
+         VALUES ($1, 'manual_warning', $2, 'medium')`,
+        [
+          attemptId,
+          JSON.stringify({
+            message: 'Warning issued by faculty',
+            issuedBy: facultyName,
+            issuedByRole: 'faculty',
+            issuedById: facultyId
+          })
+        ]
+      );
+
+      res.json({ message: `Warning sent by ${facultyName}` });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
 
 const server = http.createServer(app);
 const io = new Server(server, {

@@ -2353,7 +2353,7 @@ app.post('/api/exams/student/attempts/:attemptId/submit', authenticate, requireR
 });
 
 // Terminate Exam Attempt (for proctoring/violations)
-app.post('/api/exams/student/attempts/:attemptId/terminate', authenticate, requireRole('student'), async (req, res) => {
+app.post('/api/exams/student/attempts/:attemptId/terminate', authenticate, requireRole('student'), async (req: AuthenticatedRequest, res) => {
   try {
     const { attemptId } = req.params;
     const { reason } = req.body;
@@ -2370,12 +2370,15 @@ app.post('/api/exams/student/attempts/:attemptId/terminate', authenticate, requi
     }
 
     const feedbackStr = `Exam automatically terminated: ${reason || 'Multiple warnings exceeded / screen violations detected.'}`;
+    const terminatedByName = (req.user as any)?.full_name || null;
+    const terminatedByRole = req.user?.role || null;
     await query(
       `UPDATE exam_attempts
        SET status = 'terminated', score = 0, percentage = 0.00, passed = FALSE, feedback = $1,
-           mcq_passed = FALSE, coding_passed = FALSE, failure_reason = $2
+           mcq_passed = FALSE, coding_passed = FALSE, failure_reason = $2,
+           terminated_by_name = $4, terminated_by_role = $5
        WHERE id = $3`,
-      [feedbackStr, feedbackStr, attemptId]
+      [feedbackStr, feedbackStr, attemptId, terminatedByName, terminatedByRole]
     );
 
     // Retrieve student email and exam details to queue email notification

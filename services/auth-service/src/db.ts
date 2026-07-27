@@ -805,6 +805,20 @@ export async function initDb() {
       console.error('College link check:', err.message);
     }
 
+    // Migration 17: exam_attempts termination audit trail
+    try {
+      await client.query('SAVEPOINT sp_terminated_by');
+      await client.query(`
+        ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS terminated_by_name VARCHAR(200);
+        ALTER TABLE exam_attempts ADD COLUMN IF NOT EXISTS terminated_by_role VARCHAR(50);
+      `);
+      await client.query('RELEASE SAVEPOINT sp_terminated_by');
+      console.log('✅ terminated_by columns added');
+    } catch (err: any) {
+      await client.query('ROLLBACK TO SAVEPOINT sp_terminated_by');
+      console.error('terminated_by migration:', err.message);
+    }
+
     await client.query('COMMIT');
     console.log('Database tables successfully verified/created.');
   } catch (err) {
