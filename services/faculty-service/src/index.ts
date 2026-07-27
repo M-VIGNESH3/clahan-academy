@@ -290,9 +290,23 @@ app.get('/api/faculty/question-batches/:id/questions',
     try {
       const { id } = req.params;
       const result = await pool.query(
-        `SELECT * FROM question_bank
-         WHERE batch_id = $1
-         ORDER BY created_at ASC`,
+        `SELECT
+           q.*,
+           COALESCE(
+             json_agg(
+               json_build_object(
+                 'input', tc.input,
+                 'expectedOutput', tc.expected_output,
+                 'isHidden', tc.is_hidden
+               )
+             ) FILTER (WHERE tc.id IS NOT NULL),
+             '[]'
+           ) as test_cases
+         FROM question_bank q
+         LEFT JOIN question_bank_test_cases tc ON tc.question_id = q.id
+         WHERE q.batch_id = $1
+         GROUP BY q.id
+         ORDER BY q.created_at ASC`,
         [id]
       );
       res.json(result.rows);
@@ -317,7 +331,8 @@ app.post('/api/faculty/questions',
         // Coding
         title, codingLanguage, starterCode, timeLimit, memoryLimit,
         // Rich content (shared)
-        contentBlocks, images
+        contentBlocks, images,
+        testCases
       } = req.body;
 
       if (!batchId || !questionType || !questionText) {
@@ -377,6 +392,27 @@ app.post('/api/faculty/questions',
           JSON.stringify(images || [])
         ]
       );
+
+      const questionId = result.rows[0].id;
+
+      if (Array.isArray(testCases) && testCases.length > 0) {
+        for (const tc of testCases) {
+          if (!tc.input && !tc.expectedOutput) {
+            continue;
+          }
+          await pool.query(
+            `INSERT INTO question_bank_test_cases
+             (question_id, input, expected_output, is_hidden)
+             VALUES ($1, $2, $3, $4)`,
+            [
+              questionId,
+              tc.input || '',
+              tc.expectedOutput || '',
+              tc.isHidden || false
+            ]
+          );
+        }
+      }
 
       // Update question count on batch
       await pool.query(
@@ -685,7 +721,8 @@ app.put('/api/faculty/questions/:id',
         correctAnswer, marks, difficulty,
         subject, topic, explanation, tags,
         contentBlocks, images,
-        title, codingLanguage, starterCode, timeLimit, memoryLimit
+        title, codingLanguage, starterCode, timeLimit, memoryLimit,
+        testCases
       } = req.body;
 
       // Verify ownership
@@ -752,6 +789,29 @@ app.put('/api/faculty/questions/:id',
           id
         ]
       );
+
+      if (Array.isArray(testCases)) {
+        await pool.query(
+          `DELETE FROM question_bank_test_cases WHERE question_id = $1`,
+          [id]
+        );
+        for (const tc of testCases) {
+          if (!tc.input && !tc.expectedOutput) {
+            continue;
+          }
+          await pool.query(
+            `INSERT INTO question_bank_test_cases
+             (question_id, input, expected_output, is_hidden)
+             VALUES ($1, $2, $3, $4)`,
+            [
+              id,
+              tc.input || '',
+              tc.expectedOutput || '',
+              tc.isHidden || false
+            ]
+          );
+        }
+      }
 
       res.json(result.rows[0]);
     } catch (err: any) {

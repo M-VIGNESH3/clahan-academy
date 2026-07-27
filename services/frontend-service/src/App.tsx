@@ -331,6 +331,13 @@ export default function App() {
     memoryLimit: 256
   };
   const [bankMcqForm, setBankMcqForm] = useState(emptyBankMcqForm);
+  const [bankTestCases, setBankTestCases] = useState<{
+    input: string;
+    expectedOutput: string;
+    isHidden: boolean;
+  }[]>([
+    { input: '', expectedOutput: '', isHidden: false }
+  ]);
 
   // Super admin state
   const [superStats, setSuperStats] = useState<any>(null);
@@ -2201,10 +2208,20 @@ export default function App() {
         timeLimit: questionToEdit.time_limit || 30,
         memoryLimit: questionToEdit.memory_limit || 256
       });
+      setBankTestCases(
+        questionToEdit.test_cases?.length > 0
+          ? questionToEdit.test_cases.map((tc: any) => ({
+              input: tc.input || '',
+              expectedOutput: tc.expectedOutput || '',
+              isHidden: tc.isHidden || false
+            }))
+          : [{ input: '', expectedOutput: '', isHidden: false }]
+      );
       setEditingBankQuestion(questionToEdit);
       setBankQuestionEditorMode('edit');
     } else {
       setBankMcqForm(emptyBankMcqForm);
+      setBankTestCases([{ input: '', expectedOutput: '', isHidden: false }]);
       setEditingBankQuestion(null);
       setBankQuestionEditorMode('create');
     }
@@ -2242,7 +2259,8 @@ export default function App() {
       topic: bankMcqForm.topic || selectedQuestionBatch.topic || '',
       tags: bankMcqForm.tags ? bankMcqForm.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
       contentBlocks: bankMcqForm.contentBlocks,
-      images: bankMcqForm.images
+      images: bankMcqForm.images,
+      testCases: bankTestCases.filter(tc => tc.input.trim() || tc.expectedOutput.trim())
     } : {
       batchId: selectedQuestionBatch.id,
       questionType: 'mcq',
@@ -2288,6 +2306,7 @@ export default function App() {
 
       showToast(isEdit ? 'Question updated ✓' : 'Question saved ✓', 'success');
       setBankMcqForm(emptyBankMcqForm);
+      setBankTestCases([{ input: '', expectedOutput: '', isHidden: false }]);
       setEditingBankQuestion(null);
       setBankQuestionEditorMode('create');
       loadBankQuestionsForBatch(selectedQuestionBatch.id);
@@ -2299,7 +2318,7 @@ export default function App() {
 
   const downloadBankTemplate = () => {
     const headers = 'Question,Option A,Option B,Option C,Option D,Correct Answer,Marks,Difficulty\n';
-    const sample = 'What is the correct way to write a Python comment?,# Comment,// Comment,/* Comment */,<! Comment >,A,1,easy\n';
+    const sample = '"What is 2+2?","3","4","5","6","b","1","easy"\n';
     const blob = new Blob([headers + sample], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -14978,6 +14997,90 @@ export default function App() {
                     />
                   </div>
 
+                  {/* Test Cases */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">
+                        Test Cases
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setBankTestCases(prev => [...prev, { input: '', expectedOutput: '', isHidden: false }])}
+                        className="px-3 py-1 bg-slate-800 text-slate-300 text-[10px] font-bold rounded-lg hover:bg-slate-700"
+                      >
+                        + Add Test Case
+                      </button>
+                    </div>
+
+                    {bankTestCases.map((tc, i) => (
+                      <div key={i} className="p-4 bg-slate-900 border border-white/10 rounded-xl space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-slate-400">
+                            Test Case {i + 1}
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-2 text-[10px] text-slate-400 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={tc.isHidden}
+                                onChange={e => {
+                                  const updated = [...bankTestCases];
+                                  updated[i].isHidden = e.target.checked;
+                                  setBankTestCases(updated);
+                                }}
+                                className="w-3 h-3 rounded"
+                              />
+                              Hidden from students
+                            </label>
+                            {bankTestCases.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => setBankTestCases(prev => prev.filter((_, j) => j !== i))}
+                                className="text-red-400 text-[10px] font-bold hover:text-red-300"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[10px] text-slate-500 block mb-1">
+                              Input
+                            </label>
+                            <textarea
+                              value={tc.input}
+                              onChange={e => {
+                                const updated = [...bankTestCases];
+                                updated[i].input = e.target.value;
+                                setBankTestCases(updated);
+                              }}
+                              rows={3}
+                              className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-lg text-xs text-white font-mono resize-none focus:border-indigo-500/50 focus:outline-none"
+                              placeholder={'5\n1 2 3 4 5'}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-500 block mb-1">
+                              Expected Output
+                            </label>
+                            <textarea
+                              value={tc.expectedOutput}
+                              onChange={e => {
+                                const updated = [...bankTestCases];
+                                updated[i].expectedOutput = e.target.value;
+                                setBankTestCases(updated);
+                              }}
+                              rows={3}
+                              className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-lg text-xs text-white font-mono resize-none focus:border-indigo-500/50 focus:outline-none"
+                              placeholder="15"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
                   <div className="flex justify-end gap-2 pt-2">
                     {bankQuestionEditorMode === 'edit' && (
                       <button
@@ -14986,6 +15089,7 @@ export default function App() {
                           setBankMcqForm(emptyBankMcqForm);
                           setEditingBankQuestion(null);
                           setBankQuestionEditorMode('create');
+                          setBankTestCases([{ input: '', expectedOutput: '', isHidden: false }]);
                         }}
                         className="px-3 py-1.5 text-[10px] border border-slate-800 rounded-lg text-muted-foreground"
                       >
