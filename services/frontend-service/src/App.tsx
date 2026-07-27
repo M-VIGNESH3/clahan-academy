@@ -298,12 +298,19 @@ export default function App() {
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
   const [uploadResult, setUploadResult] = useState<any>(null);
 
-  // Question bank rich editor (full-screen page, replaces the old plain-text modal)
+  // Question bank rich editor (full-screen page, mirrors the admin exam wizard editor)
   const [bankQuestionEditorMode, setBankQuestionEditorMode] = useState<'create' | 'edit'>('create');
-  const [bankQuestionTab, setBankQuestionTab] = useState<'mcq' | 'coding'>('mcq');
+  const [bankQuestionTab, setBankQuestionTab] = useState<'mcq' | 'coding' | 'import'>('mcq');
   const [editingBankQuestion, setEditingBankQuestion] = useState<any>(null);
   const [bankQuestionsInBatch, setBankQuestionsInBatch] = useState<any[]>([]);
   const [isLoadingBankQuestions, setIsLoadingBankQuestions] = useState(false);
+  const [bankCsvText, setBankCsvText] = useState('');
+  const [selectedBankFileName, setSelectedBankFileName] = useState<string | null>(null);
+  const [bankImportError, setBankImportError] = useState('');
+  const [bankImportSuccess, setBankImportSuccess] = useState('');
+  const [isBankImporting, setIsBankImporting] = useState(false);
+  const [bankUploadProgress, setBankUploadProgress] = useState(0);
+  const [isBankUploadingImage, setIsBankUploadingImage] = useState(false);
   const emptyBankMcqForm = {
     question: '',
     optionA: '', optionB: '', optionC: '', optionD: '',
@@ -316,7 +323,12 @@ export default function App() {
     explanation: '',
     tags: '',
     contentBlocks: [] as ContentBlock[],
-    images: [] as string[]
+    images: [] as string[],
+    // Coding-specific
+    codingLanguage: 'python',
+    starterCode: '',
+    timeLimit: 30,
+    memoryLimit: 256
   };
   const [bankMcqForm, setBankMcqForm] = useState(emptyBankMcqForm);
 
@@ -2158,49 +2170,37 @@ export default function App() {
 
   const openBankQuestionEditor = (batch: any, questionToEdit?: any) => {
     setSelectedQuestionBatch(batch);
+    loadBankQuestionsForBatch(batch.id);
+
     if (questionToEdit) {
-      if (questionToEdit.question_type === 'coding') {
-        setBankQuestionTab('coding');
-        setBankMcqForm({
-          question: questionToEdit.question_text || questionToEdit.title || '',
-          optionA: questionToEdit.starter_code || '',
-          optionB: String(questionToEdit.time_limit || 30),
-          optionC: String(questionToEdit.memory_limit || 256),
-          optionD: '',
-          optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '',
-          correctAnswer: 'a',
-          marks: questionToEdit.marks || 10,
-          difficulty: questionToEdit.difficulty || 'medium',
-          subject: questionToEdit.subject || '',
-          topic: questionToEdit.coding_language || 'python',
-          explanation: '',
-          tags: Array.isArray(questionToEdit.tags) ? questionToEdit.tags.join(', ') : (questionToEdit.tags || ''),
-          contentBlocks: questionToEdit.content_blocks || [],
-          images: questionToEdit.images || []
-        });
-      } else {
-        setBankQuestionTab('mcq');
-        setBankMcqForm({
-          question: questionToEdit.question_text || '',
-          optionA: questionToEdit.option_a || '',
-          optionB: questionToEdit.option_b || '',
-          optionC: questionToEdit.option_c || '',
-          optionD: questionToEdit.option_d || '',
-          optionAImage: questionToEdit.option_a_image || '',
-          optionBImage: questionToEdit.option_b_image || '',
-          optionCImage: questionToEdit.option_c_image || '',
-          optionDImage: questionToEdit.option_d_image || '',
-          correctAnswer: questionToEdit.correct_answer || 'a',
-          marks: questionToEdit.marks || 1,
-          difficulty: questionToEdit.difficulty || 'medium',
-          subject: questionToEdit.subject || '',
-          topic: questionToEdit.topic || '',
-          explanation: questionToEdit.explanation || '',
-          tags: Array.isArray(questionToEdit.tags) ? questionToEdit.tags.join(', ') : (questionToEdit.tags || ''),
-          contentBlocks: questionToEdit.content_blocks || [],
-          images: questionToEdit.images || []
-        });
-      }
+      const isCoding = questionToEdit.question_type === 'coding';
+
+      setBankQuestionTab(isCoding ? 'coding' : 'mcq');
+      setBankMcqForm({
+        question: questionToEdit.question_text || questionToEdit.title || '',
+        optionA: questionToEdit.option_a || '',
+        optionB: questionToEdit.option_b || '',
+        optionC: questionToEdit.option_c || '',
+        optionD: questionToEdit.option_d || '',
+        optionAImage: questionToEdit.option_a_image || '',
+        optionBImage: questionToEdit.option_b_image || '',
+        optionCImage: questionToEdit.option_c_image || '',
+        optionDImage: questionToEdit.option_d_image || '',
+        correctAnswer: questionToEdit.correct_answer || 'a',
+        marks: questionToEdit.marks || 1,
+        difficulty: questionToEdit.difficulty || 'medium',
+        subject: questionToEdit.subject || '',
+        topic: questionToEdit.topic || '',
+        explanation: questionToEdit.explanation || '',
+        tags: Array.isArray(questionToEdit.tags) ? questionToEdit.tags.join(', ') : (questionToEdit.tags || ''),
+        contentBlocks: questionToEdit.content_blocks || [],
+        images: questionToEdit.images || [],
+        // Coding fields
+        codingLanguage: questionToEdit.coding_language || 'python',
+        starterCode: questionToEdit.starter_code || '',
+        timeLimit: questionToEdit.time_limit || 30,
+        memoryLimit: questionToEdit.memory_limit || 256
+      });
       setEditingBankQuestion(questionToEdit);
       setBankQuestionEditorMode('edit');
     } else {
@@ -2209,30 +2209,38 @@ export default function App() {
       setBankQuestionEditorMode('create');
     }
     setCurrentPage('bank-question-editor');
-    loadBankQuestionsForBatch(batch.id);
   };
 
   const saveBankQuestion = async () => {
     if (!selectedQuestionBatch) return;
-    if (!bankMcqForm.question.trim() && bankMcqForm.contentBlocks.length === 0) {
-      showToast('Question text is required', 'error');
-      return;
-    }
 
     const isCoding = bankQuestionTab === 'coding';
+
+    if (!bankMcqForm.question.trim() && bankMcqForm.contentBlocks.length === 0) {
+      showToast(isCoding ? 'Problem title is required' : 'Question text is required', 'error');
+      return;
+    }
+    if (!isCoding) {
+      if (!bankMcqForm.optionA.trim() || !bankMcqForm.optionB.trim()) {
+        showToast('Options A and B are required', 'error');
+        return;
+      }
+    }
+
     const payload = isCoding ? {
       batchId: selectedQuestionBatch.id,
       questionType: 'coding',
       questionText: bankMcqForm.question,
       title: bankMcqForm.question,
-      codingLanguage: bankMcqForm.topic || 'python',
-      starterCode: bankMcqForm.optionA || '',
-      timeLimit: parseInt(bankMcqForm.optionB) || 30,
-      memoryLimit: parseInt(bankMcqForm.optionC) || 256,
+      codingLanguage: bankMcqForm.codingLanguage || 'python',
+      starterCode: bankMcqForm.starterCode || '',
+      timeLimit: bankMcqForm.timeLimit || 30,
+      memoryLimit: bankMcqForm.memoryLimit || 256,
       marks: bankMcqForm.marks,
       difficulty: bankMcqForm.difficulty,
-      subject: bankMcqForm.subject,
-      tags: bankMcqForm.tags.split(',').map(t => t.trim()).filter(Boolean),
+      subject: bankMcqForm.subject || selectedQuestionBatch.subject || '',
+      topic: bankMcqForm.topic || selectedQuestionBatch.topic || '',
+      tags: bankMcqForm.tags ? bankMcqForm.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
       contentBlocks: bankMcqForm.contentBlocks,
       images: bankMcqForm.images
     } : {
@@ -2250,10 +2258,10 @@ export default function App() {
       correctAnswer: bankMcqForm.correctAnswer,
       marks: bankMcqForm.marks,
       difficulty: bankMcqForm.difficulty,
-      subject: bankMcqForm.subject,
-      topic: bankMcqForm.topic,
+      subject: bankMcqForm.subject || selectedQuestionBatch.subject || '',
+      topic: bankMcqForm.topic || selectedQuestionBatch.topic || '',
       explanation: bankMcqForm.explanation,
-      tags: bankMcqForm.tags.split(',').map(t => t.trim()).filter(Boolean),
+      tags: bankMcqForm.tags ? bankMcqForm.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
       contentBlocks: bankMcqForm.contentBlocks,
       images: bankMcqForm.images
     };
@@ -2272,19 +2280,146 @@ export default function App() {
         }
       );
 
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        showToast(err.error || 'Save failed', 'error');
+        return;
+      }
+
+      showToast(isEdit ? 'Question updated ✓' : 'Question saved ✓', 'success');
+      setBankMcqForm(emptyBankMcqForm);
+      setEditingBankQuestion(null);
+      setBankQuestionEditorMode('create');
+      loadBankQuestionsForBatch(selectedQuestionBatch.id);
+      loadFacultyQuestionBatches();
+    } catch (err) {
+      showToast('Network error — check connection', 'error');
+    }
+  };
+
+  const downloadBankTemplate = () => {
+    const headers = 'Question,Option A,Option B,Option C,Option D,Correct Answer,Marks,Difficulty\n';
+    const sample = 'What is the correct way to write a Python comment?,# Comment,// Comment,/* Comment */,<! Comment >,A,1,easy\n';
+    const blob = new Blob([headers + sample], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'question_bank_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleBankFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSelectedBankFileName(file.name);
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.csv') && !name.endsWith('.xlsx') && !name.endsWith('.xls')) {
+      showToast('Please select a valid CSV or Excel (.xlsx, .xls) file.', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    if (name.endsWith('.csv')) {
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        setBankCsvText(text);
+        showToast(`Loaded "${file.name}"! Click "Import Batch" to upload.`, 'success');
+      };
+      reader.readAsText(file);
+    } else {
+      reader.onload = (event) => {
+        try {
+          const data = new Uint8Array(event.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const csv = XLSX.utils.sheet_to_csv(worksheet);
+          if (csv) {
+            setBankCsvText(csv);
+            showToast(`Loaded "${file.name}" from Excel! Click "Import Batch" to upload.`, 'success');
+          } else {
+            showToast('The Excel file is empty or could not be read.', 'error');
+          }
+        } catch (err: any) {
+          showToast(`Error parsing Excel file: ${err.message}`, 'error');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  };
+
+  const importBankCsv = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bankCsvText.trim() || !selectedQuestionBatch) return;
+    setIsBankImporting(true);
+    setBankImportError('');
+    setBankImportSuccess('');
+    try {
+      const res = await fetch(`${API_FACULTY}/questions/bulk-upload-csv`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          batchId: selectedQuestionBatch.id,
+          csvText: bankCsvText
+        })
+      });
       const data = await res.json();
       if (res.ok) {
-        showToast(isEdit ? 'Question updated' : 'Question added', 'success');
-        setBankMcqForm(emptyBankMcqForm);
-        setEditingBankQuestion(null);
-        setBankQuestionEditorMode('create');
+        setBankImportSuccess(
+          `Successfully imported ${data.imported} questions.` +
+          (data.failed > 0 ? ` ${data.failed} rows had errors.` : '')
+        );
+        setBankCsvText('');
+        setSelectedBankFileName(null);
         loadBankQuestionsForBatch(selectedQuestionBatch.id);
         loadFacultyQuestionBatches();
       } else {
-        showToast(data.error || 'Save failed', 'error');
+        setBankImportError(data.error || 'Import failed');
       }
     } catch (err) {
-      showToast('Network error', 'error');
+      setBankImportError('Network error');
+    } finally {
+      setIsBankImporting(false);
+    }
+  };
+
+  const handleBankOptionImageUpload = async (file: File, optionKey: string) => {
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image must be under 5MB', 'error');
+      return;
+    }
+    setIsBankUploadingImage(true);
+    setBankUploadProgress(0);
+
+    const interval = setInterval(() => {
+      setBankUploadProgress(prev => {
+        if (prev >= 85) {
+          clearInterval(interval);
+          return prev;
+        }
+        return prev + 15;
+      });
+    }, 100);
+
+    try {
+      const compressed = await compressImageFile(file, 800, 0.5);
+      clearInterval(interval);
+      setBankUploadProgress(100);
+      setBankMcqForm(prev => ({ ...prev, [optionKey]: compressed }));
+      setTimeout(() => {
+        setBankUploadProgress(0);
+        setIsBankUploadingImage(false);
+      }, 500);
+    } catch {
+      clearInterval(interval);
+      setIsBankUploadingImage(false);
+      setBankUploadProgress(0);
+      showToast('Image compression failed', 'error');
     }
   };
 
@@ -14479,390 +14614,347 @@ export default function App() {
       )}
 
       {currentPage === 'bank-question-editor' && selectedQuestionBatch && (
-        <div className="fixed inset-0 z-40 bg-slate-950 text-white flex flex-col">
+        <div className="fixed inset-0 z-40 bg-slate-950 flex overflow-hidden">
 
-          {/* TOP BAR */}
-          <div className="h-14 shrink-0 flex items-center justify-between px-4 border-b border-white/10 bg-slate-900/80 backdrop-blur-sm">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  setCurrentPage('faculty-questions');
-                  loadFacultyQuestionBatches();
-                }}
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-white/10"
-              >
-                ← Back
-              </button>
-              <div className="h-5 w-px bg-white/10" />
-              <div>
-                <span className="text-sm font-black text-white">{selectedQuestionBatch.name}</span>
-                <span className="ml-2 text-[10px] text-slate-400">{bankQuestionsInBatch.length} questions</span>
-              </div>
-              {selectedQuestionBatch.subject && (
-                <span className="px-2 py-0.5 bg-violet-500/20 text-violet-300 text-[10px] font-bold rounded-full">
-                  {selectedQuestionBatch.subject}
-                </span>
-              )}
-            </div>
+          {/* LEFT PANEL: EDITOR */}
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
 
-            <div className="flex items-center gap-2">
-              <div className="flex bg-slate-800 rounded-lg p-1 border border-white/10">
+            {/* Top bar */}
+            <div className="shrink-0 flex items-center justify-between px-5 py-3 bg-slate-900 border-b border-white/10">
+              <div className="flex items-center gap-3">
                 <button
                   onClick={() => {
-                    setBankQuestionTab('mcq');
-                    if (bankQuestionEditorMode !== 'edit') {
-                      setBankMcqForm({ ...emptyBankMcqForm, subject: selectedQuestionBatch.subject || '', topic: selectedQuestionBatch.topic || '' });
-                    }
+                    setCurrentPage('faculty-questions');
+                    loadFacultyQuestionBatches();
                   }}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
-                    bankQuestionTab === 'mcq' ? 'bg-violet-600 text-white shadow' : 'text-slate-400 hover:text-white'
-                  }`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 border border-white/10 transition-colors"
                 >
-                  📝 MCQ
+                  ← Back
                 </button>
-                <button
-                  onClick={() => {
-                    setBankQuestionTab('coding');
-                    if (!editingBankQuestion || editingBankQuestion.question_type !== 'coding') {
+                <div className="h-5 w-px bg-white/10" />
+                <div>
+                  <p className="text-sm font-black text-white leading-none">{selectedQuestionBatch.name}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    {bankQuestionEditorMode === 'edit' ? '✏️ Editing existing question' : '➕ Adding new question'}
+                    {' · '}
+                    {bankQuestionsInBatch.length} in batch
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {bankQuestionEditorMode === 'edit' && (
+                  <button
+                    onClick={() => {
+                      setBankMcqForm(emptyBankMcqForm);
                       setEditingBankQuestion(null);
                       setBankQuestionEditorMode('create');
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold text-slate-400 hover:text-white bg-slate-800 border border-white/10"
+                  >
+                    ✕ Cancel Edit
+                  </button>
+                )}
+                {bankQuestionTab !== 'import' && (
+                  <button
+                    onClick={saveBankQuestion}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold rounded-xl transition-colors shadow-lg shadow-indigo-500/20"
+                  >
+                    {bankQuestionEditorMode === 'edit' ? '💾 Update Question' : '✅ Save Question'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Question type tabs */}
+            <div className="shrink-0 flex gap-1 px-5 pt-3 pb-0 bg-slate-950">
+              {[
+                { id: 'mcq', label: '📝 MCQ' },
+                { id: 'coding', label: '💻 Coding' },
+                { id: 'import', label: '📊 Bulk Import' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    const nextTab = tab.id as 'mcq' | 'coding' | 'import';
+                    setBankQuestionTab(nextTab);
+                    const editingMatchesTab = editingBankQuestion && (
+                      (nextTab === 'coding' && editingBankQuestion.question_type === 'coding') ||
+                      (nextTab === 'mcq' && editingBankQuestion.question_type !== 'coding')
+                    );
+                    if (!editingMatchesTab) {
+                      setEditingBankQuestion(null);
+                      setBankQuestionEditorMode('create');
+                      if (nextTab !== 'import') {
+                        setBankMcqForm(emptyBankMcqForm);
+                      }
                     }
                   }}
-                  className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
-                    bankQuestionTab === 'coding' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                  className={`px-4 py-2 text-xs font-bold rounded-t-lg border-b-2 transition-all ${
+                    bankQuestionTab === tab.id
+                      ? 'border-indigo-500 text-indigo-400 bg-slate-900'
+                      : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-900/50'
                   }`}
                 >
-                  💻 Coding
+                  {tab.label}
                 </button>
-              </div>
-
-              <button
-                onClick={saveBankQuestion}
-                className={`px-5 py-2 text-xs font-extrabold rounded-xl text-white shadow-lg ${
-                  bankQuestionTab === 'mcq' ? 'bg-violet-600 hover:bg-violet-500' : 'bg-blue-600 hover:bg-blue-500'
-                }`}
-              >
-                {bankQuestionEditorMode === 'edit' ? '💾 Update' : '✅ Save & Next'}
-              </button>
+              ))}
             </div>
-          </div>
 
-          {/* MAIN AREA */}
-          <div className="flex-1 flex overflow-hidden">
+            {/* SCROLLABLE EDITOR BODY */}
+            <div className="flex-1 overflow-y-auto bg-slate-950 pb-10">
 
-            {/* LEFT: EDITOR PANEL */}
-            <div className="flex-1 overflow-y-auto bg-slate-950">
-
-              {/* MCQ EDITOR */}
+              {/* MCQ FORM */}
               {bankQuestionTab === 'mcq' && (
                 <div className="max-w-4xl mx-auto p-6 space-y-6">
 
-                  {bankQuestionEditorMode === 'edit' && (
-                    <div className="flex items-center gap-2 p-3 bg-violet-500/10 border border-violet-500/30 rounded-xl">
-                      <span className="text-violet-400 text-sm">✏️</span>
-                      <span className="text-xs text-violet-300 font-bold">
-                        Editing question — make changes and click Update
-                      </span>
-                      <button
-                        onClick={() => {
-                          setBankMcqForm({ ...emptyBankMcqForm, subject: selectedQuestionBatch.subject || '', topic: selectedQuestionBatch.topic || '' });
-                          setEditingBankQuestion(null);
-                          setBankQuestionEditorMode('create');
-                        }}
-                        className="ml-auto px-3 py-1 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg"
-                      >
-                        ✕ Cancel Edit
-                      </button>
-                    </div>
-                  )}
-
-                  {/* QUESTION BODY */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wide">
-                      Question
-                    </label>
-                    <textarea
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground">Question Stem</label>
+                    <input
+                      type="text"
                       value={bankMcqForm.question}
                       onChange={e => setBankMcqForm({ ...bankMcqForm, question: e.target.value })}
-                      placeholder="Type the question text here..."
-                      rows={4}
-                      className="w-full px-4 py-3 bg-slate-900 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 resize-none focus:border-violet-500/50 focus:outline-none leading-relaxed"
+                      className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
+                      placeholder="What is the runtime complexity of binary search?"
+                      required={(!bankMcqForm.contentBlocks || bankMcqForm.contentBlocks.length === 0) && (!bankMcqForm.images || bankMcqForm.images.length === 0)}
                     />
                   </div>
 
-                  {/* RICH CONTENT */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wide flex items-center gap-2">
-                      Rich Content
-                      <span className="text-[10px] text-slate-500 font-normal normal-case">
-                        — add images, code snippets, tables (optional)
-                      </span>
-                    </label>
-                    <div className="border border-white/10 rounded-xl overflow-hidden bg-slate-900">
-                      <RichTextEditor
-                        contentBlocks={bankMcqForm.contentBlocks || []}
-                        onChange={blocks => setBankMcqForm({ ...bankMcqForm, contentBlocks: blocks })}
-                      />
-                    </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-semibold text-muted-foreground">Question Diagram / Rich Content Blocks</label>
+                    <RichTextEditor
+                      contentBlocks={bankMcqForm.contentBlocks || []}
+                      onChange={blocks => setBankMcqForm(prev => ({ ...prev, contentBlocks: blocks }))}
+                    />
                   </div>
 
-                  {/* MCQ OPTIONS */}
-                  <div className="space-y-3">
-                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wide">
-                      Answer Options
-                      <span className="ml-2 text-[10px] text-slate-500 font-normal normal-case">
-                        — click the letter to mark correct answer
-                      </span>
-                    </label>
+                  {/* Image Upload Progress Bar UI */}
+                  {isBankUploadingImage && (
+                    <div className="w-full mb-3 p-3 bg-slate-800 border border-indigo-500/30 rounded-xl">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-indigo-300 font-bold flex items-center gap-2">
+                          <svg className="animate-spin h-3.5 w-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Processing & compressing image...
+                        </span>
+                        <span className="text-xs text-indigo-300 font-bold">{bankUploadProgress}%</span>
+                      </div>
+                      <div className="w-full bg-slate-700 rounded-full h-2">
+                        <div className="bg-indigo-500 h-2 rounded-full transition-all duration-200" style={{ width: `${bankUploadProgress}%` }} />
+                      </div>
+                    </div>
+                  )}
 
-                    {(['A', 'B', 'C', 'D'] as const).map(opt => {
-                      const textKey = `option${opt}` as keyof typeof bankMcqForm;
-                      const imgKey = `option${opt}Image` as keyof typeof bankMcqForm;
-                      const letterLower = opt.toLowerCase() as 'a' | 'b' | 'c' | 'd';
-                      const isCorrect = bankMcqForm.correctAnswer === letterLower;
-                      const currentImg = bankMcqForm[imgKey] as string;
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      { label: 'Option A', key: 'optionA', imgKey: 'optionAImage' },
+                      { label: 'Option B', key: 'optionB', imgKey: 'optionBImage' },
+                      { label: 'Option C', key: 'optionC', imgKey: 'optionCImage' },
+                      { label: 'Option D', key: 'optionD', imgKey: 'optionDImage' },
+                    ].map(opt => {
+                      const currentVal = bankMcqForm[opt.key as keyof typeof bankMcqForm] as string;
+                      const currentImg = (bankMcqForm[opt.imgKey as keyof typeof bankMcqForm] as string) || '';
 
                       return (
-                        <div
-                          key={opt}
-                          className={`rounded-xl border-2 transition-all ${
-                            isCorrect ? 'border-emerald-500/60 bg-emerald-500/5' : 'border-white/8 bg-slate-900/60 hover:border-white/20'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 px-4 pt-3 pb-2">
-                            <button
-                              onClick={() => setBankMcqForm({ ...bankMcqForm, correctAnswer: letterLower })}
-                              className={`h-7 w-7 rounded-full border-2 flex items-center justify-center text-xs font-black shrink-0 transition-all ${
-                                isCorrect
-                                  ? 'border-emerald-500 bg-emerald-500 text-white'
-                                  : 'border-slate-600 text-slate-500 hover:border-slate-300 hover:text-slate-300'
-                              }`}
-                            >
-                              {opt}
-                            </button>
-                            <span className={`text-[11px] font-bold ${isCorrect ? 'text-emerald-400' : 'text-slate-500'}`}>
-                              {isCorrect ? '✓ Correct Answer' : `Option ${opt}`}
-                            </span>
-                          </div>
-
-                          <div className="px-4 pb-3">
-                            <input
-                              type="text"
-                              value={bankMcqForm[textKey] as string}
-                              onChange={e => setBankMcqForm({ ...bankMcqForm, [textKey]: e.target.value })}
-                              placeholder={`Type option ${opt}...`}
-                              className="w-full px-3 py-2.5 bg-slate-800 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:border-violet-500/50 focus:outline-none mb-3"
-                            />
-
-                            <div className="flex items-start gap-3">
-                              {currentImg ? (
-                                <div className="relative group shrink-0">
-                                  <img
-                                    src={currentImg}
-                                    alt={`Option ${opt}`}
-                                    className="h-16 w-24 object-cover rounded-lg border border-white/10"
-                                  />
-                                  <button
-                                    onClick={() => setBankMcqForm({ ...bankMcqForm, [imgKey]: '' })}
-                                    className="absolute -top-1.5 -right-1.5 h-5 w-5 bg-red-500 rounded-full text-white text-[10px] font-black flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              ) : null}
-
-                              <label className={`flex items-center gap-2 px-4 py-2 border border-dashed rounded-xl cursor-pointer transition-all text-xs font-bold ${
-                                currentImg
-                                  ? 'border-white/10 text-slate-500 hover:border-white/30 hover:text-slate-300'
-                                  : 'border-white/20 text-slate-400 hover:border-violet-500/50 hover:text-violet-300 hover:bg-violet-500/5'
-                              }`}>
-                                📷 {currentImg ? 'Replace Image' : 'Add Image'}
+                        <div key={opt.key} className="p-3 border rounded-xl bg-slate-900 border-slate-800 space-y-2">
+                          <label className="text-[10px] font-semibold text-muted-foreground">{opt.label}</label>
+                          <input
+                            type="text"
+                            value={currentVal}
+                            onChange={e => setBankMcqForm({ ...bankMcqForm, [opt.key]: e.target.value })}
+                            placeholder={currentImg ? `${opt.label} text (Optional if image provided)` : `${opt.label} text`}
+                            className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent text-white"
+                          />
+                          <div className="space-y-2 pt-1 border-t border-slate-800">
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={currentImg}
+                                onChange={e => setBankMcqForm({ ...bankMcqForm, [opt.imgKey]: e.target.value })}
+                                placeholder={`${opt.label} Image URL or Upload below`}
+                                className="w-full p-1.5 border rounded-lg text-[10px] bg-transparent border-slate-800 text-white"
+                              />
+                              <label className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold cursor-pointer transition-colors flex items-center gap-1 shrink-0">
+                                Upload
                                 <input
                                   type="file"
                                   accept="image/*"
-                                  className="hidden"
-                                  onChange={async (e) => {
+                                  onChange={async e => {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
-                                    if (file.size > 5 * 1024 * 1024) {
-                                      showToast('Image must be under 5MB', 'error');
-                                      return;
-                                    }
-                                    setIsUploadingImage(true);
-                                    try {
-                                      const compressed = await compressImageFile(file, 800, 0.5);
-                                      setBankMcqForm(prev => ({ ...prev, [imgKey]: compressed }));
-                                    } catch {
-                                      showToast('Image compression failed', 'error');
-                                    } finally {
-                                      setIsUploadingImage(false);
-                                    }
+                                    await handleBankOptionImageUpload(file, opt.imgKey);
                                   }}
+                                  className="hidden"
                                 />
                               </label>
-
-                              <input
-                                type="url"
-                                value={currentImg}
-                                onChange={e => setBankMcqForm({ ...bankMcqForm, [imgKey]: e.target.value })}
-                                placeholder="or paste image URL..."
-                                className="flex-1 px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:border-violet-500/50 focus:outline-none"
-                              />
                             </div>
+                            {currentImg && (
+                              <div className="p-2 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between gap-2">
+                                <img src={currentImg} alt={`${opt.label} Preview`} className="max-h-14 object-contain rounded border border-white/10" />
+                                <div className="flex items-center gap-1">
+                                  <label className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[9px] font-bold cursor-pointer transition-colors">
+                                    Replace
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      onChange={async e => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        await handleBankOptionImageUpload(file, opt.imgKey);
+                                      }}
+                                      className="hidden"
+                                    />
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() => setBankMcqForm({ ...bankMcqForm, [opt.imgKey]: '' })}
+                                    className="px-2 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 rounded text-[9px] font-bold transition-colors"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
                     })}
-                    {isUploadingImage && (
-                      <p className="text-[10px] text-indigo-300">Processing image...</p>
-                    )}
                   </div>
 
-                  {/* METADATA */}
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Marks</label>
+                      <label className="text-[10px] font-semibold text-muted-foreground">Correct Option</label>
+                      <select
+                        value={bankMcqForm.correctAnswer}
+                        onChange={e => setBankMcqForm({ ...bankMcqForm, correctAnswer: e.target.value })}
+                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-slate-900 text-slate-100 mt-1"
+                      >
+                        <option value="a">Option A</option>
+                        <option value="b">Option B</option>
+                        <option value="c">Option C</option>
+                        <option value="d">Option D</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground">Award Marks</label>
                       <input
                         type="number"
-                        min="1"
                         value={bankMcqForm.marks}
                         onChange={e => setBankMcqForm({ ...bankMcqForm, marks: parseInt(e.target.value) || 1 })}
-                        className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white focus:border-violet-500/50 focus:outline-none"
+                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
+                        min={1}
+                        required
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Difficulty</label>
+                      <label className="text-[10px] font-semibold text-muted-foreground">Difficulty</label>
                       <select
                         value={bankMcqForm.difficulty}
                         onChange={e => setBankMcqForm({ ...bankMcqForm, difficulty: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white focus:border-violet-500/50 focus:outline-none"
+                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-slate-900 text-slate-100 mt-1"
                       >
                         <option value="easy">Easy</option>
                         <option value="medium">Medium</option>
                         <option value="hard">Hard</option>
                       </select>
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Subject</label>
+                      <label className="text-[10px] font-semibold text-muted-foreground">Subject</label>
                       <input
                         type="text"
                         value={bankMcqForm.subject}
                         onChange={e => setBankMcqForm({ ...bankMcqForm, subject: e.target.value })}
                         placeholder="Java, Python..."
-                        className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:border-violet-500/50 focus:outline-none"
+                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Topic</label>
+                      <label className="text-[10px] font-semibold text-muted-foreground">Topic</label>
                       <input
                         type="text"
                         value={bankMcqForm.topic}
                         onChange={e => setBankMcqForm({ ...bankMcqForm, topic: e.target.value })}
                         placeholder="OOP, Arrays..."
-                        className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:border-violet-500/50 focus:outline-none"
+                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">
-                        Tags <span className="ml-1 text-slate-500 font-normal normal-case">(comma separated)</span>
-                      </label>
+                      <label className="text-[10px] font-semibold text-muted-foreground">Tags (comma separated)</label>
                       <input
                         type="text"
                         value={bankMcqForm.tags}
                         onChange={e => setBankMcqForm({ ...bankMcqForm, tags: e.target.value })}
                         placeholder="recursion, sorting..."
-                        className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:border-violet-500/50 focus:outline-none"
+                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">
-                        Explanation <span className="ml-1 text-slate-500 font-normal normal-case">(shown after exam)</span>
-                      </label>
+                      <label className="text-[10px] font-semibold text-muted-foreground">Explanation (shown after exam)</label>
                       <input
                         type="text"
                         value={bankMcqForm.explanation}
                         onChange={e => setBankMcqForm({ ...bankMcqForm, explanation: e.target.value })}
                         placeholder="Why is this correct?"
-                        className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:border-violet-500/50 focus:outline-none"
+                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
                       />
                     </div>
                   </div>
 
-                  {/* BOTTOM SAVE */}
-                  <div className="flex gap-3 pt-4 border-t border-white/10">
+                  <div className="flex justify-end gap-2 pt-2">
                     {bankQuestionEditorMode === 'edit' && (
                       <button
+                        type="button"
                         onClick={() => {
-                          setBankMcqForm({ ...emptyBankMcqForm, subject: selectedQuestionBatch.subject || '', topic: selectedQuestionBatch.topic || '' });
+                          setBankMcqForm(emptyBankMcqForm);
                           setEditingBankQuestion(null);
                           setBankQuestionEditorMode('create');
                         }}
-                        className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold rounded-xl"
+                        className="px-3 py-1.5 text-[10px] border border-slate-800 rounded-lg text-muted-foreground"
                       >
-                        + Add New Instead
+                        Cancel
                       </button>
                     )}
                     <button
+                      type="button"
                       onClick={saveBankQuestion}
-                      className="flex-1 py-3 bg-violet-600 hover:bg-violet-500 text-white text-sm font-extrabold rounded-xl shadow-lg shadow-violet-500/20"
+                      disabled={isBankUploadingImage}
+                      className={`px-4 py-1.5 text-[10px] bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 transition-all ${isBankUploadingImage ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      {bankQuestionEditorMode === 'edit' ? '💾 Update Question' : '✅ Save & Add Another'}
+                      {isBankUploadingImage ? 'Processing image...' : (bankQuestionEditorMode === 'edit' ? 'Update MCQ' : 'Save Question')}
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* CODING EDITOR */}
+              {/* CODING FORM */}
               {bankQuestionTab === 'coding' && (
                 <div className="max-w-4xl mx-auto p-6 space-y-6">
 
-                  <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-                    <p className="text-xs text-blue-300 font-bold">💻 Coding Question</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">
-                      Students will write code to solve this problem. Add test cases to auto-grade.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">
-                      Problem Title *
-                    </label>
-                    <input
-                      type="text"
-                      value={bankMcqForm.question}
-                      onChange={e => setBankMcqForm({ ...bankMcqForm, question: e.target.value })}
-                      placeholder="e.g. Reverse a String"
-                      className="w-full px-4 py-3 bg-slate-900 border border-white/10 rounded-xl text-base font-bold text-white placeholder-slate-500 focus:border-blue-500/50 focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">
-                      Problem Description *
-                    </label>
-                    <div className="border border-white/10 rounded-xl overflow-hidden bg-slate-900">
-                      <RichTextEditor
-                        contentBlocks={bankMcqForm.contentBlocks || []}
-                        onChange={blocks => setBankMcqForm({ ...bankMcqForm, contentBlocks: blocks })}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground">Challenge Title</label>
+                      <input
+                        type="text"
+                        value={bankMcqForm.question}
+                        onChange={e => setBankMcqForm({ ...bankMcqForm, question: e.target.value })}
+                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
+                        placeholder="e.g. Reverse a Linked List"
+                        required
                       />
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-1">
-                      Use the toolbar to add examples, constraints, images
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase">
-                        Starter Code / Template
-                      </label>
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground">Programming Language (Starter code context)</label>
                       <select
-                        value={bankMcqForm.topic || 'python'}
-                        onChange={e => setBankMcqForm({ ...bankMcqForm, topic: e.target.value })}
-                        className="px-3 py-1 bg-slate-800 border border-white/10 rounded-lg text-xs text-white"
+                        value={bankMcqForm.codingLanguage}
+                        onChange={e => setBankMcqForm({ ...bankMcqForm, codingLanguage: e.target.value })}
+                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-slate-900 text-slate-100 mt-1"
                       >
                         <option value="python">Python</option>
                         <option value="java">Java</option>
@@ -14871,12 +14963,60 @@ export default function App() {
                         <option value="c">C</option>
                       </select>
                     </div>
-                    <div className="rounded-xl overflow-hidden border border-white/10">
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground">Award Marks</label>
+                      <input
+                        type="number"
+                        value={bankMcqForm.marks}
+                        onChange={e => setBankMcqForm({ ...bankMcqForm, marks: parseInt(e.target.value) || 10 })}
+                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
+                        min={1}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground">Time Limit (Seconds)</label>
+                      <input
+                        type="number"
+                        value={bankMcqForm.timeLimit}
+                        onChange={e => setBankMcqForm({ ...bankMcqForm, timeLimit: parseInt(e.target.value) || 30 })}
+                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold text-muted-foreground">Memory Limit (MB)</label>
+                      <input
+                        type="number"
+                        value={bankMcqForm.memoryLimit}
+                        onChange={e => setBankMcqForm({ ...bankMcqForm, memoryLimit: parseInt(e.target.value) || 256 })}
+                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground">Problem Description (supports Markdown / rich content)</label>
+                    <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-900 mt-1">
+                      <RichTextEditor
+                        contentBlocks={bankMcqForm.contentBlocks || []}
+                        onChange={blocks => setBankMcqForm({ ...bankMcqForm, contentBlocks: blocks })}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-semibold text-muted-foreground">Starter Skeleton Code</label>
+                    <div className="rounded-xl overflow-hidden border border-slate-800 mt-1">
                       <Editor
                         height="250px"
-                        language={bankMcqForm.topic || 'python'}
-                        value={bankMcqForm.optionA || ''}
-                        onChange={(val) => setBankMcqForm({ ...bankMcqForm, optionA: val || '' })}
+                        language={bankMcqForm.codingLanguage}
+                        value={bankMcqForm.starterCode}
+                        onChange={(val) => setBankMcqForm({ ...bankMcqForm, starterCode: val || '' })}
                         theme="vs-dark"
                         options={{
                           fontSize: 13,
@@ -14889,154 +15029,156 @@ export default function App() {
                         }}
                       />
                     </div>
-                    <p className="text-[10px] text-slate-500 mt-1">
-                      This code is given to students as a starting point
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-3">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Marks</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={bankMcqForm.marks}
-                        onChange={e => setBankMcqForm({ ...bankMcqForm, marks: parseInt(e.target.value) || 1 })}
-                        className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white focus:border-blue-500/50 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Difficulty</label>
-                      <select
-                        value={bankMcqForm.difficulty}
-                        onChange={e => setBankMcqForm({ ...bankMcqForm, difficulty: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white focus:border-blue-500/50 focus:outline-none"
-                      >
-                        <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Time Limit</label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          min="5"
-                          max="300"
-                          value={parseInt(bankMcqForm.optionB || '30')}
-                          onChange={e => setBankMcqForm({ ...bankMcqForm, optionB: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white focus:border-blue-500/50 focus:outline-none pr-10"
-                        />
-                        <span className="absolute right-3 top-2.5 text-[10px] text-slate-500">sec</span>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Memory</label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          min="64"
-                          max="512"
-                          value={parseInt(bankMcqForm.optionC || '256')}
-                          onChange={e => setBankMcqForm({ ...bankMcqForm, optionC: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white focus:border-blue-500/50 focus:outline-none pr-10"
-                        />
-                        <span className="absolute right-3 top-2.5 text-[10px] text-slate-500">MB</span>
-                      </div>
-                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Subject</label>
+                      <label className="text-[10px] font-semibold text-muted-foreground">Subject</label>
                       <input
                         type="text"
                         value={bankMcqForm.subject}
                         onChange={e => setBankMcqForm({ ...bankMcqForm, subject: e.target.value })}
                         placeholder="Data Structures..."
-                        className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:border-blue-500/50 focus:outline-none"
+                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Tags</label>
+                      <label className="text-[10px] font-semibold text-muted-foreground">Tags (comma separated)</label>
                       <input
                         type="text"
                         value={bankMcqForm.tags}
                         onChange={e => setBankMcqForm({ ...bankMcqForm, tags: e.target.value })}
                         placeholder="arrays, sorting..."
-                        className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:border-blue-500/50 focus:outline-none"
+                        className="w-full p-2 border border-slate-800 rounded-lg text-xs bg-transparent mt-1 text-white"
                       />
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-white/10">
+                  <div className="flex justify-end gap-2 pt-2">
+                    {bankQuestionEditorMode === 'edit' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBankMcqForm(emptyBankMcqForm);
+                          setEditingBankQuestion(null);
+                          setBankQuestionEditorMode('create');
+                        }}
+                        className="px-3 py-1.5 text-[10px] border border-slate-800 rounded-lg text-muted-foreground"
+                      >
+                        Cancel
+                      </button>
+                    )}
                     <button
+                      type="button"
                       onClick={saveBankQuestion}
-                      className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-extrabold rounded-xl shadow-lg shadow-blue-500/20"
+                      className="px-4 py-1.5 text-[10px] bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-500"
                     >
-                      {bankQuestionEditorMode === 'edit' ? '💾 Update Question' : '✅ Save Coding Question'}
+                      {bankQuestionEditorMode === 'edit' ? 'Update Challenge' : 'Save Challenge'}
                     </button>
                   </div>
                 </div>
               )}
+
+              {/* BULK IMPORT FORM */}
+              {bankQuestionTab === 'import' && (
+                <div className="max-w-4xl mx-auto p-6 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h5 className="text-[10px] font-bold text-indigo-400">Import MCQ Questions (CSV / Excel format)</h5>
+                    <button type="button" onClick={downloadBankTemplate} className="text-[9px] text-indigo-400 hover:underline font-bold">Download Template</button>
+                  </div>
+                  <div className="p-3 bg-slate-900 border-2 border-dashed border-indigo-900/60 rounded-xl text-center space-y-2">
+                    <Upload className="h-5 w-5 text-indigo-500 mx-auto" />
+                    <label className="cursor-pointer px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs inline-flex items-center gap-1.5 shadow-sm transition-all">
+                      <Upload className="h-3.5 w-3.5" />
+                      Choose Excel (.xlsx, .xls) or CSV File
+                      <input type="file" accept=".xlsx,.xls,.csv" onChange={handleBankFileChange} className="hidden" />
+                    </label>
+                    {selectedBankFileName && (
+                      <p className="text-[10px] text-emerald-400 font-bold font-mono">
+                        Selected File: {selectedBankFileName}
+                      </p>
+                    )}
+                  </div>
+                  <form onSubmit={importBankCsv} className="space-y-3">
+                    <textarea
+                      value={bankCsvText}
+                      onChange={e => setBankCsvText(e.target.value)}
+                      className="w-full p-2.5 font-mono text-[10px] border border-slate-800 rounded-lg bg-transparent text-white"
+                      rows={8}
+                      placeholder="Question,Option A,Option B,Option C,Option D,Correct Answer,Marks,Difficulty"
+                      required
+                    />
+                    {bankImportError && (
+                      <p className="text-[10px] text-red-400 font-bold">{bankImportError}</p>
+                    )}
+                    {bankImportSuccess && (
+                      <p className="text-[10px] text-emerald-400 font-bold">{bankImportSuccess}</p>
+                    )}
+                    <div className="flex justify-end gap-2">
+                      <button type="button" onClick={() => { setBankCsvText(''); setSelectedBankFileName(null); }} className="px-3 py-1.5 text-[10px] border border-slate-800 rounded-lg text-muted-foreground">Clear</button>
+                      <button type="submit" disabled={isBankImporting} className="px-4 py-1.5 text-[10px] bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 disabled:opacity-50">
+                        {isBankImporting ? 'Importing...' : 'Import Batch'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT PANEL: QUESTION LIST */}
+          <div className="w-80 shrink-0 flex flex-col border-l border-white/10 bg-slate-900">
+
+            <div className="shrink-0 px-4 py-3 border-b border-white/10">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-extrabold text-white">Questions in Batch</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-slate-400">
+                    {bankQuestionsInBatch.filter((q: any) => q.question_type === 'mcq').length} MCQ
+                  </span>
+                  <span className="text-slate-600 text-[10px]">·</span>
+                  <span className="text-[10px] text-slate-400">
+                    {bankQuestionsInBatch.filter((q: any) => q.question_type === 'coding').length} Coding
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* RIGHT: QUESTION LIST PANEL */}
-            <div className="w-80 shrink-0 flex flex-col border-l border-white/10 bg-slate-900/40">
-
-              <div className="px-4 py-3 border-b border-white/10 shrink-0">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-extrabold text-white">Questions</span>
-                  <span className="text-[10px] text-slate-400 font-bold">{bankQuestionsInBatch.length} total</span>
+            <div className="flex-1 overflow-y-auto p-2">
+              {isLoadingBankQuestions ? (
+                <div className="space-y-2 p-2">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-20 bg-slate-800/50 rounded-xl animate-pulse" />
+                  ))}
                 </div>
-
-                <div className="flex gap-2">
-                  <span className="text-[9px] px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full font-bold">
-                    MCQ: {bankQuestionsInBatch.filter((q: any) => q.question_type === 'mcq').length}
-                  </span>
-                  <span className="text-[9px] px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full font-bold">
-                    Coding: {bankQuestionsInBatch.filter((q: any) => q.question_type === 'coding').length}
-                  </span>
+              ) : bankQuestionsInBatch.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full py-12 text-center px-4">
+                  <div className="text-4xl mb-3 opacity-50">📝</div>
+                  <p className="text-xs font-bold text-slate-400">No questions yet</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Add questions using the editor or import via CSV</p>
                 </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {bankQuestionsInBatch.map((q: any, i: number) => {
+                    const isEditing = editingBankQuestion?.id === q.id;
+                    const isMcq = q.question_type === 'mcq';
 
-                <button
-                  onClick={() => {
-                    setShowUploadModal(true);
-                    setUploadResult(null);
-                  }}
-                  className="mt-2 w-full py-1.5 bg-slate-800 border border-dashed border-white/15 text-slate-400 text-[10px] font-bold rounded-lg hover:bg-slate-700 hover:border-white/30"
-                >
-                  📊 Bulk Import via Excel
-                </button>
-              </div>
+                    return (
+                      <div
+                        key={q.id}
+                        className={`group relative p-3 rounded-xl border transition-all duration-200 ${
+                          isEditing
+                            ? 'border-indigo-500/60 bg-indigo-500/10 shadow-lg shadow-indigo-500/10'
+                            : 'border-white/5 bg-slate-800/40 hover:border-white/15 hover:bg-slate-800/70'
+                        }`}
+                      >
+                        {isEditing && (
+                          <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-indigo-500 rounded-full" />
+                        )}
 
-              <div className="flex-1 overflow-y-auto p-2">
-                {isLoadingBankQuestions ? (
-                  <div className="text-center py-8 text-slate-500 text-xs">Loading...</div>
-                ) : bankQuestionsInBatch.length === 0 ? (
-                  <div className="text-center py-10 px-4">
-                    <p className="text-3xl mb-2">📝</p>
-                    <p className="text-xs text-slate-400 font-bold">No questions yet</p>
-                    <p className="text-[10px] text-slate-500 mt-1">Fill the editor and click Save</p>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    {bankQuestionsInBatch.map((q: any, i: number) => {
-                      const isEditing = editingBankQuestion?.id === q.id;
-                      const isMcq = q.question_type === 'mcq';
-
-                      return (
-                        <div
-                          key={q.id}
-                          className={`group p-3 rounded-xl border transition-all cursor-pointer ${
-                            isEditing
-                              ? 'border-violet-500/60 bg-violet-500/10'
-                              : 'border-white/5 bg-slate-800/40 hover:border-white/15 hover:bg-slate-800/70'
-                          }`}
-                        >
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <span className="text-[9px] font-black text-slate-600 w-5 text-center">{i + 1}</span>
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] font-black text-slate-600 w-4">{i + 1}.</span>
                             <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold ${
                               isMcq ? 'bg-violet-500/20 text-violet-400' : 'bg-blue-500/20 text-blue-400'
                             }`}>
@@ -15051,45 +15193,44 @@ export default function App() {
                             }`}>
                               {q.difficulty}
                             </span>
-                            <span className="text-[8px] text-slate-600 ml-auto">{q.marks}m</span>
-                            {(q.content_blocks?.length > 0 || q.images?.length > 0 || q.option_a_image) && (
-                              <span className="text-[9px]">🖼️</span>
+                            <span className="text-[8px] text-slate-600">{q.marks}m</span>
+                            {(q.content_blocks?.length > 0 || q.option_a_image) && (
+                              <span className="text-[9px]">🖼</span>
                             )}
                           </div>
-
-                          <p className="text-[11px] text-slate-200 line-clamp-2 leading-relaxed mb-2">
-                            {q.question_text || q.title || '(no title)'}
-                          </p>
-
-                          {isMcq && q.correct_answer && (
-                            <p className="text-[9px] text-emerald-400 mb-2">
-                              ✓ {q.correct_answer.toUpperCase()}
-                              {': '}
-                              {(q[`option_${q.correct_answer}`] || '').substring(0, 35)}
-                              {(q[`option_${q.correct_answer}`] || '').length > 35 ? '...' : ''}
-                            </p>
-                          )}
-
-                          <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => openBankQuestionEditor(selectedQuestionBatch, q)}
-                              className="flex-1 py-1 bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 text-[9px] font-bold rounded-lg"
-                            >
-                              ✏️ Edit
-                            </button>
-                            <button
-                              onClick={() => deleteBankQuestion(q.id)}
-                              className="flex-1 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-[9px] font-bold rounded-lg"
-                            >
-                              🗑️ Delete
-                            </button>
-                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+
+                        <p className="text-[11px] text-slate-200 line-clamp-2 leading-relaxed mb-2 ml-5">
+                          {q.question_text || q.title || '—'}
+                        </p>
+
+                        {isMcq && q.correct_answer && (
+                          <p className="text-[9px] text-emerald-400 ml-5 mb-2">
+                            ✓ {q.correct_answer.toUpperCase()}:{' '}
+                            {String(q[`option_${q.correct_answer}`] || '').substring(0, 40)}
+                            {String(q[`option_${q.correct_answer}`] || '').length > 40 ? '…' : ''}
+                          </p>
+                        )}
+
+                        <div className="flex gap-1 ml-5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                          <button
+                            onClick={() => openBankQuestionEditor(selectedQuestionBatch, q)}
+                            className="flex-1 py-1 text-[9px] font-bold rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 transition-colors"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            onClick={() => deleteBankQuestion(q.id)}
+                            className="flex-1 py-1 text-[9px] font-bold rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 transition-colors"
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -541,6 +541,138 @@ app.post('/api/faculty/questions/bulk-upload',
   }
 );
 
+// POST /api/faculty/questions/bulk-upload-csv
+// Mirrors the admin exam wizard's CSV-paste import flow, but saves into question_bank
+app.post('/api/faculty/questions/bulk-upload-csv',
+  authenticate, requireFaculty,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { batchId, csvText } = req.body;
+
+      if (!batchId || !csvText) {
+        return res.status(400).json({ error: 'batchId and csvText required' });
+      }
+
+      // Verify batch ownership
+      const batch = await pool.query(
+        `SELECT id, org_id FROM question_batches WHERE id = $1 AND created_by = $2`,
+        [batchId, req.user!.userId]
+      );
+      if (batch.rows.length === 0) {
+        return res.status(403).json({ error: 'Batch not found or not yours' });
+      }
+
+      // Parse CSV — same format as admin
+      // Columns: Question, Option A, Option B, Option C, Option D, Correct Answer, Marks, Difficulty
+      const lines = csvText
+        .split('\n')
+        .map((l: string) => l.trim())
+        .filter((l: string) => l.length > 0);
+
+      if (lines.length < 2) {
+        return res.status(400).json({ error: 'CSV must have header + data rows' });
+      }
+
+      // Skip header row
+      const dataLines = lines.slice(1);
+      let imported = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      for (let i = 0; i < dataLines.length; i++) {
+        const row = dataLines[i];
+
+        // Handle quoted CSV
+        const cols: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        for (const char of row) {
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            cols.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        cols.push(current.trim());
+
+        const question = cols[0] || '';
+        const optA = cols[1] || '';
+        const optB = cols[2] || '';
+        const optC = cols[3] || '';
+        const optD = cols[4] || '';
+        const answer = (cols[5] || 'a').toLowerCase().trim();
+        const marks = parseInt(cols[6]) || 1;
+        const difficulty = (cols[7] || 'medium').toLowerCase().trim();
+
+        if (!question) {
+          failed++;
+          errors.push(`Row ${i + 2}: Question text empty`);
+          continue;
+        }
+        if (!optA || !optB) {
+          failed++;
+          errors.push(`Row ${i + 2}: Options A and B required`);
+          continue;
+        }
+        if (!['a', 'b', 'c', 'd'].includes(answer)) {
+          failed++;
+          errors.push(`Row ${i + 2}: Answer must be a/b/c/d`);
+          continue;
+        }
+
+        try {
+          await pool.query(
+            `INSERT INTO question_bank
+             (org_id, batch_id, created_by,
+              question_type, question_text,
+              option_a, option_b, option_c, option_d, correct_answer,
+              marks, difficulty, status)
+             VALUES ($1,$2,$3,'mcq',$4,$5,$6,$7,$8,$9,$10,$11,'approved')`,
+            [
+              batch.rows[0].org_id,
+              batchId,
+              req.user!.userId,
+              question,
+              optA, optB,
+              optC || null,
+              optD || null,
+              answer, marks,
+              ['easy', 'medium', 'hard'].includes(difficulty) ? difficulty : 'medium'
+            ]
+          );
+          imported++;
+        } catch (dbErr: any) {
+          failed++;
+          errors.push(`Row ${i + 2}: ${dbErr.message}`);
+        }
+      }
+
+      // Update batch count
+      await pool.query(
+        `UPDATE question_batches
+         SET question_count = (
+           SELECT COUNT(*) FROM question_bank WHERE batch_id = $1
+         ), updated_at = NOW()
+         WHERE id = $1`,
+        [batchId]
+      );
+
+      res.json({
+        imported,
+        failed,
+        total: dataLines.length,
+        errors: errors.slice(0, 10),
+        message: `${imported} imported, ${failed} failed`
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
 // PUT /api/faculty/questions/:id
 app.put('/api/faculty/questions/:id',
   authenticate, requireFaculty,
