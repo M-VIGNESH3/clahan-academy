@@ -11,7 +11,8 @@ import { randomUUID } from 'crypto';
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -551,7 +552,8 @@ app.put('/api/faculty/questions/:id',
         optionAImage, optionBImage, optionCImage, optionDImage,
         correctAnswer, marks, difficulty,
         subject, topic, explanation, tags,
-        contentBlocks, images
+        contentBlocks, images,
+        title, codingLanguage, starterCode, timeLimit, memoryLimit
       } = req.body;
 
       // Verify ownership
@@ -583,8 +585,13 @@ app.put('/api/faculty/questions/:id',
            tags = $16,
            content_blocks = $17::jsonb,
            images = $18::jsonb,
+           title = $19,
+           coding_language = $20,
+           starter_code = $21,
+           time_limit = $22,
+           memory_limit = $23,
            updated_at = NOW()
-         WHERE id = $19
+         WHERE id = $24
          RETURNING *`,
         [
           questionText || null,
@@ -605,6 +612,11 @@ app.put('/api/faculty/questions/:id',
           Array.isArray(tags) && tags.length > 0 ? tags : null,
           JSON.stringify(contentBlocks || []),
           JSON.stringify(images || []),
+          title || null,
+          codingLanguage || null,
+          starterCode || null,
+          timeLimit || 30,
+          memoryLimit || 256,
           id
         ]
       );
