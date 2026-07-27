@@ -4,7 +4,7 @@ import {
   Trash2, Copy, Send, Download, Upload, Plus, Play, Check, Moon, Sun, ArrowRight, User, 
   LogOut, RefreshCw, Layers, Cpu, Laptop, Terminal, Mail, Phone, MapPin, Eye, EyeOff, Lock,
   Maximize2, ShieldAlert, X, Sparkles, ChevronLeft, ChevronRight, Star, Minimize2, Bookmark, Clock, Edit3,
-  GraduationCap, Database
+  GraduationCap, Database, Building2
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import * as XLSX from 'xlsx';
@@ -589,6 +589,20 @@ export default function App() {
   });
   const [mcqCsvInput, setMcqCsvInput] = useState('');
   const [selectedMcqFileName, setSelectedMcqFileName] = useState<string | null>(null);
+
+  // Question Bank picker (copy faculty-submitted bank questions into an exam section)
+  const [showBankPickerModal, setShowBankPickerModal] = useState(false);
+  const [bankPickerBatches, setBankPickerBatches] = useState<any[]>([]);
+  const [bankPickerSelectedBatchId, setBankPickerSelectedBatchId] = useState<string>('');
+  const [bankPickerQuestions, setBankPickerQuestions] = useState<any[]>([]);
+  const [bankPickerSelectedIds, setBankPickerSelectedIds] = useState<Set<string>>(new Set());
+  const [isLoadingBankPicker, setIsLoadingBankPicker] = useState(false);
+  const [isCopyingFromBank, setIsCopyingFromBank] = useState(false);
+  const [bankPickerFilter, setBankPickerFilter] = useState({ subject: '', difficulty: '', search: '' });
+  // Set explicitly by whichever section card opens the picker, rather than
+  // reusing selectedSectionIdForMcq/Coding — those are shared with the
+  // separate manual add-question modals and can be stale.
+  const [bankPickerTargetSectionId, setBankPickerTargetSectionId] = useState<string>('');
 
   // Manual Coding Question Configuration
   const [isCodingModalOpen, setIsCodingModalOpen] = useState(false);
@@ -4162,6 +4176,77 @@ export default function App() {
     }
   };
 
+  const loadBankPickerBatches = async () => {
+    try {
+      const res = await fetch(`${API_ADMIN}/question-batches`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setBankPickerBatches(await res.json());
+      }
+    } catch (err) {
+      console.error('Bank picker batches:', err);
+    }
+  };
+
+  const loadBankPickerQuestions = async (batchId: string) => {
+    setIsLoadingBankPicker(true);
+    setBankPickerSelectedIds(new Set());
+    try {
+      const res = await fetch(`${API_ADMIN}/question-batches/${batchId}/questions`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setBankPickerQuestions(await res.json());
+      }
+    } catch (err) {
+      console.error('Bank picker questions:', err);
+    } finally {
+      setIsLoadingBankPicker(false);
+    }
+  };
+
+  const copyQuestionsFromBank = async () => {
+    if (bankPickerSelectedIds.size === 0) {
+      showToast('Select at least one question', 'error');
+      return;
+    }
+    if (!selectedExamIdForQuestions) {
+      showToast('No exam selected', 'error');
+      return;
+    }
+
+    setIsCopyingFromBank(true);
+    try {
+      const res = await fetch(`${API_EXAMS}/${selectedExamIdForQuestions}/questions/from-bank`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          questionIds: Array.from(bankPickerSelectedIds),
+          sectionId: bankPickerTargetSectionId || null
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`${data.total} questions added to exam ✓`, 'success');
+        setShowBankPickerModal(false);
+        setBankPickerSelectedIds(new Set());
+        setBankPickerQuestions([]);
+        setBankPickerSelectedBatchId('');
+        loadAdminExamQuestions(selectedExamIdForQuestions);
+      } else {
+        showToast(data.error || 'Copy failed', 'error');
+      }
+    } catch {
+      showToast('Network error', 'error');
+    } finally {
+      setIsCopyingFromBank(false);
+    }
+  };
+
   const saveCodingQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedExamIdForQuestions) return;
@@ -6791,7 +6876,7 @@ export default function App() {
                 { id: 'metrics', label: 'Dashboard', icon: Award, badge: 0 },
                 { id: 'students', label: 'Students', icon: Users, badge: 0 },
                 { id: 'faculty', label: 'Faculty', icon: GraduationCap, badge: 0 },
-                { id: 'departments', label: 'Departments', icon: MapPin, badge: 0 },
+                { id: 'departments', label: 'Departments', icon: Building2, badge: 0 },
                 { id: 'batches', label: 'Batches', icon: Bookmark, badge: 0 },
                 { id: 'question-bank', label: 'Question Bank', icon: Database, badge: pendingBatches.length },
                 { id: 'training', label: 'Training', icon: BookOpen, badge: 0 },
@@ -10014,6 +10099,19 @@ export default function App() {
                                     className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-sm"
                                   >
                                     <Plus className="h-3 w-3" /> Add Coding Question
+                                  </button>
+                                )}
+                                {!isDescriptiveSec && (
+                                  <button
+                                    onClick={() => {
+                                      setBankPickerTargetSectionId(sect.id);
+                                      setShowBankPickerModal(true);
+                                      loadBankPickerBatches();
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/40 text-violet-300 text-xs font-extrabold rounded-xl transition-all"
+                                  >
+                                    <span>📚</span>
+                                    Pick from Question Bank
                                   </button>
                                 )}
                               </div>
@@ -15010,6 +15108,261 @@ export default function App() {
 
         </div>
       )}
+
+      {/* Question Bank Picker modal — copy faculty-submitted bank questions into an exam section */}
+      {showBankPickerModal && (() => {
+        const filteredBankQuestions = bankPickerQuestions.filter(q => {
+          const matchSearch = !bankPickerFilter.search ||
+            q.question_text?.toLowerCase().includes(bankPickerFilter.search.toLowerCase());
+          const matchDiff = !bankPickerFilter.difficulty || q.difficulty === bankPickerFilter.difficulty;
+          return matchSearch && matchDiff;
+        });
+
+        return (
+          <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+
+              {/* Modal header */}
+              <div className="flex items-center justify-between p-5 border-b border-white/10 shrink-0">
+                <div>
+                  <h3 className="font-black text-white text-lg">Pick from Question Bank</h3>
+                  <p className="text-xs text-slate-400">Select questions to add to this exam section</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {bankPickerSelectedIds.size > 0 && (
+                    <span className="px-3 py-1 bg-violet-500/20 text-violet-300 text-xs font-bold rounded-full">
+                      {bankPickerSelectedIds.size} selected
+                    </span>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowBankPickerModal(false);
+                      setBankPickerSelectedIds(new Set());
+                      setBankPickerQuestions([]);
+                      setBankPickerSelectedBatchId('');
+                    }}
+                    className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-1 min-h-0 overflow-hidden">
+
+                {/* Left: Batch selector */}
+                <div className="w-56 shrink-0 border-r border-white/10 overflow-y-auto p-3">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase px-2 mb-2">
+                    Question Batches
+                  </p>
+                  {bankPickerBatches.length === 0 ? (
+                    <p className="text-xs text-slate-500 text-center py-4 px-2">
+                      No approved batches yet. Faculty need to upload questions.
+                    </p>
+                  ) : (
+                    bankPickerBatches.map((batch: any) => (
+                      <button
+                        key={batch.id}
+                        onClick={() => {
+                          setBankPickerSelectedBatchId(batch.id);
+                          loadBankPickerQuestions(batch.id);
+                        }}
+                        className={`w-full text-left p-3 rounded-xl text-xs font-bold mb-1 transition-all ${
+                          bankPickerSelectedBatchId === batch.id
+                            ? 'bg-violet-600/30 text-violet-300 border border-violet-500/40'
+                            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                        }`}
+                      >
+                        <p className="truncate">{batch.name}</p>
+                        <p className="text-[9px] text-slate-500 mt-0.5 font-normal">
+                          {batch.actual_count || batch.question_count || 0} Qs
+                          {batch.subject && ` · ${batch.subject}`}
+                        </p>
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                {/* Right: Question list */}
+                <div className="flex-1 flex flex-col min-h-0">
+
+                  {/* Filters */}
+                  {bankPickerSelectedBatchId && (
+                    <div className="flex gap-2 p-3 border-b border-white/10 shrink-0">
+                      <input
+                        type="text"
+                        value={bankPickerFilter.search}
+                        onChange={e => setBankPickerFilter(prev => ({ ...prev, search: e.target.value }))}
+                        placeholder="Search questions..."
+                        className="flex-1 px-3 py-1.5 bg-slate-800 border border-white/10 rounded-lg text-xs text-white placeholder-slate-500 focus:border-violet-500/50 focus:outline-none"
+                      />
+                      <select
+                        value={bankPickerFilter.difficulty}
+                        onChange={e => setBankPickerFilter(prev => ({ ...prev, difficulty: e.target.value }))}
+                        className="px-3 py-1.5 bg-slate-800 border border-white/10 rounded-lg text-xs text-white focus:border-violet-500/50 focus:outline-none"
+                      >
+                        <option value="">All Difficulty</option>
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                      </select>
+                      <button
+                        onClick={() => {
+                          setBankPickerSelectedIds(prev => {
+                            const next = new Set(prev);
+                            filteredBankQuestions.forEach(q => next.add(q.id));
+                            return next;
+                          });
+                        }}
+                        className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg hover:bg-slate-600 whitespace-nowrap"
+                      >
+                        Select All
+                      </button>
+                      <button
+                        onClick={() => setBankPickerSelectedIds(new Set())}
+                        className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg hover:bg-slate-600 whitespace-nowrap"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Questions */}
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                    {!bankPickerSelectedBatchId ? (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <p className="text-4xl mb-3 opacity-30">📚</p>
+                        <p className="text-sm text-slate-400">Select a batch from the left</p>
+                      </div>
+                    ) : isLoadingBankPicker ? (
+                      <div className="space-y-2">
+                        {[1, 2, 3, 4, 5].map(i => (
+                          <div key={i} className="h-16 bg-slate-800/50 rounded-xl animate-pulse" />
+                        ))}
+                      </div>
+                    ) : filteredBankQuestions.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-full text-center">
+                        <p className="text-sm text-slate-400">
+                          {bankPickerQuestions.length === 0 ? 'No questions in this batch' : 'No questions match your filters'}
+                        </p>
+                      </div>
+                    ) : (
+                      filteredBankQuestions.map((q: any) => {
+                        const isSelected = bankPickerSelectedIds.has(q.id);
+                        const isMcq = q.question_type === 'mcq';
+
+                        return (
+                          <div
+                            key={q.id}
+                            onClick={() => {
+                              setBankPickerSelectedIds(prev => {
+                                const next = new Set(prev);
+                                if (next.has(q.id)) {
+                                  next.delete(q.id);
+                                } else {
+                                  next.add(q.id);
+                                }
+                                return next;
+                              });
+                            }}
+                            className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                              isSelected
+                                ? 'border-violet-500/60 bg-violet-500/10'
+                                : 'border-white/5 bg-slate-800/40 hover:border-white/20'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`mt-0.5 h-4 w-4 rounded border-2 shrink-0 flex items-center justify-center transition-all ${
+                                isSelected ? 'border-violet-500 bg-violet-500' : 'border-slate-600'
+                              }`}>
+                                {isSelected && (
+                                  <span className="text-white text-[8px] font-black">✓</span>
+                                )}
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold ${
+                                    isMcq ? 'bg-violet-500/20 text-violet-400' : 'bg-blue-500/20 text-blue-400'
+                                  }`}>
+                                    {isMcq ? 'MCQ' : 'CODE'}
+                                  </span>
+                                  <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold ${
+                                    q.difficulty === 'easy'
+                                      ? 'bg-emerald-500/20 text-emerald-400'
+                                      : q.difficulty === 'hard'
+                                        ? 'bg-red-500/20 text-red-400'
+                                        : 'bg-amber-500/20 text-amber-400'
+                                  }`}>
+                                    {q.difficulty}
+                                  </span>
+                                  <span className="text-[8px] text-slate-500">{q.marks}m</span>
+                                  {q.topic && (
+                                    <span className="text-[8px] text-slate-500">{q.topic}</span>
+                                  )}
+                                </div>
+
+                                <p className="text-xs text-white line-clamp-2 leading-relaxed">
+                                  {q.question_text || q.title || '—'}
+                                </p>
+
+                                {isMcq && q.correct_answer && (
+                                  <p className="text-[9px] text-emerald-400 mt-1">
+                                    ✓ {q[`option_${q.correct_answer}`]?.substring(0, 50)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal footer */}
+              <div className="flex items-center justify-between p-4 border-t border-white/10 shrink-0 bg-slate-900/50">
+                <p className="text-xs text-slate-400">
+                  {bankPickerSelectedIds.size > 0
+                    ? `${bankPickerSelectedIds.size} questions selected — will be copied into this exam`
+                    : 'Click questions to select them'}
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowBankPickerModal(false);
+                      setBankPickerSelectedIds(new Set());
+                      setBankPickerQuestions([]);
+                      setBankPickerSelectedBatchId('');
+                    }}
+                    className="px-4 py-2 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={copyQuestionsFromBank}
+                    disabled={bankPickerSelectedIds.size === 0 || isCopyingFromBank}
+                    className="px-5 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-extrabold rounded-xl flex items-center gap-2"
+                  >
+                    {isCopyingFromBank ? (
+                      <>
+                        <svg className="animate-spin h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Adding...
+                      </>
+                    ) : (
+                      `Add ${bankPickerSelectedIds.size || ''} Questions to Exam`
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Excel Upload modal — hoisted out of the faculty-questions page so it's
           also reachable from the bank-question-editor page's right panel */}
