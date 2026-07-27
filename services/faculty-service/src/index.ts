@@ -540,6 +540,82 @@ app.post('/api/faculty/questions/bulk-upload',
   }
 );
 
+// PUT /api/faculty/questions/:id
+app.put('/api/faculty/questions/:id',
+  authenticate, requireFaculty,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const {
+        questionText, optionA, optionB, optionC, optionD,
+        optionAImage, optionBImage, optionCImage, optionDImage,
+        correctAnswer, marks, difficulty,
+        subject, topic, explanation, tags,
+        contentBlocks, images
+      } = req.body;
+
+      // Verify ownership
+      const existing = await pool.query(
+        `SELECT id, batch_id FROM question_bank WHERE id = $1 AND created_by = $2`,
+        [id, req.user!.userId]
+      );
+      if (existing.rows.length === 0) {
+        return res.status(404).json({ error: 'Question not found' });
+      }
+
+      const result = await pool.query(
+        `UPDATE question_bank SET
+           question_text = COALESCE($1, question_text),
+           option_a = $2,
+           option_b = $3,
+           option_c = $4,
+           option_d = $5,
+           option_a_image = $6,
+           option_b_image = $7,
+           option_c_image = $8,
+           option_d_image = $9,
+           correct_answer = $10,
+           marks = COALESCE($11, marks),
+           difficulty = COALESCE($12, difficulty),
+           subject = $13,
+           topic = $14,
+           explanation = $15,
+           tags = $16,
+           content_blocks = $17::jsonb,
+           images = $18::jsonb,
+           updated_at = NOW()
+         WHERE id = $19
+         RETURNING *`,
+        [
+          questionText || null,
+          optionA || null,
+          optionB || null,
+          optionC || null,
+          optionD || null,
+          optionAImage || '',
+          optionBImage || '',
+          optionCImage || '',
+          optionDImage || '',
+          correctAnswer || null,
+          marks || null,
+          difficulty || null,
+          subject || null,
+          topic || null,
+          explanation || null,
+          Array.isArray(tags) && tags.length > 0 ? tags : null,
+          JSON.stringify(contentBlocks || []),
+          JSON.stringify(images || []),
+          id
+        ]
+      );
+
+      res.json(result.rows[0]);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
 // DELETE /api/faculty/questions/:id
 app.delete('/api/faculty/questions/:id',
   authenticate, requireFaculty,

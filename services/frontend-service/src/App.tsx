@@ -158,7 +158,7 @@ export default function App() {
   });
 
   // App Routing
-  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login' | 'faculty-login' | 'skill-gap' | 'super-dashboard' | 'super-organizations' | 'super-org-detail' | 'super-audit-logs' | 'faculty-dashboard' | 'faculty-questions' | 'faculty-students'>(() => {
+  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login' | 'faculty-login' | 'skill-gap' | 'super-dashboard' | 'super-organizations' | 'super-org-detail' | 'super-audit-logs' | 'faculty-dashboard' | 'faculty-questions' | 'faculty-students' | 'bank-question-editor'>(() => {
     const path = window.location.pathname.toLowerCase();
     if (path === '/admin-login' || path === '/admin-login/') {
       return 'admin-login';
@@ -294,45 +294,30 @@ export default function App() {
     description: ''
   });
   const [selectedQuestionBatch, setSelectedQuestionBatch] = useState<any>(null);
-  const [showAddQuestionModal, setShowAddQuestionModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [isUploadingExcel, setIsUploadingExcel] = useState(false);
   const [uploadResult, setUploadResult] = useState<any>(null);
-  const [newQuestion, setNewQuestion] = useState<{
-    questionType: string;
-    questionText: string;
-    optionA: string;
-    optionB: string;
-    optionC: string;
-    optionD: string;
-    correctAnswer: string;
-    marks: number;
-    difficulty: string;
-    explanation: string;
-    contentBlocks: ContentBlock[];
-    images: string[];
-    optionAImage: string;
-    optionBImage: string;
-    optionCImage: string;
-    optionDImage: string;
-  }>({
-    questionType: 'mcq',
-    questionText: '',
-    optionA: '',
-    optionB: '',
-    optionC: '',
-    optionD: '',
+
+  // Question bank rich editor (full-screen page, replaces the old plain-text modal)
+  const [bankQuestionEditorMode, setBankQuestionEditorMode] = useState<'create' | 'edit'>('create');
+  const [editingBankQuestion, setEditingBankQuestion] = useState<any>(null);
+  const [bankQuestionsInBatch, setBankQuestionsInBatch] = useState<any[]>([]);
+  const [isLoadingBankQuestions, setIsLoadingBankQuestions] = useState(false);
+  const emptyBankMcqForm = {
+    question: '',
+    optionA: '', optionB: '', optionC: '', optionD: '',
+    optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: '',
     correctAnswer: 'a',
     marks: 1,
     difficulty: 'medium',
+    subject: '',
+    topic: '',
     explanation: '',
-    contentBlocks: [],
-    images: [],
-    optionAImage: '',
-    optionBImage: '',
-    optionCImage: '',
-    optionDImage: ''
-  });
+    tags: '',
+    contentBlocks: [] as ContentBlock[],
+    images: [] as string[]
+  };
+  const [bankMcqForm, setBankMcqForm] = useState(emptyBankMcqForm);
 
   // Super admin state
   const [superStats, setSuperStats] = useState<any>(null);
@@ -2154,42 +2139,133 @@ export default function App() {
     }
   };
 
-  const addFacultyQuestion = async () => {
-    if (!selectedQuestionBatch) return;
+  const loadBankQuestionsForBatch = async (batchId: string) => {
+    setIsLoadingBankQuestions(true);
     try {
-      const res = await fetch(`${API_FACULTY}/questions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          batchId: selectedQuestionBatch.id,
-          ...newQuestion
-        })
+      const res = await fetch(`${API_FACULTY}/question-batches/${batchId}/questions`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
+      if (res.ok) {
+        setBankQuestionsInBatch(await res.json());
+      }
+    } catch (err) {
+      console.error('Load bank questions:', err);
+    } finally {
+      setIsLoadingBankQuestions(false);
+    }
+  };
+
+  const openBankQuestionEditor = (batch: any, questionToEdit?: any) => {
+    setSelectedQuestionBatch(batch);
+    if (questionToEdit) {
+      setBankMcqForm({
+        question: questionToEdit.question_text || '',
+        optionA: questionToEdit.option_a || '',
+        optionB: questionToEdit.option_b || '',
+        optionC: questionToEdit.option_c || '',
+        optionD: questionToEdit.option_d || '',
+        optionAImage: questionToEdit.option_a_image || '',
+        optionBImage: questionToEdit.option_b_image || '',
+        optionCImage: questionToEdit.option_c_image || '',
+        optionDImage: questionToEdit.option_d_image || '',
+        correctAnswer: questionToEdit.correct_answer || 'a',
+        marks: questionToEdit.marks || 1,
+        difficulty: questionToEdit.difficulty || 'medium',
+        subject: questionToEdit.subject || '',
+        topic: questionToEdit.topic || '',
+        explanation: questionToEdit.explanation || '',
+        tags: Array.isArray(questionToEdit.tags) ? questionToEdit.tags.join(', ') : (questionToEdit.tags || ''),
+        contentBlocks: questionToEdit.content_blocks || [],
+        images: questionToEdit.images || []
+      });
+      setEditingBankQuestion(questionToEdit);
+      setBankQuestionEditorMode('edit');
+    } else {
+      setBankMcqForm(emptyBankMcqForm);
+      setEditingBankQuestion(null);
+      setBankQuestionEditorMode('create');
+    }
+    setCurrentPage('bank-question-editor');
+    loadBankQuestionsForBatch(batch.id);
+  };
+
+  const saveBankQuestion = async () => {
+    if (!selectedQuestionBatch) return;
+    if (!bankMcqForm.question.trim() && bankMcqForm.contentBlocks.length === 0) {
+      showToast('Question text is required', 'error');
+      return;
+    }
+
+    const payload = {
+      batchId: selectedQuestionBatch.id,
+      questionType: 'mcq',
+      questionText: bankMcqForm.question,
+      optionA: bankMcqForm.optionA,
+      optionB: bankMcqForm.optionB,
+      optionC: bankMcqForm.optionC,
+      optionD: bankMcqForm.optionD,
+      optionAImage: bankMcqForm.optionAImage,
+      optionBImage: bankMcqForm.optionBImage,
+      optionCImage: bankMcqForm.optionCImage,
+      optionDImage: bankMcqForm.optionDImage,
+      correctAnswer: bankMcqForm.correctAnswer,
+      marks: bankMcqForm.marks,
+      difficulty: bankMcqForm.difficulty,
+      subject: bankMcqForm.subject,
+      topic: bankMcqForm.topic,
+      explanation: bankMcqForm.explanation,
+      tags: bankMcqForm.tags.split(',').map(t => t.trim()).filter(Boolean),
+      contentBlocks: bankMcqForm.contentBlocks,
+      images: bankMcqForm.images
+    };
+
+    try {
+      const isEdit = bankQuestionEditorMode === 'edit' && editingBankQuestion;
+      const res = await fetch(
+        isEdit ? `${API_FACULTY}/questions/${editingBankQuestion.id}` : `${API_FACULTY}/questions`,
+        {
+          method: isEdit ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        }
+      );
+
       const data = await res.json();
       if (res.ok) {
-        setShowAddQuestionModal(false);
-        setNewQuestion({
-          questionType: 'mcq',
-          questionText: '',
-          optionA: '', optionB: '', optionC: '', optionD: '',
-          correctAnswer: 'a',
-          marks: 1,
-          difficulty: 'medium',
-          explanation: '',
-          contentBlocks: [],
-          images: [],
-          optionAImage: '', optionBImage: '', optionCImage: '', optionDImage: ''
-        });
+        showToast(isEdit ? 'Question updated' : 'Question added', 'success');
+        setBankMcqForm(emptyBankMcqForm);
+        setEditingBankQuestion(null);
+        setBankQuestionEditorMode('create');
+        loadBankQuestionsForBatch(selectedQuestionBatch.id);
         loadFacultyQuestionBatches();
-        showToast('Question added', 'success');
       } else {
-        showToast(data.error || 'Failed', 'error');
+        showToast(data.error || 'Save failed', 'error');
       }
     } catch (err) {
       showToast('Network error', 'error');
+    }
+  };
+
+  const deleteBankQuestion = async (questionId: string) => {
+    if (!confirm('Delete this question? This cannot be undone.')) return;
+
+    try {
+      const res = await fetch(`${API_FACULTY}/questions/${questionId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('Question deleted', 'success');
+        if (selectedQuestionBatch) {
+          loadBankQuestionsForBatch(selectedQuestionBatch.id);
+          loadFacultyQuestionBatches();
+        }
+      }
+    } catch (err) {
+      showToast('Delete failed', 'error');
     }
   };
 
@@ -14184,13 +14260,10 @@ export default function App() {
                           📊 Upload Excel
                         </button>
                         <button
-                          onClick={() => {
-                            setSelectedQuestionBatch(batch);
-                            setShowAddQuestionModal(true);
-                          }}
+                          onClick={() => openBankQuestionEditor(batch)}
                           className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[10px] font-bold rounded-lg hover:bg-violet-500/30"
                         >
-                          + Add Question
+                          ✏️ Edit Questions
                         </button>
                       </div>
                     </div>
@@ -14291,255 +14364,458 @@ export default function App() {
             </div>
           )}
 
-          {/* ADD QUESTION MODAL */}
-          {showAddQuestionModal && selectedQuestionBatch && (
-            <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto">
-                <h3 className="font-black text-white mb-1">Add Question</h3>
-                <p className="text-xs text-slate-400 mb-4">
-                  To: {selectedQuestionBatch.name}
-                </p>
+        </div>
+      )}
 
-                <div className="space-y-3">
-                  {/* Question type toggle */}
-                  <div className="flex gap-2">
-                    {['mcq', 'coding'].map(type => (
-                      <button
-                        key={type}
-                        onClick={() => setNewQuestion({ ...newQuestion, questionType: type })}
-                        className={`flex-1 py-2 text-xs font-bold rounded-xl ${
-                          newQuestion.questionType === type
-                            ? 'bg-violet-600 text-white'
-                            : 'bg-slate-800 text-slate-400'
-                        }`}
-                      >
-                        {type === 'mcq' ? '📝 MCQ' : '💻 Coding'}
-                      </button>
+      {/* Excel Upload modal — hoisted out of the faculty-questions page so it's
+          also reachable from the bank-question-editor page's right panel */}
+      {showUploadModal && selectedQuestionBatch && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-lg">
+            <h3 className="font-black text-white mb-1">Upload Excel</h3>
+            <p className="text-xs text-slate-400 mb-4">
+              To: {selectedQuestionBatch.name}
+            </p>
+
+            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl mb-4">
+              <p className="text-[10px] text-amber-300 font-bold">
+                ℹ️ Excel import supports plain text questions only. For questions with images or code snippets, use the editor on the left.
+              </p>
+            </div>
+
+            <button
+              onClick={downloadExcelTemplate}
+              className="w-full py-2.5 mb-4 bg-slate-800 border border-white/10 text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-700"
+            >
+              ⬇️ Download Template
+            </button>
+
+            <label className="text-xs font-bold text-slate-300 block mb-1">
+              Select File
+            </label>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              disabled={isUploadingExcel}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) uploadExcelFile(file);
+                e.target.value = '';
+              }}
+              className="w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-violet-600 file:text-white file:text-xs file:font-bold"
+            />
+
+            {isUploadingExcel && (
+              <p className="text-xs text-slate-400 mt-3">Uploading...</p>
+            )}
+
+            {uploadResult && (
+              <div className="mt-4 p-3 bg-slate-800/50 rounded-xl">
+                <p className="text-xs font-bold text-emerald-400">
+                  {uploadResult.imported || 0} question(s) imported
+                </p>
+                {uploadResult.errors && uploadResult.errors.length > 0 && (
+                  <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                    {uploadResult.errors.map((e: string, i: number) => (
+                      <p key={i} className="text-[10px] text-red-400">{e}</p>
                     ))}
                   </div>
+                )}
+              </div>
+            )}
 
-                  {/* Question text */}
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">
-                      Question *
-                    </label>
-                    <textarea
-                      value={newQuestion.questionText}
-                      onChange={e => setNewQuestion({ ...newQuestion, questionText: e.target.value })}
-                      placeholder="Enter your question..."
-                      rows={3}
-                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 resize-none"
-                    />
-                  </div>
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => {
+                  setShowUploadModal(false);
+                  setUploadResult(null);
+                }}
+                className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-                  {/* Rich content: images, code snippets, tables, diagrams */}
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">
-                      Rich Content (optional images, code, tables)
-                    </label>
-                    <RichTextEditor
-                      contentBlocks={newQuestion.contentBlocks || []}
-                      onChange={blocks => setNewQuestion({ ...newQuestion, contentBlocks: blocks })}
-                    />
-                  </div>
+      {currentPage === 'bank-question-editor' && selectedQuestionBatch && (
+        <div className="min-h-screen bg-slate-950 text-white flex">
 
-                  {/* MCQ Options */}
-                  {newQuestion.questionType === 'mcq' && (
-                    <>
-                      <div className="grid grid-cols-2 gap-2">
-                        {['A', 'B', 'C', 'D'].map(opt => {
-                          const imgKey = `option${opt}Image` as keyof typeof newQuestion;
-                          const currentImg = (newQuestion[imgKey] as string) || '';
-                          return (
-                            <div key={opt} className="space-y-1.5">
-                              <label className="text-[10px] font-bold text-slate-400 block">
-                                Option {opt}
-                              </label>
-                              <input
-                                type="text"
-                                value={newQuestion[`option${opt}` as keyof typeof newQuestion] as string}
-                                onChange={e => setNewQuestion({ ...newQuestion, [`option${opt}`]: e.target.value })}
-                                className="w-full px-2 py-1.5 bg-slate-800 border border-white/10 rounded-lg text-xs text-white"
-                              />
-                              <div className="flex items-center gap-1.5">
-                                <input
-                                  type="text"
-                                  value={currentImg}
-                                  onChange={e => setNewQuestion({ ...newQuestion, [imgKey]: e.target.value })}
-                                  placeholder="Image URL (optional)"
-                                  className="w-full px-2 py-1 bg-slate-800 border border-white/10 rounded-lg text-[10px] text-white placeholder-slate-500"
-                                />
-                                <label className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold cursor-pointer shrink-0">
-                                  Upload
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={async e => {
-                                      const file = e.target.files?.[0];
-                                      if (!file) return;
-                                      setIsUploadingImage(true);
-                                      try {
-                                        const base64 = await compressImageFile(file, 800, 0.5);
-                                        setNewQuestion(prev => ({ ...prev, [imgKey]: base64 }));
-                                      } finally {
-                                        setIsUploadingImage(false);
-                                      }
-                                    }}
-                                  />
-                                </label>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {isUploadingImage && (
-                        <p className="text-[10px] text-indigo-300">Processing image...</p>
-                      )}
-                      <div>
-                        <label className="text-xs font-bold text-slate-300 block mb-1">
-                          Correct Answer
-                        </label>
-                        <select
-                          value={newQuestion.correctAnswer}
-                          onChange={e => setNewQuestion({ ...newQuestion, correctAnswer: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white"
-                        >
-                          {['a', 'b', 'c', 'd'].map(o => (
-                            <option key={o} value={o}>Option {o.toUpperCase()}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </>
-                  )}
+          {/* LEFT PANEL — Editor */}
+          <div className="flex-1 flex flex-col min-h-screen border-r border-white/10">
 
-                  {/* Marks + Difficulty */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-bold text-slate-300 block mb-1">
-                        Marks
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={newQuestion.marks}
-                        onChange={e => setNewQuestion({ ...newQuestion, marks: parseInt(e.target.value) })}
-                        className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-slate-300 block mb-1">
-                        Difficulty
-                      </label>
-                      <select
-                        value={newQuestion.difficulty}
-                        onChange={e => setNewQuestion({ ...newQuestion, difficulty: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white"
-                      >
-                        <option value="easy">Easy</option>
-                        <option value="medium">Medium</option>
-                        <option value="hard">Hard</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Explanation */}
-                  <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">
-                      Explanation (optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={newQuestion.explanation}
-                      onChange={e => setNewQuestion({ ...newQuestion, explanation: e.target.value })}
-                      placeholder="Why is this the answer?"
-                      className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-3 mt-5">
-                  <button
-                    onClick={() => setShowAddQuestionModal(false)}
-                    className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={addFacultyQuestion}
-                    disabled={!newQuestion.questionText}
-                    className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-xs font-extrabold rounded-xl"
-                  >
-                    Add Question
-                  </button>
+            {/* Editor Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-slate-900/50 shrink-0">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setCurrentPage('faculty-questions');
+                    loadFacultyQuestionBatches();
+                  }}
+                  className="p-2 rounded-xl border border-white/10 hover:bg-slate-800 text-slate-400 text-sm"
+                >
+                  ←
+                </button>
+                <div>
+                  <h1 className="text-sm font-black text-white">{selectedQuestionBatch.name}</h1>
+                  <p className="text-[10px] text-slate-400">
+                    {bankQuestionEditorMode === 'edit' ? '✏️ Editing question' : '➕ Adding new question'}
+                    {' • '}
+                    {bankQuestionsInBatch.length} total
+                  </p>
                 </div>
               </div>
-            </div>
-          )}
-
-          {showUploadModal && selectedQuestionBatch && (
-            <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-              <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-lg">
-                <h3 className="font-black text-white mb-1">Upload Excel</h3>
-                <p className="text-xs text-slate-400 mb-4">
-                  To: {selectedQuestionBatch.name}
-                </p>
-
-                <button
-                  onClick={downloadExcelTemplate}
-                  className="w-full py-2.5 mb-4 bg-slate-800 border border-white/10 text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-700"
-                >
-                  ⬇️ Download Template
-                </button>
-
-                <label className="text-xs font-bold text-slate-300 block mb-1">
-                  Select File
-                </label>
-                <input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  disabled={isUploadingExcel}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) uploadExcelFile(file);
-                    e.target.value = '';
-                  }}
-                  className="w-full text-xs text-slate-300 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-violet-600 file:text-white file:text-xs file:font-bold"
-                />
-
-                {isUploadingExcel && (
-                  <p className="text-xs text-slate-400 mt-3">Uploading...</p>
-                )}
-
-                {uploadResult && (
-                  <div className="mt-4 p-3 bg-slate-800/50 rounded-xl">
-                    <p className="text-xs font-bold text-emerald-400">
-                      {uploadResult.imported || 0} question(s) imported
-                    </p>
-                    {uploadResult.errors && uploadResult.errors.length > 0 && (
-                      <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
-                        {uploadResult.errors.map((e: string, i: number) => (
-                          <p key={i} className="text-[10px] text-red-400">{e}</p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex gap-3 mt-5">
+              <div className="flex items-center gap-2">
+                {bankQuestionEditorMode === 'edit' && (
                   <button
                     onClick={() => {
-                      setShowUploadModal(false);
-                      setUploadResult(null);
+                      setBankMcqForm(emptyBankMcqForm);
+                      setEditingBankQuestion(null);
+                      setBankQuestionEditorMode('create');
                     }}
-                    className="flex-1 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl"
+                    className="px-3 py-1.5 bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg"
                   >
-                    Close
+                    + New Question
                   </button>
-                </div>
+                )}
+                <button
+                  onClick={saveBankQuestion}
+                  className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-extrabold rounded-xl"
+                >
+                  {bankQuestionEditorMode === 'edit' ? '💾 Update Question' : '✅ Save Question'}
+                </button>
               </div>
             </div>
-          )}
+
+            {/* Editor Body — scrollable */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+
+              {/* Question Text + Rich Editor */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-300">
+                  Question *
+                </label>
+
+                <textarea
+                  value={bankMcqForm.question}
+                  onChange={e => setBankMcqForm({ ...bankMcqForm, question: e.target.value })}
+                  placeholder="Type the main question text..."
+                  rows={3}
+                  className="w-full px-4 py-3 bg-slate-900 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 resize-none focus:border-violet-500/50 focus:outline-none"
+                />
+
+                <div className="border border-white/10 rounded-xl overflow-hidden">
+                  <div className="px-3 py-1.5 bg-slate-800/50 border-b border-white/10">
+                    <p className="text-[10px] text-slate-400 font-bold">
+                      Rich Content (optional) — Add images, code snippets, tables below the question text
+                    </p>
+                  </div>
+                  <RichTextEditor
+                    contentBlocks={bankMcqForm.contentBlocks || []}
+                    onChange={blocks => setBankMcqForm(prev => ({ ...prev, contentBlocks: blocks }))}
+                  />
+                </div>
+              </div>
+
+              {/* MCQ Options */}
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-slate-300">
+                  Answer Options
+                </label>
+
+                {(['A', 'B', 'C', 'D'] as const).map(opt => {
+                  const key = `option${opt}` as keyof typeof bankMcqForm;
+                  const imgKey = `option${opt}Image` as keyof typeof bankMcqForm;
+                  const letterLower = opt.toLowerCase() as 'a' | 'b' | 'c' | 'd';
+                  const isCorrect = bankMcqForm.correctAnswer === letterLower;
+
+                  return (
+                    <div
+                      key={opt}
+                      className={`p-4 rounded-xl border-2 transition-all ${
+                        isCorrect ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-white/10 bg-slate-900/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <button
+                          onClick={() => setBankMcqForm({ ...bankMcqForm, correctAnswer: letterLower })}
+                          className={`h-6 w-6 rounded-full border-2 flex items-center justify-center text-[10px] font-black shrink-0 ${
+                            isCorrect
+                              ? 'border-emerald-500 bg-emerald-500 text-white'
+                              : 'border-slate-600 text-slate-500 hover:border-slate-400'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                        <span className="text-[10px] text-slate-400 font-bold">
+                          {isCorrect ? '✓ Correct Answer' : `Option ${opt}`}
+                        </span>
+                      </div>
+
+                      <input
+                        type="text"
+                        value={bankMcqForm[key] as string}
+                        onChange={e => setBankMcqForm({ ...bankMcqForm, [key]: e.target.value })}
+                        placeholder={`Option ${opt}...`}
+                        className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:border-violet-500/50 focus:outline-none mb-2"
+                      />
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={bankMcqForm[imgKey] as string}
+                          onChange={e => setBankMcqForm({ ...bankMcqForm, [imgKey]: e.target.value })}
+                          placeholder="Image URL (optional)"
+                          className="flex-1 px-3 py-1.5 bg-slate-800 border border-white/10 rounded-lg text-xs text-white placeholder-slate-500"
+                        />
+                        <label className="px-3 py-1.5 bg-slate-700 border border-white/10 text-slate-300 text-[10px] font-bold rounded-lg cursor-pointer hover:bg-slate-600 whitespace-nowrap">
+                          📷 Upload
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setIsUploadingImage(true);
+                              try {
+                                const compressed = await compressImageFile(file, 800, 0.5);
+                                setBankMcqForm(prev => ({ ...prev, [imgKey]: compressed }));
+                              } catch {
+                                showToast('Image too large', 'error');
+                              } finally {
+                                setIsUploadingImage(false);
+                              }
+                            }}
+                          />
+                        </label>
+                        {bankMcqForm[imgKey] && (
+                          <img
+                            src={bankMcqForm[imgKey] as string}
+                            alt={`Option ${opt}`}
+                            className="h-8 w-8 object-cover rounded-lg border border-white/10"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {isUploadingImage && (
+                  <p className="text-[10px] text-indigo-300">Processing image...</p>
+                )}
+              </div>
+
+              {/* Metadata row */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Marks
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={bankMcqForm.marks}
+                    onChange={e => setBankMcqForm({ ...bankMcqForm, marks: parseInt(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white focus:border-violet-500/50 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Difficulty
+                  </label>
+                  <select
+                    value={bankMcqForm.difficulty}
+                    onChange={e => setBankMcqForm({ ...bankMcqForm, difficulty: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white focus:border-violet-500/50 focus:outline-none"
+                  >
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Topic
+                  </label>
+                  <input
+                    type="text"
+                    value={bankMcqForm.topic}
+                    onChange={e => setBankMcqForm({ ...bankMcqForm, topic: e.target.value })}
+                    placeholder="Arrays, OOP..."
+                    className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:border-violet-500/50 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Subject + Tags */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    value={bankMcqForm.subject}
+                    onChange={e => setBankMcqForm({ ...bankMcqForm, subject: e.target.value })}
+                    placeholder="Java, Python..."
+                    className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:border-violet-500/50 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
+                    Tags
+                  </label>
+                  <input
+                    type="text"
+                    value={bankMcqForm.tags}
+                    onChange={e => setBankMcqForm({ ...bankMcqForm, tags: e.target.value })}
+                    placeholder="loops, recursion..."
+                    className="w-full px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 focus:border-violet-500/50 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Explanation */}
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">
+                  Explanation (shown after exam)
+                </label>
+                <textarea
+                  value={bankMcqForm.explanation}
+                  onChange={e => setBankMcqForm({ ...bankMcqForm, explanation: e.target.value })}
+                  placeholder="Why is this the correct answer?"
+                  rows={2}
+                  className="w-full px-4 py-3 bg-slate-900 border border-white/10 rounded-xl text-sm text-white placeholder-slate-500 resize-none focus:border-violet-500/50 focus:outline-none"
+                />
+              </div>
+
+              {/* Save button at bottom too */}
+              <div className="flex gap-3 pt-4 border-t border-white/10">
+                {bankQuestionEditorMode === 'edit' && (
+                  <button
+                    onClick={() => {
+                      setBankMcqForm(emptyBankMcqForm);
+                      setEditingBankQuestion(null);
+                      setBankQuestionEditorMode('create');
+                    }}
+                    className="px-4 py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-700"
+                  >
+                    + New Question Instead
+                  </button>
+                )}
+                <button
+                  onClick={saveBankQuestion}
+                  className="flex-1 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-sm font-extrabold rounded-xl"
+                >
+                  {bankQuestionEditorMode === 'edit' ? '💾 Update Question' : '✅ Save & Add Another'}
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          {/* RIGHT PANEL — Question List */}
+          <div className="w-96 flex flex-col min-h-screen bg-slate-900/30">
+
+            <div className="px-4 py-4 border-b border-white/10 shrink-0">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-extrabold text-white">
+                  Questions in this batch
+                </h2>
+                <span className="text-xs text-slate-400">
+                  {bankQuestionsInBatch.length} total
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setShowUploadModal(true);
+                  setUploadResult(null);
+                }}
+                className="mt-2 w-full py-1.5 bg-slate-800 border border-dashed border-white/20 text-slate-400 text-[10px] font-bold rounded-lg hover:bg-slate-700"
+              >
+                📊 Bulk Upload via Excel
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {isLoadingBankQuestions ? (
+                <div className="text-center py-8 text-slate-400 text-xs">
+                  Loading...
+                </div>
+              ) : bankQuestionsInBatch.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-4xl mb-2">📝</p>
+                  <p className="text-xs text-slate-400">
+                    No questions yet. Add your first question using the editor.
+                  </p>
+                </div>
+              ) : (
+                bankQuestionsInBatch.map((q: any, i: number) => (
+                  <div
+                    key={q.id}
+                    className={`p-3 rounded-xl border transition-all ${
+                      editingBankQuestion?.id === q.id
+                        ? 'border-violet-500/50 bg-violet-500/10'
+                        : 'border-white/5 bg-slate-800/50 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-[9px] font-black text-slate-500">
+                            Q{i + 1}
+                          </span>
+                          <span
+                            className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                              q.difficulty === 'easy'
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : q.difficulty === 'hard'
+                                  ? 'bg-red-500/20 text-red-400'
+                                  : 'bg-amber-500/20 text-amber-400'
+                            }`}
+                          >
+                            {q.difficulty}
+                          </span>
+                          <span className="text-[9px] text-slate-500">
+                            {q.marks}m
+                          </span>
+                          {(q.content_blocks?.length > 0 || q.images?.length > 0) && (
+                            <span className="text-[9px] text-violet-400">🖼️</span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-white line-clamp-2 leading-relaxed">
+                          {q.question_text || q.title || '(no text)'}
+                        </p>
+                        <p className="text-[9px] text-emerald-400 mt-1">
+                          ✓ {q.correct_answer?.toUpperCase()}
+                          {': '}
+                          {q[`option_${q.correct_answer}`]?.substring(0, 30)}
+                          {q[`option_${q.correct_answer}`]?.length > 30 ? '...' : ''}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col gap-1 shrink-0">
+                        <button
+                          onClick={() => openBankQuestionEditor(selectedQuestionBatch, q)}
+                          className="px-2 py-1 bg-violet-500/20 text-violet-300 text-[9px] font-bold rounded-lg hover:bg-violet-500/30"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => deleteBankQuestion(q.id)}
+                          className="px-2 py-1 bg-red-500/20 text-red-300 text-[9px] font-bold rounded-lg hover:bg-red-500/30"
+                        >
+                          🗑️ Del
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       )}
 
