@@ -276,6 +276,44 @@ function requireRole(role: 'admin' | 'student') {
   };
 }
 
+// Resolves the requester's own organization (== college_id) for scoping.
+// super_admin is unscoped (sees/manages everything) unless it explicitly
+// asks to impersonate an org via ?orgId=. Mirrors admin-service's getOrgId.
+const getOrgId = (req: AuthenticatedRequest): string | null => {
+  if (req.user?.role === 'super_admin') {
+    return (req.query.orgId as string) || null;
+  }
+  return req.user?.orgId || null;
+};
+
+// These stop an org_admin from reading/mutating another organization's exam
+// (or a sub-resource of it) by guessing or reusing an id — requireRole only
+// checks role tier, not which org the target row actually belongs to.
+async function examBelongsToOrg(examId: string, orgId: string | null): Promise<boolean> {
+  if (!orgId) return true;
+  const result = await query('SELECT college_id FROM exams WHERE id = $1', [examId]);
+  if (result.rows.length === 0) return false;
+  return result.rows[0].college_id === orgId;
+}
+async function sectionBelongsToOrg(sectionId: string, orgId: string | null): Promise<boolean> {
+  if (!orgId) return true;
+  const result = await query('SELECT e.college_id FROM sections s JOIN exams e ON e.id = s.exam_id WHERE s.id = $1', [sectionId]);
+  if (result.rows.length === 0) return false;
+  return result.rows[0].college_id === orgId;
+}
+async function mcqBelongsToOrg(mcqId: string, orgId: string | null): Promise<boolean> {
+  if (!orgId) return true;
+  const result = await query('SELECT e.college_id FROM mcq_questions m JOIN exams e ON e.id = m.exam_id WHERE m.id = $1', [mcqId]);
+  if (result.rows.length === 0) return false;
+  return result.rows[0].college_id === orgId;
+}
+async function codingBelongsToOrg(codingId: string, orgId: string | null): Promise<boolean> {
+  if (!orgId) return true;
+  const result = await query('SELECT e.college_id FROM coding_questions cq JOIN exams e ON e.id = cq.exam_id WHERE cq.id = $1', [codingId]);
+  if (result.rows.length === 0) return false;
+  return result.rows[0].college_id === orgId;
+}
+
 // Health Check
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', service: 'exam-service' });
@@ -284,14 +322,15 @@ app.get('/health', (req, res) => {
 // --- ADMIN API ---
 
 // List all exams
-app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res) => {
+app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
+    const orgId = getOrgId(req);
     const result = await query(`
       SELECT e.*, c.name as college_name,
              COALESCE(
-               (SELECT string_agg(dept.name, ', ') 
-                FROM departments dept 
-                WHERE dept.id = ANY(COALESCE(e.department_ids, '{}'))), 
+               (SELECT string_agg(dept.name, ', ')
+                FROM departments dept
+                WHERE dept.id = ANY(COALESCE(e.department_ids, '{}'))),
                d.name
              ) as department_name,
              b.name as batch_name,
@@ -303,8 +342,9 @@ app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res)
       LEFT JOIN departments d ON e.department_id = d.id
       LEFT JOIN batches b ON e.batch_id = b.id
       LEFT JOIN trainers t ON e.trainer_id = t.id
+      ${orgId ? 'WHERE e.college_id = $1' : ''}
       ORDER BY e.created_at DESC
-    `);
+    `, orgId ? [orgId] : []);
     res.json(result.rows);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -312,7 +352,7 @@ app.get('/api/exams/admin', authenticate, requireRole('admin'), async (req, res)
 });
 
 // Create Exam
-app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
+app.post('/api/exams', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId, enableFaceDetection, enableSectionCutoff, mcqCutoffPercentage, codingCutoffPercentage, mcqCutoffMarks, codingCutoffMarks, navigationMode, submissionMode } = req.body;
     if (!name || !examType || !durationMinutes) {
@@ -320,7 +360,10 @@ app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
     }
 
     const finalScheduleDate = scheduleDate ? new Date(scheduleDate).toISOString() : new Date().toISOString();
-    const finalCollegeId = collegeId || null;
+    // org_admin/faculty are always forced onto their own org; only a
+    // super_admin request may target an arbitrary college via the body.
+    const orgId = getOrgId(req);
+    const finalCollegeId = orgId || collegeId || null;
 
     let finalDeptId = null;
     let finalDeptIds: string[] = [];
@@ -360,14 +403,22 @@ app.post('/api/exams', authenticate, requireRole('admin'), async (req, res) => {
 });
 
 // Get detailed exam for admin editing
-app.get('/api/exams/:id', authenticate, async (req, res) => {
+// Was previously missing requireRole entirely — any authenticated student
+// could fetch another exam's full question set (including MCQ answer keys)
+// just by knowing/guessing its id. Now admin-tier + org-scoped like the
+// rest of the admin exam API.
+app.get('/api/exams/:id', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
+    if (!(await examBelongsToOrg(req.params.id, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
+
     const examResult = await query(
       `SELECT e.*, c.name as college_name,
               COALESCE(
-                (SELECT string_agg(dept.name, ', ') 
-                 FROM departments dept 
-                 WHERE dept.id = ANY(COALESCE(e.department_ids, '{}'))), 
+                (SELECT string_agg(dept.name, ', ')
+                 FROM departments dept
+                 WHERE dept.id = ANY(COALESCE(e.department_ids, '{}'))),
                 d.name
               ) as department_name,
               b.name as batch_name,
@@ -408,10 +459,14 @@ app.get('/api/exams/:id', authenticate, async (req, res) => {
 });
 
 // Update Exam
-app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) => {
+app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
+    if (!(await examBelongsToOrg(req.params.id, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
+
     const { name, description, examType, durationMinutes, cutoffPercentage, allowedAttempts, scheduleDate, collegeId, departmentId, departmentIds, batchId, year, windowOpenMinutes, trainerId, enableFaceDetection, enableSectionCutoff, mcqCutoffPercentage, codingCutoffPercentage, mcqCutoffMarks, codingCutoffMarks, navigationMode, submissionMode } = req.body;
-    
+
     const exType = examType || req.body.exam_type || 'mcq';
     const durMins = parseInt(durationMinutes || req.body.duration_minutes || 60, 10);
     const exName = name || req.body.name;
@@ -487,10 +542,13 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) =
 });
 
 // Duplicate Exam
-app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (req, res) => {
+app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    
+    if (!(await examBelongsToOrg(id, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
+
     // Copy exam
     const examCheck = await query('SELECT * FROM exams WHERE id = $1', [id]);
     if (examCheck.rows.length === 0) return res.status(404).json({ error: 'Exam not found' });
@@ -585,9 +643,12 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
 });
 
 // Publish Exam
-app.post('/api/exams/:id/publish', authenticate, requireRole('admin'), async (req, res) => {
+app.post('/api/exams/:id/publish', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
+    if (!(await examBelongsToOrg(id, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
     const result = await query('UPDATE exams SET is_published = TRUE WHERE id = $1 RETURNING *', [id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Exam not found' });
     
@@ -633,9 +694,12 @@ app.post('/api/exams/:id/publish', authenticate, requireRole('admin'), async (re
 });
 
 // Delete/Archive Exam
-app.delete('/api/exams/:id', authenticate, requireRole('admin'), async (req, res) => {
+app.delete('/api/exams/:id', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
+    if (!(await examBelongsToOrg(id, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
     await query('DELETE FROM exams WHERE id = $1', [id]);
     res.json({ message: 'Exam deleted successfully' });
   } catch (err: any) {
@@ -677,9 +741,12 @@ function parseCsvLine(line: string): string[] {
 }
 
 // Upload MCQ Questions (CSV)
-app.post('/api/exams/:id/mcq/import', authenticate, requireRole('admin'), async (req, res) => {
+app.post('/api/exams/:id/mcq/import', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
+    if (!(await examBelongsToOrg(id, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
     const { csvContent } = req.body;
     if (!csvContent) return res.status(400).json({ error: 'CSV content required' });
 
@@ -795,6 +862,9 @@ app.post('/api/exams/:id/questions/from-bank', authenticate, requireRole('admin'
   }
 
   try {
+    if (!(await examBelongsToOrg(examId, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
     const isSuperAdmin = req.user?.role === 'super_admin';
     const idPlaceholders = questionIds.map((_: any, i: number) => `$${i + 1}`).join(',');
 
@@ -883,11 +953,14 @@ app.post('/api/exams/:id/questions/from-bank', authenticate, requireRole('admin'
 });
 
 // Add MCQ manually
-app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, res) => {
+app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
+    if (!(await examBelongsToOrg(id, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
     const { question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty, contentBlocks, images, optionAImage, optionBImage, optionCImage, optionDImage, questionType, wordLimit, evaluationMethod } = req.body;
-    
+
     const optA = optionA ?? req.body.option_a;
     const optB = optionB ?? req.body.option_b;
     const optC = optionC ?? req.body.option_c;
@@ -962,9 +1035,12 @@ app.post('/api/exams/:id/mcq', authenticate, requireRole('admin'), async (req, r
 });
 
 // Add Descriptive Question manually
-app.post('/api/exams/:id/descriptive', authenticate, requireRole('admin'), async (req, res) => {
+app.post('/api/exams/:id/descriptive', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
+    if (!(await examBelongsToOrg(id, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
     const { question, marks, difficulty, contentBlocks, images, wordLimit, evaluationMethod } = req.body;
     if (!question) {
       return res.status(400).json({ error: 'Question text is required' });
@@ -1002,9 +1078,12 @@ app.post('/api/exams/:id/descriptive', authenticate, requireRole('admin'), async
 });
 
 // Add Coding Question manually
-app.post('/api/exams/:id/coding', authenticate, requireRole('admin'), async (req, res) => {
+app.post('/api/exams/:id/coding', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
+    if (!(await examBelongsToOrg(id, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
     const { title, description, difficulty, marks, language, timeLimit, memoryLimit, starterCode, testCases, contentBlocks, images } = req.body;
     if (!title || !description || !language) {
       return res.status(400).json({ error: 'Title, description and language are required' });
@@ -1053,9 +1132,12 @@ app.post('/api/exams/:id/coding', authenticate, requireRole('admin'), async (req
 });
 
 // Get Exam-wise results for Admin
-app.get('/api/exams/:id/results', authenticate, requireRole('admin'), async (req, res) => {
+app.get('/api/exams/:id/results', authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
+    if (!(await examBelongsToOrg(id, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
     const attempts = await query(
       `SELECT ea.*, u.full_name, u.roll_number, d.name as department_name, u.year,
               e.enable_section_cutoff
@@ -1076,9 +1158,12 @@ app.get('/api/exams/:id/results', authenticate, requireRole('admin'), async (req
 // --- SECTION MANAGEMENT API ---
 
 // Create Section
-app.post(['/api/exams/:id/sections', '/api/assessments/:id/sections', '/api/exams/:examId/sections'], authenticate, requireRole('admin'), async (req, res) => {
+app.post(['/api/exams/:id/sections', '/api/assessments/:id/sections', '/api/exams/:examId/sections'], authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const id = req.params.id || req.params.examId;
+    if (!(await examBelongsToOrg(id, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
     const { name, description, sectionType, durationMinutes, randomizeQuestions, isMandatory, enableCutoff, cutoffPercentage, cutoffMarks } = req.body;
     const sType = sectionType || req.body.section_type;
     if (!name || !sType) {
@@ -1112,11 +1197,14 @@ app.post(['/api/exams/:id/sections', '/api/assessments/:id/sections', '/api/exam
 const isValidUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
 // Update Section
-app.put(['/api/sections/:id', '/api/exams/sections/:id', '/api/exams/:examId/sections/:id'], authenticate, requireRole('admin'), async (req, res) => {
+app.put(['/api/sections/:id', '/api/exams/sections/:id', '/api/exams/:examId/sections/:id'], authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const sectionId = req.params.id || req.params.sectionId;
     if (!isValidUuid(sectionId)) {
       return res.json({ id: sectionId, ...req.body, message: 'Mock section updated' });
+    }
+    if (!(await sectionBelongsToOrg(sectionId, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Section not found' });
     }
     const { name, description, sectionType, durationMinutes, randomizeQuestions, isMandatory, enableCutoff, cutoffPercentage, cutoffMarks } = req.body;
     const sType = sectionType || req.body.section_type || null;
@@ -1149,11 +1237,14 @@ app.put(['/api/sections/:id', '/api/exams/sections/:id', '/api/exams/:examId/sec
 });
 
 // Delete Section
-app.delete(['/api/sections/:id', '/api/exams/sections/:id'], authenticate, requireRole('admin'), async (req, res) => {
+app.delete(['/api/sections/:id', '/api/exams/sections/:id'], authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
     if (!isValidUuid(id)) {
       return res.json({ message: 'Mock section deleted successfully' });
+    }
+    if (!(await sectionBelongsToOrg(id, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Section not found' });
     }
     await query('UPDATE mcq_questions SET section_id = NULL WHERE section_id = $1', [id]);
     await query('UPDATE coding_questions SET section_id = NULL WHERE section_id = $1', [id]);
@@ -1167,8 +1258,11 @@ app.delete(['/api/sections/:id', '/api/exams/sections/:id'], authenticate, requi
 });
 
 // Reorder Sections
-app.post(['/api/exams/:id/sections/reorder', '/api/assessments/:id/sections/reorder'], authenticate, requireRole('admin'), async (req, res) => {
+app.post(['/api/exams/:id/sections/reorder', '/api/assessments/:id/sections/reorder'], authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
+    if (!(await examBelongsToOrg(req.params.id, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Exam not found' });
+    }
     const { sectionIds } = req.body;
     if (!Array.isArray(sectionIds)) return res.status(400).json({ error: 'sectionIds array is required' });
 
@@ -1185,11 +1279,14 @@ app.post(['/api/exams/:id/sections/reorder', '/api/assessments/:id/sections/reor
 });
 
 // Update MCQ Question
-app.put(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'], authenticate, requireRole('admin'), async (req, res) => {
+app.put(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'], authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const mcqId = req.params.mcqId || req.params.id;
     if (!isValidUuid(mcqId)) {
       return res.json({ id: mcqId, ...req.body, message: 'Mock MCQ updated' });
+    }
+    if (!(await mcqBelongsToOrg(mcqId, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Question not found' });
     }
     const { question, optionA, optionB, optionC, optionD, correctAnswer, marks, difficulty, contentBlocks, images, optionAImage, optionBImage, optionCImage, optionDImage } = req.body;
     
@@ -1258,11 +1355,14 @@ app.put(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'
 });
 
 // Update Coding Question
-app.put(['/api/exams/:id/coding/:codingId', '/api/coding/:codingId', '/api/exams/coding/:codingId'], authenticate, requireRole('admin'), async (req, res) => {
+app.put(['/api/exams/:id/coding/:codingId', '/api/coding/:codingId', '/api/exams/coding/:codingId'], authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const codingId = req.params.codingId || req.params.id;
     if (!isValidUuid(codingId)) {
       return res.json({ id: codingId, ...req.body, message: 'Mock coding question updated' });
+    }
+    if (!(await codingBelongsToOrg(codingId, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Question not found' });
     }
     const { title, description, difficulty, marks, language, starterCode, timeLimit, memoryLimit, contentBlocks, images, testCases } = req.body;
     const result = await query(
@@ -1304,11 +1404,14 @@ app.put(['/api/exams/:id/coding/:codingId', '/api/coding/:codingId', '/api/exams
 });
 
 // Delete MCQ Question
-app.delete(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'], authenticate, requireRole('admin'), async (req, res) => {
+app.delete(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcqId'], authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const mcqId = req.params.mcqId || req.params.id;
     if (!isValidUuid(mcqId)) {
       return res.json({ message: 'Mock MCQ question deleted successfully' });
+    }
+    if (!(await mcqBelongsToOrg(mcqId, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Question not found' });
     }
     await query('DELETE FROM mcq_questions WHERE id = $1', [mcqId]);
     res.json({ message: 'MCQ question deleted successfully' });
@@ -1318,11 +1421,14 @@ app.delete(['/api/exams/:id/mcq/:mcqId', '/api/mcq/:mcqId', '/api/exams/mcq/:mcq
 });
 
 // Delete Coding Question
-app.delete(['/api/exams/:id/coding/:codingId', '/api/coding/:codingId', '/api/exams/coding/:codingId'], authenticate, requireRole('admin'), async (req, res) => {
+app.delete(['/api/exams/:id/coding/:codingId', '/api/coding/:codingId', '/api/exams/coding/:codingId'], authenticate, requireRole('admin'), async (req: AuthenticatedRequest, res) => {
   try {
     const codingId = req.params.codingId || req.params.id;
     if (!isValidUuid(codingId)) {
       return res.json({ message: 'Mock coding question deleted successfully' });
+    }
+    if (!(await codingBelongsToOrg(codingId, getOrgId(req)))) {
+      return res.status(404).json({ error: 'Question not found' });
     }
     await query('DELETE FROM coding_test_cases WHERE question_id = $1', [codingId]);
     await query('DELETE FROM coding_questions WHERE id = $1', [codingId]);
