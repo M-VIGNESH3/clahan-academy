@@ -223,9 +223,17 @@ app.get('/health', (req, res) => {
 // NOTE: `colleges` is the legacy pre-multi-tenant table and has no owning
 // organization column, so it cannot be org-scoped without a schema change
 // (out of scope for admin-service-only changes). Left platform-wide.
-app.get('/api/admin/colleges', authenticateAdmin, requireOrgAdmin, async (req, res) => {
+app.get('/api/admin/colleges', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
-    const result = await query('SELECT * FROM colleges ORDER BY name ASC');
+    const orgId = getOrgId(req);
+    const result = await query(`
+      SELECT c.*, COUNT(DISTINCT u.id) as student_count
+      FROM colleges c
+      LEFT JOIN users u ON u.college_id = c.id AND u.role = 'student'
+      ${orgId ? 'WHERE c.id = $1' : ''}
+      GROUP BY c.id
+      ORDER BY c.name ASC
+    `, orgId ? [orgId] : []);
     res.json(result.rows);
   } catch (err: any) {
     res.status(500).json({ error: err.message });

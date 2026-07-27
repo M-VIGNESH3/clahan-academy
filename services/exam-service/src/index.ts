@@ -259,9 +259,17 @@ function authenticate(req: AuthenticatedRequest, res: express.Response, next: ex
   });
 }
 
+// 'admin' here means "any admin-tier role" — org_admin and super_admin are
+// real, distinct role values (super-admin-service inserts org owners with
+// role='org_admin' directly, and the JWT carries that role unchanged), so a
+// strict equality check against the literal 'admin' string was silently
+// rejecting every org_admin/super_admin request across this entire service.
+// Matches the allow-list convention already used by admin-service's
+// requireOrgAdmin middleware.
 function requireRole(role: 'admin' | 'student') {
+  const allowed = role === 'admin' ? ['admin', 'org_admin', 'super_admin'] : ['student'];
   return (req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) => {
-    if (!req.user || req.user.role !== role) {
+    if (!req.user || !allowed.includes(req.user.role)) {
       return res.status(403).json({ error: `Requires ${role} role` });
     }
     next();

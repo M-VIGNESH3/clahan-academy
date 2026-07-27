@@ -2702,6 +2702,29 @@ export default function App() {
         setAdminExams((Array.isArray(rawExams) ? rawExams : []).map(formatExamItem));
       }
 
+      // Load colleges scoped to this org (org_admin gets only their own
+      // college; super_admin gets all). Overrides the public, unscoped
+      // list that fetchColleges() bootstraps for the pre-login registration
+      // picker — that one must stay global and is left untouched.
+      const collegesRes = await fetch(`${API_ADMIN}/colleges`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (collegesRes.ok) {
+        const scopedColleges = await collegesRes.json();
+        setAdminColleges(scopedColleges);
+        if (currentUser?.role === 'org_admin' && scopedColleges.length === 1) {
+          const onlyCollegeId = scopedColleges[0].id;
+          setSelectedConfigCollegeId(onlyCollegeId);
+          setNewDeptCollegeId(onlyCollegeId);
+          setNewBatchCollegeId(onlyCollegeId);
+          setTrainerForm(prev => ({ ...prev, collegeId: onlyCollegeId }));
+          // The "Add Student" form's college select is hidden too and drove
+          // department/batch loading via its onChange — replicate that here.
+          fetchDepartments(onlyCollegeId);
+          fetchBatches(onlyCollegeId);
+        }
+      }
+
       // Load departments for settings
       const deptRes = await fetch(`${API_ADMIN}/departments`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -7613,15 +7636,21 @@ export default function App() {
                   <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
                     <h3 className="font-extrabold text-base mb-4">Configure Department</h3>
                     <form onSubmit={createDepartment} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <select 
-                        value={newDeptCollegeId} 
-                        onChange={e => setNewDeptCollegeId(e.target.value)} 
-                        className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent text-slate-900 dark:text-white focus:outline-indigo-500" 
-                        required
-                      >
-                        <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Target College</option>
-                        {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
-                      </select>
+                      {adminColleges.length === 1 ? (
+                        <div className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white">
+                          {adminColleges[0].name}
+                        </div>
+                      ) : (
+                        <select
+                          value={newDeptCollegeId}
+                          onChange={e => setNewDeptCollegeId(e.target.value)}
+                          className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent text-slate-900 dark:text-white focus:outline-indigo-500"
+                          required
+                        >
+                          <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Target College</option>
+                          {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
+                        </select>
+                      )}
                       <input 
                         type="text" 
                         value={newDeptName}
@@ -7640,15 +7669,21 @@ export default function App() {
                   <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
                     <h3 className="font-extrabold text-base mb-4">Configure Batch</h3>
                     <form onSubmit={createBatch} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <select 
-                        value={newBatchCollegeId} 
-                        onChange={e => setNewBatchCollegeId(e.target.value)} 
-                        className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent text-slate-900 dark:text-white focus:outline-indigo-500" 
-                        required
-                      >
-                        <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Target College</option>
-                        {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
-                      </select>
+                      {adminColleges.length === 1 ? (
+                        <div className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white">
+                          {adminColleges[0].name}
+                        </div>
+                      ) : (
+                        <select
+                          value={newBatchCollegeId}
+                          onChange={e => setNewBatchCollegeId(e.target.value)}
+                          className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent text-slate-900 dark:text-white focus:outline-indigo-500"
+                          required
+                        >
+                          <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select Target College</option>
+                          {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
+                        </select>
+                      )}
                       <input 
                         type="text" 
                         value={newBatchName}
@@ -7667,15 +7702,21 @@ export default function App() {
                   <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
                     <h3 className="font-extrabold text-base mb-4">Configure Trainer</h3>
                     <form onSubmit={createOrUpdateTrainer} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                      <select 
-                        value={trainerForm.collegeId} 
-                        onChange={e => setTrainerForm({ ...trainerForm, collegeId: e.target.value, batchId: '' })} 
-                        className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent text-slate-900 dark:text-white focus:outline-indigo-500" 
-                        required
-                      >
-                        <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select College</option>
-                        {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
-                      </select>
+                      {adminColleges.length === 1 ? (
+                        <div className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white">
+                          {adminColleges[0].name}
+                        </div>
+                      ) : (
+                        <select
+                          value={trainerForm.collegeId}
+                          onChange={e => setTrainerForm({ ...trainerForm, collegeId: e.target.value, batchId: '' })}
+                          className="p-3.5 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-transparent text-slate-900 dark:text-white focus:outline-indigo-500"
+                          required
+                        >
+                          <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Select College</option>
+                          {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
+                        </select>
+                      )}
                       <select 
                         value={trainerForm.batchId} 
                         onChange={e => setTrainerForm({ ...trainerForm, batchId: e.target.value })} 
@@ -7718,20 +7759,22 @@ export default function App() {
                   </div>
 
                   {/* Lists of Colleges, Departments, and Batches */}
-                  <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-250/50 dark:border-slate-800/50 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div>
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Filter Departments & Batches by College:</span>
-                      <p className="text-[10px] text-muted-foreground">Select a college below to only display its associated depts and batches.</p>
+                  {adminColleges.length > 1 && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-250/50 dark:border-slate-800/50 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                      <div>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Filter Departments & Batches by College:</span>
+                        <p className="text-[10px] text-muted-foreground">Select a college below to only display its associated depts and batches.</p>
+                      </div>
+                      <select
+                        value={selectedConfigCollegeId}
+                        onChange={(e) => setSelectedConfigCollegeId(e.target.value)}
+                        className="text-xs p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-w-[200px]"
+                      >
+                        <option value="">Show All Colleges</option>
+                        {adminColleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
                     </div>
-                    <select
-                      value={selectedConfigCollegeId}
-                      onChange={(e) => setSelectedConfigCollegeId(e.target.value)}
-                      className="text-xs p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-w-[200px]"
-                    >
-                      <option value="">Show All Colleges</option>
-                      {adminColleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                  </div>
+                  )}
 
                   <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Colleges */}
@@ -7884,10 +7927,19 @@ export default function App() {
                           <input type="text" name="rollNumber" placeholder="Roll Number" className="p-3 border rounded-xl text-xs bg-transparent" required />
                         </div>
                         <div className="grid grid-cols-3 gap-2">
-                          <select name="collegeId" onChange={e => { fetchDepartments(e.target.value); fetchBatches(e.target.value); }} className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
-                            <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">College</option>
-                            {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
-                          </select>
+                          {adminColleges.length === 1 ? (
+                            <>
+                              <input type="hidden" name="collegeId" value={adminColleges[0].id} />
+                              <div className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                                {adminColleges[0].name}
+                              </div>
+                            </>
+                          ) : (
+                            <select name="collegeId" onChange={e => { fetchDepartments(e.target.value); fetchBatches(e.target.value); }} className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
+                              <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">College</option>
+                              {adminColleges.map(c => <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{c.name}</option>)}
+                            </select>
+                          )}
                           <select name="departmentId" className="p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" required>
                             <option value="" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Dept</option>
                             {departments.map(d => <option key={d.id} value={d.id} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">{d.name}</option>)}
@@ -8063,22 +8115,24 @@ export default function App() {
 
                     {/* Filter controls */}
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200/50 dark:border-slate-800/50">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter College</label>
-                        <select
-                          value={studentFilterCollegeId}
-                          onChange={(e) => {
-                            setStudentFilterCollegeId(e.target.value);
-                            setStudentFilterDeptId('');
-                            setStudentFilterBatchId('');
-                            setStudentFilterTrainerId('');
-                          }}
-                          className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
-                        >
-                          <option value="">All Colleges</option>
-                          {adminColleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                      </div>
+                      {adminColleges.length > 1 && (
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter College</label>
+                          <select
+                            value={studentFilterCollegeId}
+                            onChange={(e) => {
+                              setStudentFilterCollegeId(e.target.value);
+                              setStudentFilterDeptId('');
+                              setStudentFilterBatchId('');
+                              setStudentFilterTrainerId('');
+                            }}
+                            className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                          >
+                            <option value="">All Colleges</option>
+                            {adminColleges.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        </div>
+                      )}
                       <div>
                         <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter Department</label>
                         <select
@@ -8308,18 +8362,24 @@ export default function App() {
                         </div>
                         <div>
                           <label className="text-[10px] font-bold text-slate-500 uppercase">Assign College</label>
-                          <select
-                            value={trainerForm.collegeId}
-                            onChange={(e) => setTrainerForm({ ...trainerForm, collegeId: e.target.value, batchId: '' })}
-                            className="w-full p-2.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
-                          >
-                            <option value="">No College Assigned</option>
-                            {adminColleges.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.name}
-                              </option>
-                            ))}
-                          </select>
+                          {adminColleges.length === 1 ? (
+                            <div className="w-full p-2.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1">
+                              {adminColleges[0].name}
+                            </div>
+                          ) : (
+                            <select
+                              value={trainerForm.collegeId}
+                              onChange={(e) => setTrainerForm({ ...trainerForm, collegeId: e.target.value, batchId: '' })}
+                              className="w-full p-2.5 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                            >
+                              <option value="">No College Assigned</option>
+                              {adminColleges.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </div>
                         <div>
                           <label className="text-[10px] font-bold text-slate-500 uppercase">Assign Batch</label>
