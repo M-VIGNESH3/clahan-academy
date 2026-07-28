@@ -172,16 +172,22 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req: Authe
     }
     const { college_id: collegeId, department_id: departmentId, year, batch_id: batchId, trainer_id: trainerId } = userRes.rows[0];
 
-    // Upcoming Exams (exams matched to college, dept, year and schedule date is future)
+    // Upcoming Exams (exams matched to college, dept, year and schedule date is future).
+    // "Future" for a flexible exam means its availability window hasn't opened yet.
     const upcoming = await query(
       `SELECT e.*, c.name as college_name, d.name as department_name,
               (SELECT name FROM batches b WHERE b.id = e.batch_id) as batch_name
        FROM exams e
        LEFT JOIN colleges c ON e.college_id = c.id
        LEFT JOIN departments d ON e.department_id = d.id
-       WHERE e.college_id = $1 AND e.is_published = TRUE AND e.schedule_date > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+       WHERE e.college_id = $1 AND e.is_published = TRUE
+         AND (
+           (e.schedule_type = 'flexible' AND e.flexible_start > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'))
+           OR (COALESCE(e.schedule_type, 'fixed') != 'flexible' AND e.schedule_date > (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'))
+         )
          AND (
            (e.batch_id IS NOT NULL AND e.batch_id = $4)
+           OR (e.id IN (SELECT exam_id FROM exam_batches WHERE batch_id = $4))
            OR
            (e.batch_id IS NULL AND (e.department_id = $2 OR $2 = ANY(COALESCE(e.department_ids, '{}'))) AND e.year = $3)
          )
@@ -193,15 +199,22 @@ app.get('/api/student/dashboard/summary', authenticateStudent, async (req: Authe
     // Active Exams (scheduled in the past/present, still open, or simply published with allowed attempts left)
     // We fetch all eligible published exams, and check the attempts the student has made.
     const active = await query(
-      `SELECT e.*, 
+      `SELECT e.*,
               (SELECT COUNT(*) FROM exam_attempts ea WHERE ea.exam_id = e.id AND ea.student_id = $5) as attempts_made,
               (SELECT name FROM batches b WHERE b.id = e.batch_id) as batch_name
        FROM exams e
-       WHERE e.college_id = $1 AND e.is_published = TRUE 
-         AND e.schedule_date <= (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
-         AND (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') <= e.schedule_date + (GREATEST(COALESCE(e.window_open_minutes, 10), COALESCE(e.duration_minutes, 60)) * INTERVAL '1 minute')
+       WHERE e.college_id = $1 AND e.is_published = TRUE
+         AND (
+           (e.schedule_type = 'flexible' AND (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') >= e.flexible_start AND (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') <= e.flexible_end)
+           OR (
+             COALESCE(e.schedule_type, 'fixed') != 'flexible'
+             AND e.schedule_date <= (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+             AND (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') <= e.schedule_date + (GREATEST(COALESCE(e.window_open_minutes, 10), COALESCE(e.duration_minutes, 60)) * INTERVAL '1 minute')
+           )
+         )
          AND (
            (e.batch_id IS NOT NULL AND e.batch_id = $4)
+           OR (e.id IN (SELECT exam_id FROM exam_batches WHERE batch_id = $4))
            OR
            (e.batch_id IS NULL AND (e.department_id = $2 OR $2 = ANY(COALESCE(e.department_ids, '{}'))) AND e.year = $3)
          )
@@ -282,10 +295,11 @@ app.get('/api/student/notifications', authenticateStudent, async (req: Authentic
 
     // Let's dynamically generate a list of relevant in-app announcements
     const publishedExams = await query(
-      `SELECT id, name, schedule_date FROM exams 
+      `SELECT id, name, schedule_date FROM exams e
        WHERE college_id = $1 AND is_published = TRUE
          AND (
            (batch_id IS NOT NULL AND batch_id = $4)
+           OR (e.id IN (SELECT exam_id FROM exam_batches WHERE batch_id = $4))
            OR
            (batch_id IS NULL AND (department_id = $2 OR $2 = ANY(COALESCE(department_ids, '{}'))) AND year = $3)
          )

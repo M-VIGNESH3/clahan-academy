@@ -381,21 +381,40 @@ app.post('/api/exams', authenticate, requireRole('admin'), async (req: Authentic
 
     const submissionModeValue = req.body.submissionMode || req.body.submission_mode || 'manual';
     const skillCategoryValue = req.body.skillCategory || req.body.skill_category || null;
+    const scheduleTypeValue = req.body.scheduleType || req.body.schedule_type || 'fixed';
+    const flexibleStartValue = scheduleTypeValue === 'flexible' && (req.body.flexibleStart || req.body.flexible_start) ? new Date(req.body.flexibleStart || req.body.flexible_start).toISOString() : null;
+    const flexibleEndValue = scheduleTypeValue === 'flexible' && (req.body.flexibleEnd || req.body.flexible_end) ? new Date(req.body.flexibleEnd || req.body.flexible_end).toISOString() : null;
 
     const result = await query(
       `INSERT INTO exams (
         name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts,
         schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published, trainer_id, enable_face_detection,
-        enable_section_cutoff, mcq_cutoff_percentage, coding_cutoff_percentage, mcq_cutoff_marks, coding_cutoff_marks, navigation_mode, submission_mode, skill_category
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::uuid[], $11, $12, $13, FALSE, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23) RETURNING *`,
+        enable_section_cutoff, mcq_cutoff_percentage, coding_cutoff_percentage, mcq_cutoff_marks, coding_cutoff_marks, navigation_mode, submission_mode, skill_category,
+        schedule_type, flexible_start, flexible_end
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::uuid[], $11, $12, $13, FALSE, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26) RETURNING *`,
       [
         name, description || '', examType, durationMinutes, cutoffPercentage || 50, allowedAttempts || 1, finalScheduleDate, finalCollegeId, finalDeptId, finalDeptIds, batchId || null, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, trainerId || null, enableFaceDetection !== false,
         enableSectionCutoff === true, mcqCutoffPercentage !== undefined && mcqCutoffPercentage !== null ? mcqCutoffPercentage : 50.00, codingCutoffPercentage !== undefined && codingCutoffPercentage !== null ? codingCutoffPercentage : 50.00, mcqCutoffMarks !== undefined && mcqCutoffMarks !== null ? mcqCutoffMarks : 0.00, codingCutoffMarks !== undefined && codingCutoffMarks !== null ? codingCutoffMarks : 0.00, req.body.navigationMode || req.body.navigation_mode || 'free',
-        submissionModeValue, skillCategoryValue
+        submissionModeValue, skillCategoryValue,
+        scheduleTypeValue, flexibleStartValue, flexibleEndValue
       ]
     );
 
-    res.status(201).json(result.rows[0]);
+    const newExam = result.rows[0];
+
+    // Multi-batch assignment (exam_batches) — additive to the legacy single
+    // batch_id column above, which stays as the "primary" batch for backward
+    // compatibility with everything else that still reads it directly.
+    if (req.body.batchIds && Array.isArray(req.body.batchIds) && req.body.batchIds.length > 0) {
+      for (const bId of req.body.batchIds) {
+        await query(
+          `INSERT INTO exam_batches (exam_id, batch_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [newExam.id, bId]
+        );
+      }
+    }
+
+    res.status(201).json(newExam);
   } catch (err: any) {
     console.error("Error in POST /api/exams:", err);
     res.status(500).json({ error: err.message });
@@ -446,11 +465,20 @@ app.get('/api/exams/:id', authenticate, requireRole('admin'), async (req: Authen
 
     const sections = await query('SELECT * FROM sections WHERE exam_id = $1 ORDER BY sort_order ASC', [req.params.id]);
 
+    const assignedBatches = await query(
+      `SELECT eb.batch_id, b.name as batch_name, b.batch_type
+       FROM exam_batches eb
+       JOIN batches b ON b.id = eb.batch_id
+       WHERE eb.exam_id = $1`,
+      [req.params.id]
+    );
+
     res.json({
       exam: examResult.rows[0],
       sections: sections.rows,
       mcqQuestions: mcqs.rows,
-      codingQuestions
+      codingQuestions,
+      assignedBatches: assignedBatches.rows
     });
   } catch (err: any) {
     console.error("Error in GET /api/exams/:id:", err);
@@ -515,13 +543,17 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req: Authen
 
     const submissionModeValue = req.body.submissionMode || req.body.submission_mode || 'manual';
     const skillCategoryValue = req.body.skillCategory || req.body.skill_category || null;
+    const scheduleTypeValue = req.body.scheduleType || req.body.schedule_type || 'fixed';
+    const flexibleStartValue = scheduleTypeValue === 'flexible' && (req.body.flexibleStart || req.body.flexible_start) ? new Date(req.body.flexibleStart || req.body.flexible_start).toISOString() : null;
+    const flexibleEndValue = scheduleTypeValue === 'flexible' && (req.body.flexibleEnd || req.body.flexible_end) ? new Date(req.body.flexibleEnd || req.body.flexible_end).toISOString() : null;
 
     const result = await query(
       `UPDATE exams
        SET name = $1, description = $2, exam_type = $3, duration_minutes = $4,
            cutoff_percentage = $5, allowed_attempts = $6, schedule_date = $7,
            college_id = $8, department_id = $9, department_ids = $10::uuid[], batch_id = $11, year = $12, window_open_minutes = $13, trainer_id = $14, enable_face_detection = $15,
-           enable_section_cutoff = $16, mcq_cutoff_percentage = $17, coding_cutoff_percentage = $18, mcq_cutoff_marks = $19, coding_cutoff_marks = $20, navigation_mode = $21, submission_mode = $22, skill_category = $23
+           enable_section_cutoff = $16, mcq_cutoff_percentage = $17, coding_cutoff_percentage = $18, mcq_cutoff_marks = $19, coding_cutoff_marks = $20, navigation_mode = $21, submission_mode = $22, skill_category = $23,
+           schedule_type = $25, flexible_start = $26, flexible_end = $27
        WHERE id = $24 RETURNING *`,
       [
         exName, description || '', exType, durMins, finalCutoffPct, finalAllowedAttempts, finalScheduleDate, finalCollegeId, finalDeptId, finalDeptIds, finalBatchId, finalYear, windowOpenMinutes !== undefined ? windowOpenMinutes : 10, finalTrainerId, faceDetectionEnabled,
@@ -529,11 +561,28 @@ app.put('/api/exams/:id', authenticate, requireRole('admin'), async (req: Authen
         req.body.navigationMode || req.body.navigation_mode || 'free',
         submissionModeValue,
         skillCategoryValue,
-        req.params.id
+        req.params.id,
+        scheduleTypeValue, flexibleStartValue, flexibleEndValue
       ]
     );
 
     if (result.rows.length === 0) return res.status(404).json({ error: 'Exam not found' });
+
+    // Multi-batch assignment (exam_batches) — replace the full assignment set
+    // on every save, matching how department_ids is fully replaced above. The
+    // DELETE runs whenever batchIds is present at all (even []) so clearing
+    // every batch in the UI actually clears it here too, not just when the
+    // array is non-empty.
+    if (req.body.batchIds && Array.isArray(req.body.batchIds)) {
+      await query('DELETE FROM exam_batches WHERE exam_id = $1', [req.params.id]);
+      for (const bId of req.body.batchIds) {
+        await query(
+          `INSERT INTO exam_batches (exam_id, batch_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+          [req.params.id, bId]
+        );
+      }
+    }
+
     res.json(result.rows[0]);
   } catch (err: any) {
     console.error("Error in PUT /api/exams/:id:", err);
@@ -555,8 +604,8 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
     const ex = examCheck.rows[0];
 
     const newExam = await query(
-      `INSERT INTO exams (name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts, schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published, trainer_id, enable_face_detection, enable_section_cutoff, mcq_cutoff_percentage, coding_cutoff_percentage, mcq_cutoff_marks, coding_cutoff_marks, navigation_mode)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE, $14, $15, $16, $17, $18, $19, $20, $21) RETURNING *`,
+      `INSERT INTO exams (name, description, exam_type, duration_minutes, cutoff_percentage, allowed_attempts, schedule_date, college_id, department_id, department_ids, batch_id, year, window_open_minutes, is_published, trainer_id, enable_face_detection, enable_section_cutoff, mcq_cutoff_percentage, coding_cutoff_percentage, mcq_cutoff_marks, coding_cutoff_marks, navigation_mode, schedule_type, flexible_start, flexible_end)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, FALSE, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24) RETURNING *`,
       [
         `Copy of ${ex.name}`,
         ex.description || '',
@@ -578,10 +627,22 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
         ex.coding_cutoff_percentage !== null ? ex.coding_cutoff_percentage : 50.00,
         ex.mcq_cutoff_marks !== null ? ex.mcq_cutoff_marks : 0.00,
         ex.coding_cutoff_marks !== null ? ex.coding_cutoff_marks : 0.00,
-        ex.navigation_mode || 'free'
+        ex.navigation_mode || 'free',
+        ex.schedule_type || 'fixed',
+        ex.flexible_start || null,
+        ex.flexible_end || null
       ]
     );
     const newExamId = newExam.rows[0].id;
+
+    // Copy multi-batch assignments (exam_batches)
+    const oldBatchAssignments = await query('SELECT batch_id FROM exam_batches WHERE exam_id = $1', [id]);
+    for (const row of oldBatchAssignments.rows) {
+      await query(
+        `INSERT INTO exam_batches (exam_id, batch_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+        [newExamId, row.batch_id]
+      );
+    }
 
     // Copy Sections
     const sections = await query('SELECT * FROM sections WHERE exam_id = $1 ORDER BY sort_order ASC', [id]);
@@ -1465,18 +1526,25 @@ app.get('/api/exams/student/active', authenticate, requireRole('student'), async
   try {
     const { college_id, department_id, year, batch_id, trainer_id, id: studentId } = req.user! as any;
     const result = await query(
-      `SELECT e.*, 
+      `SELECT e.*,
               (SELECT COUNT(*) FROM exam_attempts ea WHERE ea.exam_id = e.id AND ea.student_id = $6) as attempts_made
        FROM exams e
        WHERE e.college_id = $1
          AND (
            (e.batch_id IS NULL AND (e.department_id = $2 OR $2 = ANY(COALESCE(e.department_ids, '{}'))) AND e.year = $3)
            OR (e.batch_id IS NOT NULL AND e.batch_id = $4)
+           OR (e.id IN (SELECT exam_id FROM exam_batches WHERE batch_id = $4))
          )
          AND (e.trainer_id IS NULL OR e.trainer_id = $5)
-         AND e.is_published = TRUE 
-         AND e.schedule_date <= (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
-         AND (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') <= e.schedule_date + (GREATEST(COALESCE(e.window_open_minutes, 10), COALESCE(e.duration_minutes, 60)) * INTERVAL '1 minute')
+         AND e.is_published = TRUE
+         AND (
+           (e.schedule_type = 'flexible' AND (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') >= e.flexible_start AND (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') <= e.flexible_end)
+           OR (
+             COALESCE(e.schedule_type, 'fixed') != 'flexible'
+             AND e.schedule_date <= (CURRENT_TIMESTAMP AT TIME ZONE 'UTC')
+             AND (CURRENT_TIMESTAMP AT TIME ZONE 'UTC') <= e.schedule_date + (GREATEST(COALESCE(e.window_open_minutes, 10), COALESCE(e.duration_minutes, 60)) * INTERVAL '1 minute')
+           )
+         )
        ORDER BY e.schedule_date DESC`,
       [college_id, department_id, year, batch_id || null, trainer_id || null, studentId]
     );
@@ -1500,15 +1568,27 @@ app.get('/api/exams/student/:id/instructions', authenticate, requireRole('studen
 
     const examData = exam.rows[0];
     const now = new Date();
-    const sched = new Date(examData.schedule_date);
-    const windowOpenMins = examData.window_open_minutes !== null && examData.window_open_minutes !== undefined ? examData.window_open_minutes : 10;
-    const windowClose = new Date(sched.getTime() + windowOpenMins * 60 * 1000);
 
-    if (now < sched) {
-      return res.status(403).json({ error: 'This exam has not started yet.' });
-    }
-    if (now > windowClose) {
-      return res.status(403).json({ error: 'The entry window for this exam has closed.' });
+    if (examData.schedule_type === 'flexible') {
+      // Flexible exams have no single schedule_date/window — available
+      // anytime between flexible_start and flexible_end instead.
+      if (!examData.flexible_start || now < new Date(examData.flexible_start)) {
+        return res.status(403).json({ error: 'This exam has not started yet.' });
+      }
+      if (!examData.flexible_end || now > new Date(examData.flexible_end)) {
+        return res.status(403).json({ error: 'The entry window for this exam has closed.' });
+      }
+    } else {
+      const sched = new Date(examData.schedule_date);
+      const windowOpenMins = examData.window_open_minutes !== null && examData.window_open_minutes !== undefined ? examData.window_open_minutes : 10;
+      const windowClose = new Date(sched.getTime() + windowOpenMins * 60 * 1000);
+
+      if (now < sched) {
+        return res.status(403).json({ error: 'This exam has not started yet.' });
+      }
+      if (now > windowClose) {
+        return res.status(403).json({ error: 'The entry window for this exam has closed.' });
+      }
     }
 
     const attemptsResult = await query(
@@ -1549,15 +1629,27 @@ app.post('/api/exams/student/:id/start', authenticate, requireRole('student'), a
 
     const examData = exam.rows[0];
     const now = new Date();
-    const sched = new Date(examData.schedule_date);
-    const windowOpenMins = examData.window_open_minutes !== null && examData.window_open_minutes !== undefined ? examData.window_open_minutes : 10;
-    const windowClose = new Date(sched.getTime() + windowOpenMins * 60 * 1000);
 
-    if (now < sched) {
-      return res.status(403).json({ error: 'This exam has not started yet.' });
-    }
-    if (now > windowClose) {
-      return res.status(403).json({ error: 'The entry window for this exam has closed.' });
+    if (examData.schedule_type === 'flexible') {
+      // Flexible exams have no single schedule_date/window — available
+      // anytime between flexible_start and flexible_end instead.
+      if (!examData.flexible_start || now < new Date(examData.flexible_start)) {
+        return res.status(403).json({ error: 'This exam has not started yet.' });
+      }
+      if (!examData.flexible_end || now > new Date(examData.flexible_end)) {
+        return res.status(403).json({ error: 'The entry window for this exam has closed.' });
+      }
+    } else {
+      const sched = new Date(examData.schedule_date);
+      const windowOpenMins = examData.window_open_minutes !== null && examData.window_open_minutes !== undefined ? examData.window_open_minutes : 10;
+      const windowClose = new Date(sched.getTime() + windowOpenMins * 60 * 1000);
+
+      if (now < sched) {
+        return res.status(403).json({ error: 'This exam has not started yet.' });
+      }
+      if (now > windowClose) {
+        return res.status(403).json({ error: 'The entry window for this exam has closed.' });
+      }
     }
 
     const attemptsResult = await query(

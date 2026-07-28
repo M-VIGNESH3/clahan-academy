@@ -496,6 +496,9 @@ export default function App() {
     submissionMode?: 'manual' | 'auto';
     timingMode?: 'overall' | 'section';
     skillCategory?: string;
+    scheduleType?: string;
+    flexibleStart?: string;
+    flexibleEnd?: string;
   }>({
     name: '', description: '', examType: 'mcq',
     durationMinutes: 60, cutoffPercentage: 50, allowedAttempts: 1, scheduleDate: getLocalDatetimeString(),
@@ -510,8 +513,12 @@ export default function App() {
     navigationMode: 'free',
     submissionMode: 'manual',
     timingMode: 'overall',
-    skillCategory: ''
+    skillCategory: '',
+    scheduleType: 'fixed',
+    flexibleStart: '',
+    flexibleEnd: ''
   });
+  const [selectedExamBatchIds, setSelectedExamBatchIds] = useState<string[]>([]);
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [terminationModal, setTerminationModal] = useState<{ attemptId: string; studentName: string } | null>(null);
   const [terminationReason, setTerminationReason] = useState('');
@@ -2994,6 +3001,16 @@ export default function App() {
           } else {
             localSched = getLocalDatetimeString();
           }
+          const toLocalDT = (raw: any) => {
+            if (!raw) return '';
+            try {
+              const d = new Date(raw);
+              const tzoffset = d.getTimezoneOffset() * 60000;
+              return new Date(d.getTime() - tzoffset).toISOString().slice(0, 16);
+            } catch {
+              return String(raw).slice(0, 16);
+            }
+          };
           setExamForm({
             name: formattedEx.name || '',
             description: formattedEx.description || '',
@@ -3017,8 +3034,16 @@ export default function App() {
             codingCutoffMarks: formattedEx.codingCutoffMarks || 0,
             navigationMode: formattedEx.navigationMode || 'free',
             submissionMode: formattedEx.submissionMode || 'manual',
-            timingMode: formattedEx.timingMode || 'overall'
+            timingMode: formattedEx.timingMode || 'overall',
+            scheduleType: formattedEx.scheduleType || 'fixed',
+            flexibleStart: toLocalDT(formattedEx.flexibleStart),
+            flexibleEnd: toLocalDT(formattedEx.flexibleEnd)
           });
+          setSelectedExamBatchIds(
+            (data.assignedBatches && data.assignedBatches.length > 0)
+              ? data.assignedBatches.map((b: any) => b.batch_id)
+              : (formattedEx.batchId ? [formattedEx.batchId] : [])
+          );
         }
         
         // Auto-select first MCQ section
@@ -3652,6 +3677,11 @@ export default function App() {
         durationMinutes: isNaN(durMins) ? 60 : durMins,
         cutoffPercentage: isNaN(cutPct) ? 50 : cutPct,
         scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
+        scheduleType: examForm.scheduleType || 'fixed',
+        flexibleStart: examForm.scheduleType === 'flexible' && examForm.flexibleStart ? new Date(examForm.flexibleStart).toISOString() : null,
+        flexibleEnd: examForm.scheduleType === 'flexible' && examForm.flexibleEnd ? new Date(examForm.flexibleEnd).toISOString() : null,
+        batchIds: selectedExamBatchIds,
+        batchId: selectedExamBatchIds[0] || null,
         navigationMode: examForm.navigationMode || 'free',
         submissionMode: examForm.submissionMode || 'manual',
         enableFaceDetection: examForm.enableFaceDetection === true,
@@ -3726,6 +3756,11 @@ export default function App() {
         durationMinutes: isNaN(durMins) ? 60 : durMins,
         cutoffPercentage: isNaN(cutPct) ? 50 : cutPct,
         scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
+        scheduleType: examForm.scheduleType || 'fixed',
+        flexibleStart: examForm.scheduleType === 'flexible' && examForm.flexibleStart ? new Date(examForm.flexibleStart).toISOString() : null,
+        flexibleEnd: examForm.scheduleType === 'flexible' && examForm.flexibleEnd ? new Date(examForm.flexibleEnd).toISOString() : null,
+        batchIds: selectedExamBatchIds,
+        batchId: selectedExamBatchIds[0] || null,
         navigationMode: examForm.navigationMode || 'free',
         submissionMode: examForm.submissionMode || 'manual',
         enableFaceDetection: examForm.enableFaceDetection === true,
@@ -3829,7 +3864,11 @@ export default function App() {
       submissionMode: subMode,
       submission_mode: subMode,
       skillCategory: ex.skill_category || ex.skillCategory || '',
-      skill_category: ex.skill_category || ex.skillCategory || ''
+      skill_category: ex.skill_category || ex.skillCategory || '',
+      scheduleType: ex.schedule_type || ex.scheduleType || 'fixed',
+      schedule_type: ex.schedule_type || ex.scheduleType || 'fixed',
+      flexibleStart: ex.flexible_start || ex.flexibleStart || null,
+      flexibleEnd: ex.flexible_end || ex.flexibleEnd || null
     };
   };
 
@@ -3872,8 +3911,12 @@ export default function App() {
       navigationMode: ex.navigation_mode || ex.navigationMode || 'free',
       submissionMode: ex.submission_mode || ex.submissionMode || 'manual',
       timingMode: ex.timing_mode || ex.timingMode || 'overall',
-      skillCategory: ex.skill_category || ex.skillCategory || ''
+      skillCategory: ex.skill_category || ex.skillCategory || '',
+      scheduleType: ex.schedule_type || ex.scheduleType || 'fixed',
+      flexibleStart: '',
+      flexibleEnd: ''
     });
+    setSelectedExamBatchIds(ex.batch_id || ex.batchId ? [ex.batch_id || ex.batchId] : []);
     if (ex.college_id || ex.collegeId) {
       fetchDepartments(ex.college_id || ex.collegeId);
       fetchBatches(ex.college_id || ex.collegeId);
@@ -8912,6 +8955,7 @@ export default function App() {
                           mcqCutoffMarks: 0,
                           codingCutoffMarks: 0
                         });
+                        setSelectedExamBatchIds([]);
                         setEditingExamId(null);
                         setSelectedExamIdForQuestions(null);
                         setExamWizardStep(1);
@@ -9082,6 +9126,13 @@ export default function App() {
                                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${ex.is_published ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800'}`}>
                                   {ex.is_published ? 'Published' : 'Draft'}
                                 </span>
+                                <div className="mt-1">
+                                  {ex.schedule_type === 'flexible' ? (
+                                    <span className="text-[9px] px-2 py-0.5 bg-violet-500/20 text-violet-600 dark:text-violet-400 rounded-full font-bold">📆 Flexible</span>
+                                  ) : (
+                                    <span className="text-[9px] px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-full font-bold">📅 Fixed</span>
+                                  )}
+                                </div>
                               </td>
                               <td className="text-right py-3 px-2 space-x-1 whitespace-nowrap">
                                 <button onClick={() => {
@@ -9748,6 +9799,7 @@ export default function App() {
                             onChange={e => {
                               const cId = e.target.value;
                               setExamForm({ ...examForm, collegeId: cId, batchId: '', departmentId: '', departmentIds: [], trainerId: '' });
+                              setSelectedExamBatchIds([]);
                               if (cId) {
                                 fetchDepartments(cId);
                                 fetchBatches(cId);
@@ -9772,39 +9824,20 @@ export default function App() {
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
                           <span>Target Department</span>
-                          {examForm.batchId && <span className="text-[10px] text-amber-500 font-bold">(Batch Selected)</span>}
+                          {selectedExamBatchIds.length > 0 && <span className="text-[10px] text-amber-500 font-bold">(Batch Selected)</span>}
                         </label>
                         <select
-                          value={examForm.batchId ? '' : examForm.departmentId}
+                          value={selectedExamBatchIds.length > 0 ? '' : examForm.departmentId}
                           onChange={e => {
                             const dId = e.target.value;
                             setExamForm({ ...examForm, departmentId: dId, departmentIds: dId ? [dId] : [] });
                           }}
-                          disabled={!examForm.collegeId || Boolean(examForm.batchId)}
+                          disabled={!examForm.collegeId || selectedExamBatchIds.length > 0}
                           className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
                         >
-                          <option value="">{examForm.batchId ? 'Auto-scoped by Batch' : 'All Departments'}</option>
+                          <option value="">{selectedExamBatchIds.length > 0 ? 'Auto-scoped by Batch' : 'All Departments'}</option>
                           {departments.map(d => (
                             <option key={d.id} value={d.id}>{d.name}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Target Batch */}
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground">Target Batch</label>
-                        <select
-                          value={examForm.batchId}
-                          onChange={e => {
-                            const bId = e.target.value;
-                            setExamForm({ ...examForm, batchId: bId, ...(bId ? { departmentId: '', departmentIds: [] } : {}) });
-                          }}
-                          disabled={!examForm.collegeId}
-                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
-                        >
-                          <option value="">All Batches in College</option>
-                          {batches.map(b => (
-                            <option key={b.id} value={b.id}>{b.name}</option>
                           ))}
                         </select>
                       </div>
@@ -9813,20 +9846,90 @@ export default function App() {
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
                           <span>Target Academic Year</span>
-                          {examForm.batchId && <span className="text-[10px] text-amber-500 font-bold">(Batch Selected)</span>}
+                          {selectedExamBatchIds.length > 0 && <span className="text-[10px] text-amber-500 font-bold">(Batch Selected)</span>}
                         </label>
                         <select
-                          value={examForm.batchId ? 'All Years' : examForm.year}
+                          value={selectedExamBatchIds.length > 0 ? 'All Years' : examForm.year}
                           onChange={e => setExamForm({ ...examForm, year: e.target.value })}
-                          disabled={Boolean(examForm.batchId)}
+                          disabled={selectedExamBatchIds.length > 0}
                           className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
                         >
-                          <option value="All Years">{examForm.batchId ? 'Auto-scoped by Batch' : 'All Academic Years'}</option>
+                          <option value="All Years">{selectedExamBatchIds.length > 0 ? 'Auto-scoped by Batch' : 'All Academic Years'}</option>
                           <option value="1st Year">1st Year</option>
                           <option value="2nd Year">2nd Year</option>
                           <option value="3rd Year">3rd Year</option>
                           <option value="4th Year">4th Year</option>
                         </select>
+                      </div>
+
+                      {/* Target Batch(es) — multi-select; auto-scopes department/year above when any batch is picked */}
+                      <div className="md:col-span-3 space-y-2">
+                        <label className="text-xs font-semibold text-muted-foreground">
+                          Assign to Batches
+                          <span className="ml-1 text-[10px] text-muted-foreground/70 font-normal">(optional — select one or more)</span>
+                        </label>
+
+                        {selectedExamBatchIds.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedExamBatchIds.map(id => {
+                              const batch = batches.find((b: any) => b.id === id);
+                              return batch ? (
+                                <span key={id} className="flex items-center gap-1 px-2 py-1 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold rounded-lg border border-indigo-200 dark:border-indigo-500/30">
+                                  {batch.name}
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedExamBatchIds(prev => prev.filter(bid => bid !== id))}
+                                    className="text-indigo-400 hover:text-indigo-700 dark:hover:text-white ml-1"
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              ) : null;
+                            })}
+                          </div>
+                        )}
+
+                        <div className="max-h-48 overflow-y-auto space-y-1 border border-slate-200 dark:border-slate-800 rounded-xl p-2 bg-white dark:bg-slate-900">
+                          {batches.map((batch: any) => {
+                            const isSelected = selectedExamBatchIds.includes(batch.id);
+                            return (
+                              <div
+                                key={batch.id}
+                                onClick={() => {
+                                  setSelectedExamBatchIds(prev =>
+                                    isSelected ? prev.filter(id => id !== batch.id) : [...prev, batch.id]
+                                  );
+                                  setExamForm(prev => ({
+                                    ...prev,
+                                    ...(!isSelected ? { departmentId: '', departmentIds: [] } : {})
+                                  }));
+                                }}
+                                className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${
+                                  isSelected ? 'bg-indigo-50 dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/30' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                                }`}
+                              >
+                                <div className={`h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-indigo-500 bg-indigo-500' : 'border-slate-400 dark:border-slate-600'}`}>
+                                  {isSelected && <span className="text-white text-[8px] font-black">✓</span>}
+                                </div>
+                                <span className="text-xs text-slate-800 dark:text-white">{batch.name}</span>
+                                <span className={`ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                                  batch.batch_type === 'crt'
+                                    ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                                    : batch.batch_type === 'training'
+                                      ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                                      : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                                }`}>
+                                  {batch.batch_type || 'academic'}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          {batches.length === 0 && (
+                            <p className="text-xs text-muted-foreground text-center py-4">
+                              No batches available for this college. Create batches first.
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -9852,35 +9955,89 @@ export default function App() {
                     <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                       <Clock className="h-4 w-4 text-indigo-500" /> Start Date, Entry Window & Duration Rules
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground">Schedule Start Date & Time *</label>
-                        <input
-                          type="datetime-local"
-                          value={examForm.scheduleDate}
-                          onChange={e => setExamForm({ ...examForm, scheduleDate: e.target.value })}
-                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
-                          required
-                        />
-                      </div>
 
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground">Entry Window Open (Minutes)</label>
-                        <select
-                          value={examForm.windowOpenMinutes}
-                          onChange={e => setExamForm({ ...examForm, windowOpenMinutes: parseInt(e.target.value) || 10 })}
-                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
-                        >
-                          <option value="5">5 Minutes Strict Entry</option>
-                          <option value="10">10 Minutes Window (Standard)</option>
-                          <option value="15">15 Minutes Window</option>
-                          <option value="30">30 Minutes Window</option>
-                          <option value="60">1 Hour Window</option>
-                          <option value="120">2 Hours Window</option>
-                          <option value="1440">24 Hours / 1 Day Window</option>
-                          <option value="999999">Always Open / Flexible Entry</option>
-                        </select>
-                      </div>
+                    {/* Schedule Type toggle */}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setExamForm({ ...examForm, scheduleType: 'fixed' })}
+                        className={`flex-1 py-2.5 text-xs font-bold rounded-xl border ${
+                          (examForm.scheduleType || 'fixed') === 'fixed'
+                            ? 'bg-indigo-600 border-indigo-500 text-white'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        📅 Fixed Date & Time
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setExamForm({ ...examForm, scheduleType: 'flexible' })}
+                        className={`flex-1 py-2.5 text-xs font-bold rounded-xl border ${
+                          examForm.scheduleType === 'flexible'
+                            ? 'bg-violet-600 border-violet-500 text-white'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        📆 Date Range (Flexible)
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {(examForm.scheduleType || 'fixed') === 'fixed' ? (
+                        <>
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground">Schedule Start Date & Time *</label>
+                            <input
+                              type="datetime-local"
+                              value={examForm.scheduleDate}
+                              onChange={e => setExamForm({ ...examForm, scheduleDate: e.target.value })}
+                              className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground">Entry Window Open (Minutes)</label>
+                            <select
+                              value={examForm.windowOpenMinutes}
+                              onChange={e => setExamForm({ ...examForm, windowOpenMinutes: parseInt(e.target.value) || 10 })}
+                              className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                            >
+                              <option value="5">5 Minutes Strict Entry</option>
+                              <option value="10">10 Minutes Window (Standard)</option>
+                              <option value="15">15 Minutes Window</option>
+                              <option value="30">30 Minutes Window</option>
+                              <option value="60">1 Hour Window</option>
+                              <option value="120">2 Hours Window</option>
+                              <option value="1440">24 Hours / 1 Day Window</option>
+                              <option value="999999">Always Open / Flexible Entry</option>
+                            </select>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground">Available From</label>
+                            <input
+                              type="datetime-local"
+                              value={examForm.flexibleStart || ''}
+                              onChange={e => setExamForm({ ...examForm, flexibleStart: e.target.value })}
+                              className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground">Available Until</label>
+                            <input
+                              type="datetime-local"
+                              value={examForm.flexibleEnd || ''}
+                              onChange={e => setExamForm({ ...examForm, flexibleEnd: e.target.value })}
+                              className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                              required
+                            />
+                          </div>
+                        </>
+                      )}
 
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground">Assessment Duration (Minutes)</label>
@@ -9896,6 +10053,15 @@ export default function App() {
                         />
                       </div>
                     </div>
+
+                    {examForm.scheduleType === 'flexible' && (
+                      <div className="p-3 bg-violet-500/10 border border-violet-500/20 rounded-xl">
+                        <p className="text-[10px] text-violet-600 dark:text-violet-300 font-bold">ℹ️ Flexible scheduling</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Students can take this exam anytime between the start and end dates. Each student still gets the full exam duration once they begin.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -9977,35 +10143,89 @@ export default function App() {
                     <h4 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
                       <Clock className="h-4 w-4" /> Start Date, Time & Entry Window
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground">Schedule Start Date & Time *</label>
-                        <input
-                          type="datetime-local"
-                          value={examForm.scheduleDate}
-                          onChange={e => setExamForm({ ...examForm, scheduleDate: e.target.value })}
-                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
-                          required
-                        />
-                      </div>
 
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground">Entry Window Open (Minutes)</label>
-                        <select
-                          value={examForm.windowOpenMinutes}
-                          onChange={e => setExamForm({ ...examForm, windowOpenMinutes: parseInt(e.target.value) || 10 })}
-                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
-                        >
-                          <option value="5">5 Minutes Strict Entry</option>
-                          <option value="10">10 Minutes Window (Standard)</option>
-                          <option value="15">15 Minutes Window</option>
-                          <option value="30">30 Minutes Window</option>
-                          <option value="60">1 Hour Window</option>
-                          <option value="120">2 Hours Window</option>
-                          <option value="1440">24 Hours / 1 Day Window</option>
-                          <option value="999999">Always Open / Flexible Entry</option>
-                        </select>
-                      </div>
+                    {/* Schedule Type toggle */}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setExamForm({ ...examForm, scheduleType: 'fixed' })}
+                        className={`flex-1 py-2.5 text-xs font-bold rounded-xl border ${
+                          (examForm.scheduleType || 'fixed') === 'fixed'
+                            ? 'bg-indigo-600 border-indigo-500 text-white'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        📅 Fixed Date & Time
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setExamForm({ ...examForm, scheduleType: 'flexible' })}
+                        className={`flex-1 py-2.5 text-xs font-bold rounded-xl border ${
+                          examForm.scheduleType === 'flexible'
+                            ? 'bg-violet-600 border-violet-500 text-white'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400'
+                        }`}
+                      >
+                        📆 Date Range (Flexible)
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {(examForm.scheduleType || 'fixed') === 'fixed' ? (
+                        <>
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground">Schedule Start Date & Time *</label>
+                            <input
+                              type="datetime-local"
+                              value={examForm.scheduleDate}
+                              onChange={e => setExamForm({ ...examForm, scheduleDate: e.target.value })}
+                              className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground">Entry Window Open (Minutes)</label>
+                            <select
+                              value={examForm.windowOpenMinutes}
+                              onChange={e => setExamForm({ ...examForm, windowOpenMinutes: parseInt(e.target.value) || 10 })}
+                              className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                            >
+                              <option value="5">5 Minutes Strict Entry</option>
+                              <option value="10">10 Minutes Window (Standard)</option>
+                              <option value="15">15 Minutes Window</option>
+                              <option value="30">30 Minutes Window</option>
+                              <option value="60">1 Hour Window</option>
+                              <option value="120">2 Hours Window</option>
+                              <option value="1440">24 Hours / 1 Day Window</option>
+                              <option value="999999">Always Open / Flexible Entry</option>
+                            </select>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground">Available From</label>
+                            <input
+                              type="datetime-local"
+                              value={examForm.flexibleStart || ''}
+                              onChange={e => setExamForm({ ...examForm, flexibleStart: e.target.value })}
+                              className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-semibold text-muted-foreground">Available Until</label>
+                            <input
+                              type="datetime-local"
+                              value={examForm.flexibleEnd || ''}
+                              onChange={e => setExamForm({ ...examForm, flexibleEnd: e.target.value })}
+                              className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                              required
+                            />
+                          </div>
+                        </>
+                      )}
 
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground">Allowed Attempt Limit</label>
@@ -10021,6 +10241,15 @@ export default function App() {
                         </select>
                       </div>
                     </div>
+
+                    {examForm.scheduleType === 'flexible' && (
+                      <div className="p-3 bg-violet-500/10 border border-violet-500/20 rounded-xl">
+                        <p className="text-[10px] text-violet-600 dark:text-violet-300 font-bold">ℹ️ Flexible scheduling</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Students can take this exam anytime between the start and end dates. Each student still gets the full exam duration once they begin.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Target Audience & Institution Allocation */}
@@ -10038,6 +10267,7 @@ export default function App() {
                             onChange={e => {
                               const cId = e.target.value;
                               setExamForm({ ...examForm, collegeId: cId, batchId: '', departmentId: '', departmentIds: [], trainerId: '' });
+                              setSelectedExamBatchIds([]);
                               if (cId) {
                                 fetchDepartments(cId);
                                 fetchBatches(cId);
@@ -10062,39 +10292,20 @@ export default function App() {
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
                           <span>Target Department</span>
-                          {examForm.batchId && <span className="text-[10px] text-amber-500 font-bold">(Batch Selected)</span>}
+                          {selectedExamBatchIds.length > 0 && <span className="text-[10px] text-amber-500 font-bold">(Batch Selected)</span>}
                         </label>
                         <select
-                          value={examForm.batchId ? '' : examForm.departmentId}
+                          value={selectedExamBatchIds.length > 0 ? '' : examForm.departmentId}
                           onChange={e => {
                             const dId = e.target.value;
                             setExamForm({ ...examForm, departmentId: dId, departmentIds: dId ? [dId] : [] });
                           }}
-                          disabled={!examForm.collegeId || Boolean(examForm.batchId)}
+                          disabled={!examForm.collegeId || selectedExamBatchIds.length > 0}
                           className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
                         >
-                          <option value="">{examForm.batchId ? 'Auto-scoped by Batch' : 'All Departments'}</option>
+                          <option value="">{selectedExamBatchIds.length > 0 ? 'Auto-scoped by Batch' : 'All Departments'}</option>
                           {departments.map(d => (
                             <option key={d.id} value={d.id}>{d.name}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Target Batch */}
-                      <div>
-                        <label className="text-xs font-semibold text-muted-foreground">Target Batch</label>
-                        <select
-                          value={examForm.batchId}
-                          onChange={e => {
-                            const bId = e.target.value;
-                            setExamForm({ ...examForm, batchId: bId, ...(bId ? { departmentId: '', departmentIds: [] } : {}) });
-                          }}
-                          disabled={!examForm.collegeId}
-                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
-                        >
-                          <option value="">All Batches in College</option>
-                          {batches.map(b => (
-                            <option key={b.id} value={b.id}>{b.name}</option>
                           ))}
                         </select>
                       </div>
@@ -10103,20 +10314,90 @@ export default function App() {
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground flex items-center justify-between">
                           <span>Target Academic Year</span>
-                          {examForm.batchId && <span className="text-[10px] text-amber-500 font-bold">(Batch Selected)</span>}
+                          {selectedExamBatchIds.length > 0 && <span className="text-[10px] text-amber-500 font-bold">(Batch Selected)</span>}
                         </label>
                         <select
-                          value={examForm.batchId ? 'All Years' : examForm.year}
+                          value={selectedExamBatchIds.length > 0 ? 'All Years' : examForm.year}
                           onChange={e => setExamForm({ ...examForm, year: e.target.value })}
-                          disabled={Boolean(examForm.batchId)}
+                          disabled={selectedExamBatchIds.length > 0}
                           className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50"
                         >
-                          <option value="All Years">{examForm.batchId ? 'Auto-scoped by Batch' : 'All Academic Years'}</option>
+                          <option value="All Years">{selectedExamBatchIds.length > 0 ? 'Auto-scoped by Batch' : 'All Academic Years'}</option>
                           <option value="1st Year">1st Year</option>
                           <option value="2nd Year">2nd Year</option>
                           <option value="3rd Year">3rd Year</option>
                           <option value="4th Year">4th Year</option>
                         </select>
+                      </div>
+
+                      {/* Target Batch(es) — multi-select; auto-scopes department/year above when any batch is picked */}
+                      <div className="md:col-span-3 space-y-2">
+                        <label className="text-xs font-semibold text-muted-foreground">
+                          Assign to Batches
+                          <span className="ml-1 text-[10px] text-muted-foreground/70 font-normal">(optional — select one or more)</span>
+                        </label>
+
+                        {selectedExamBatchIds.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedExamBatchIds.map(id => {
+                              const batch = batches.find((b: any) => b.id === id);
+                              return batch ? (
+                                <span key={id} className="flex items-center gap-1 px-2 py-1 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold rounded-lg border border-indigo-200 dark:border-indigo-500/30">
+                                  {batch.name}
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedExamBatchIds(prev => prev.filter(bid => bid !== id))}
+                                    className="text-indigo-400 hover:text-indigo-700 dark:hover:text-white ml-1"
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              ) : null;
+                            })}
+                          </div>
+                        )}
+
+                        <div className="max-h-48 overflow-y-auto space-y-1 border border-slate-200 dark:border-slate-800 rounded-xl p-2 bg-white dark:bg-slate-900">
+                          {batches.map((batch: any) => {
+                            const isSelected = selectedExamBatchIds.includes(batch.id);
+                            return (
+                              <div
+                                key={batch.id}
+                                onClick={() => {
+                                  setSelectedExamBatchIds(prev =>
+                                    isSelected ? prev.filter(id => id !== batch.id) : [...prev, batch.id]
+                                  );
+                                  setExamForm(prev => ({
+                                    ...prev,
+                                    ...(!isSelected ? { departmentId: '', departmentIds: [] } : {})
+                                  }));
+                                }}
+                                className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${
+                                  isSelected ? 'bg-indigo-50 dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/30' : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                                }`}
+                              >
+                                <div className={`h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-indigo-500 bg-indigo-500' : 'border-slate-400 dark:border-slate-600'}`}>
+                                  {isSelected && <span className="text-white text-[8px] font-black">✓</span>}
+                                </div>
+                                <span className="text-xs text-slate-800 dark:text-white">{batch.name}</span>
+                                <span className={`ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                                  batch.batch_type === 'crt'
+                                    ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                                    : batch.batch_type === 'training'
+                                      ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400'
+                                      : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                                }`}>
+                                  {batch.batch_type || 'academic'}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          {batches.length === 0 && (
+                            <p className="text-xs text-muted-foreground text-center py-4">
+                              No batches available for this college. Create batches first.
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -11505,6 +11786,11 @@ export default function App() {
                           durationMinutes: examForm.durationMinutes || 60,
                           cutoffPercentage: examForm.cutoffPercentage || 50,
                           scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
+        scheduleType: examForm.scheduleType || 'fixed',
+        flexibleStart: examForm.scheduleType === 'flexible' && examForm.flexibleStart ? new Date(examForm.flexibleStart).toISOString() : null,
+        flexibleEnd: examForm.scheduleType === 'flexible' && examForm.flexibleEnd ? new Date(examForm.flexibleEnd).toISOString() : null,
+        batchIds: selectedExamBatchIds,
+        batchId: selectedExamBatchIds[0] || null,
                           navigationMode: examForm.navigationMode || 'free',
                           submissionMode: examForm.submissionMode || 'manual',
                           enableFaceDetection: examForm.enableFaceDetection === true
@@ -11574,6 +11860,11 @@ export default function App() {
                           durationMinutes: examForm.durationMinutes || 60,
                           cutoffPercentage: examForm.cutoffPercentage || 50,
                           scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
+        scheduleType: examForm.scheduleType || 'fixed',
+        flexibleStart: examForm.scheduleType === 'flexible' && examForm.flexibleStart ? new Date(examForm.flexibleStart).toISOString() : null,
+        flexibleEnd: examForm.scheduleType === 'flexible' && examForm.flexibleEnd ? new Date(examForm.flexibleEnd).toISOString() : null,
+        batchIds: selectedExamBatchIds,
+        batchId: selectedExamBatchIds[0] || null,
                           navigationMode: examForm.navigationMode || 'free',
                           submissionMode: examForm.submissionMode || 'manual',
                           enableFaceDetection: examForm.enableFaceDetection === true
@@ -11661,6 +11952,11 @@ export default function App() {
                           durationMinutes: examForm.durationMinutes || 60,
                           cutoffPercentage: examForm.cutoffPercentage || 50,
                           scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
+        scheduleType: examForm.scheduleType || 'fixed',
+        flexibleStart: examForm.scheduleType === 'flexible' && examForm.flexibleStart ? new Date(examForm.flexibleStart).toISOString() : null,
+        flexibleEnd: examForm.scheduleType === 'flexible' && examForm.flexibleEnd ? new Date(examForm.flexibleEnd).toISOString() : null,
+        batchIds: selectedExamBatchIds,
+        batchId: selectedExamBatchIds[0] || null,
                           navigationMode: examForm.navigationMode || 'free',
                           submissionMode: examForm.submissionMode || 'manual',
                           enableFaceDetection: examForm.enableFaceDetection === true
@@ -11738,6 +12034,11 @@ export default function App() {
                           durationMinutes: examForm.durationMinutes || 60,
                           cutoffPercentage: examForm.cutoffPercentage || 50,
                           scheduleDate: examForm.scheduleDate ? new Date(examForm.scheduleDate).toISOString() : new Date().toISOString(),
+        scheduleType: examForm.scheduleType || 'fixed',
+        flexibleStart: examForm.scheduleType === 'flexible' && examForm.flexibleStart ? new Date(examForm.flexibleStart).toISOString() : null,
+        flexibleEnd: examForm.scheduleType === 'flexible' && examForm.flexibleEnd ? new Date(examForm.flexibleEnd).toISOString() : null,
+        batchIds: selectedExamBatchIds,
+        batchId: selectedExamBatchIds[0] || null,
                           navigationMode: examForm.navigationMode || 'free',
                           submissionMode: examForm.submissionMode || 'manual',
                           enableFaceDetection: examForm.enableFaceDetection === true
