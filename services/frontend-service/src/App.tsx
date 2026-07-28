@@ -3044,6 +3044,14 @@ export default function App() {
               ? data.assignedBatches.map((b: any) => b.batch_id)
               : (formattedEx.batchId ? [formattedEx.batchId] : [])
           );
+          // Ensure the batch multi-select actually has options to show,
+          // regardless of which entry point loaded this exam (e.g. "Resume
+          // Draft" jumps straight here without going through
+          // startEditingExam, which is what normally fetches these).
+          if (formattedEx.collegeId) {
+            fetchDepartments(formattedEx.collegeId);
+            fetchBatches(formattedEx.collegeId);
+          }
         }
         
         // Auto-select first MCQ section
@@ -11906,14 +11914,17 @@ export default function App() {
 
                 <div className="p-5 border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50 dark:bg-slate-900 space-y-4">
                   <label className="flex items-center gap-3 cursor-pointer text-xs font-bold text-slate-800 dark:text-slate-200 select-none">
-                    <input 
-                      type="checkbox" 
-                      checked={examForm.enableFaceDetection === true} 
-                      onChange={e => setExamForm({...examForm, enableFaceDetection: e.target.checked})} 
-                      className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-slate-950" 
+                    <input
+                      type="checkbox"
+                      checked={examForm.enableFaceDetection === true}
+                      onChange={e => setExamForm({...examForm, enableFaceDetection: e.target.checked})}
+                      className="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-slate-950"
                     />
-                    Enable AI Face Detection (Continuous background monitoring for absence or multiple people)
+                    Enable AI Face Analysis (Continuous background monitoring for absence or multiple people)
                   </label>
+                  <p className="text-[10px] text-muted-foreground -mt-2 ml-7">
+                    Webcam monitoring is always active for admin/faculty to watch live. This setting controls AI-powered violation detection only.
+                  </p>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 text-xs">
                     <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
@@ -12448,14 +12459,24 @@ export default function App() {
                 <div className="flex items-center gap-4">
                   {/* Small Camera PIP */}
                   <div className="h-10 w-14 rounded-lg bg-slate-950 border border-white/10 overflow-hidden relative shadow-lg">
-                    <video 
-                      ref={videoRef} 
-                      autoPlay 
-                      playsInline 
-                      muted 
-                      className="h-full w-full object-cover" 
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="h-full w-full object-cover"
                     />
                     <div className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-emerald-500 border border-slate-950 animate-pulse"></div>
+                  </div>
+
+                  {/* Monitoring indicator — always shown; webcam streams to admin/faculty regardless of AI face analysis being on */}
+                  <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-800/80 rounded-lg">
+                    <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                    <span className="text-[9px] font-bold text-slate-400">
+                      {(currentExam?.enable_face_detection === true || currentExam?.enableFaceDetection === true)
+                        ? 'AI Monitored'
+                        : 'Live Monitored'}
+                    </span>
                   </div>
 
                   {/* Timer display */}

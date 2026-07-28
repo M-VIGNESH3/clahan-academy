@@ -660,11 +660,36 @@ io.on('connection', (socket: Socket) => {
 
     const { attemptId, studentId, examId } = session;
 
-    // Broadcast student webcam frame to admin monitor room
+    // Broadcast student webcam frame to admin/faculty monitor room — this
+    // always happens, independent of whether AI face analysis is enabled
+    // for this exam, so admins/faculty can watch live video either way.
     io.to('admin-monitor').emit('student-frame', {
       attemptId: attemptId,
       image: data.image
     });
+
+    // AI analysis is skipped entirely (not just its results discarded) when
+    // face detection is off for this exam, to avoid paying for an AI-service
+    // round trip on every single frame for no reason.
+    const faceDetectionEnabled = await isFaceDetectionEnabled(examId);
+    if (!faceDetectionEnabled) {
+      if (consecutiveViolations[attemptId]) {
+        consecutiveViolations[attemptId]['NO_FACE_DETECTED'] = 0;
+        consecutiveViolations[attemptId]['NO_FACE_FRAMES'] = 0;
+        consecutiveViolations[attemptId]['WARNED_2S'] = 0;
+        consecutiveViolations[attemptId]['LOGGED_5S'] = 0;
+      }
+      if (violationStartTimes[attemptId]) {
+        violationStartTimes[attemptId]['NO_FACE_DETECTED'] = 0;
+      }
+      socket.emit('proctor-status', {
+        faceDetectionEnabled: false,
+        trackingStatus: 'Proctoring Disabled',
+        message: 'AI proctoring is disabled for this exam',
+        detectionSource: 'Disabled'
+      });
+      return; // Hard guard - if disabled, skip ALL face tracking logic and do not emit warnings/terminate
+    }
 
     // Send the frame to the AI service for analysis
     try {
@@ -684,27 +709,6 @@ io.on('connection', (socket: Socket) => {
       if (response.ok) {
         const result: any = await response.json();
 
-        // Fetch if face detection is enabled for this exam
-        const faceDetectionEnabled = await isFaceDetectionEnabled(examId);
-        if (!faceDetectionEnabled) {
-          if (consecutiveViolations[attemptId]) {
-            consecutiveViolations[attemptId]['NO_FACE_DETECTED'] = 0;
-            consecutiveViolations[attemptId]['NO_FACE_FRAMES'] = 0;
-            consecutiveViolations[attemptId]['WARNED_2S'] = 0;
-            consecutiveViolations[attemptId]['LOGGED_5S'] = 0;
-          }
-          if (violationStartTimes[attemptId]) {
-            violationStartTimes[attemptId]['NO_FACE_DETECTED'] = 0;
-          }
-          socket.emit('proctor-status', {
-            faceDetectionEnabled: false,
-            trackingStatus: 'Proctoring Disabled',
-            message: 'AI proctoring is disabled for this exam',
-            detectionSource: 'Disabled'
-          });
-          return; // Hard guard - if disabled, skip ALL face tracking logic and do not emit warnings/terminate
-        }
-        
         // Initialize consecutive violation storage for this attempt
         consecutiveViolations[attemptId] = consecutiveViolations[attemptId] || {};
         const consec = consecutiveViolations[attemptId];
