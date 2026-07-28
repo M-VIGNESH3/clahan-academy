@@ -880,21 +880,38 @@ app.post('/api/exams/:id/questions/from-bank', authenticate, requireRole('admin'
 
     for (const q of bankQuestions.rows) {
       if (q.question_type === 'mcq') {
+        const optionA = q.option_a || '';
+        const optionB = q.option_b || '';
+        const optionC = q.option_c || '';
+        const optionD = q.option_d || '';
+
+        if (!optionA || !optionB) {
+          console.warn(`Skipping invalid MCQ question ${q.id} — missing required options`);
+          continue;
+        }
+
         await query(
           `INSERT INTO mcq_questions
-           (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+           (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty,
+            content_blocks, images, option_a_image, option_b_image, option_c_image, option_d_image)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
           [
             examId,
             sectionId || null,
             q.question_text,
-            q.option_a,
-            q.option_b,
-            q.option_c,
-            q.option_d,
-            q.correct_answer,
+            optionA,
+            optionB,
+            optionC,
+            optionD,
+            q.correct_answer || 'a',
             q.marks || 1,
-            q.difficulty || 'medium'
+            q.difficulty || 'medium',
+            JSON.stringify(q.content_blocks || []),
+            JSON.stringify(q.images || []),
+            q.option_a_image || '',
+            q.option_b_image || '',
+            q.option_c_image || '',
+            q.option_d_image || ''
           ]
         );
         mcqInserted++;
