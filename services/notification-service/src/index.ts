@@ -5,6 +5,8 @@ import nodemailer from 'nodemailer';
 import { Worker } from 'bullmq';
 import sgMail from '@sendgrid/mail';
 import * as dotenv from 'dotenv';
+import { Pool } from 'pg';
+import * as jwt from 'jsonwebtoken';
 
 dotenv.config();
 
@@ -18,6 +20,34 @@ process.on('unhandledRejection', (reason, promise) => {
 const app = express();
 const PORT = process.env.PORT || 4006;
 
+const JWT_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'super_secret_access_token_key';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@postgres:5432/clahan?sslmode=disable',
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle pg client in notification-service:', err);
+});
+const query = (text: string, params?: any[]) => pool.query(text, params);
+
+interface AuthenticatedRequest extends express.Request {
+  user?: { id: string; userId: string; email: string; role: string };
+}
+
+function authenticate(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Auth token required' });
+  jwt.verify(token, JWT_SECRET, (err: any, decoded: any) => {
+    if (err) return res.status(403).json({ error: 'Invalid token' });
+    req.user = decoded;
+    next();
+  });
+}
+
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
@@ -25,6 +55,58 @@ app.use(express.json());
 // Health Check
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', service: 'notification-service' });
+});
+
+// GET /api/notifications/user — bell dropdown feed for the current user (any role)
+app.get('/api/notifications/user', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const result = await query(
+      `SELECT * FROM in_app_notifications
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT 20`,
+      [req.user!.userId || req.user!.id]
+    );
+
+    const unreadCount = result.rows.filter(n => !n.is_read).length;
+
+    res.json({
+      notifications: result.rows,
+      unreadCount
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/notifications/read/:id
+app.post('/api/notifications/read/:id', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    await query(
+      `UPDATE in_app_notifications
+       SET is_read = true
+       WHERE id = $1 AND user_id = $2`,
+      [req.params.id, req.user!.userId || req.user!.id]
+    );
+    res.json({ message: 'Marked as read' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/notifications/read-all
+app.post('/api/notifications/read-all', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    await query(
+      `UPDATE in_app_notifications
+       SET is_read = true
+       WHERE user_id = $1`,
+      [req.user!.userId || req.user!.id]
+    );
+    res.json({ message: 'All marked as read' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Test SMTP connectivity diagnostic endpoint

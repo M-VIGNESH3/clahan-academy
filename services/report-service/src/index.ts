@@ -318,6 +318,124 @@ app.get('/api/reports/skills/:studentId', authenticate, async (req: Authenticate
   }
 });
 
+// GET /api/reports/leaderboard/:examId
+// Per-exam leaderboard
+app.get('/api/reports/leaderboard/:examId', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { examId } = req.params;
+
+    const result = await query(
+      `SELECT
+         u.id as student_id,
+         u.full_name,
+         u.roll_number,
+         d.name as department,
+         ea.score,
+         ea.percentage,
+         ea.passed,
+         ea.created_at as completed_at,
+         RANK() OVER (ORDER BY ea.percentage DESC, ea.score DESC) as rank
+       FROM exam_attempts ea
+       JOIN users u ON u.id = ea.student_id
+       LEFT JOIN departments d ON d.id = u.department_id
+       WHERE ea.exam_id = $1
+         AND ea.status = 'completed'
+       ORDER BY rank ASC
+       LIMIT 100`,
+      [examId]
+    );
+
+    res.json({
+      examId,
+      total: result.rows.length,
+      leaderboard: result.rows
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/reports/leaderboard/college/:orgId
+// College overall leaderboard
+app.get('/api/reports/leaderboard/college/:orgId', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { orgId } = req.params;
+
+    const result = await query(
+      `SELECT
+         u.id as student_id,
+         u.full_name,
+         u.roll_number,
+         d.name as department,
+         COUNT(ea.id) as exams_taken,
+         ROUND(AVG(ea.percentage)::numeric, 1) as avg_percentage,
+         COUNT(ea.id) FILTER (WHERE ea.passed = true) as exams_passed,
+         RANK() OVER (ORDER BY AVG(ea.percentage) DESC) as rank
+       FROM users u
+       LEFT JOIN exam_attempts ea ON ea.student_id = u.id AND ea.status = 'completed'
+       LEFT JOIN departments d ON d.id = u.department_id
+       WHERE u.college_id = $1
+         AND u.role = 'student'
+         AND u.status = 'active'
+       GROUP BY u.id, u.full_name, u.roll_number, d.name
+       HAVING COUNT(ea.id) > 0
+       ORDER BY rank ASC
+       LIMIT 50`,
+      [orgId]
+    );
+
+    res.json({
+      orgId,
+      total: result.rows.length,
+      leaderboard: result.rows
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/reports/my-rank/:examId/:studentId
+// Get single student rank in exam
+app.get('/api/reports/my-rank/:examId/:studentId', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { examId, studentId } = req.params;
+
+    const result = await query(
+      `WITH ranked AS (
+         SELECT
+           ea.student_id,
+           ea.percentage,
+           RANK() OVER (ORDER BY ea.percentage DESC) as rank,
+           COUNT(*) OVER () as total_students
+         FROM exam_attempts ea
+         WHERE ea.exam_id = $1
+           AND ea.status = 'completed'
+       )
+       SELECT rank, total_students,
+         ROUND((1 - (rank::float / NULLIF(total_students, 0))) * 100, 0) as percentile
+       FROM ranked
+       WHERE student_id = $2`,
+      [examId, studentId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({
+        rank: null,
+        totalStudents: 0,
+        percentile: null
+      });
+    }
+
+    res.json({
+      rank: parseInt(result.rows[0].rank),
+      totalStudents: parseInt(result.rows[0].total_students),
+      percentile: parseInt(result.rows[0].percentile)
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Report Service running on port ${PORT}`);
 });

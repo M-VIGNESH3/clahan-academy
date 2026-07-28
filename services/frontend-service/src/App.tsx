@@ -4,7 +4,7 @@ import {
   Trash2, Copy, Send, Download, Upload, Plus, Play, Check, Moon, Sun, ArrowRight, User, 
   LogOut, RefreshCw, Layers, Cpu, Laptop, Terminal, Mail, Phone, MapPin, Eye, EyeOff, Lock,
   Maximize2, ShieldAlert, X, Sparkles, ChevronLeft, ChevronRight, Star, Minimize2, Bookmark, Clock, Edit3,
-  GraduationCap, Database, Building2
+  GraduationCap, Database, Building2, Trophy
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import * as XLSX from 'xlsx';
@@ -159,7 +159,7 @@ export default function App() {
   });
 
   // App Routing
-  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login' | 'faculty-login' | 'skill-gap' | 'super-dashboard' | 'super-organizations' | 'super-org-detail' | 'super-audit-logs' | 'faculty-dashboard' | 'faculty-questions' | 'faculty-students' | 'bank-question-editor' | 'faculty-proctor'>(() => {
+  const [currentPage, setCurrentPage] = useState<'landing' | 'login' | 'register' | 'forgot-pw' | 'reset-pw' | 'student-dash' | 'admin-dash' | 'exam-env' | 'result-view' | 'questions-editor' | 'exam-workspace' | 'admin-login' | 'faculty-login' | 'skill-gap' | 'super-dashboard' | 'super-organizations' | 'super-org-detail' | 'super-audit-logs' | 'faculty-dashboard' | 'faculty-questions' | 'faculty-students' | 'bank-question-editor' | 'faculty-proctor' | 'leaderboard'>(() => {
     const path = window.location.pathname.toLowerCase();
     if (path === '/admin-login' || path === '/admin-login/') {
       return 'admin-login';
@@ -303,8 +303,24 @@ export default function App() {
   const [facultyDashData, setFacultyDashData] = useState<any>(null);
   const [facultyQuestionBatches, setFacultyQuestionBatches] = useState<any[]>([]);
   const [facultyStudentsList, setFacultyStudentsList] = useState<any[]>([]);
-  const [facultyNotifications, setFacultyNotifications] = useState<any[]>([]);
   const [isLoadingFacultyDash, setIsLoadingFacultyDash] = useState(false);
+
+  // Leaderboard (per-exam + college overall)
+  const [leaderboardData, setLeaderboardData] = useState<any>(null);
+  const [leaderboardExamId, setLeaderboardExamId] = useState<string>('');
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+  const [leaderboardTab, setLeaderboardTab] = useState<'exam' | 'college'>('exam');
+  const [myRankData, setMyRankData] = useState<any>(null);
+
+  // In-app notification bell (in_app_notifications table, notification-service).
+  // Named distinctly from the pre-existing student-only `notifications` state
+  // (fed by student-service's /api/student/notifications, rendered in the
+  // student sidebar's "Notifications" tab) so the two don't collide or get
+  // conflated — this bell is a separate, role-agnostic system.
+  const [inAppNotifications, setInAppNotifications] = useState<any[]>([]);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [isLoadingNotifs, setIsLoadingNotifs] = useState(false);
 
   // Faculty proctoring live monitor
   const [facultyLiveSessions, setFacultyLiveSessions] = useState<any[]>([]);
@@ -2200,19 +2216,11 @@ export default function App() {
   const loadFacultyDashboard = async () => {
     setIsLoadingFacultyDash(true);
     try {
-      const [dashRes, notifsRes] = await Promise.all([
-        fetch(`${API_FACULTY}/dashboard`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`${API_FACULTY}/notifications`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ]);
+      const dashRes = await fetch(`${API_FACULTY}/dashboard`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       if (dashRes.ok) {
         setFacultyDashData(await dashRes.json());
-      }
-      if (notifsRes.ok) {
-        setFacultyNotifications(await notifsRes.json());
       }
     } catch (err) {
       console.error('Faculty dashboard:', err);
@@ -2337,6 +2345,114 @@ export default function App() {
       facultySocketRef.current = null;
     };
   }, [currentPage, currentUser?.role]);
+
+  // --- LEADERBOARD ---
+  const loadExamLeaderboard = async (examId: string) => {
+    setIsLoadingLeaderboard(true);
+    setMyRankData(null);
+    try {
+      const res = await fetch(`${API_REPORTS}/leaderboard/${examId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setLeaderboardData(await res.json());
+      }
+      if (currentUser?.role === 'student' && currentUser?.id) {
+        const rankRes = await fetch(`${API_REPORTS}/my-rank/${examId}/${currentUser.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (rankRes.ok) {
+          setMyRankData(await rankRes.json());
+        }
+      }
+    } catch (err) {
+      console.error('Leaderboard:', err);
+    } finally {
+      setIsLoadingLeaderboard(false);
+    }
+  };
+
+  const loadCollegeLeaderboard = async () => {
+    setIsLoadingLeaderboard(true);
+    const orgId = currentUser?.orgId || currentUser?.collegeId;
+    try {
+      const res = await fetch(`${API_REPORTS}/leaderboard/college/${orgId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setLeaderboardData(await res.json());
+      }
+    } catch (err) {
+      console.error('College leaderboard:', err);
+    } finally {
+      setIsLoadingLeaderboard(false);
+    }
+  };
+
+  // --- IN-APP NOTIFICATION BELL ---
+  const loadNotifications = async () => {
+    if (!token) return;
+    setIsLoadingNotifs(true);
+    try {
+      const res = await fetch('/api/notifications/user', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInAppNotifications(data.notifications || []);
+        setUnreadNotifCount(data.unreadCount || 0);
+      }
+    } catch (err) {
+      console.error('Notifications:', err);
+    } finally {
+      setIsLoadingNotifs(false);
+    }
+  };
+
+  const markNotifAsRead = async (id: string) => {
+    try {
+      await fetch(`/api/notifications/read/${id}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setInAppNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      setUnreadNotifCount(prev => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error('Mark read:', err);
+    }
+  };
+
+  const markAllNotifsAsRead = async () => {
+    try {
+      await fetch('/api/notifications/read-all', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setInAppNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setUnreadNotifCount(0);
+    } catch (err) {
+      console.error('Mark all read:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!token) return;
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 60000);
+    return () => clearInterval(interval);
+  }, [token]);
+
+  useEffect(() => {
+    if (!showNotifDropdown) return;
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Element;
+      if (!target.closest('[data-notif-dropdown]')) {
+        setShowNotifDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showNotifDropdown]);
 
   const loadFacultyQuestionBatches = async () => {
     try {
@@ -5730,7 +5846,91 @@ export default function App() {
 
             {currentUser ? (
               <div className="flex items-center gap-3">
-                <button 
+                {/* Notification Bell — shared across every role since this header renders on all logged-in pages */}
+                <div className="relative" data-notif-dropdown>
+                  <button
+                    onClick={() => {
+                      setShowNotifDropdown(prev => !prev);
+                      if (!showNotifDropdown) {
+                        loadNotifications();
+                      }
+                    }}
+                    className="relative p-2.5 rounded-xl border border-slate-200/50 dark:border-slate-800/50 bg-slate-100/50 dark:bg-slate-900/50 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300 transition-colors"
+                  >
+                    <Bell className="h-4.5 w-4.5" />
+                    {unreadNotifCount > 0 && (
+                      <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                        {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {showNotifDropdown && (
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl shadow-black/10 dark:shadow-black/50 z-50 overflow-hidden">
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-white/10">
+                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-white">Notifications</h3>
+                        <div className="flex items-center gap-2">
+                          {unreadNotifCount > 0 && (
+                            <button
+                              onClick={markAllNotifsAsRead}
+                              className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:text-indigo-500"
+                            >
+                              Mark all read
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setShowNotifDropdown(false)}
+                            className="text-slate-400 hover:text-slate-700 dark:hover:text-white text-lg leading-none"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="max-h-80 overflow-y-auto">
+                        {isLoadingNotifs && inAppNotifications.length === 0 ? (
+                          <div className="text-center py-8">
+                            <p className="text-xs text-muted-foreground">Loading...</p>
+                          </div>
+                        ) : inAppNotifications.length === 0 ? (
+                          <div className="text-center py-8">
+                            <p className="text-2xl mb-2">🔔</p>
+                            <p className="text-xs text-muted-foreground">No notifications yet</p>
+                          </div>
+                        ) : (
+                          inAppNotifications.map(notif => (
+                            <div
+                              key={notif.id}
+                              onClick={() => {
+                                if (!notif.is_read) {
+                                  markNotifAsRead(notif.id);
+                                }
+                              }}
+                              className={`flex items-start gap-3 px-4 py-3 border-b border-slate-100 dark:border-white/5 cursor-pointer transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                                !notif.is_read ? 'bg-indigo-50 dark:bg-indigo-500/5' : ''
+                              }`}
+                            >
+                              <div className={`mt-1.5 h-2 w-2 rounded-full shrink-0 ${!notif.is_read ? 'bg-indigo-500' : 'bg-transparent'}`} />
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-bold ${!notif.is_read ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-300'}`}>
+                                  {notif.title}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+                                  {notif.message}
+                                </p>
+                                <p className="text-[9px] text-slate-400 dark:text-slate-600 mt-1">
+                                  {new Date(notif.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <button
                   onClick={() => {
                     if (currentUser.role === 'admin') {
                       setCurrentPage('admin-dash');
@@ -6560,6 +6760,7 @@ export default function App() {
                 {[
                   { id: 'active-exams', label: 'Assessments', icon: BookOpen },
                   { id: 'results', label: 'Results & Performance', icon: Award },
+                  { id: 'leaderboard', label: 'Leaderboard', icon: Trophy },
                   { id: 'trainers', label: 'My Trainers', icon: User },
                   { id: 'notifications', label: 'Notifications', icon: Bell },
                   { id: 'profile', label: 'Edit Profile', icon: User }
@@ -6568,7 +6769,15 @@ export default function App() {
                   return (
                     <button
                       key={item.id}
-                      onClick={() => setActiveStudentTab(item.id as any)}
+                      onClick={() => {
+                        if (item.id === 'leaderboard') {
+                          setCurrentPage('leaderboard');
+                          setLeaderboardTab('college');
+                          loadCollegeLeaderboard();
+                          return;
+                        }
+                        setActiveStudentTab(item.id as any);
+                      }}
                       className={`flex items-center gap-3 w-full p-3 rounded-xl text-sm font-bold transition-all ${activeStudentTab === item.id ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10' : 'text-muted-foreground hover:bg-slate-100/50 dark:hover:bg-slate-900/50 hover:text-foreground'}`}
                     >
                       <Icon className="h-4.5 w-4.5" />
@@ -7103,6 +7312,7 @@ export default function App() {
                 { id: 'training', label: 'Training', icon: BookOpen, badge: 0 },
                 { id: 'exams', label: 'Assessments', icon: Layers, badge: 0 },
                 { id: 'live', label: 'Live Exam Proctor', icon: Video, badge: 0 },
+                { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, badge: 0 },
                 { id: 'placement', label: 'Placement', icon: Laptop, badge: 0 },
                 { id: 'companies', label: 'Companies', icon: Sparkles, badge: 0 },
                 { id: 'reports', label: 'Reports', icon: Download, badge: 0 },
@@ -7113,6 +7323,12 @@ export default function App() {
                   <button
                     key={item.id}
                     onClick={() => {
+                      if (item.id === 'leaderboard') {
+                        setCurrentPage('leaderboard');
+                        setLeaderboardTab('college');
+                        loadCollegeLeaderboard();
+                        return;
+                      }
                       setActiveAdminTab(item.id as any);
                       if (item.id === 'faculty') loadFaculty();
                       if (item.id === 'departments') loadAdminDepartments();
@@ -15024,18 +15240,8 @@ export default function App() {
                 ))}
               </div>
 
-              {/* Notifications + Logout */}
+              {/* Logout — the notification bell now lives in the shared top navbar for every role */}
               <div className="flex items-center gap-2">
-                <div className="relative">
-                  <button className="p-2 rounded-lg hover:bg-slate-800 text-slate-400">
-                    🔔
-                    {facultyNotifications.filter(n => !n.is_read).length > 0 && (
-                      <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
-                        {facultyNotifications.filter(n => !n.is_read).length}
-                      </span>
-                    )}
-                  </button>
-                </div>
                 <button
                   onClick={handleLogout}
                   className="text-xs text-red-400 px-3 py-1.5 rounded-lg hover:bg-red-500/10"
@@ -16592,6 +16798,246 @@ export default function App() {
                       </div>
                     ))
                   )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {currentPage === 'leaderboard' && (
+        <div className="min-h-screen bg-slate-950 text-white">
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-slate-900">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setCurrentPage(
+                  currentUser?.role === 'student'
+                    ? 'student-dash'
+                    : currentUser?.role === 'faculty'
+                      ? 'faculty-dashboard'
+                      : 'admin-dash'
+                )}
+                className="p-2 rounded-xl border border-white/10 hover:bg-slate-800 text-slate-400"
+              >
+                ←
+              </button>
+              <div>
+                <h1 className="text-lg font-black text-white">🏆 Leaderboard</h1>
+                <p className="text-xs text-slate-400">Rankings and performance</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-w-4xl mx-auto p-6">
+
+            {/* Tabs */}
+            <div className="flex gap-2 mb-6">
+              <button
+                onClick={() => {
+                  setLeaderboardTab('exam');
+                  setLeaderboardData(null);
+                  setMyRankData(null);
+                }}
+                className={`px-4 py-2 text-xs font-bold rounded-xl ${
+                  leaderboardTab === 'exam'
+                    ? 'bg-amber-500 text-black'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                📝 By Exam
+              </button>
+              <button
+                onClick={() => {
+                  setLeaderboardTab('college');
+                  loadCollegeLeaderboard();
+                }}
+                className={`px-4 py-2 text-xs font-bold rounded-xl ${
+                  leaderboardTab === 'college'
+                    ? 'bg-amber-500 text-black'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                🏫 College Overall
+              </button>
+            </div>
+
+            {/* Exam selector tab */}
+            {leaderboardTab === 'exam' && (
+              <div className="mb-4">
+                <select
+                  value={leaderboardExamId}
+                  onChange={e => {
+                    setLeaderboardExamId(e.target.value);
+                    if (e.target.value) {
+                      loadExamLeaderboard(e.target.value);
+                    } else {
+                      setLeaderboardData(null);
+                      setMyRankData(null);
+                    }
+                  }}
+                  className="w-full px-4 py-3 bg-slate-900 border border-white/10 rounded-xl text-sm text-white focus:border-amber-500/50 focus:outline-none"
+                >
+                  <option value="">Select an exam to see rankings</option>
+                  {currentUser?.role === 'student'
+                    ? Array.from(new Map(completedAttempts.map(a => [a.exam_id, a])).values()).map(a => (
+                        <option key={a.exam_id} value={a.exam_id}>{a.exam_name || 'Assessment'}</option>
+                      ))
+                    : adminExams.map(ex => (
+                        <option key={ex.id} value={ex.id}>{ex.name}</option>
+                      ))
+                  }
+                </select>
+              </div>
+            )}
+
+            {/* My rank pill (students, exam tab) */}
+            {leaderboardTab === 'exam' && myRankData?.rank && (
+              <div className="mb-4 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between">
+                <p className="text-xs font-bold text-amber-300">Your Rank</p>
+                <p className="text-sm font-black text-white">
+                  #{myRankData.rank} of {myRankData.totalStudents}
+                  {myRankData.percentile !== null && (
+                    <span className="text-amber-400 ml-2">(Top {100 - myRankData.percentile}%)</span>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {/* Leaderboard table */}
+            {isLoadingLeaderboard ? (
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="h-14 bg-slate-800/50 rounded-xl animate-pulse" />
+                ))}
+              </div>
+            ) : !leaderboardData ? (
+              <div className="text-center py-16 bg-slate-900 border border-white/10 rounded-2xl">
+                <p className="text-4xl mb-3">🏆</p>
+                <p className="text-sm font-bold text-white mb-1">
+                  {leaderboardTab === 'exam' ? 'Select an exam above' : 'No data yet'}
+                </p>
+              </div>
+            ) : leaderboardData.leaderboard?.length === 0 ? (
+              <div className="text-center py-16 bg-slate-900 border border-white/10 rounded-2xl">
+                <p className="text-sm text-slate-400">No completed attempts yet</p>
+              </div>
+            ) : (
+              <div className="bg-slate-900 border border-white/10 rounded-2xl overflow-hidden">
+
+                {/* Top 3 podium */}
+                {leaderboardData.leaderboard.length >= 3 && (
+                  <div className="grid grid-cols-3 gap-4 p-6 border-b border-white/10 bg-gradient-to-b from-amber-500/5 to-transparent">
+                    {/* 2nd place */}
+                    <div className="text-center pt-4">
+                      <div className="text-3xl mb-1">🥈</div>
+                      <p className="text-xs font-bold text-white truncate">
+                        {leaderboardData.leaderboard[1]?.full_name}
+                      </p>
+                      <p className="text-lg font-black text-slate-300">
+                        {leaderboardData.leaderboard[1]?.percentage || leaderboardData.leaderboard[1]?.avg_percentage}%
+                      </p>
+                    </div>
+                    {/* 1st place */}
+                    <div className="text-center">
+                      <div className="text-4xl mb-1">🥇</div>
+                      <p className="text-sm font-black text-white truncate">
+                        {leaderboardData.leaderboard[0]?.full_name}
+                      </p>
+                      <p className="text-xl font-black text-amber-400">
+                        {leaderboardData.leaderboard[0]?.percentage || leaderboardData.leaderboard[0]?.avg_percentage}%
+                      </p>
+                      <p className="text-[10px] text-amber-500 font-bold">👑 TOP</p>
+                    </div>
+                    {/* 3rd place */}
+                    <div className="text-center pt-6">
+                      <div className="text-3xl mb-1">🥉</div>
+                      <p className="text-xs font-bold text-white truncate">
+                        {leaderboardData.leaderboard[2]?.full_name}
+                      </p>
+                      <p className="text-lg font-black text-amber-700">
+                        {leaderboardData.leaderboard[2]?.percentage || leaderboardData.leaderboard[2]?.avg_percentage}%
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Full list */}
+                <div className="divide-y divide-white/5">
+                  {leaderboardData.leaderboard.map((entry: any, i: number) => {
+                    const isCurrentUser = entry.student_id === currentUser?.id;
+                    const score = entry.percentage || entry.avg_percentage || 0;
+
+                    return (
+                      <div key={entry.student_id}
+                        className={`flex items-center gap-4 px-5 py-3 ${
+                          isCurrentUser
+                            ? 'bg-amber-500/10 border-l-2 border-amber-500'
+                            : 'hover:bg-slate-800/50'
+                        }`}>
+
+                        {/* Rank */}
+                        <div className={`w-8 text-center font-black text-sm shrink-0 ${
+                            i === 0
+                              ? 'text-amber-400'
+                              : i === 1
+                                ? 'text-slate-300'
+                                : i === 2
+                                  ? 'text-amber-700'
+                                  : 'text-slate-600'
+                          }`}>
+                          {i === 0 ? '🥇'
+                            : i === 1 ? '🥈'
+                            : i === 2 ? '🥉'
+                            : `#${entry.rank || i + 1}`}
+                        </div>
+
+                        {/* Student info */}
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-bold truncate ${isCurrentUser ? 'text-amber-300' : 'text-white'}`}>
+                            {entry.full_name}
+                            {isCurrentUser && (
+                              <span className="ml-2 text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded-full font-bold">
+                                YOU
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {entry.roll_number || ''}
+                            {entry.department && ` · ${entry.department}`}
+                            {entry.exams_taken && ` · ${entry.exams_taken} exams`}
+                          </p>
+                        </div>
+
+                        {/* Score */}
+                        <div className="text-right shrink-0">
+                          <p className={`text-base font-black ${
+                              score >= 75
+                                ? 'text-emerald-400'
+                                : score >= 50
+                                  ? 'text-amber-400'
+                                  : 'text-red-400'
+                            }`}>
+                            {parseFloat(score).toFixed(1)}%
+                          </p>
+                          {entry.passed !== undefined && (
+                            <p className={`text-[9px] font-bold ${entry.passed ? 'text-emerald-500' : 'text-red-500'}`}>
+                              {entry.passed ? 'PASSED' : 'FAILED'}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Footer */}
+                <div className="px-5 py-3 border-t border-white/10 bg-slate-950/50">
+                  <p className="text-[10px] text-slate-500 text-center">
+                    {leaderboardData.total} students
+                    {leaderboardTab === 'exam' ? ' completed this exam' : ' on the college leaderboard'}
+                  </p>
                 </div>
               </div>
             )}
