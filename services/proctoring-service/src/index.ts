@@ -43,8 +43,8 @@ const query = (text: string, params?: any[]) => pool.query(text, params);
 
 app.use(helmet());
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Disable caching for all API responses
 app.use((req, res, next) => {
@@ -162,7 +162,10 @@ app.get('/api/proctor/faculty/live',
            e.name as exam_name,
            e.duration_minutes,
            COUNT(pl.id) as violation_count,
-           COUNT(pl.id) FILTER (WHERE pl.severity = 'high') as high_violations
+           COUNT(pl.id) FILTER (WHERE pl.severity = 'high') as high_violations,
+           (SELECT screenshot FROM proctoring_logs
+             WHERE attempt_id = ea.id AND screenshot IS NOT NULL
+             ORDER BY created_at DESC LIMIT 1) as last_screenshot
          FROM exam_attempts ea
          JOIN users u ON u.id = ea.student_id
          JOIN exams e ON e.id = ea.exam_id
@@ -277,7 +280,17 @@ async function isFaceDetectionEnabled(examId: string): Promise<boolean> {
   }
 }
 
-const activeSessions: Record<string, { attemptId: string; studentId: string; examId: string; role: string }> = {};
+// 'admin' here means "any admin-tier role" — org_admin and super_admin are
+// real, distinct JWT role values in this system, so a strict equality check
+// against the literal 'admin' string was silently excluding real admin
+// accounts from the live-monitor room (and from the admin-terminate/warn
+// socket handlers). Faculty are included in the monitor room too so their
+// live-proctoring page receives the same frame/alert broadcasts, but are
+// kept out of the admin-tier-only terminate/warn handlers below.
+const ADMIN_TIER_ROLES = ['admin', 'org_admin', 'super_admin'];
+const MONITOR_ROLES = [...ADMIN_TIER_ROLES, 'faculty'];
+
+const activeSessions: Record<string, { attemptId: string; studentId: string; examId: string; role: string; fullName?: string }> = {};
 
 // GAP 2 — Attempt-indexed Session Tracking Maps
 const attemptSessions: Map<string, {
@@ -351,6 +364,7 @@ io.on('connection', (socket: Socket) => {
         studentId: decoded.id,
         examId,
         role: decoded.role,
+        fullName: decoded.full_name,
       };
 
       activeSessions[socket.id] = sessionObj;
@@ -407,9 +421,14 @@ io.on('connection', (socket: Socket) => {
           rollNumber,
           examName
         });
-      } else if (decoded.role === 'admin') {
+      } else if (MONITOR_ROLES.includes(decoded.role)) {
+        // Faculty also join this room so their live-monitor page receives
+        // the same 'student-frame'/'fraud-alert' broadcasts as admins; the
+        // faculty REST endpoint (/api/proctor/faculty/live) already scopes
+        // which attempts they can see, and the frontend filters incoming
+        // frames/alerts down to that same set.
         socket.join('admin-monitor');
-        console.log(`Admin joined live proctoring monitor room`);
+        console.log(`${decoded.role} joined live proctoring monitor room`);
       }
     } catch (err: any) {
       console.error('Socket authentication failed:', err.message);
@@ -867,19 +886,21 @@ io.on('connection', (socket: Socket) => {
   // Admin triggers a manual student exam termination
   socket.on('admin-terminate-student', async (data: { attemptId: string; reason: string }) => {
     const session = activeSessions[socket.id];
-    // Security check: Must be authenticated as admin
-    if (!session || session.role !== 'admin') {
+    // Security check: Must be authenticated as an admin-tier role
+    if (!session || !ADMIN_TIER_ROLES.includes(session.role)) {
       console.warn(`Unauthorized termination attempt from socket ${socket.id}`);
       return;
     }
 
     const { attemptId, reason } = data;
-    console.log(`[ADMIN TERMINATION] Admin ${socket.id} is terminating attempt ${attemptId} for reason: ${reason}`);
+    const terminatedByName = session.fullName || 'Admin';
+    const terminatedByRole = session.role;
+    console.log(`[ADMIN TERMINATION] ${terminatedByName} (${socket.id}) is terminating attempt ${attemptId} for reason: ${reason}`);
 
     try {
       // 1. Update the database attempt status
-      const fullReason = `Exam manually terminated by Administrator. Reason: ${reason}`;
-      
+      const fullReason = `Exam manually terminated by ${terminatedByName} (${terminatedByRole}). Reason: ${reason}`;
+
       const attemptRes = await query('SELECT student_id, exam_id FROM exam_attempts WHERE id = $1', [attemptId]);
       if (attemptRes.rows.length === 0) {
         console.error(`Attempt ${attemptId} not found for termination`);
@@ -888,10 +909,11 @@ io.on('connection', (socket: Socket) => {
       const { student_id: studentId, exam_id: examId } = attemptRes.rows[0];
 
       await query(
-        `UPDATE exam_attempts 
-         SET status = 'terminated', score = 0, percentage = 0.00, passed = FALSE, feedback = $1
+        `UPDATE exam_attempts
+         SET status = 'terminated', score = 0, percentage = 0.00, passed = FALSE, feedback = $1,
+             terminated_by_name = $3, terminated_by_role = $4
          WHERE id = $2`,
-        [fullReason, attemptId]
+        [fullReason, attemptId, terminatedByName, terminatedByRole]
       );
 
       // 2. Insert critical proctor log for audit trail
@@ -923,8 +945,8 @@ io.on('connection', (socket: Socket) => {
   // Admin triggers a manual student exam warning
   socket.on('admin-warn-student', async (data: { attemptId: string; reason: string }) => {
     const session = activeSessions[socket.id];
-    // Security check: Must be authenticated as admin
-    if (!session || session.role !== 'admin') {
+    // Security check: Must be authenticated as an admin-tier role
+    if (!session || !ADMIN_TIER_ROLES.includes(session.role)) {
       console.warn(`Unauthorized warning attempt from socket ${socket.id}`);
       return;
     }

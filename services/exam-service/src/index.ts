@@ -2539,6 +2539,63 @@ app.post('/api/exams/student/attempts/:attemptId/terminate', authenticate, requi
   }
 });
 
+// Faculty/Admin manual termination — same attribution fields as the student
+// self-terminate endpoint above, but for an instructor stopping someone
+// else's ongoing attempt (faculty live-proctoring "Terminate" button).
+app.post('/api/exams/faculty/attempts/:attemptId/terminate', authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const allowedRoles = ['faculty', 'admin', 'org_admin', 'super_admin'];
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Requires faculty or admin role' });
+    }
+
+    const { attemptId } = req.params;
+    const { reason } = req.body;
+
+    const attemptResult = await query('SELECT * FROM exam_attempts WHERE id = $1', [attemptId]);
+    if (attemptResult.rows.length === 0) return res.status(404).json({ error: 'Attempt not found' });
+    const attempt = attemptResult.rows[0];
+
+    if (attempt.status !== 'ongoing') {
+      if (attempt.status === 'terminated') {
+        return res.json({ message: 'Exam has already been terminated' });
+      }
+      return res.status(400).json({ error: 'Exam has already been submitted or terminated' });
+    }
+
+    // Faculty may only terminate attempts belonging to a student in one of
+    // their own assigned batches — mirrors proctoring-service's faculty scoping.
+    if (req.user.role === 'faculty') {
+      const scopeCheck = await query(
+        `SELECT 1 FROM users u
+         JOIN faculty_batches fb ON fb.batch_id = u.batch_id
+         WHERE u.id = $1 AND fb.faculty_id = $2`,
+        [attempt.student_id, req.user.id]
+      );
+      if (scopeCheck.rows.length === 0) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+    }
+
+    const terminatedByName = (req.user as any)?.full_name || 'Admin';
+    const terminatedByRole = req.user.role || 'admin';
+    const feedbackStr = `Exam terminated by ${terminatedByName} (${terminatedByRole}).${reason ? ` Reason: ${reason}` : ''}`;
+
+    await query(
+      `UPDATE exam_attempts
+       SET status = 'terminated', score = 0, percentage = 0.00, passed = FALSE, feedback = $1,
+           mcq_passed = FALSE, coding_passed = FALSE, failure_reason = $1,
+           terminated_by_name = $2, terminated_by_role = $3
+       WHERE id = $4`,
+      [feedbackStr, terminatedByName, terminatedByRole, attemptId]
+    );
+
+    res.json({ success: true, terminated_by_name: terminatedByName, terminated_by_role: terminatedByRole });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get detailed result immediately
 app.get('/api/exams/student/attempts/:attemptId/result', authenticate, async (req, res) => {
   try {

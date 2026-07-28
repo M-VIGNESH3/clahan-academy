@@ -228,6 +228,7 @@ export default function App() {
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   const [liveAlerts, setLiveAlerts] = useState<any[]>([]);
   const adminSocketRef = useRef<any>(null);
+  const facultySocketRef = useRef<any>(null);
   const [activeStudentTab, setActiveStudentTab] = useState<'active-exams' | 'results' | 'profile' | 'trainers' | 'notifications'>('active-exams');
 
   // Admin College/Dept Creation state
@@ -1105,7 +1106,13 @@ export default function App() {
   }, [currentPage]);
 
   useEffect(() => {
-    if (activeAdminTab !== 'live' || currentUser?.role !== 'admin') {
+    // 'admin' here means any admin-tier role — org_admin and super_admin are
+    // the roles real admin accounts actually carry, so a strict equality
+    // check against the literal 'admin' string was silently skipping this
+    // entire effect (and its socket connection) for them, which is why live
+    // footage never appeared on the admin dashboard.
+    const isAdminTier = ['admin', 'org_admin', 'super_admin'].includes(currentUser?.role || '');
+    if (activeAdminTab !== 'live' || !isAdminTier) {
       if (adminSocketRef.current) {
         adminSocketRef.current.disconnect();
         adminSocketRef.current = null;
@@ -2258,6 +2265,29 @@ export default function App() {
     }
   };
 
+  const terminateStudent = async (attemptId: string, studentName: string) => {
+    if (!window.confirm(`Terminate ${studentName}'s exam attempt? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${API_EXAMS}/faculty/attempts/${attemptId}/terminate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ reason: 'Terminated by faculty from live monitor' })
+      });
+      if (res.ok) {
+        showToast(`${studentName}'s exam was terminated`, 'success');
+        setFacultyLiveSessions(prev => prev.filter(s => s.attempt_id !== attemptId));
+        if (selectedProctorAttempt?.attempt_id === attemptId) {
+          setSelectedProctorAttempt(null);
+        }
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Failed to terminate exam', 'error');
+      }
+    } catch {
+      showToast('Failed to terminate exam', 'error');
+    }
+  };
+
   useEffect(() => {
     if (!proctorAutoRefresh || currentPage !== 'faculty-proctor') {
       return;
@@ -2270,6 +2300,43 @@ export default function App() {
     }, 30000);
     return () => clearInterval(interval);
   }, [proctorAutoRefresh, currentPage, selectedProctorAttempt]);
+
+  // Live snapshot streaming for the faculty proctoring page. The faculty REST
+  // endpoint (/api/proctor/faculty/live) already scopes attempts to this
+  // faculty's own batches, so incoming socket frames are filtered down to
+  // attempt IDs already present in facultyLiveSessions — the same students
+  // the REST call scoped, not every student on the platform.
+  useEffect(() => {
+    if (currentPage !== 'faculty-proctor' || currentUser?.role !== 'faculty') {
+      if (facultySocketRef.current) {
+        facultySocketRef.current.disconnect();
+        facultySocketRef.current = null;
+      }
+      return;
+    }
+
+    const socket = io('/', { path: '/socket.io' });
+    facultySocketRef.current = socket;
+
+    socket.on('connect', () => {
+      socket.emit('join-exam', { token, attemptId: 'faculty-monitor', examId: 'faculty-monitor' });
+    });
+
+    socket.on('student-frame', (data: any) => {
+      setFacultyLiveSessions(prev => prev.map(s =>
+        s.attempt_id === data.attemptId ? { ...s, liveImage: data.image } : s
+      ));
+    });
+
+    socket.on('student-terminated', (data: any) => {
+      setFacultyLiveSessions(prev => prev.filter(s => s.attempt_id !== data.attemptId));
+    });
+
+    return () => {
+      socket.disconnect();
+      facultySocketRef.current = null;
+    };
+  }, [currentPage, currentUser?.role]);
 
   const loadFacultyQuestionBatches = async () => {
     try {
@@ -13564,6 +13631,14 @@ export default function App() {
               </div>
             </div>
 
+            {detailedResult.attempt.status === 'terminated' && detailedResult.attempt.terminated_by_name && (
+              <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl">
+                <p className="text-sm font-bold text-red-400">
+                  This assessment was terminated by {detailedResult.attempt.terminated_by_name} ({detailedResult.attempt.terminated_by_role || 'admin'})
+                </p>
+              </div>
+            )}
+
             {/* Metric Summary Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5 space-y-1">
@@ -16356,9 +16431,17 @@ export default function App() {
                           </div>
                         )}
 
-                        <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg mb-2">
-                          👤
-                        </div>
+                        {(session.liveImage || session.last_screenshot) ? (
+                          <img
+                            src={session.liveImage || session.last_screenshot}
+                            alt={session.student_name}
+                            className="h-16 w-full rounded-xl bg-slate-800 object-cover mb-2"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg mb-2">
+                            👤
+                          </div>
+                        )}
                         <p className="text-xs font-bold text-white truncate">
                           {session.student_name}
                         </p>
@@ -16373,15 +16456,26 @@ export default function App() {
                           Started: {new Date(session.started_at).toLocaleTimeString()}
                         </div>
 
-                        <button
-                          onClick={e => {
-                            e.stopPropagation();
-                            warnStudent(session.attempt_id, session.student_name);
-                          }}
-                          className="mt-2 w-full py-1 bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[9px] font-bold rounded-lg hover:bg-amber-500/30"
-                        >
-                          ⚠️ Warn
-                        </button>
+                        <div className="mt-2 flex gap-1.5">
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              warnStudent(session.attempt_id, session.student_name);
+                            }}
+                            className="flex-1 py-1 bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[9px] font-bold rounded-lg hover:bg-amber-500/30"
+                          >
+                            ⚠️ Warn
+                          </button>
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              terminateStudent(session.attempt_id, session.student_name);
+                            }}
+                            className="flex-1 py-1 bg-red-500/20 border border-red-500/30 text-red-300 text-[9px] font-bold rounded-lg hover:bg-red-500/30"
+                          >
+                            ⛔ Terminate
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
