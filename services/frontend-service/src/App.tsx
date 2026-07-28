@@ -10396,7 +10396,16 @@ export default function App() {
                             )}
                             {sect.skill_category && (
                               <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[9px] font-bold rounded-full capitalize">
-                                {sect.skill_category}
+                                {sect.skill_category === 'aptitude'
+                                  ? '📊'
+                                  : sect.skill_category === 'coding'
+                                    ? '💻'
+                                    : sect.skill_category === 'technical'
+                                      ? '🔧'
+                                      : sect.skill_category === 'communication'
+                                        ? '🗣️'
+                                        : '🧠'
+                                } {sect.skill_category}
                               </span>
                             )}
                           </div>
