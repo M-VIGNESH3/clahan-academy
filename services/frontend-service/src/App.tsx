@@ -10,7 +10,8 @@ import { io, Socket } from 'socket.io-client';
 import * as XLSX from 'xlsx';
 import Editor from '@monaco-editor/react';
 import {
-  PieChart, Pie, Cell, BarChart, Bar,
+  PieChart, Pie, Cell, BarChart, Bar, LineChart, Line,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
@@ -1397,13 +1398,36 @@ export default function App() {
     }
   }, [token]);
 
+  // org_admin's "Target College" selector in the exam wizard is hidden (see
+  // the read-only chip below) — this replicates what its onChange used to
+  // do, auto-populating their own college plus its departments/batches/
+  // trainers as soon as they enter the wizard.
+  useEffect(() => {
+    if (
+      (currentPage === 'exam-workspace' || currentPage === 'questions-editor') &&
+      currentUser?.role === 'org_admin' &&
+      currentUser?.collegeId &&
+      !examForm.collegeId
+    ) {
+      const cId = currentUser.collegeId;
+      setExamForm(prev => ({ ...prev, collegeId: cId }));
+      fetchDepartments(cId);
+      fetchBatches(cId);
+      fetchRegisterTrainers(cId);
+    }
+  }, [currentPage, currentUser?.role, currentUser?.collegeId]);
+
+  // Public, pre-login college list (registration/login pickers only). Must
+  // never populate adminColleges — that one is org-scoped and only ever
+  // loaded from the authenticated ${API_ADMIN}/colleges endpoint inside
+  // loadAdminDashboard(), otherwise org_admin briefly sees every college
+  // in the platform before the scoped fetch overwrites it.
   const fetchColleges = async () => {
     try {
       const res = await fetch(`${API_AUTH}/colleges`);
       if (res.ok) {
         const data = await res.json();
         setColleges(data);
-        setAdminColleges(data);
       } else {
         throw new Error(`Colleges API returned status ${res.status}`);
       }
@@ -1624,6 +1648,11 @@ export default function App() {
       if (trainerRes.ok) {
         setStudentTrainers(await trainerRes.json());
       }
+
+      // Pre-load skill data so the overview graphs on the Results tab are
+      // ready immediately, without waiting for the "Skill Gap Analysis"
+      // button to be clicked.
+      loadSkillGapAnalysis();
     } catch (err: any) {
       console.error("Student dashboard APIs error:", err);
       showToast(`Error loading dashboard: ${err.message}`, 'error');
@@ -6558,6 +6587,104 @@ export default function App() {
                     <p className="text-sm text-muted-foreground">Verify scorecards and review feedback reports.</p>
                   </div>
 
+                  {/* Performance Overview */}
+                  {isLoadingSkillGap ? (
+                    <div className="p-12 text-center rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
+                      <div className="text-xs text-muted-foreground">Loading performance overview...</div>
+                    </div>
+                  ) : (!skillGapData || skillGapData.hasData === false) ? (
+                    <div className="p-8 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-950/40">
+                      <p className="text-3xl mb-2">📊</p>
+                      <p className="font-bold text-sm text-slate-800 dark:text-slate-200">No performance data yet</p>
+                      <p className="text-xs text-muted-foreground mt-1">Complete an assessment to see your score trend and skill breakdown here.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Overview cards */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[
+                          { label: 'Exams Completed', value: skillGapData.totalExams ?? 0, color: 'text-indigo-600 dark:text-indigo-400' },
+                          { label: 'Skills Analyzed', value: skillGapData.examsAnalyzed ?? 0, color: 'text-violet-600 dark:text-violet-400' },
+                          { label: 'Strong Areas', value: skillGapData.strongAreas?.length ?? 0, color: 'text-emerald-600 dark:text-emerald-400' },
+                          { label: 'Weak Areas', value: skillGapData.weakAreas?.length ?? 0, color: 'text-rose-600 dark:text-rose-400' }
+                        ].map(card => (
+                          <div key={card.label} className="p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm text-center">
+                            <p className={`text-2xl font-black ${card.color}`}>{card.value}</p>
+                            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mt-1">{card.label}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Score trend */}
+                        <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
+                          <h3 className="font-extrabold text-base mb-4">Score Trend</h3>
+                          {skillGapData.recentExams?.length > 0 ? (
+                            <ResponsiveContainer width="100%" height={220}>
+                              <LineChart
+                                data={[...skillGapData.recentExams].reverse().map((e: any, i: number) => ({ name: `#${i + 1}`, percentage: e.percentage, examName: e.name }))}
+                                margin={{ top: 5, right: 10, left: -20, bottom: 5 }}
+                              >
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(100,116,139,0.15)" />
+                                <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 9 }} tickLine={false} />
+                                <YAxis domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 9 }} tickLine={false} />
+                                <Tooltip
+                                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', fontSize: '11px' }}
+                                  formatter={(value: any, _name: any, item: any) => [`${value}%`, item?.payload?.examName || 'Score']}
+                                />
+                                <Line type="monotone" dataKey="percentage" stroke="#6366f1" strokeWidth={2} dot={{ r: 3, fill: '#6366f1' }} />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          ) : (
+                            <div className="h-44 flex items-center justify-center text-xs text-muted-foreground">Not enough attempts yet for a trend</div>
+                          )}
+                        </div>
+
+                        {/* Skill radar */}
+                        <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
+                          <h3 className="font-extrabold text-base mb-4">Skill Breakdown</h3>
+                          {skillGapData.scores ? (
+                            <ResponsiveContainer width="100%" height={220}>
+                              <RadarChart
+                                data={Object.entries(skillGapData.scores).map(([skill, score]: [string, any]) => ({
+                                  skill: skill.charAt(0).toUpperCase() + skill.slice(1),
+                                  score
+                                }))}
+                              >
+                                <PolarGrid stroke="rgba(100,116,139,0.25)" />
+                                <PolarAngleAxis dataKey="skill" tick={{ fill: '#64748b', fontSize: 9 }} />
+                                <PolarRadiusAxis domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 8 }} tickCount={3} />
+                                <Radar dataKey="score" stroke="#6366f1" fill="#6366f1" fillOpacity={0.35} />
+                                <Tooltip
+                                  contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff', fontSize: '11px' }}
+                                  formatter={(value: any) => [`${value}%`, 'Score']}
+                                />
+                              </RadarChart>
+                            </ResponsiveContainer>
+                          ) : (
+                            <div className="h-44 flex items-center justify-center text-xs text-muted-foreground">No skill data yet</div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Weak / Strong badges */}
+                      {(skillGapData.weakAreas?.length > 0 || skillGapData.strongAreas?.length > 0) && (
+                        <div className="flex flex-wrap gap-2">
+                          {skillGapData.strongAreas?.map((area: string) => (
+                            <span key={`strong-${area}`} className="px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              💪 {area.charAt(0).toUpperCase() + area.slice(1)}
+                            </span>
+                          ))}
+                          {skillGapData.weakAreas?.map((area: string) => (
+                            <span key={`weak-${area}`} className="px-3 py-1.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                              ⚠️ {area.charAt(0).toUpperCase() + area.slice(1)} — needs work
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <button
                     onClick={() => {
                       loadSkillGapAnalysis();
@@ -9328,24 +9455,30 @@ export default function App() {
                       {/* Target College */}
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground">Target College</label>
-                        <select
-                          value={examForm.collegeId}
-                          onChange={e => {
-                            const cId = e.target.value;
-                            setExamForm({ ...examForm, collegeId: cId, batchId: '', departmentId: '', departmentIds: [], trainerId: '' });
-                            if (cId) {
-                              fetchDepartments(cId);
-                              fetchBatches(cId);
-                              fetchRegisterTrainers(cId);
-                            }
-                          }}
-                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
-                        >
-                          <option value="">All Colleges (Global Access)</option>
-                          {colleges.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
-                        </select>
+                        {currentUser?.role === 'super_admin' ? (
+                          <select
+                            value={examForm.collegeId}
+                            onChange={e => {
+                              const cId = e.target.value;
+                              setExamForm({ ...examForm, collegeId: cId, batchId: '', departmentId: '', departmentIds: [], trainerId: '' });
+                              if (cId) {
+                                fetchDepartments(cId);
+                                fetchBatches(cId);
+                                fetchRegisterTrainers(cId);
+                              }
+                            }}
+                            className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                          >
+                            <option value="">All Colleges (Global Access)</option>
+                            {colleges.map(c => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1">
+                            {adminColleges[0]?.name || 'My College'}
+                          </div>
+                        )}
                       </div>
 
                       {/* Target Department */}
@@ -9612,24 +9745,30 @@ export default function App() {
                       {/* Target College */}
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground">Target College</label>
-                        <select
-                          value={examForm.collegeId}
-                          onChange={e => {
-                            const cId = e.target.value;
-                            setExamForm({ ...examForm, collegeId: cId, batchId: '', departmentId: '', departmentIds: [], trainerId: '' });
-                            if (cId) {
-                              fetchDepartments(cId);
-                              fetchBatches(cId);
-                              fetchRegisterTrainers(cId);
-                            }
-                          }}
-                          className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
-                        >
-                          <option value="">All Colleges (Global Access)</option>
-                          {colleges.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
-                        </select>
+                        {currentUser?.role === 'super_admin' ? (
+                          <select
+                            value={examForm.collegeId}
+                            onChange={e => {
+                              const cId = e.target.value;
+                              setExamForm({ ...examForm, collegeId: cId, batchId: '', departmentId: '', departmentIds: [], trainerId: '' });
+                              if (cId) {
+                                fetchDepartments(cId);
+                                fetchBatches(cId);
+                                fetchRegisterTrainers(cId);
+                              }
+                            }}
+                            className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                          >
+                            <option value="">All Colleges (Global Access)</option>
+                            {colleges.map(c => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="w-full p-3 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1">
+                            {adminColleges[0]?.name || 'My College'}
+                          </div>
+                        )}
                       </div>
 
                       {/* Target Department */}
