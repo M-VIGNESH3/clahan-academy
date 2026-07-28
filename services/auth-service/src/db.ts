@@ -354,6 +354,7 @@ export async function initDb() {
       ALTER TABLE sections ADD COLUMN IF NOT EXISTS enable_cutoff BOOLEAN DEFAULT FALSE;
       ALTER TABLE sections ADD COLUMN IF NOT EXISTS cutoff_percentage DECIMAL(5, 2) DEFAULT NULL;
       ALTER TABLE sections ADD COLUMN IF NOT EXISTS cutoff_marks DECIMAL(5, 2) DEFAULT NULL;
+      ALTER TABLE sections ADD COLUMN IF NOT EXISTS skill_category VARCHAR(100) DEFAULT NULL;
     `);
 
     // Run data migration for older exams that do not have sections configured

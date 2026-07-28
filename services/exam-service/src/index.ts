@@ -588,9 +588,9 @@ app.post('/api/exams/:id/duplicate', authenticate, requireRole('admin'), async (
     const sectionIdMap: { [oldId: string]: string } = {};
     for (const s of sections.rows) {
       const newSect = await query(
-        `INSERT INTO sections (exam_id, name, description, section_type, duration_minutes, randomize_questions, is_mandatory, sort_order, enable_cutoff, cutoff_percentage, cutoff_marks)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
-        [newExamId, s.name, s.description || '', s.section_type, s.duration_minutes, s.randomize_questions === true, s.is_mandatory !== false, s.sort_order, s.enable_cutoff === true, s.cutoff_percentage || null, s.cutoff_marks || null]
+        `INSERT INTO sections (exam_id, name, description, section_type, duration_minutes, randomize_questions, is_mandatory, sort_order, enable_cutoff, cutoff_percentage, cutoff_marks, skill_category)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+        [newExamId, s.name, s.description || '', s.section_type, s.duration_minutes, s.randomize_questions === true, s.is_mandatory !== false, s.sort_order, s.enable_cutoff === true, s.cutoff_percentage || null, s.cutoff_marks || null, s.skill_category || null]
       );
       sectionIdMap[s.id] = newSect.rows[0].id;
     }
@@ -1190,17 +1190,18 @@ app.post(['/api/exams/:id/sections', '/api/assessments/:id/sections', '/api/exam
     const parsedDuration = durationMinutes !== undefined && durationMinutes !== null && String(durationMinutes).trim() !== '' ? parseInt(String(durationMinutes), 10) : null;
     const parsedCutoffPct = cutoffPercentage !== undefined && cutoffPercentage !== null && String(cutoffPercentage).trim() !== '' ? parseFloat(String(cutoffPercentage)) : null;
     const parsedCutoffMarks = cutoffMarks !== undefined && cutoffMarks !== null && String(cutoffMarks).trim() !== '' ? parseFloat(String(cutoffMarks)) : null;
+    const skillCategoryValue = req.body.skillCategory || req.body.skill_category || null;
 
     const orderResult = await query('SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order FROM sections WHERE exam_id = $1', [id]);
     const sortOrder = orderResult.rows[0].next_order;
 
     const result = await query(
-      `INSERT INTO sections (exam_id, name, description, section_type, duration_minutes, randomize_questions, is_mandatory, sort_order, enable_cutoff, cutoff_percentage, cutoff_marks)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+      `INSERT INTO sections (exam_id, name, description, section_type, duration_minutes, randomize_questions, is_mandatory, sort_order, enable_cutoff, cutoff_percentage, cutoff_marks, skill_category)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
       [
         id, name, description || '', sType, parsedDuration,
         randomizeQuestions === true, isMandatory !== false, sortOrder,
-        enableCutoff === true, parsedCutoffPct, parsedCutoffMarks
+        enableCutoff === true, parsedCutoffPct, parsedCutoffMarks, skillCategoryValue
       ]
     );
 
@@ -1229,6 +1230,7 @@ app.put(['/api/sections/:id', '/api/exams/sections/:id', '/api/exams/:examId/sec
     const parsedDuration = durationMinutes !== undefined && durationMinutes !== null && String(durationMinutes).trim() !== '' ? parseInt(String(durationMinutes), 10) : null;
     const parsedCutoffPct = cutoffPercentage !== undefined && cutoffPercentage !== null && String(cutoffPercentage).trim() !== '' ? parseFloat(String(cutoffPercentage)) : null;
     const parsedCutoffMarks = cutoffMarks !== undefined && cutoffMarks !== null && String(cutoffMarks).trim() !== '' ? parseFloat(String(cutoffMarks)) : null;
+    const skillCategoryValue = req.body.skillCategory || req.body.skill_category || null;
 
     const result = await query(
       `UPDATE sections
@@ -1240,9 +1242,10 @@ app.put(['/api/sections/:id', '/api/exams/sections/:id', '/api/exams/:examId/sec
            is_mandatory = COALESCE($6, is_mandatory),
            enable_cutoff = COALESCE($7, enable_cutoff),
            cutoff_percentage = $8,
-           cutoff_marks = $9
-       WHERE id = $10 RETURNING *`,
-      [name, description, sType, parsedDuration, randomizeQuestions !== undefined ? Boolean(randomizeQuestions) : null, isMandatory !== undefined ? Boolean(isMandatory) : null, enableCutoff !== undefined ? Boolean(enableCutoff) : null, parsedCutoffPct, parsedCutoffMarks, sectionId]
+           cutoff_marks = $9,
+           skill_category = COALESCE($10, skill_category)
+       WHERE id = $11 RETURNING *`,
+      [name, description, sType, parsedDuration, randomizeQuestions !== undefined ? Boolean(randomizeQuestions) : null, isMandatory !== undefined ? Boolean(isMandatory) : null, enableCutoff !== undefined ? Boolean(enableCutoff) : null, parsedCutoffPct, parsedCutoffMarks, skillCategoryValue, sectionId]
     );
 
     if (result.rows.length === 0) return res.status(404).json({ error: 'Section not found' });

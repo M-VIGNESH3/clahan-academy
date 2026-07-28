@@ -118,7 +118,11 @@ app.get('/api/reports/skills/:studentId', authenticate, async (req: Authenticate
       });
     }
 
-    // Group scores by skill category
+    // Group scores by skill category. Section-level tagging takes priority over
+    // exam-level tagging: one exam attempt can span several sections (e.g. an
+    // Aptitude MCQ section + a Coding section in the same exam), each with its
+    // own skill_category and its own score computed from that section's
+    // responses only — an exam-level category can't express that split.
     const skillScores: Record<string, number[]> = {
       aptitude: [],
       coding: [],
@@ -127,40 +131,99 @@ app.get('/api/reports/skills/:studentId', authenticate, async (req: Authenticate
       reasoning: []
     };
 
-    attempts.forEach(attempt => {
-      const category = attempt.skill_category;
-      const pct = parseFloat(attempt.percentage) || 0;
+    const sectionScoresRes = await query(
+      `SELECT
+         ea.id as attempt_id,
+         s.skill_category,
+         s.section_type,
+         CASE
+           WHEN s.section_type = 'mcq' THEN (
+             SELECT
+               CASE
+                 WHEN COUNT(*) = 0 THEN 0
+                 ELSE ROUND(
+                   SUM(CASE WHEN mr.is_correct THEN mr.marks_obtained ELSE 0 END) * 100.0 /
+                   NULLIF(SUM(mq.marks), 0), 1
+                 )
+               END
+             FROM mcq_responses mr
+             JOIN mcq_questions mq ON mq.id = mr.question_id
+             WHERE mr.attempt_id = ea.id AND mq.section_id = s.id
+           )
+           WHEN s.section_type = 'coding' THEN (
+             SELECT
+               CASE
+                 WHEN COUNT(*) = 0 THEN 0
+                 ELSE ROUND(
+                   SUM(cr.marks_obtained) * 100.0 /
+                   NULLIF(SUM(cq.marks), 0), 1
+                 )
+               END
+             FROM coding_responses cr
+             JOIN coding_questions cq ON cq.id = cr.question_id
+             WHERE cr.attempt_id = ea.id AND cq.section_id = s.id
+           )
+           ELSE ea.percentage
+         END as section_percentage
+       FROM exam_attempts ea
+       JOIN exams e ON e.id = ea.exam_id
+       JOIN sections s ON s.exam_id = e.id
+       WHERE ea.student_id = $1
+         AND ea.status = 'completed'
+         AND s.skill_category IS NOT NULL
+       ORDER BY ea.created_at DESC`,
+      [studentId]
+    );
 
+    sectionScoresRes.rows.forEach(row => {
+      const category = row.skill_category;
+      const pct = parseFloat(row.section_percentage) || 0;
       if (category && skillScores[category] !== undefined) {
         skillScores[category].push(pct);
-      } else {
-        // Uncategorized exams: use exam_type to guess category.
-        // exam_type is a separate field from skill_category (chosen in the "Assessment Type"
-        // dropdown), but several of its values are skill names themselves or map cleanly to one.
-        switch (attempt.exam_type) {
-          case 'coding':
-            skillScores.coding.push(pct);
-            break;
-          case 'mcq':
-          case 'crt':
-          case 'aptitude':
-            skillScores.aptitude.push(pct);
-            break;
-          case 'technical':
-          case 'corporate_test':
-            skillScores.technical.push(pct);
-            break;
-          case 'mock_interview':
-            skillScores.communication.push(pct);
-            break;
-          case 'both':
-            skillScores.aptitude.push(pct);
-            skillScores.coding.push(pct);
-            break;
-          // 'custom' and any unrecognized exam_type: no reliable mapping, leave uncategorized
-        }
       }
     });
+
+    const hasAnySectionData = Object.values(skillScores).some(arr => arr.length > 0);
+
+    // Fallback: no exam of this student has a categorized section yet — use
+    // the previous exam-level behavior so existing (pre-section-category)
+    // data still produces a skill gap analysis instead of an empty one.
+    if (!hasAnySectionData) {
+      attempts.forEach(attempt => {
+        const category = attempt.skill_category;
+        const pct = parseFloat(attempt.percentage) || 0;
+
+        if (category && skillScores[category] !== undefined) {
+          skillScores[category].push(pct);
+        } else {
+          // Uncategorized exams: use exam_type to guess category.
+          // exam_type is a separate field from skill_category (chosen in the "Assessment Type"
+          // dropdown), but several of its values are skill names themselves or map cleanly to one.
+          switch (attempt.exam_type) {
+            case 'coding':
+              skillScores.coding.push(pct);
+              break;
+            case 'mcq':
+            case 'crt':
+            case 'aptitude':
+              skillScores.aptitude.push(pct);
+              break;
+            case 'technical':
+            case 'corporate_test':
+              skillScores.technical.push(pct);
+              break;
+            case 'mock_interview':
+              skillScores.communication.push(pct);
+              break;
+            case 'both':
+              skillScores.aptitude.push(pct);
+              skillScores.coding.push(pct);
+              break;
+            // 'custom' and any unrecognized exam_type: no reliable mapping, leave uncategorized
+          }
+        }
+      });
+    }
 
     // Calculate average for each skill
     const scores: Record<string, number> = {};

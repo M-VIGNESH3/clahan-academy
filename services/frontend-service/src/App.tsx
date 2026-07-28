@@ -510,7 +510,7 @@ export default function App() {
   const [selectedSectionIdForCoding, setSelectedSectionIdForCoding] = useState<string>('');
   const [sectionForm, setSectionForm] = useState({
     name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true,
-    enableCutoff: false, cutoffMode: 'percentage' as 'percentage' | 'marks', cutoffPercentage: '', cutoffMarks: ''
+    enableCutoff: false, cutoffMode: 'percentage' as 'percentage' | 'marks', cutoffPercentage: '', cutoffMarks: '', skillCategory: ''
   });
   const [isEvaluationRulesOpen, setIsEvaluationRulesOpen] = useState(true);
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
@@ -2941,14 +2941,15 @@ export default function App() {
           isMandatory: sectionForm.isMandatory,
           enableCutoff: sectionForm.enableCutoff,
           cutoffPercentage: sectionForm.cutoffMode === 'percentage' ? sectionForm.cutoffPercentage : null,
-          cutoffMarks: sectionForm.cutoffMode === 'marks' ? sectionForm.cutoffMarks : null
+          cutoffMarks: sectionForm.cutoffMode === 'marks' ? sectionForm.cutoffMarks : null,
+          skillCategory: sectionForm.skillCategory || null
         })
       });
       if (res.ok) {
         const createdSec = await res.json();
         showToast('Section created successfully');
         setIsSectionModalOpen(false);
-        setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
+        setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '', skillCategory: '' });
         setSelectedExamIdForQuestions(targetExamId);
         if (createdSec && createdSec.id) {
           setAdminSelectedExamSections(prev => [...prev.filter(s => s.id !== createdSec.id), createdSec]);
@@ -2968,12 +2969,13 @@ export default function App() {
         is_mandatory: sectionForm.isMandatory,
         enable_cutoff: sectionForm.enableCutoff,
         cutoff_percentage: sectionForm.cutoffMode === 'percentage' ? sectionForm.cutoffPercentage : null,
-        cutoff_marks: sectionForm.cutoffMode === 'marks' ? sectionForm.cutoffMarks : null
+        cutoff_marks: sectionForm.cutoffMode === 'marks' ? sectionForm.cutoffMarks : null,
+        skill_category: sectionForm.skillCategory || null
       };
       setAdminSelectedExamSections(prev => [...prev, mockSec]);
       showToast('Section created (Simulated)');
       setIsSectionModalOpen(false);
-      setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
+      setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '', skillCategory: '' });
     }
   };
 
@@ -2995,7 +2997,8 @@ export default function App() {
           isMandatory: sectionForm.isMandatory,
           enableCutoff: sectionForm.enableCutoff,
           cutoffPercentage: sectionForm.cutoffMode === 'percentage' ? sectionForm.cutoffPercentage : null,
-          cutoffMarks: sectionForm.cutoffMode === 'marks' ? sectionForm.cutoffMarks : null
+          cutoffMarks: sectionForm.cutoffMode === 'marks' ? sectionForm.cutoffMarks : null,
+          skillCategory: sectionForm.skillCategory || null
         })
       });
       if (res.ok) {
@@ -3006,7 +3009,7 @@ export default function App() {
         }
         setEditingSectionId(null);
         setIsSectionModalOpen(false);
-        setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
+        setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '', skillCategory: '' });
         setSelectedExamIdForQuestions(targetExamId);
         await loadAdminExamQuestions(targetExamId);
       }
@@ -3021,12 +3024,13 @@ export default function App() {
         is_mandatory: sectionForm.isMandatory,
         enable_cutoff: sectionForm.enableCutoff,
         cutoff_percentage: sectionForm.cutoffMode === 'percentage' ? sectionForm.cutoffPercentage : null,
-        cutoff_marks: sectionForm.cutoffMode === 'marks' ? sectionForm.cutoffMarks : null
+        cutoff_marks: sectionForm.cutoffMode === 'marks' ? sectionForm.cutoffMarks : null,
+        skill_category: sectionForm.skillCategory || null
       } : s));
       showToast('Section updated (Simulated)');
       setEditingSectionId(null);
       setIsSectionModalOpen(false);
-      setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
+      setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '', skillCategory: '' });
     }
   };
 
@@ -9948,7 +9952,7 @@ export default function App() {
                     {!isSectionModalOpen && (
                       <button
                         onClick={() => {
-                          setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
+                          setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '', skillCategory: '' });
                           setEditingSectionId(null);
                           setIsSectionModalOpen(true);
                         }}
@@ -10009,6 +10013,25 @@ export default function App() {
                             placeholder="Defaults to full exam time" 
                           />
                         </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-muted-foreground">
+                          Skill Category
+                          <span className="ml-1 text-[9px] text-muted-foreground/70 font-normal normal-case">(for skill gap analysis)</span>
+                        </label>
+                        <select
+                          value={sectionForm.skillCategory || ''}
+                          onChange={e => setSectionForm({ ...sectionForm, skillCategory: e.target.value })}
+                          className="w-full p-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-xs bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1"
+                        >
+                          <option value="">Not categorized</option>
+                          <option value="aptitude">📊 Aptitude & Quantitative</option>
+                          <option value="coding">💻 Coding & Programming</option>
+                          <option value="technical">🔧 Technical / Domain Knowledge</option>
+                          <option value="communication">🗣️ Communication & Soft Skills</option>
+                          <option value="reasoning">🧠 Logical Reasoning</option>
+                        </select>
                       </div>
 
                       <div>
@@ -10155,6 +10178,11 @@ export default function App() {
                                 Cutoff: {sect.cutoff_marks !== null && sect.cutoff_marks !== undefined ? `${sect.cutoff_marks} Marks` : `${sect.cutoff_percentage}%`}
                               </span>
                             )}
+                            {sect.skill_category && (
+                              <span className="px-2 py-0.5 bg-indigo-500/20 text-indigo-300 text-[9px] font-bold rounded-full capitalize">
+                                {sect.skill_category}
+                              </span>
+                            )}
                           </div>
                           {sect.description && <p className="text-[10px] text-muted-foreground max-w-xl">{sect.description}</p>}
                           <div className="text-[10px] text-muted-foreground flex gap-3">
@@ -10193,7 +10221,8 @@ export default function App() {
                                 enableCutoff: sect.enable_cutoff === true,
                                 cutoffMode: sect.cutoff_marks !== null && sect.cutoff_marks !== undefined ? 'marks' : 'percentage',
                                 cutoffPercentage: sect.cutoff_percentage !== null && sect.cutoff_percentage !== undefined ? String(sect.cutoff_percentage) : '',
-                                cutoffMarks: sect.cutoff_marks !== null && sect.cutoff_marks !== undefined ? String(sect.cutoff_marks) : ''
+                                cutoffMarks: sect.cutoff_marks !== null && sect.cutoff_marks !== undefined ? String(sect.cutoff_marks) : '',
+                                skillCategory: sect.skill_category || ''
                               });
                               setEditingSectionId(sect.id);
                               setIsSectionModalOpen(true);
@@ -10219,7 +10248,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => {
-                            setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
+                            setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '', skillCategory: '' });
                             setEditingSectionId(null);
                             setIsSectionModalOpen(true);
                           }}
@@ -10233,7 +10262,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => {
-                            setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '' });
+                            setSectionForm({ name: '', description: '', sectionType: 'mcq', durationMinutes: '', randomizeQuestions: false, isMandatory: true, enableCutoff: false, cutoffMode: 'percentage', cutoffPercentage: '', cutoffMarks: '', skillCategory: '' });
                             setEditingSectionId(null);
                             setIsSectionModalOpen(true);
                           }}
@@ -13951,7 +13980,7 @@ export default function App() {
                         Exams Not Yet Categorized
                       </p>
                       <p className="text-[11px] text-slate-400">
-                        Your completed exams have not been tagged with skill categories yet. Scores are estimated from exam type. Ask your admin to categorize exams for accurate skill analysis.
+                        Your exam sections have not been tagged with skill categories yet. Scores are estimated from exam type. Ask your admin to add skill categories to exam sections for accurate analysis.
                       </p>
                     </div>
                   </div>
@@ -15449,7 +15478,7 @@ export default function App() {
                       >
                         <p className="truncate">{batch.name}</p>
                         <p className="text-[9px] text-slate-500 mt-0.5 font-normal">
-                          {batch.actual_count || batch.question_count || 0} Qs
+                          by {batch.creator_name || 'Admin'} · {batch.actual_count || batch.question_count || 0} Qs
                           {batch.subject && ` · ${batch.subject}`}
                         </p>
                       </button>
@@ -15575,6 +15604,13 @@ export default function App() {
                                     <span className="text-[8px] text-slate-500">{q.topic}</span>
                                   )}
                                 </div>
+
+                                {q.creator_name && (
+                                  <p className="text-[9px] text-slate-500 mt-0.5">
+                                    👨‍🏫 {q.creator_name}
+                                    {q.subject && ` · ${q.subject}`}
+                                  </p>
+                                )}
 
                                 <p className="text-xs text-white line-clamp-2 leading-relaxed">
                                   {q.question_text || q.title || '—'}
