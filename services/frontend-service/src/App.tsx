@@ -1434,6 +1434,14 @@ export default function App() {
   // do, auto-populating their own college plus its departments/batches/
   // trainers as soon as they enter the wizard.
   useEffect(() => {
+    if (currentPage === 'exam-workspace' || currentPage === 'questions-editor') {
+      console.log('Org-admin auto-scope check:', {
+        currentPage,
+        role: currentUser?.role,
+        currentUserCollegeId: currentUser?.collegeId,
+        examFormCollegeId: examForm.collegeId
+      });
+    }
     if (
       (currentPage === 'exam-workspace' || currentPage === 'questions-editor') &&
       currentUser?.role === 'org_admin' &&
@@ -1441,6 +1449,7 @@ export default function App() {
       !examForm.collegeId
     ) {
       const cId = currentUser.collegeId;
+      console.log('Org-admin auto-scope FIRING, fetching batches for college:', cId);
       setExamForm(prev => ({ ...prev, collegeId: cId }));
       fetchDepartments(cId);
       fetchBatches(cId);
