@@ -5009,7 +5009,15 @@ export default function App() {
           const startTime = new Date(createdTimestamp).getTime();
           const elapsedSecs = Math.max(0, Math.floor((Date.now() - startTime) / 1000));
           const totalSecs = (examObj?.duration_minutes || 60) * 60;
-          setTimeLeft(Math.max(0, totalSecs - elapsedSecs));
+          const remaining = Math.max(0, totalSecs - elapsedSecs);
+          // Diagnostic for the "disconnects right after joining" report: if
+          // createdTimestamp is misread (e.g. a client/server clock or
+          // timezone mismatch), elapsedSecs can come out far larger than the
+          // real elapsed time, clamping remaining to 0 immediately — which
+          // fires the time's-up auto-submit path (and its cleanupProctoring
+          // -> socket.disconnect()) within the timer's first tick.
+          console.log('Exam timer init:', { createdTimestamp, startTime, now: Date.now(), elapsedSecs, totalSecs, remaining });
+          setTimeLeft(remaining);
         } else {
           setTimeLeft((examObj?.duration_minutes || 60) * 60);
         }
@@ -5531,37 +5539,19 @@ export default function App() {
         return { success: false, error: data.error || 'Failed to submit exam' };
       }
     } catch (err: any) {
-      cleanupProctoring();
-
-      const timeTaken = ((currentExamRef.current?.duration_minutes || 60) * 60) - timeLeftRef.current;
-      const mockResult = {
-        attempt: {
-          exam_name: currentExamRef.current?.name || 'Technical Aptitude Exam',
-          exam_type: currentExamRef.current?.exam_type || 'both',
-          cutoff_percentage: currentExamRef.current?.cutoff_percentage || 50,
-          score: 12,
-          maxScore: 15,
-          percentage: 80.00,
-          passed: true,
-          mcq_score: 2,
-          coding_score: 10,
-          time_taken_seconds: timeTaken,
-          feedback: 'Submission recorded.'
-        },
-        mcqResponses: [],
-        codingResponses: []
-      };
+      // A network/exception failure here means the exam was very likely NOT
+      // actually recorded server-side. Previously this branch faked a
+      // success result (hardcoded 80%/passed) and tore down the session —
+      // that could tell a student their real answers were saved when they
+      // weren't. Report the real failure instead and leave the session
+      // intact so a retry has something to retry against.
+      console.error('Submit failed:', err);
+      isSubmittingRef.current = false;
 
       if (isAuto) {
-        showToast("Time expired. Assessment submitted successfully.", "success");
-        setCurrentPage('student-dash');
-        loadStudentDashboard();
-        setIsExamLocked(false);
-        setShowExamSubmissionModal(false);
-      } else {
-        setDetailedResult(mockResult);
+        showToast('Submission failed. Please check your connection — retrying may be necessary.', 'error');
       }
-      return { success: true, score: 80, passed: true };
+      return { success: false, error: err.message || 'Network error while submitting. Please check your connection and try again.' };
     }
   };
 
