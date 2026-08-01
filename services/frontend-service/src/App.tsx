@@ -1434,28 +1434,40 @@ export default function App() {
   // do, auto-populating their own college plus its departments/batches/
   // trainers as soon as they enter the wizard.
   useEffect(() => {
-    if (currentPage === 'exam-workspace' || currentPage === 'questions-editor') {
-      console.log('Org-admin auto-scope check:', {
-        currentPage,
-        role: currentUser?.role,
-        currentUserCollegeId: currentUser?.collegeId,
-        examFormCollegeId: examForm.collegeId
-      });
-    }
+    const cId = currentUser?.orgId || currentUser?.collegeId || '';
+
     if (
       (currentPage === 'exam-workspace' || currentPage === 'questions-editor') &&
       currentUser?.role === 'org_admin' &&
-      currentUser?.collegeId &&
+      cId &&
       !examForm.collegeId
     ) {
-      const cId = currentUser.collegeId;
-      console.log('Org-admin auto-scope FIRING, fetching batches for college:', cId);
-      setExamForm(prev => ({ ...prev, collegeId: cId }));
+      console.log('Org-admin auto-scope FIRING:', {
+        currentPage,
+        role: currentUser?.role,
+        orgId: currentUser?.orgId,
+        collegeId: currentUser?.collegeId,
+        usingCollegeId: cId
+      });
+
+      setExamForm(prev => ({
+        ...prev,
+        collegeId: cId,
+        departmentId: prev.departmentId || '',
+        batchId: prev.batchId || '',
+        trainerId: prev.trainerId || ''
+      }));
+
       fetchDepartments(cId);
       fetchBatches(cId);
       fetchRegisterTrainers(cId);
     }
-  }, [currentPage, currentUser?.role, currentUser?.collegeId]);
+  }, [
+    currentPage,
+    currentUser?.role,
+    currentUser?.orgId,
+    currentUser?.collegeId
+  ]);
 
   // Public, pre-login college list (registration/login pickers only). Must
   // never populate adminColleges — that one is org-scoped and only ever
@@ -1554,7 +1566,8 @@ export default function App() {
               role: payload.role || 'student',
               fullName: payload.full_name || payload.fullName || 'Student',
               rollNumber: payload.roll_number || payload.rollNumber || 'N/A',
-              collegeId: payload.college_id || payload.collegeId || '',
+              orgId: payload.orgId || payload.org_id || null,
+              collegeId: payload.college_id || payload.collegeId || payload.orgId || payload.org_id || '',
               departmentId: payload.department_id || payload.departmentId || '',
               batchId: payload.batch_id || payload.batchId || '',
               trainerId: payload.trainer_id || payload.trainerId || '',
@@ -1612,7 +1625,8 @@ export default function App() {
           profilePhotoUrl: user.profile_photo_url || user.profilePhotoUrl,
           githubProfile: user.github_profile || user.githubProfile,
           linkedinProfile: user.linkedin_profile || user.linkedinProfile,
-          collegeId: user.college_id || user.collegeId,
+          orgId: user.org_id || user.orgId || null,
+          collegeId: user.college_id || user.collegeId || user.org_id || user.orgId || '',
           departmentId: user.department_id || user.departmentId,
           batchId: user.batch_id || user.batchId,
           batchName: user.batch_name || user.batchName,
