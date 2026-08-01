@@ -42,7 +42,11 @@ function authenticate(req: AuthenticatedRequest, res: express.Response, next: ex
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'Auth token required' });
   jwt.verify(token, JWT_SECRET, (err: any, decoded: any) => {
-    if (err) return res.status(403).json({ error: 'Invalid token' });
+    if (err) {
+      console.error('Notification auth failed:', err?.message);
+      return res.status(403).json({ error: 'Invalid token' });
+    }
+    console.log('Notification auth success:', { role: decoded.role, userId: decoded.userId || decoded.id });
     req.user = decoded;
     next();
   });
@@ -60,12 +64,17 @@ app.get('/health', (req, res) => {
 // GET /api/notifications/user — bell dropdown feed for the current user (any role)
 app.get('/api/notifications/user', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User ID missing from token' });
+    }
+
     const result = await query(
       `SELECT * FROM in_app_notifications
        WHERE user_id = $1
        ORDER BY created_at DESC
        LIMIT 20`,
-      [req.user!.userId || req.user!.id]
+      [userId]
     );
 
     const unreadCount = result.rows.filter(n => !n.is_read).length;
@@ -82,11 +91,16 @@ app.get('/api/notifications/user', authenticate, async (req: AuthenticatedReques
 // POST /api/notifications/read/:id
 app.post('/api/notifications/read/:id', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User ID missing from token' });
+    }
+
     await query(
       `UPDATE in_app_notifications
        SET is_read = true
        WHERE id = $1 AND user_id = $2`,
-      [req.params.id, req.user!.userId || req.user!.id]
+      [req.params.id, userId]
     );
     res.json({ message: 'Marked as read' });
   } catch (err: any) {
@@ -97,11 +111,16 @@ app.post('/api/notifications/read/:id', authenticate, async (req: AuthenticatedR
 // POST /api/notifications/read-all
 app.post('/api/notifications/read-all', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User ID missing from token' });
+    }
+
     await query(
       `UPDATE in_app_notifications
        SET is_read = true
        WHERE user_id = $1`,
-      [req.user!.userId || req.user!.id]
+      [userId]
     );
     res.json({ message: 'All marked as read' });
   } catch (err: any) {

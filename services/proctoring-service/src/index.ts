@@ -323,6 +323,33 @@ interface ExamFaceDetectionConfig {
 }
 const examFaceDetectionCache: Record<string, ExamFaceDetectionConfig> = {};
 
+// Shared scope rule for faculty-initiated warn/terminate over the socket
+// path — mirrors the exact same rule used by GET /api/proctor/faculty/live
+// and exam-service's faculty terminate endpoint: a faculty member may only
+// act on an attempt belonging to a student in one of their own assigned
+// batches, UNLESS they have no batch assignments in faculty_batches at all
+// (a config gap, not an intentional restriction), in which case they fall
+// back to being allowed same as the live list's org-wide fallback.
+async function canFacultyControlAttempt(facultyId: string, attemptId: string): Promise<boolean> {
+  const attemptRes = await query('SELECT student_id FROM exam_attempts WHERE id = $1', [attemptId]);
+  if (attemptRes.rows.length === 0) return false;
+  const studentId = attemptRes.rows[0].student_id;
+
+  const scopeCheck = await query(
+    `SELECT 1 FROM users u
+     JOIN faculty_batches fb ON fb.batch_id = u.batch_id
+     WHERE u.id = $1 AND fb.faculty_id = $2`,
+    [studentId, facultyId]
+  );
+  if (scopeCheck.rows.length > 0) return true;
+
+  const hasAnyBatchAssignment = await query(
+    `SELECT 1 FROM faculty_batches WHERE faculty_id = $1 LIMIT 1`,
+    [facultyId]
+  );
+  return hasAnyBatchAssignment.rows.length === 0;
+}
+
 async function isFaceDetectionEnabled(examId: string): Promise<boolean> {
   try {
     const examRes = await query(
@@ -1007,19 +1034,34 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
-  // Admin triggers a manual student exam termination
-  socket.on('admin-terminate-student', async (data: { attemptId: string; reason: string }) => {
+  // Admin OR faculty triggers a manual student exam termination — this is
+  // the single shared path both roles now use (faculty used to go through a
+  // separate REST endpoint; unified so both get identical UX and behavior).
+  socket.on('admin-terminate-student', async (data: { attemptId: string; reason: string; sourceRole?: string; sourceName?: string }) => {
     const session = activeSessions[socket.id];
-    // Security check: Must be authenticated as an admin-tier role
-    if (!session || !ADMIN_TIER_ROLES.includes(session.role)) {
+    const allowedRoles = [...ADMIN_TIER_ROLES, 'faculty'];
+    if (!session || !allowedRoles.includes(session.role)) {
       console.warn(`Unauthorized termination attempt from socket ${socket.id}`);
       return;
     }
 
     const { attemptId, reason } = data;
-    const terminatedByName = session.fullName || 'Admin';
+
+    // Authorization is always decided from the JWT-verified socket session
+    // (session.role / session.studentId, which holds the CALLER's own id
+    // here, not a student's) — never from the client-supplied sourceRole/
+    // sourceName fields, which are informational display hints only.
+    if (session.role === 'faculty') {
+      const allowed = await canFacultyControlAttempt(session.studentId, attemptId);
+      if (!allowed) {
+        console.warn(`Faculty ${socket.id} attempted to terminate out-of-scope attempt ${attemptId}`);
+        return;
+      }
+    }
+
+    const terminatedByName = session.fullName || (session.role === 'faculty' ? 'Faculty' : 'Admin');
     const terminatedByRole = session.role;
-    console.log(`[ADMIN TERMINATION] ${terminatedByName} (${socket.id}) is terminating attempt ${attemptId} for reason: ${reason}`);
+    console.log(`[${terminatedByRole.toUpperCase()} TERMINATION] ${terminatedByName} (${socket.id}) is terminating attempt ${attemptId} for reason: ${reason}`);
 
     try {
       // 1. Update the database attempt status
@@ -1053,7 +1095,7 @@ io.on('connection', (socket: Socket) => {
         autoSubmitted: false
       });
 
-      // 4. Broadcast to other admins that attempt was terminated
+      // 4. Broadcast to other admins/faculty that attempt was terminated
       io.to('admin-monitor').emit('student-terminated', {
         attemptId,
         studentId,
@@ -1061,22 +1103,47 @@ io.on('connection', (socket: Socket) => {
         counts: {}
       });
 
+      // 5. Force-disconnect the student's own socket if still connected,
+      // for parity with the exam-service REST termination path's internal
+      // notify-and-kick call.
+      const studentSession = attemptSessions.get(attemptId);
+      if (studentSession) {
+        const studentSocket = io.sockets.sockets.get(studentSession.socketId);
+        if (studentSocket) {
+          studentSocket.disconnect();
+        }
+        attemptSessions.delete(attemptId);
+        socketToAttempt.delete(studentSession.socketId);
+      }
+
     } catch (err: any) {
       console.error('Error handling admin-terminate-student socket event:', err);
     }
   });
 
-  // Admin triggers a manual student exam warning
-  socket.on('admin-warn-student', async (data: { attemptId: string; reason: string }) => {
+  // Admin OR faculty triggers a manual student exam warning — same shared
+  // path rationale as termination above.
+  socket.on('admin-warn-student', async (data: { attemptId: string; reason: string; sourceRole?: string; sourceName?: string }) => {
     const session = activeSessions[socket.id];
-    // Security check: Must be authenticated as an admin-tier role
-    if (!session || !ADMIN_TIER_ROLES.includes(session.role)) {
+    const allowedRoles = [...ADMIN_TIER_ROLES, 'faculty'];
+    if (!session || !allowedRoles.includes(session.role)) {
       console.warn(`Unauthorized warning attempt from socket ${socket.id}`);
       return;
     }
 
     const { attemptId, reason } = data;
-    console.log(`[ADMIN WARNING] Admin ${socket.id} is warning attempt ${attemptId} for reason: ${reason}`);
+
+    if (session.role === 'faculty') {
+      const allowed = await canFacultyControlAttempt(session.studentId, attemptId);
+      if (!allowed) {
+        console.warn(`Faculty ${socket.id} attempted to warn out-of-scope attempt ${attemptId}`);
+        return;
+      }
+    }
+
+    const issuedByName = session.fullName || (session.role === 'faculty' ? 'Faculty' : 'Admin');
+    const issuedByRole = session.role;
+    console.log(`[${issuedByRole.toUpperCase()} WARNING] ${issuedByName} (${socket.id}) is warning attempt ${attemptId} for reason: ${reason}`);
 
     try {
       // 1. Insert proctor log for audit trail
@@ -1086,16 +1153,18 @@ io.on('connection', (socket: Socket) => {
         [attemptId, reason]
       );
 
-      // 2. Emit manual warning event to student socket/room
+      // 2. Emit manual warning event to student socket/room — same event
+      // name/shape for both admin and faculty so the student sees the
+      // identical full-screen "IMPORTANT PROCTOR WARNING" modal either way.
       io.to(`attempt:${attemptId}`).emit('admin-warning', {
         reason: reason
       });
 
       // 3. Broadcast update to admin-monitor so other admins/proctors see the warning
       const violationsResult = await query(
-        `SELECT event_type, count(*) 
-         FROM proctoring_logs 
-         WHERE attempt_id = $1 
+        `SELECT event_type, count(*)
+         FROM proctoring_logs
+         WHERE attempt_id = $1
          GROUP BY event_type`,
         [attemptId]
       );

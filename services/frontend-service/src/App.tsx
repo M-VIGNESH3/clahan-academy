@@ -525,6 +525,9 @@ export default function App() {
   const [terminationReason, setTerminationReason] = useState('');
   const [warningModal, setWarningModal] = useState<{ attemptId: string; studentName: string } | null>(null);
   const [warningReason, setWarningReason] = useState('');
+  // Which live-monitor page (admin or faculty) opened the shared warn/
+  // terminate modals below — decides which socket connection to emit on.
+  const [proctorActionSource, setProctorActionSource] = useState<'admin' | 'faculty'>('admin');
   const [selectedExamIdForQuestions, setSelectedExamIdForQuestions] = useState<string | null>(null);
   const [questionEditorTab, setQuestionEditorTab] = useState<'mcq' | 'coding'>('mcq');
   const [adminSelectedExamMCQs, setAdminSelectedExamMCQs] = useState<MCQQuestion[]>([]);
@@ -2298,44 +2301,6 @@ export default function App() {
       }
     } catch (err) {
       console.error('Violation logs:', err);
-    }
-  };
-
-  const warnStudent = async (attemptId: string, studentName: string) => {
-    try {
-      const res = await fetch(`/api/proctor/faculty/warn/${attemptId}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        showToast(`Warning sent to ${studentName}`, 'success');
-        loadFacultyViolationLogs(attemptId);
-      }
-    } catch {
-      showToast('Failed to send warning', 'error');
-    }
-  };
-
-  const terminateStudent = async (attemptId: string, studentName: string) => {
-    if (!window.confirm(`Terminate ${studentName}'s exam attempt? This cannot be undone.`)) return;
-    try {
-      const res = await fetch(`${API_EXAMS}/faculty/attempts/${attemptId}/terminate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ reason: 'Terminated by faculty from live monitor' })
-      });
-      if (res.ok) {
-        showToast(`${studentName}'s exam was terminated`, 'success');
-        setFacultyLiveSessions(prev => prev.filter(s => s.attempt_id !== attemptId));
-        if (selectedProctorAttempt?.attempt_id === attemptId) {
-          setSelectedProctorAttempt(null);
-        }
-      } else {
-        const data = await res.json();
-        showToast(data.error || 'Failed to terminate exam', 'error');
-      }
-    } catch {
-      showToast('Failed to terminate exam', 'error');
     }
   };
 
@@ -9347,6 +9312,7 @@ export default function App() {
                                   <div className="mt-3 flex gap-2">
                                     <button
                                       onClick={() => {
+                                        setProctorActionSource('admin');
                                         setWarningModal({ attemptId: session.attemptId, studentName: session.studentName });
                                         setWarningReason('');
                                       }}
@@ -9356,6 +9322,7 @@ export default function App() {
                                     </button>
                                     <button
                                       onClick={() => {
+                                        setProctorActionSource('admin');
                                         setTerminationModal({ attemptId: session.attemptId, studentName: session.studentName });
                                         setTerminationReason('');
                                       }}
@@ -17087,7 +17054,9 @@ export default function App() {
                           <button
                             onClick={e => {
                               e.stopPropagation();
-                              warnStudent(session.attempt_id, session.student_name);
+                              setProctorActionSource('faculty');
+                              setWarningModal({ attemptId: session.attempt_id, studentName: session.student_name });
+                              setWarningReason('');
                             }}
                             className="flex-1 py-1 bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[9px] font-bold rounded-lg hover:bg-amber-500/30"
                           >
@@ -17096,7 +17065,9 @@ export default function App() {
                           <button
                             onClick={e => {
                               e.stopPropagation();
-                              terminateStudent(session.attempt_id, session.student_name);
+                              setProctorActionSource('faculty');
+                              setTerminationModal({ attemptId: session.attempt_id, studentName: session.student_name });
+                              setTerminationReason('');
                             }}
                             className="flex-1 py-1 bg-red-500/20 border border-red-500/30 text-red-300 text-[9px] font-bold rounded-lg hover:bg-red-500/30"
                           >
@@ -17537,9 +17508,12 @@ export default function App() {
                 type="button"
                 disabled={!terminationReason.trim()}
                 onClick={() => {
-                  adminSocketRef.current?.emit('admin-terminate-student', {
+                  const targetSocket = proctorActionSource === 'faculty' ? facultySocketRef.current : adminSocketRef.current;
+                  targetSocket?.emit('admin-terminate-student', {
                     attemptId: terminationModal.attemptId,
-                    reason: terminationReason.trim()
+                    reason: terminationReason.trim(),
+                    sourceRole: proctorActionSource === 'faculty' ? 'faculty' : currentUser?.role,
+                    sourceName: currentUser?.fullName || currentUser?.full_name || 'Faculty'
                   });
                   setTerminationModal(null);
                 }}
@@ -17591,9 +17565,12 @@ export default function App() {
                 type="button"
                 disabled={!warningReason.trim()}
                 onClick={() => {
-                  adminSocketRef.current?.emit('admin-warn-student', {
+                  const targetSocket = proctorActionSource === 'faculty' ? facultySocketRef.current : adminSocketRef.current;
+                  targetSocket?.emit('admin-warn-student', {
                     attemptId: warningModal.attemptId,
-                    reason: warningReason.trim()
+                    reason: warningReason.trim(),
+                    sourceRole: proctorActionSource === 'faculty' ? 'faculty' : currentUser?.role,
+                    sourceName: currentUser?.fullName || currentUser?.full_name || 'Faculty'
                   });
                   setWarningModal(null);
                 }}
