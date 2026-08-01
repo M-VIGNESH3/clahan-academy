@@ -184,6 +184,27 @@ app.get('/api/notifications/logs', (req, res) => {
   res.json({ logs: deliveryLogs });
 });
 
+// Renders a date/time for email templates in IST — emails are read by
+// students/faculty in India, but the container this runs in is on UTC, so
+// every date shown to a recipient must go through this rather than a bare
+// toLocaleString() (which would render in the server's own timezone).
+const formatDateIST = (dateStr: string): string => {
+  if (!dateStr) return 'TBD';
+  try {
+    return new Date(dateStr).toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
 // Email templates compiler
 function compileEmail(event: string, payload: any): { subject: string; html: string } {
   const brandColor = '#4f46e5'; // Premium Indigo
@@ -263,7 +284,7 @@ function compileEmail(event: string, payload: any): { subject: string; html: str
         <h2 style="color: ${brandColor}; margin-bottom: 20px;">New Exam Scheduled</h2>
         <p>Dear <strong>${payload.fullName}</strong>,</p>
         <p>A new exam <strong>"${payload.examName}"</strong> has been published and is scheduled for you.</p>
-        <p><strong>Scheduled Time:</strong> ${new Date(payload.scheduleDate).toLocaleString()}</p>
+        <p><strong>Scheduled Time:</strong> ${formatDateIST(payload.scheduleDate)}</p>
         <p>Please review the rules and ensure your web-camera and microphone are properly configured before opening the exam environment.</p>
       `;
       break;

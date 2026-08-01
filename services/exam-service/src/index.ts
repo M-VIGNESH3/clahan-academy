@@ -951,6 +951,18 @@ app.post('/api/exams/:id/questions/from-bank', authenticate, requireRole('admin'
           continue;
         }
 
+        // Guard against the same bank question being copied into this exam
+        // twice (e.g. a double-click on "Add Selected", or re-picking a
+        // question that's already been copied in from a prior session).
+        const existingMcq = await query(
+          `SELECT id FROM mcq_questions WHERE exam_id = $1 AND question = $2`,
+          [examId, q.question_text]
+        );
+        if (existingMcq.rows.length > 0) {
+          console.log(`Skipping duplicate MCQ question already in exam ${examId}: ${q.id}`);
+          continue;
+        }
+
         await query(
           `INSERT INTO mcq_questions
            (exam_id, section_id, question, option_a, option_b, option_c, option_d, correct_answer, marks, difficulty,
@@ -977,6 +989,15 @@ app.post('/api/exams/:id/questions/from-bank', authenticate, requireRole('admin'
         );
         mcqInserted++;
       } else if (q.question_type === 'coding') {
+        const existingCoding = await query(
+          `SELECT id FROM coding_questions WHERE exam_id = $1 AND description = $2`,
+          [examId, q.question_text]
+        );
+        if (existingCoding.rows.length > 0) {
+          console.log(`Skipping duplicate coding question already in exam ${examId}: ${q.id}`);
+          continue;
+        }
+
         const cqResult = await query(
           `INSERT INTO coding_questions
            (exam_id, section_id, title, description, difficulty, marks, language, starter_code, time_limit, memory_limit)

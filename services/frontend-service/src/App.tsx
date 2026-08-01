@@ -2337,11 +2337,17 @@ export default function App() {
     socket.on('connect', () => {
       console.log('Faculty joining monitor, token exists:', !!token, 'role:', currentUser?.role);
       socket.emit('join-exam', { token, attemptId: 'faculty-monitor', examId: 'faculty-monitor' });
+      // Refresh the REST-scoped session list right as the socket comes up,
+      // so frames that arrive before/around the initial REST fetch resolves
+      // still have a matching attempt_id to land on instead of being dropped.
+      loadFacultyLiveSessions();
     });
 
     socket.on('student-frame', (data: any) => {
+      const incomingAttemptId = data.attemptId || data.attempt_id;
+      console.log('Faculty received frame:', incomingAttemptId, 'sessions:', facultyLiveSessions.map(s => s.attempt_id));
       setFacultyLiveSessions(prev => prev.map(s =>
-        s.attempt_id === data.attemptId ? { ...s, liveImage: data.image } : s
+        s.attempt_id === incomingAttemptId ? { ...s, liveImage: data.image } : s
       ));
     });
 
