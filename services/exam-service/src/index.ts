@@ -2680,7 +2680,11 @@ app.post('/api/exams/faculty/attempts/:attemptId/terminate', authenticate, async
     }
 
     // Faculty may only terminate attempts belonging to a student in one of
-    // their own assigned batches — mirrors proctoring-service's faculty scoping.
+    // their own assigned batches — mirrors proctoring-service's faculty
+    // scoping. Same fallback as the live-monitor list: if this faculty has
+    // NO batch assignments at all (a config gap, not intentional
+    // restriction), don't hard-block them from a student they can already
+    // see in the (also-fallback-widened) live monitor.
     if (req.user.role === 'faculty') {
       const scopeCheck = await query(
         `SELECT 1 FROM users u
@@ -2689,7 +2693,13 @@ app.post('/api/exams/faculty/attempts/:attemptId/terminate', authenticate, async
         [attempt.student_id, req.user.id]
       );
       if (scopeCheck.rows.length === 0) {
-        return res.status(403).json({ error: 'Access denied' });
+        const hasAnyBatchAssignment = await query(
+          `SELECT 1 FROM faculty_batches WHERE faculty_id = $1 LIMIT 1`,
+          [req.user.id]
+        );
+        if (hasAnyBatchAssignment.rows.length > 0) {
+          return res.status(403).json({ error: 'Access denied' });
+        }
       }
     }
 
@@ -2705,6 +2715,20 @@ app.post('/api/exams/faculty/attempts/:attemptId/terminate', authenticate, async
        WHERE id = $4`,
       [feedbackStr, terminatedByName, terminatedByRole, attemptId]
     );
+
+    // Notify proctoring-service to kick the student's socket and broadcast
+    // the disconnect to admin/faculty monitors. Best-effort — if this fails
+    // the attempt is still terminated server-side; the student just won't
+    // see it live and will find out on their next submit/refresh attempt.
+    try {
+      await fetch('http://proctoring-service:4005/api/internal/terminate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attemptId })
+      });
+    } catch (notifyErr) {
+      console.log('Could not notify proctoring-service of termination:', notifyErr);
+    }
 
     res.json({ success: true, terminated_by_name: terminatedByName, terminated_by_role: terminatedByRole });
   } catch (err: any) {

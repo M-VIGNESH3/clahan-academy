@@ -263,7 +263,8 @@ app.post('/api/proctor/faculty/warn/:attemptId',
   async (req: AuthenticatedRequest, res) => {
     try {
       const { attemptId } = req.params;
-      const facultyId = req.user!.userId;
+      const facultyId = req.user!.userId || req.user!.id;
+      console.log('Warn attempt by role:', req.user?.role, 'userId:', facultyId);
 
       const faculty = await query(`SELECT full_name FROM users WHERE id = $1`, [facultyId]);
       const facultyName = faculty.rows[0]?.full_name || 'Faculty';
@@ -338,6 +339,40 @@ const attemptSessions: Map<string, {
 }> = new Map();
 
 const socketToAttempt: Map<string, string> = new Map();
+
+// Internal — called by exam-service right after it marks an attempt
+// 'terminated' via the admin/faculty REST termination endpoint, since that
+// service has no direct access to this one's socket.io instance. Not behind
+// `authenticate`: it's only reachable on the internal docker network, never
+// exposed through nginx/vite's public proxy (no /api/internal route there).
+app.post('/api/internal/terminate', async (req, res) => {
+  try {
+    const { attemptId } = req.body;
+    if (!attemptId) {
+      return res.status(400).json({ error: 'attemptId is required' });
+    }
+
+    const session = attemptSessions.get(attemptId);
+    if (session) {
+      const studentSocket = io.sockets.sockets.get(session.socketId);
+      if (studentSocket) {
+        studentSocket.emit('exam-terminated', {
+          reason: 'Your exam has been terminated by faculty/admin.',
+          autoSubmitted: false
+        });
+        studentSocket.disconnect();
+      }
+      attemptSessions.delete(attemptId);
+      socketToAttempt.delete(session.socketId);
+    }
+
+    io.to('admin-monitor').emit('student-terminated', { attemptId });
+
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Track consecutive violations in memory (key: attemptId, value: Record<eventType, count>)
 const consecutiveViolations: Record<string, Record<string, number>> = {};
