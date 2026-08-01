@@ -280,7 +280,7 @@ app.post('/api/proctor/faculty/warn/:attemptId',
 
       await query(
         `INSERT INTO proctoring_logs (attempt_id, event_type, details, severity)
-         VALUES ($1, 'manual_warning', $2, 'medium')`,
+         VALUES ($1, 'manual_warning', $2, 'warning')`,
         [
           attemptId,
           JSON.stringify({
@@ -689,15 +689,15 @@ io.on('connection', (socket: Socket) => {
           const passed = percentage >= cutoff;
 
           await query(
-            `UPDATE exam_attempts 
-             SET status = 'completed', score = $1, percentage = $2, passed = $3, completed_at = CURRENT_TIMESTAMP, feedback = $4
+            `UPDATE exam_attempts
+             SET status = 'completed', score = $1, percentage = $2, passed = $3, feedback = $4
              WHERE id = $5`,
             [totalScore, percentage, passed, `Auto-submitted due to: ${terminationReason}`, attemptId]
           );
         } else {
           await query(
-            `UPDATE exam_attempts 
-             SET status = 'terminated', score = 0, percentage = 0, passed = FALSE, completed_at = CURRENT_TIMESTAMP, feedback = $4
+            `UPDATE exam_attempts
+             SET status = 'terminated', score = 0, percentage = 0, passed = FALSE, feedback = $4
              WHERE id = $5`,
             [0, 0, false, `Terminated due to: ${terminationReason}`, attemptId]
           );

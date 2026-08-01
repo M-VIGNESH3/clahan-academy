@@ -2703,7 +2703,11 @@ app.post('/api/exams/faculty/attempts/:attemptId/terminate', authenticate, async
       }
     }
 
-    const terminatedByName = (req.user as any)?.full_name || 'Admin';
+    // Fetch from DB rather than trusting req.user.full_name off the JWT —
+    // matches the pattern the faculty warn endpoint already uses, since not
+    // every login flow that issues a token populates full_name on it.
+    const terminatorResult = await query(`SELECT full_name FROM users WHERE id = $1`, [req.user.id]);
+    const terminatedByName = terminatorResult.rows[0]?.full_name || 'Faculty';
     const terminatedByRole = req.user.role || 'admin';
     const feedbackStr = `Exam terminated by ${terminatedByName} (${terminatedByRole}).${reason ? ` Reason: ${reason}` : ''}`;
 
