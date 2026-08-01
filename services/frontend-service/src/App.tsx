@@ -324,6 +324,7 @@ export default function App() {
 
   // Faculty proctoring live monitor
   const [facultyLiveSessions, setFacultyLiveSessions] = useState<any[]>([]);
+  const [facultyFrameBuffer, setFacultyFrameBuffer] = useState<Record<string, string>>({});
   const [selectedProctorAttempt, setSelectedProctorAttempt] = useState<any>(null);
   const [facultyViolationLogs, setFacultyViolationLogs] = useState<any[]>([]);
   const [isLoadingProctor, setIsLoadingProctor] = useState(false);
@@ -2267,7 +2268,18 @@ export default function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
-        setFacultyLiveSessions(await res.json());
+        const sessions = await res.json();
+        // Merge any frames that arrived via socket before this REST fetch
+        // resolved, so a frame that beat the session list here doesn't get
+        // dropped just because the session row didn't exist yet at the time.
+        setFacultyFrameBuffer(buffer => {
+          const merged = sessions.map((s: any) => ({
+            ...s,
+            liveImage: buffer[s.attempt_id] || s.last_screenshot || null
+          }));
+          setFacultyLiveSessions(merged);
+          return buffer;
+        });
       }
     } catch (err) {
       console.error('Proctor load:', err);
@@ -2368,9 +2380,17 @@ export default function App() {
 
     socket.on('student-frame', (data: any) => {
       const incomingAttemptId = data.attemptId || data.attempt_id;
-      console.log('Faculty received frame:', incomingAttemptId, 'sessions:', facultyLiveSessions.map(s => s.attempt_id));
+      const image = data.image;
+      if (!incomingAttemptId || !image) return;
+
+      // Always buffer by attemptId regardless of whether the session list
+      // has loaded yet — this is what actually survives the case where
+      // facultyLiveSessions is still empty (initial REST fetch hasn't
+      // resolved, or this attempt just started) when frames start arriving.
+      setFacultyFrameBuffer(prev => ({ ...prev, [incomingAttemptId]: image }));
+
       setFacultyLiveSessions(prev => prev.map(s =>
-        s.attempt_id === incomingAttemptId ? { ...s, liveImage: data.image } : s
+        s.attempt_id === incomingAttemptId ? { ...s, liveImage: image } : s
       ));
     });
 
@@ -17035,9 +17055,9 @@ export default function App() {
                           </div>
                         )}
 
-                        {(session.liveImage || session.last_screenshot) ? (
+                        {(session.liveImage || facultyFrameBuffer[session.attempt_id] || session.last_screenshot) ? (
                           <img
-                            src={session.liveImage || session.last_screenshot}
+                            src={session.liveImage || facultyFrameBuffer[session.attempt_id] || session.last_screenshot}
                             alt={session.student_name}
                             className="h-16 w-full rounded-xl bg-slate-800 object-cover mb-2"
                           />

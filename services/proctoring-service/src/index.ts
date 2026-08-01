@@ -60,6 +60,8 @@ interface AuthenticatedRequest extends express.Request {
     id: string;
     role: string;
     full_name?: string;
+    orgId?: string;
+    college_id?: string;
   };
 }
 
@@ -143,15 +145,21 @@ app.post('/api/proctor/verify-face', async (req, res) => {
 });
 
 // GET /api/proctor/faculty/live
-// Faculty-scoped live sessions — only students in the faculty's assigned batches
+// Faculty-scoped live sessions — only students in the faculty's assigned
+// batches. If this faculty has no batch assignments at all (faculty_batches
+// has zero rows for them — a configuration gap, not an intentional "you
+// have no students" state), fall back to every ongoing attempt in their own
+// college so the monitor isn't just permanently empty for them. A faculty
+// who DOES have batch assignments always stays scoped to those batches only
+// — this fallback never widens access for someone already properly scoped.
 app.get('/api/proctor/faculty/live',
   authenticate,
   async (req: AuthenticatedRequest, res) => {
     try {
       const facultyId = req.user!.userId;
 
-      const result = await query(
-        `SELECT DISTINCT
+      const baseSelect = `
+        SELECT DISTINCT
            ea.id as attempt_id,
            ea.exam_id,
            ea.student_id,
@@ -170,16 +178,44 @@ app.get('/api/proctor/faculty/live',
          JOIN users u ON u.id = ea.student_id
          JOIN exams e ON e.id = ea.exam_id
          LEFT JOIN proctoring_logs pl ON pl.attempt_id = ea.id
-         WHERE ea.status = 'ongoing'
+         WHERE ea.status = 'ongoing'`;
+      const groupBy = `GROUP BY ea.id, u.full_name, u.roll_number, e.name, e.duration_minutes ORDER BY violation_count DESC`;
+
+      const result = await query(
+        `${baseSelect}
            AND u.batch_id IN (
              SELECT batch_id FROM faculty_batches WHERE faculty_id = $1
            )
-         GROUP BY ea.id, u.full_name, u.roll_number, e.name, e.duration_minutes
-         ORDER BY violation_count DESC`,
+         ${groupBy}`,
         [facultyId]
       );
 
-      res.json(result.rows);
+      if (result.rows.length > 0) {
+        return res.json(result.rows);
+      }
+
+      const batchAssignmentCheck = await query(
+        `SELECT 1 FROM faculty_batches WHERE faculty_id = $1 LIMIT 1`,
+        [facultyId]
+      );
+      if (batchAssignmentCheck.rows.length > 0) {
+        // Faculty is properly scoped to specific batches — they just have
+        // no students actively in an exam right now. Stay scoped, return empty.
+        return res.json([]);
+      }
+
+      const orgId = req.user?.orgId || req.user?.college_id;
+      if (!orgId) {
+        return res.json([]);
+      }
+
+      const fallback = await query(
+        `${baseSelect}
+           AND u.college_id = $1
+         ${groupBy}`,
+        [orgId]
+      );
+      res.json(fallback.rows);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
