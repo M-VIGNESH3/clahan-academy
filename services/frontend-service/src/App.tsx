@@ -266,6 +266,14 @@ export default function App() {
   const [isLoadingBatches2, setIsLoadingBatches2] = useState(false);
   const [selectedBatchTypeFilter, setSelectedBatchTypeFilter] = useState('all');
 
+  // Manage Students modal (CRT/training batch membership via batch_students)
+  const [manageStudentsBatch, setManageStudentsBatch] = useState<any>(null);
+  const [batchMembers, setBatchMembers] = useState<any[]>([]);
+  const [isLoadingBatchMembers, setIsLoadingBatchMembers] = useState(false);
+  const [studentSearchQuery, setStudentSearchQuery] = useState('');
+  const [studentSearchResults, setStudentSearchResults] = useState<any[]>([]);
+  const [isSearchingStudents, setIsSearchingStudents] = useState(false);
+
   // Faculty management (org_admin managing their faculty)
   const [facultyList, setFacultyList] = useState<any[]>([]);
   const [isLoadingFaculty, setIsLoadingFaculty] = useState(false);
@@ -2245,6 +2253,130 @@ export default function App() {
     } catch {
       showToast('Network error', 'error');
     }
+  };
+
+  const loadBatchMembers = async (batchId: string) => {
+    setIsLoadingBatchMembers(true);
+    try {
+      const res = await fetch(`${API_ADMIN}/batches/${batchId}/students`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) setBatchMembers(await res.json());
+    } catch (err) {
+      console.error('Load batch members:', err);
+    } finally {
+      setIsLoadingBatchMembers(false);
+    }
+  };
+
+  const openManageStudents = (batch: any) => {
+    setManageStudentsBatch(batch);
+    setStudentSearchQuery('');
+    setStudentSearchResults([]);
+    loadBatchMembers(batch.id);
+  };
+
+  const searchStudentsTimeoutRef = useRef<any>(null);
+  const searchStudentsForBatch = (q: string) => {
+    setStudentSearchQuery(q);
+    if (searchStudentsTimeoutRef.current) clearTimeout(searchStudentsTimeoutRef.current);
+    if (!q.trim()) {
+      setStudentSearchResults([]);
+      return;
+    }
+    searchStudentsTimeoutRef.current = setTimeout(async () => {
+      setIsSearchingStudents(true);
+      try {
+        const res = await fetch(
+          `${API_ADMIN}/students/search?q=${encodeURIComponent(q.trim())}&excludeBatchId=${manageStudentsBatch?.id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (res.ok) setStudentSearchResults(await res.json());
+      } catch (err) {
+        console.error('Search students:', err);
+      } finally {
+        setIsSearchingStudents(false);
+      }
+    }, 300);
+  };
+
+  const addStudentToBatch = async (studentId: string) => {
+    if (!manageStudentsBatch) return;
+    try {
+      const res = await fetch(`${API_ADMIN}/batches/${manageStudentsBatch.id}/students`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ studentId })
+      });
+      if (res.ok) {
+        showToast('Student added to batch', 'success');
+        setStudentSearchResults(prev => prev.filter((s: any) => s.id !== studentId));
+        loadBatchMembers(manageStudentsBatch.id);
+        loadAdminBatches2();
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'Failed to add student', 'error');
+      }
+    } catch {
+      showToast('Network error', 'error');
+    }
+  };
+
+  const removeStudentFromBatch = async (studentId: string) => {
+    if (!manageStudentsBatch) return;
+    try {
+      const res = await fetch(`${API_ADMIN}/batches/${manageStudentsBatch.id}/students/${studentId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast('Student removed from batch', 'success');
+        loadBatchMembers(manageStudentsBatch.id);
+        loadAdminBatches2();
+      } else {
+        const err = await res.json();
+        showToast(err.error || 'Failed to remove student', 'error');
+      }
+    } catch {
+      showToast('Network error', 'error');
+    }
+  };
+
+  const downloadExcelExport = async (endpoint: string, fallbackFilename: string) => {
+    try {
+      const res = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || 'Export failed', 'error');
+        return;
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename=([^;]+)/);
+      const filename = match ? match[1].trim() : fallbackFilename;
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      showToast('Network error during export', 'error');
+    }
+  };
+
+  const exportStudents = () => {
+    const orgId = currentUser?.orgId || currentUser?.collegeId;
+    if (!orgId) return showToast('No organization found', 'error');
+    downloadExcelExport(`${API_REPORTS}/export/students/${orgId}`, 'students.xlsx');
+  };
+
+  const exportResults = () => {
+    const orgId = currentUser?.orgId || currentUser?.collegeId;
+    if (!orgId) return showToast('No organization found', 'error');
+    downloadExcelExport(`${API_REPORTS}/export/results/${orgId}`, 'results.xlsx');
   };
 
   // --- FACULTY'S OWN DASHBOARD (faculty-service, port 4011) ---
@@ -7847,22 +7979,32 @@ export default function App() {
                                 <p className="text-[10px] text-muted-foreground">{batch.student_count || 0} students</p>
                               </div>
                             </div>
-                            <button
-                              onClick={async () => {
-                                if (!confirm(`Delete batch ${batch.name}?`)) return;
-                                const res = await fetch(`${API_ADMIN}/batches/${batch.id}`, {
-                                  method: 'DELETE',
-                                  headers: { Authorization: `Bearer ${token}` }
-                                });
-                                if (res.ok) {
-                                  showToast('Batch deleted', 'success');
-                                  loadAdminBatches2();
-                                }
-                              }}
-                              className="px-3 py-1.5 bg-red-500/20 border border-red-500/30 text-red-500 dark:text-red-300 text-[10px] font-bold rounded-lg hover:bg-red-500/30"
-                            >
-                              Delete
-                            </button>
+                            <div className="flex items-center gap-2">
+                              {(batch.batch_type === 'crt' || batch.batch_type === 'training') && (
+                                <button
+                                  onClick={() => openManageStudents(batch)}
+                                  className="px-3 py-1.5 bg-indigo-500/20 border border-indigo-500/30 text-indigo-500 dark:text-indigo-300 text-[10px] font-bold rounded-lg hover:bg-indigo-500/30"
+                                >
+                                  Manage Students
+                                </button>
+                              )}
+                              <button
+                                onClick={async () => {
+                                  if (!confirm(`Delete batch ${batch.name}?`)) return;
+                                  const res = await fetch(`${API_ADMIN}/batches/${batch.id}`, {
+                                    method: 'DELETE',
+                                    headers: { Authorization: `Bearer ${token}` }
+                                  });
+                                  if (res.ok) {
+                                    showToast('Batch deleted', 'success');
+                                    loadAdminBatches2();
+                                  }
+                                }}
+                                className="px-3 py-1.5 bg-red-500/20 border border-red-500/30 text-red-500 dark:text-red-300 text-[10px] font-bold rounded-lg hover:bg-red-500/30"
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </div>
                         ))}
                       {adminBatches.filter((b: any) => selectedBatchTypeFilter === 'all' || b.batch_type === selectedBatchTypeFilter).length === 0 && (
@@ -7874,6 +8016,94 @@ export default function App() {
                       )}
                     </div>
                   )}
+                </div>
+              )}
+
+              {manageStudentsBatch && (
+                <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+                  <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 w-full max-w-3xl max-h-[85vh] flex flex-col">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="font-black text-white">Manage Students — {manageStudentsBatch.name}</h3>
+                        <p className="text-[10px] text-slate-400 capitalize">{manageStudentsBatch.batch_type} batch</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setManageStudentsBatch(null);
+                          setBatchMembers([]);
+                          setStudentSearchQuery('');
+                          setStudentSearchResults([]);
+                        }}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 text-slate-400 hover:text-white"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
+                      <div className="flex flex-col min-h-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">
+                          Current Members ({batchMembers.length})
+                        </p>
+                        <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
+                          {isLoadingBatchMembers ? (
+                            <p className="text-xs text-slate-500">Loading...</p>
+                          ) : batchMembers.length === 0 ? (
+                            <p className="text-xs text-slate-500">No students in this batch yet.</p>
+                          ) : (
+                            batchMembers.map((s: any) => (
+                              <div key={s.id} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-800/60">
+                                <div>
+                                  <p className="text-xs font-bold text-white">{s.full_name}</p>
+                                  <p className="text-[10px] text-slate-400">{s.roll_number} · {s.department_name || 'No dept'}</p>
+                                </div>
+                                <button
+                                  onClick={() => removeStudentFromBatch(s.id)}
+                                  className="px-2 py-1 bg-red-500/20 text-red-400 text-[10px] font-bold rounded-md hover:bg-red-500/30"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col min-h-0">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Add Students</p>
+                        <input
+                          type="text"
+                          value={studentSearchQuery}
+                          onChange={e => searchStudentsForBatch(e.target.value)}
+                          placeholder="Search by name, email, or roll number..."
+                          className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:border-indigo-500/50 focus:outline-none mb-2"
+                          autoFocus
+                        />
+                        <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
+                          {isSearchingStudents ? (
+                            <p className="text-xs text-slate-500">Searching...</p>
+                          ) : studentSearchQuery.trim() && studentSearchResults.length === 0 ? (
+                            <p className="text-xs text-slate-500">No matching students found.</p>
+                          ) : (
+                            studentSearchResults.map((s: any) => (
+                              <div key={s.id} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-800/60">
+                                <div>
+                                  <p className="text-xs font-bold text-white">{s.full_name}</p>
+                                  <p className="text-[10px] text-slate-400">{s.roll_number} · {s.department_name || 'No dept'}</p>
+                                </div>
+                                <button
+                                  onClick={() => addStudentToBatch(s.id)}
+                                  className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded-md hover:bg-emerald-500/30"
+                                >
+                                  Add
+                                </button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -9552,6 +9782,20 @@ export default function App() {
                     <div>
                       <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100">Reports & Skill Identification Engine</h3>
                       <p className="text-xs text-muted-foreground mt-1">Generate comprehensive skill breakdowns, weak area diagnostics, and training recommendations.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={exportStudents}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl"
+                      >
+                        📥 Export Students
+                      </button>
+                      <button
+                        onClick={exportResults}
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold rounded-xl"
+                      >
+                        📥 Export Results
+                      </button>
                     </div>
                   </div>
 

@@ -357,13 +357,22 @@ app.delete('/api/admin/departments/:id', authenticateAdmin, requireOrgAdmin, asy
 app.get('/api/admin/batches', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const orgId = getOrgId(req);
+    // student_count unions batch_students (CRT/training enrollment) with the
+    // legacy users.batch_id FK (academic batches) - same pattern as
+    // faculty-service's MY_STUDENT_IDS_SUBQUERY - so CRT/training batch cards
+    // reflect members added via the batch_students junction table too.
     const result = await query(`
-      SELECT b.*, c.name as college_name, COUNT(u.id) as student_count
+      SELECT b.*, c.name as college_name,
+        (
+          SELECT COUNT(DISTINCT student_id) FROM (
+            SELECT student_id FROM batch_students WHERE batch_id = b.id
+            UNION
+            SELECT id as student_id FROM users WHERE batch_id = b.id AND role = 'student' AND status = 'active'
+          ) combined
+        ) as student_count
       FROM batches b
       LEFT JOIN colleges c ON b.college_id = c.id
-      LEFT JOIN users u ON u.batch_id = b.id AND u.role = 'student' AND u.status = 'active'
       ${orgId ? 'WHERE b.college_id = $1' : ''}
-      GROUP BY b.id, c.name
       ORDER BY b.batch_type ASC, b.name ASC
     `, orgId ? [orgId] : []);
     res.json(result.rows);
@@ -436,6 +445,84 @@ app.delete('/api/admin/batches/:id', authenticateAdmin, requireOrgAdmin, async (
     res.status(500).json({ error: err.message });
   } finally {
     client.release();
+  }
+});
+
+// --- Batch Students (CRT/training batch membership) ---
+// The batch_students junction table is a separate overlay from users.batch_id
+// (a student's single primary academic batch) - it lets CRT/training batches
+// pull students from any department/primary-batch. See faculty-service's
+// MY_STUDENT_IDS_SUBQUERY comment for the same modeling rationale.
+app.get('/api/admin/batches/:id/students', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const { id } = req.params;
+    if (orgId) {
+      const owns = await query('SELECT id FROM batches WHERE id = $1 AND college_id = $2', [id, orgId]);
+      if (owns.rows.length === 0) return res.status(404).json({ error: 'Batch not found' });
+    }
+    const result = await query(`
+      SELECT u.id, u.full_name, u.email, u.roll_number, u.year,
+             d.name as department_name, combined.added_at
+      FROM (
+        SELECT student_id, added_at FROM batch_students WHERE batch_id = $1
+        UNION
+        SELECT id as student_id, NULL::timestamptz as added_at FROM users WHERE batch_id = $1 AND role = 'student'
+      ) combined
+      JOIN users u ON u.id = combined.student_id
+      LEFT JOIN departments d ON d.id = u.department_id
+      ORDER BY u.full_name ASC
+    `, [id]);
+    res.json(result.rows);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/batches/:id/students', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const { id } = req.params;
+    const { studentId } = req.body;
+    if (!studentId) return res.status(400).json({ error: 'studentId is required' });
+
+    const batchCheck = await query(
+      `SELECT id FROM batches WHERE id = $1 ${orgId ? 'AND college_id = $2' : ''}`,
+      orgId ? [id, orgId] : [id]
+    );
+    if (batchCheck.rows.length === 0) return res.status(404).json({ error: 'Batch not found' });
+
+    const studentCheck = await query(
+      `SELECT id FROM users WHERE id = $1 AND role = 'student' ${orgId ? 'AND college_id = $2' : ''}`,
+      orgId ? [studentId, orgId] : [studentId]
+    );
+    if (studentCheck.rows.length === 0) return res.status(404).json({ error: 'Student not found' });
+
+    const result = await query(
+      `INSERT INTO batch_students (batch_id, student_id, added_by)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (batch_id, student_id) DO NOTHING
+       RETURNING *`,
+      [id, studentId, req.user!.userId]
+    );
+    res.status(201).json(result.rows[0] || { batch_id: id, student_id: studentId, already_member: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/batches/:id/students/:studentId', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const orgId = getOrgId(req);
+    const { id, studentId } = req.params;
+    if (orgId) {
+      const owns = await query('SELECT id FROM batches WHERE id = $1 AND college_id = $2', [id, orgId]);
+      if (owns.rows.length === 0) return res.status(404).json({ error: 'Batch not found' });
+    }
+    await query('DELETE FROM batch_students WHERE batch_id = $1 AND student_id = $2', [id, studentId]);
+    res.json({ message: 'Student removed from batch' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { Pool } from 'pg';
 import * as jwt from 'jsonwebtoken';
+import ExcelJS from 'exceljs';
 
 const app = express();
 app.set('trust proxy', true);
@@ -33,7 +34,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 interface AuthenticatedRequest extends express.Request {
-  user?: { id: string; email: string; role: 'admin' | 'student' };
+  user?: { id: string; userId?: string; email: string; role: string; orgId?: string };
 }
 
 function authenticate(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
@@ -45,6 +46,21 @@ function authenticate(req: AuthenticatedRequest, res: express.Response, next: ex
     req.user = decoded;
     next();
   });
+}
+
+// Export endpoints are admin-tier only, and org_admin is locked to its own
+// org (mirrors admin-service's requireOrgAdmin/getOrgId pattern) - only
+// super_admin may pull another org's export.
+const ADMIN_TIER_ROLES = ['admin', 'org_admin', 'super_admin'];
+function requireOrgAdminForExport(req: AuthenticatedRequest, res: express.Response, next: express.NextFunction) {
+  if (!ADMIN_TIER_ROLES.includes(req.user?.role || '')) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const { orgId } = req.params;
+  if (req.user?.role !== 'super_admin' && req.user?.orgId !== orgId) {
+    return res.status(403).json({ error: 'Cannot export another organization\'s data' });
+  }
+  next();
 }
 
 // Health check
@@ -431,6 +447,88 @@ app.get('/api/reports/my-rank/:examId/:studentId', authenticate, async (req: Aut
       totalStudents: parseInt(result.rows[0].total_students),
       percentile: parseInt(result.rows[0].percentile)
     });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/reports/export/students/:orgId
+// Excel export of all students in an organization
+app.get('/api/reports/export/students/:orgId', authenticate, requireOrgAdminForExport, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { orgId } = req.params;
+
+    const result = await query(
+      `SELECT u.full_name, u.email, u.roll_number, u.phone, u.year, u.status,
+              d.name as department_name, b.name as batch_name, u.created_at
+       FROM users u
+       LEFT JOIN departments d ON d.id = u.department_id
+       LEFT JOIN batches b ON b.id = u.batch_id
+       WHERE u.role = 'student' AND u.college_id = $1
+       ORDER BY u.full_name ASC`,
+      [orgId]
+    );
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Students');
+    sheet.columns = [
+      { header: 'Full Name', key: 'full_name', width: 28 },
+      { header: 'Email', key: 'email', width: 30 },
+      { header: 'Roll Number', key: 'roll_number', width: 16 },
+      { header: 'Phone', key: 'phone', width: 16 },
+      { header: 'Year', key: 'year', width: 10 },
+      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Department', key: 'department_name', width: 22 },
+      { header: 'Batch', key: 'batch_name', width: 22 },
+      { header: 'Joined', key: 'created_at', width: 20 }
+    ];
+    sheet.getRow(1).font = { bold: true };
+    result.rows.forEach(row => sheet.addRow(row));
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=students_${orgId}.xlsx`);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/reports/export/results/:orgId
+// Excel export of all completed exam results in an organization
+app.get('/api/reports/export/results/:orgId', authenticate, requireOrgAdminForExport, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { orgId } = req.params;
+
+    const result = await query(
+      `SELECT u.full_name as student_name, u.roll_number, e.name as exam_name,
+              ea.score, ea.percentage, ea.passed, ea.created_at as attempted_at
+       FROM exam_attempts ea
+       JOIN users u ON u.id = ea.student_id
+       JOIN exams e ON e.id = ea.exam_id
+       WHERE u.college_id = $1 AND ea.status = 'completed'
+       ORDER BY ea.created_at DESC`,
+      [orgId]
+    );
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Results');
+    sheet.columns = [
+      { header: 'Student Name', key: 'student_name', width: 28 },
+      { header: 'Roll Number', key: 'roll_number', width: 16 },
+      { header: 'Exam', key: 'exam_name', width: 28 },
+      { header: 'Score', key: 'score', width: 10 },
+      { header: 'Percentage', key: 'percentage', width: 12 },
+      { header: 'Passed', key: 'passed', width: 10 },
+      { header: 'Attempted At', key: 'attempted_at', width: 20 }
+    ];
+    sheet.getRow(1).font = { bold: true };
+    result.rows.forEach(row => sheet.addRow({ ...row, passed: row.passed ? 'Yes' : 'No' }));
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=results_${orgId}.xlsx`);
+    await workbook.xlsx.write(res);
+    res.end();
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
