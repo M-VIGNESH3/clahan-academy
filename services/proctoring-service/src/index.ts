@@ -332,10 +332,31 @@ setInterval(() => {
 io.on('connection', (socket: Socket) => {
   console.log(`Socket connected: ${socket.id}`);
 
-  socket.on('disconnect', () => {
-    console.log(`Socket disconnected: ${socket.id}`);
+  // Single disconnect handler — this used to be split across two separate
+  // socket.on('disconnect', ...) registrations (here and near the bottom of
+  // this file). Both fired on every disconnect, but the second one read
+  // activeSessions[socket.id] AFTER this one had already deleted it, so
+  // `session` was always undefined there and the 'student-disconnected'
+  // broadcast to admin-monitor never actually fired. Merged into one so the
+  // session is read before anything is torn down.
+  socket.on('disconnect', (reason) => {
+    const session = activeSessions[socket.id];
+    console.log('Socket disconnected:', socket.id,
+      'reason:', reason,
+      'was student:', session?.role === 'student',
+      'attemptId:', session?.attemptId
+    );
+
+    if (session && session.role === 'student') {
+      io.to('admin-monitor').emit('student-disconnected', {
+        socketId: socket.id,
+        studentId: session.studentId,
+        attemptId: session.attemptId,
+      });
+    }
+
     delete activeSessions[socket.id];
-    
+
     const attemptId = socketToAttempt.get(socket.id);
     socketToAttempt.delete(socket.id);
     if (attemptId) {
@@ -1006,19 +1027,6 @@ io.on('connection', (socket: Socket) => {
     } catch (err: any) {
       console.error('Error handling admin-warn-student socket event:', err);
     }
-  });
-
-  socket.on('disconnect', () => {
-    const session = activeSessions[socket.id];
-    if (session && session.role === 'student') {
-      io.to('admin-monitor').emit('student-disconnected', {
-        socketId: socket.id,
-        studentId: session.studentId,
-        attemptId: session.attemptId,
-      });
-    }
-    delete activeSessions[socket.id];
-    console.log(`Socket disconnected: ${socket.id}`);
   });
 });
 

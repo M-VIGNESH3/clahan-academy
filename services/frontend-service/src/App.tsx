@@ -5069,6 +5069,15 @@ export default function App() {
         socket.emit('join-exam', { token, attemptId, examId: currentExamRef.current?.id });
         logDebugEvent('Exam Connected');
       });
+      socket.on('auth-error', (err: any) => {
+        console.error('Proctor auth error:', err);
+      });
+      socket.on('connect_error', (err: any) => {
+        console.error('Proctor connect error:', err);
+      });
+      socket.on('disconnect', (reason: string) => {
+        console.log('Exam proctor socket disconnected, reason:', reason);
+      });
       socket.on('proctor-status', (status: any) => {
         // Calculate FPS
         const now = Date.now();
@@ -5237,6 +5246,7 @@ export default function App() {
               });
             }
 
+            console.log('Sending frame, socket connected:', socketRef.current?.connected, 'dataUrl length:', dataUrl?.length);
             socketRef.current.emit('proctor-frame', { image: dataUrl });
           }
         } catch (err) {
