@@ -355,6 +355,13 @@ io.on('connection', (socket: Socket) => {
       const { token, attemptId, examId } = payload;
       const decoded: any = jwt.verify(token, JWT_SECRET);
 
+      console.log('Socket join-exam:', {
+        role: decoded.role,
+        userId: decoded.userId || decoded.id,
+        attemptId,
+        examId
+      });
+
       if (attemptSessions.size > 10000) {
         console.error('attemptSessions Map exceeded 10000 entries. Emergency cleanup triggered.');
       }
@@ -428,7 +435,9 @@ io.on('connection', (socket: Socket) => {
         // which attempts they can see, and the frontend filters incoming
         // frames/alerts down to that same set.
         socket.join('admin-monitor');
-        console.log(`${decoded.role} joined live proctoring monitor room`);
+        console.log(`${decoded.role} (${decoded.userId || decoded.id}) joined admin-monitor room`);
+      } else {
+        console.log(`FAILED join for role: ${decoded.role}, token valid: true`);
       }
     } catch (err: any) {
       console.error('Socket authentication failed:', err.message);

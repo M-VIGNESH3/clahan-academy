@@ -1174,6 +1174,7 @@ export default function App() {
       adminSocketRef.current = socket;
 
       socket.on('connect', () => {
+        console.log('Admin joining monitor, token exists:', !!token, 'role:', currentUser?.role);
         socket.emit('join-exam', { token, attemptId: 'admin', examId: 'admin' });
       });
 
@@ -2334,6 +2335,7 @@ export default function App() {
     facultySocketRef.current = socket;
 
     socket.on('connect', () => {
+      console.log('Faculty joining monitor, token exists:', !!token, 'role:', currentUser?.role);
       socket.emit('join-exam', { token, attemptId: 'faculty-monitor', examId: 'faculty-monitor' });
     });
 
@@ -5970,7 +5972,7 @@ export default function App() {
                                   {notif.message}
                                 </p>
                                 <p className="text-[9px] text-slate-400 dark:text-slate-600 mt-1">
-                                  {new Date(notif.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                  {new Date(notif.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}
                                 </p>
                               </div>
                             </div>
@@ -7127,7 +7129,7 @@ export default function App() {
                           <div>
                             <p className="font-bold text-sm">{n.title}</p>
                             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{n.message}</p>
-                            <p className="text-[10px] text-muted-foreground mt-2">{new Date(n.createdAt).toLocaleDateString()} {new Date(n.createdAt).toLocaleTimeString()}</p>
+                            <p className="text-[10px] text-muted-foreground mt-2">{new Date(n.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}</p>
                           </div>
                         </div>
                       ))}
