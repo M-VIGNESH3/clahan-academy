@@ -5050,16 +5050,19 @@ export default function App() {
         const createdTimestamp = data.created_at || data.attempt?.created_at;
         if (createdTimestamp) {
           const startTime = new Date(createdTimestamp).getTime();
-          const elapsedSecs = Math.max(0, Math.floor((Date.now() - startTime) / 1000));
           const totalSecs = (examObj?.duration_minutes || 60) * 60;
+          const rawElapsedSecs = Math.max(0, Math.floor((Date.now() - startTime) / 1000));
+          // SAFETY: a clock/timezone mismatch between client and server (or a
+          // genuinely stale/resumed attempt) can make rawElapsedSecs come out
+          // far larger than the real elapsed time, clamping remaining to 0
+          // immediately — which fires the time's-up auto-submit path (and its
+          // cleanupProctoring -> socket.disconnect()) within the timer's
+          // first tick. Never let it eat more than (totalSecs - 30s), so a
+          // freshly (re)joined attempt always keeps at least 30s on the clock.
+          const maxAllowedElapsed = Math.max(0, totalSecs - 30);
+          const elapsedSecs = Math.min(rawElapsedSecs, maxAllowedElapsed);
           const remaining = Math.max(0, totalSecs - elapsedSecs);
-          // Diagnostic for the "disconnects right after joining" report: if
-          // createdTimestamp is misread (e.g. a client/server clock or
-          // timezone mismatch), elapsedSecs can come out far larger than the
-          // real elapsed time, clamping remaining to 0 immediately — which
-          // fires the time's-up auto-submit path (and its cleanupProctoring
-          // -> socket.disconnect()) within the timer's first tick.
-          console.log('Exam timer init:', { createdTimestamp, startTime, now: Date.now(), elapsedSecs, totalSecs, remaining });
+          console.log('Exam timer init:', { createdTimestamp, startTime, now: Date.now(), rawElapsedSecs, elapsedSecs, totalSecs, remaining });
           setTimeLeft(remaining);
         } else {
           setTimeLeft((examObj?.duration_minutes || 60) * 60);

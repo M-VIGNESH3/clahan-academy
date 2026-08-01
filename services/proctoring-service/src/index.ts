@@ -266,6 +266,15 @@ app.post('/api/proctor/faculty/warn/:attemptId',
       const facultyId = req.user!.userId || req.user!.id;
       console.log('Warn attempt by role:', req.user?.role, 'userId:', facultyId);
 
+      // proctoring_logs.attempt_id is a FOREIGN KEY into exam_attempts, so
+      // inserting against an id that doesn't exist (stale UI, deleted
+      // attempt) throws a raw FK-violation error here — check first so that
+      // case comes back as a clean 404 instead of an opaque 500.
+      const attempt = await query(`SELECT id, status FROM exam_attempts WHERE id = $1`, [attemptId]);
+      if (attempt.rows.length === 0) {
+        return res.status(404).json({ error: 'Attempt not found' });
+      }
+
       const faculty = await query(`SELECT full_name FROM users WHERE id = $1`, [facultyId]);
       const facultyName = faculty.rows[0]?.full_name || 'Faculty';
 
@@ -283,8 +292,18 @@ app.post('/api/proctor/faculty/warn/:attemptId',
         ]
       );
 
+      // Notify the student live if their socket is still connected.
+      const session = attemptSessions.get(attemptId);
+      if (session) {
+        io.to(`attempt:${attemptId}`).emit('proctor-warning', {
+          message: `Warning from faculty: ${facultyName}`,
+          severity: 'warning'
+        });
+      }
+
       res.json({ message: `Warning sent by ${facultyName}` });
     } catch (err: any) {
+      console.error('Warn endpoint error:', err.message);
       res.status(500).json({ error: err.message });
     }
   }
