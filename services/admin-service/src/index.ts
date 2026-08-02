@@ -1385,6 +1385,104 @@ app.post('/api/admin/faculty/:id/reset-password', authenticateAdmin, requireOrgA
   }
 });
 
+// --- Faculty Batch Assignment ---
+// faculty_batches is the join table that scopes which batches a faculty
+// member can see students/results for (see faculty-service's
+// MY_STUDENT_IDS_SUBQUERY, which reads from this same table).
+app.get('/api/admin/faculty/:id/batches', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const orgId = getOrgId(req);
+
+    if (orgId) {
+      const owns = await query(
+        `SELECT id FROM users WHERE id = $1 AND org_id = $2 AND role = 'faculty'`,
+        [id, orgId]
+      );
+      if (owns.rows.length === 0) {
+        return res.status(404).json({ error: 'Faculty not found' });
+      }
+    }
+
+    const result = await query(
+      `SELECT
+         fb.id as assignment_id,
+         b.id, b.name, b.batch_type,
+         COUNT(u.id) as student_count
+       FROM faculty_batches fb
+       JOIN batches b ON b.id = fb.batch_id
+       LEFT JOIN users u ON u.batch_id = b.id AND u.role = 'student'
+       WHERE fb.faculty_id = $1
+       GROUP BY fb.id, b.id, b.name, b.batch_type
+       ORDER BY b.name`,
+      [id]
+    );
+    res.json(result.rows);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/faculty/:id/batches', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id: facultyId } = req.params;
+    const { batchId } = req.body;
+    const orgId = getOrgId(req);
+
+    if (!batchId) {
+      return res.status(400).json({ error: 'batchId required' });
+    }
+
+    if (orgId) {
+      const owns = await query(
+        `SELECT id FROM users WHERE id = $1 AND org_id = $2 AND role = 'faculty'`,
+        [facultyId, orgId]
+      );
+      if (owns.rows.length === 0) {
+        return res.status(404).json({ error: 'Faculty not found' });
+      }
+    }
+
+    const assignOrgId = orgId || req.body.orgId;
+    await query(
+      `INSERT INTO faculty_batches (faculty_id, batch_id, org_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (faculty_id, batch_id) DO NOTHING`,
+      [facultyId, batchId, assignOrgId]
+    );
+
+    res.json({ message: 'Batch assigned to faculty' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/faculty/:id/batches/:batchId', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id: facultyId, batchId } = req.params;
+    const orgId = getOrgId(req);
+
+    if (orgId) {
+      const owns = await query(
+        `SELECT id FROM users WHERE id = $1 AND org_id = $2 AND role = 'faculty'`,
+        [facultyId, orgId]
+      );
+      if (owns.rows.length === 0) {
+        return res.status(404).json({ error: 'Faculty not found' });
+      }
+    }
+
+    await query(
+      `DELETE FROM faculty_batches WHERE faculty_id = $1 AND batch_id = $2`,
+      [facultyId, batchId]
+    );
+
+    res.json({ message: 'Batch assignment removed' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Org Settings ---
 
 // GET /api/admin/org-settings

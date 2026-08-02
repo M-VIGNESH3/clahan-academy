@@ -282,6 +282,8 @@ export default function App() {
   const [showCreateFacultyModal, setShowCreateFacultyModal] = useState(false);
   const [showFacultyPermissionsModal, setShowFacultyPermissionsModal] = useState(false);
   const [selectedFaculty, setSelectedFaculty] = useState<any>(null);
+  const [showFacultyBatchModal, setShowFacultyBatchModal] = useState(false);
+  const [facultyAssignedBatches, setFacultyAssignedBatches] = useState<any[]>([]);
   const [facultyForm, setFacultyForm] = useState({
     fullName: '',
     email: '',
@@ -2006,6 +2008,19 @@ export default function App() {
     }
   };
 
+  const loadFacultyBatches = async (facultyId: string) => {
+    try {
+      const res = await fetch(`${API_ADMIN}/faculty/${facultyId}/batches`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setFacultyAssignedBatches(await res.json());
+      }
+    } catch (err) {
+      console.error('Faculty batches:', err);
+    }
+  };
+
   const createFaculty = async () => {
     try {
       const res = await fetch(`${API_ADMIN}/faculty`, {
@@ -3110,6 +3125,7 @@ export default function App() {
           setSelectedConfigCollegeId(onlyCollegeId);
           setNewDeptCollegeId(onlyCollegeId);
           setNewBatchCollegeId(onlyCollegeId);
+          setStudentFilterCollegeId(onlyCollegeId);
           setTrainerForm(prev => ({ ...prev, collegeId: onlyCollegeId }));
           // The "Add Student" form's college select is hidden too and drove
           // department/batch loading via its onChange — replicate that here.
@@ -7486,6 +7502,25 @@ export default function App() {
                             </div>
                           );
                         })()}
+                        {newProfilePassword && (
+                          <div className="space-y-1 mt-2">
+                            {[
+                              { test: newProfilePassword.length >= 8, text: 'At least 8 characters' },
+                              { test: /[A-Z]/.test(newProfilePassword), text: 'One uppercase letter' },
+                              { test: /[0-9]/.test(newProfilePassword), text: 'One number' },
+                              { test: /[^A-Za-z0-9]/.test(newProfilePassword), text: 'One special character' }
+                            ].map(req => (
+                              <div key={req.text} className="flex items-center gap-1.5">
+                                <span className={`text-[10px] font-bold ${req.test ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                                  {req.test ? '✓' : '○'}
+                                </span>
+                                <span className={`text-[10px] ${req.test ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                                  {req.text}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground">Confirm New Password</label>
@@ -7504,7 +7539,12 @@ export default function App() {
                     </div>
                     <button
                       type="submit"
-                      disabled={!currentPassword || !newProfilePassword || newProfilePassword !== confirmProfilePassword}
+                      disabled={
+                        !currentPassword ||
+                        !newProfilePassword ||
+                        newProfilePassword !== confirmProfilePassword ||
+                        !(newProfilePassword.length >= 8 && /[A-Z]/.test(newProfilePassword) && /[0-9]/.test(newProfilePassword))
+                      }
                       className="px-6 py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md transition-colors text-sm"
                     >
                       Update Password
@@ -7917,6 +7957,17 @@ export default function App() {
                               className="px-3 py-1.5 bg-violet-500/10 border border-violet-500/20 text-violet-600 text-[10px] font-bold rounded-lg hover:bg-violet-500/20"
                             >
                               ⚙️ Permissions
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedFaculty(faculty);
+                                setShowFacultyBatchModal(true);
+                                loadFacultyBatches(faculty.id);
+                                loadAdminBatches2();
+                              }}
+                              className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-600 text-[10px] font-bold rounded-lg hover:bg-blue-500/20"
+                            >
+                              🎓 Batches
                             </button>
                             <button
                               onClick={() => {
@@ -8977,11 +9028,11 @@ export default function App() {
                           value={studentFilterDeptId}
                           onChange={(e) => setStudentFilterDeptId(e.target.value)}
                           className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
-                          disabled={!studentFilterCollegeId}
+                          disabled={adminColleges.length > 1 && !studentFilterCollegeId}
                         >
                           <option value="">All Departments</option>
                           {adminDepts
-                            .filter(d => d.college_id === studentFilterCollegeId || d.collegeId === studentFilterCollegeId)
+                            .filter(d => !studentFilterCollegeId || d.college_id === studentFilterCollegeId || d.collegeId === studentFilterCollegeId)
                             .map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
                       </div>
@@ -8991,11 +9042,11 @@ export default function App() {
                           value={studentFilterBatchId}
                           onChange={(e) => setStudentFilterBatchId(e.target.value)}
                           className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
-                          disabled={!studentFilterCollegeId}
+                          disabled={adminColleges.length > 1 && !studentFilterCollegeId}
                         >
                           <option value="">All Batches</option>
                           {adminBatches
-                            .filter(b => b.college_id === studentFilterCollegeId || b.collegeId === studentFilterCollegeId)
+                            .filter(b => !studentFilterCollegeId || b.college_id === studentFilterCollegeId || b.collegeId === studentFilterCollegeId)
                             .map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                         </select>
                       </div>
@@ -9005,11 +9056,11 @@ export default function App() {
                           value={studentFilterTrainerId}
                           onChange={(e) => setStudentFilterTrainerId(e.target.value)}
                           className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
-                          disabled={!studentFilterCollegeId}
+                          disabled={adminColleges.length > 1 && !studentFilterCollegeId}
                         >
                           <option value="">All Trainers</option>
                           {adminTrainers
-                            .filter(t => t.college_id === studentFilterCollegeId || t.collegeId === studentFilterCollegeId)
+                            .filter(t => !studentFilterCollegeId || t.college_id === studentFilterCollegeId || t.collegeId === studentFilterCollegeId)
                             .map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
                       </div>
@@ -18222,6 +18273,117 @@ export default function App() {
                 className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl"
               >
                 Save Permissions
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showFacultyBatchModal && selectedFaculty && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-white/10 shrink-0">
+              <div>
+                <h3 className="font-black text-white">Assign Batches</h3>
+                <p className="text-xs text-slate-400">{selectedFaculty.full_name}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowFacultyBatchModal(false);
+                  setFacultyAssignedBatches([]);
+                }}
+                className="text-slate-400 hover:text-white text-xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="mb-4">
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">
+                  Currently Assigned ({facultyAssignedBatches.length})
+                </p>
+                {facultyAssignedBatches.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic">No batches assigned yet</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {facultyAssignedBatches.map((b: any) => (
+                      <div key={b.id} className="flex items-center justify-between p-2.5 bg-slate-800 rounded-xl">
+                        <div>
+                          <p className="text-xs font-bold text-white">{b.name}</p>
+                          <p className="text-[10px] text-slate-400">{b.batch_type} · {b.student_count || 0} students</p>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            const res = await fetch(`${API_ADMIN}/faculty/${selectedFaculty.id}/batches/${b.id}`, {
+                              method: 'DELETE',
+                              headers: { Authorization: `Bearer ${token}` }
+                            });
+                            if (res.ok) {
+                              showToast('Batch removed', 'success');
+                              loadFacultyBatches(selectedFaculty.id);
+                              loadFaculty();
+                            }
+                          }}
+                          className="px-2 py-1 bg-red-500/20 text-red-300 text-[9px] font-bold rounded-lg hover:bg-red-500/30"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Add Batch</p>
+                <div className="space-y-1.5">
+                  {adminBatches
+                    .filter((b: any) => !facultyAssignedBatches.some(ab => ab.id === b.id))
+                    .map((batch: any) => (
+                    <div key={batch.id} className="flex items-center justify-between p-2.5 bg-slate-800/50 rounded-xl">
+                      <div>
+                        <p className="text-xs font-bold text-white">{batch.name}</p>
+                        <p className="text-[10px] text-slate-400">{batch.batch_type || 'academic'}</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          const res = await fetch(`${API_ADMIN}/faculty/${selectedFaculty.id}/batches`, {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              Authorization: `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ batchId: batch.id })
+                          });
+                          if (res.ok) {
+                            showToast('Batch assigned', 'success');
+                            loadFacultyBatches(selectedFaculty.id);
+                            loadFaculty();
+                          }
+                        }}
+                        className="px-2 py-1 bg-emerald-500/20 text-emerald-300 text-[9px] font-bold rounded-lg hover:bg-emerald-500/30"
+                      >
+                        + Assign
+                      </button>
+                    </div>
+                  ))}
+                  {adminBatches.filter((b: any) => !facultyAssignedBatches.some(ab => ab.id === b.id)).length === 0 && (
+                    <p className="text-xs text-slate-500 italic">All batches already assigned</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-white/10 shrink-0">
+              <button
+                onClick={() => {
+                  setShowFacultyBatchModal(false);
+                  setFacultyAssignedBatches([]);
+                }}
+                className="w-full py-2.5 bg-slate-800 text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-700"
+              >
+                Done
               </button>
             </div>
           </div>
