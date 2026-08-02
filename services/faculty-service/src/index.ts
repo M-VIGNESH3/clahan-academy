@@ -283,6 +283,41 @@ app.post('/api/faculty/question-batches',
   }
 );
 
+// DELETE /api/faculty/question-batches/:id — only the faculty who created it
+app.delete('/api/faculty/question-batches/:id',
+  authenticate, requireFaculty,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+
+      const batch = await pool.query(
+        `SELECT id FROM question_batches WHERE id = $1 AND created_by = $2`,
+        [id, req.user!.userId]
+      );
+      if (batch.rows.length === 0) {
+        return res.status(404).json({ error: 'Batch not found or not yours' });
+      }
+
+      const inUse = await pool.query(
+        `SELECT COUNT(*) as count FROM question_bank WHERE batch_id = $1 AND usage_count > 0`,
+        [id]
+      );
+      if (parseInt(inUse.rows[0].count) > 0) {
+        return res.status(409).json({ error: 'Cannot delete: questions from this batch are used in exams' });
+      }
+
+      // question_bank_test_cases -> question_bank -> question_batches are all
+      // ON DELETE CASCADE (see auth-service/db.ts migrations 7-9), so deleting
+      // the batch row alone cleans up its questions and test cases.
+      await pool.query(`DELETE FROM question_batches WHERE id = $1`, [id]);
+
+      res.json({ message: 'Batch deleted' });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+);
+
 // GET /api/faculty/question-batches/:id/questions
 app.get('/api/faculty/question-batches/:id/questions',
   authenticate, requireFaculty,

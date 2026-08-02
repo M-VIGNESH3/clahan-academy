@@ -247,6 +247,8 @@ export default function App() {
   });
   const [adminAnalytics, setAdminAnalytics] = useState<any>(null);
   const [isLoadingAdminAnalytics, setIsLoadingAdminAnalytics] = useState(false);
+  const [adminReportSummary, setAdminReportSummary] = useState<any>(null);
+  const [isLoadingReports, setIsLoadingReports] = useState(false);
 
   // Departments tab (admin dashboard) — separate state from the Settings
   // tab's multi-college newDeptName/newDeptCollegeId flow to avoid sharing
@@ -464,8 +466,10 @@ export default function App() {
   const [trainerUpdate, setTrainerUpdate] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newProfilePassword, setNewProfilePassword] = useState('');
+  const [confirmProfilePassword, setConfirmProfilePassword] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewProfilePassword, setShowNewProfilePassword] = useState(false);
+  const [passwordChanged, setPasswordChanged] = useState(false);
 
   // Administrative list and student filters
   const [selectedConfigCollegeId, setSelectedConfigCollegeId] = useState('');
@@ -474,6 +478,8 @@ export default function App() {
   const [studentFilterBatchId, setStudentFilterBatchId] = useState('');
   const [studentFilterYear, setStudentFilterYear] = useState('');
   const [studentFilterTrainerId, setStudentFilterTrainerId] = useState('');
+  const [studentFilterStatus, setStudentFilterStatus] = useState('');
+  const [studentListSearchQuery, setStudentListSearchQuery] = useState('');
 
   // Bulk student import state
   const [studentCsvInput, setStudentCsvInput] = useState('');
@@ -1780,8 +1786,12 @@ export default function App() {
 
   const changeStudentPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPasswordChanged(false);
     if (!currentPassword || !newProfilePassword) {
       return showToast('Both password fields are required.', 'error');
+    }
+    if (newProfilePassword !== confirmProfilePassword) {
+      return showToast('Passwords do not match.', 'error');
     }
     try {
       const res = await fetch(`${API_AUTH}/change-password`, {
@@ -1798,15 +1808,15 @@ export default function App() {
       const data = await res.json();
       if (res.ok) {
         showToast('Password updated successfully!');
+        setPasswordChanged(true);
         setCurrentPassword('');
         setNewProfilePassword('');
+        setConfirmProfilePassword('');
       } else {
         showToast(data.error || 'Password update failed', 'error');
       }
     } catch (err) {
-      showToast('Password updated successfully (Simulated)');
-      setCurrentPassword('');
-      setNewProfilePassword('');
+      showToast('Network error updating password. Please try again.', 'error');
     }
   };
 
@@ -2377,6 +2387,22 @@ export default function App() {
     const orgId = currentUser?.orgId || currentUser?.collegeId;
     if (!orgId) return showToast('No organization found', 'error');
     downloadExcelExport(`${API_REPORTS}/export/results/${orgId}`, 'results.xlsx');
+  };
+
+  const loadAdminReports = async () => {
+    setIsLoadingReports(true);
+    try {
+      const res = await fetch(`${API_REPORTS}/summary`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setAdminReportSummary(await res.json());
+      }
+    } catch (err) {
+      console.error('Admin reports:', err);
+    } finally {
+      setIsLoadingReports(false);
+    }
   };
 
   // --- FACULTY'S OWN DASHBOARD (faculty-service, port 4011) ---
@@ -4204,15 +4230,28 @@ export default function App() {
     showToast('Downloaded results CSV successfully!', 'success');
   };
 
+  // Shared by the admin student table, its result-count badge, and the CSV
+  // download so all three always agree on "what's currently filtered" -
+  // previously each had its own copy of this predicate and could drift.
+  const matchesStudentFilters = (student: any) => {
+    if (studentFilterCollegeId && student.collegeId !== studentFilterCollegeId) return false;
+    if (studentFilterDeptId && student.departmentId !== studentFilterDeptId) return false;
+    if (studentFilterBatchId && student.batchId !== studentFilterBatchId) return false;
+    if (studentFilterTrainerId && (student.trainerId || student.trainer_id) !== studentFilterTrainerId) return false;
+    if (studentFilterYear && student.year !== studentFilterYear) return false;
+    if (studentFilterStatus && student.status !== studentFilterStatus) return false;
+    if (studentListSearchQuery) {
+      const q = studentListSearchQuery.toLowerCase();
+      const fullName = (student.fullName || student.full_name || '').toLowerCase();
+      const email = (student.email || '').toLowerCase();
+      const rollNumber = (student.rollNumber || student.roll_number || '').toLowerCase();
+      if (!fullName.includes(q) && !email.includes(q) && !rollNumber.includes(q)) return false;
+    }
+    return true;
+  };
+
   const downloadStudentsExcel = () => {
-    const filtered = adminStudents.filter(student => {
-      if (studentFilterCollegeId && student.collegeId !== studentFilterCollegeId) return false;
-      if (studentFilterDeptId && student.departmentId !== studentFilterDeptId) return false;
-      if (studentFilterBatchId && student.batchId !== studentFilterBatchId) return false;
-      if (studentFilterTrainerId && (student.trainerId || student.trainer_id) !== studentFilterTrainerId) return false;
-      if (studentFilterYear && student.year !== studentFilterYear) return false;
-      return true;
-    });
+    const filtered = adminStudents.filter(matchesStudentFilters);
 
     if (filtered.length === 0) {
       showToast('No students matching the selected filters to download.', 'error');
@@ -7366,17 +7405,24 @@ export default function App() {
                     <h2 className="text-xl font-extrabold tracking-tight mt-8">Change Password</h2>
                     <p className="text-sm text-muted-foreground">Modify your account security credentials.</p>
                   </div>
+                  {passwordChanged && (
+                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
+                      <p className="text-xs text-emerald-500 dark:text-emerald-400 font-bold">
+                        ✅ Password changed successfully
+                      </p>
+                    </div>
+                  )}
                   <form onSubmit={changeStudentPassword} className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground">Current Password</label>
                         <div className="relative">
-                          <input 
-                            type={showCurrentPassword ? "text" : "password"} 
-                            value={currentPassword} 
-                            onChange={e => setCurrentPassword(e.target.value)} 
-                            placeholder="••••••••" 
-                            className="w-full p-3.5 pr-10 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent focus:outline-indigo-500" 
+                          <input
+                            type={showCurrentPassword ? "text" : "password"}
+                            value={currentPassword}
+                            onChange={e => setCurrentPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full p-3.5 pr-10 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent focus:outline-indigo-500"
                             required
                           />
                           <button
@@ -7391,12 +7437,12 @@ export default function App() {
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground">New Password</label>
                         <div className="relative">
-                          <input 
-                            type={showNewProfilePassword ? "text" : "password"} 
-                            value={newProfilePassword} 
-                            onChange={e => setNewProfilePassword(e.target.value)} 
-                            placeholder="••••••••" 
-                            className="w-full p-3.5 pr-10 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent focus:outline-indigo-500" 
+                          <input
+                            type={showNewProfilePassword ? "text" : "password"}
+                            value={newProfilePassword}
+                            onChange={e => setNewProfilePassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full p-3.5 pr-10 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent focus:outline-indigo-500"
                             required
                           />
                           <button
@@ -7407,9 +7453,60 @@ export default function App() {
                             {showNewProfilePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
                         </div>
+                        {newProfilePassword && (() => {
+                          const strength = [
+                            newProfilePassword.length >= 8,
+                            /[A-Z]/.test(newProfilePassword),
+                            /[0-9]/.test(newProfilePassword),
+                            /[^A-Za-z0-9]/.test(newProfilePassword)
+                          ].filter(Boolean).length;
+                          return (
+                            <div className="mt-1.5">
+                              <div className="flex gap-1">
+                                {[1, 2, 3, 4].map(i => (
+                                  <div
+                                    key={i}
+                                    className={`h-1 flex-1 rounded-full ${
+                                      i <= strength
+                                        ? strength <= 1
+                                          ? 'bg-red-500'
+                                          : strength <= 2
+                                            ? 'bg-amber-500'
+                                            : strength <= 3
+                                              ? 'bg-blue-500'
+                                              : 'bg-emerald-500'
+                                        : 'bg-slate-200 dark:bg-slate-700'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                                {['Too weak', 'Weak', 'Fair', 'Good', 'Strong'][strength]}
+                              </p>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      <div>
+                        <label className="text-xs font-semibold text-muted-foreground">Confirm New Password</label>
+                        <input
+                          type={showNewProfilePassword ? "text" : "password"}
+                          value={confirmProfilePassword}
+                          onChange={e => setConfirmProfilePassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full p-3.5 mt-1 border border-slate-200 dark:border-slate-800 rounded-xl text-sm bg-transparent focus:outline-indigo-500"
+                          required
+                        />
+                        {confirmProfilePassword && newProfilePassword !== confirmProfilePassword && (
+                          <p className="text-[10px] text-red-400 mt-1">Passwords do not match</p>
+                        )}
                       </div>
                     </div>
-                    <button type="submit" className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl shadow-md transition-colors text-sm">
+                    <button
+                      type="submit"
+                      disabled={!currentPassword || !newProfilePassword || newProfilePassword !== confirmProfilePassword}
+                      className="px-6 py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-md transition-colors text-sm"
+                    >
                       Update Password
                     </button>
                   </form>
@@ -7536,6 +7633,7 @@ export default function App() {
                       if (item.id === 'departments') loadAdminDepartments();
                       if (item.id === 'batches') loadAdminBatches2();
                       if (item.id === 'question-bank') loadQuestionBank();
+                      if (item.id === 'reports') loadAdminReports();
                     }}
                     className={`flex items-center gap-3 w-full p-3 rounded-xl text-sm font-bold transition-all ${activeAdminTab === item.id ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10' : 'text-muted-foreground hover:bg-slate-100/50 dark:hover:bg-slate-900/50 hover:text-foreground'}`}
                   >
@@ -8318,6 +8416,29 @@ export default function App() {
                                 </button>
                               </>
                             )}
+                            <button
+                              onClick={async () => {
+                                if (!confirm(`Delete batch "${batch.name}" and all its questions? This cannot be undone.`)) return;
+                                try {
+                                  const res = await fetch(`${API_ADMIN}/question-batches/${batch.id}`, {
+                                    method: 'DELETE',
+                                    headers: { Authorization: `Bearer ${token}` }
+                                  });
+                                  const data = await res.json();
+                                  if (res.ok) {
+                                    showToast('Question batch deleted', 'success');
+                                    loadQuestionBank();
+                                  } else {
+                                    showToast(data.error || 'Delete failed', 'error');
+                                  }
+                                } catch {
+                                  showToast('Network error', 'error');
+                                }
+                              }}
+                              className="px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold rounded-lg hover:bg-red-500/20"
+                            >
+                              🗑️ Delete
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -8759,14 +8880,7 @@ export default function App() {
                       <h4 className="font-bold text-sm flex items-center gap-2">
                         <span>Registered Students</span>
                         <span className="px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full font-mono font-bold text-slate-700 dark:text-slate-300">
-                          {adminStudents.filter(student => {
-                            if (studentFilterCollegeId && student.collegeId !== studentFilterCollegeId) return false;
-                            if (studentFilterDeptId && student.departmentId !== studentFilterDeptId) return false;
-                            if (studentFilterBatchId && student.batchId !== studentFilterBatchId) return false;
-                            if (studentFilterTrainerId && (student.trainerId || student.trainer_id) !== studentFilterTrainerId) return false;
-                            if (studentFilterYear && student.year !== studentFilterYear) return false;
-                            return true;
-                          }).length} / {adminStudents.length}
+                          {adminStudents.filter(matchesStudentFilters).length} / {adminStudents.length}
                         </span>
                       </h4>
                       <div className="flex flex-wrap items-center gap-3">
@@ -8828,9 +8942,19 @@ export default function App() {
                     </div>
 
                     {/* Filter controls */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200/50 dark:border-slate-800/50">
+                    <div className="flex flex-wrap gap-3 mb-6 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200/50 dark:border-slate-800/50">
+                      <div className="flex-1 min-w-48">
+                        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Search</label>
+                        <input
+                          type="text"
+                          value={studentListSearchQuery}
+                          onChange={e => setStudentListSearchQuery(e.target.value)}
+                          placeholder="Name, email, roll no..."
+                          className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                        />
+                      </div>
                       {adminColleges.length > 1 && (
-                        <div>
+                        <div className="min-w-[140px]">
                           <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter College</label>
                           <select
                             value={studentFilterCollegeId}
@@ -8847,7 +8971,7 @@ export default function App() {
                           </select>
                         </div>
                       )}
-                      <div>
+                      <div className="min-w-[140px]">
                         <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter Department</label>
                         <select
                           value={studentFilterDeptId}
@@ -8861,7 +8985,7 @@ export default function App() {
                             .map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                         </select>
                       </div>
-                      <div>
+                      <div className="min-w-[140px]">
                         <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter Batch</label>
                         <select
                           value={studentFilterBatchId}
@@ -8875,7 +8999,7 @@ export default function App() {
                             .map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                         </select>
                       </div>
-                      <div>
+                      <div className="min-w-[140px]">
                         <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter Trainer</label>
                         <select
                           value={studentFilterTrainerId}
@@ -8889,7 +9013,7 @@ export default function App() {
                             .map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                         </select>
                       </div>
-                      <div>
+                      <div className="min-w-[140px]">
                         <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter Year</label>
                         <select
                           value={studentFilterYear}
@@ -8902,6 +9026,34 @@ export default function App() {
                           <option value="3rd Year">3rd Year</option>
                           <option value="4th Year">4th Year</option>
                         </select>
+                      </div>
+                      <div className="min-w-[140px]">
+                        <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter Status</label>
+                        <select
+                          value={studentFilterStatus}
+                          onChange={(e) => setStudentFilterStatus(e.target.value)}
+                          className="w-full p-2 border border-slate-200 dark:border-slate-800 rounded-lg text-xs bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 mt-1"
+                        >
+                          <option value="">All Status</option>
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
+                        </select>
+                      </div>
+                      <div className="flex items-end">
+                        <button
+                          onClick={() => {
+                            setStudentFilterCollegeId('');
+                            setStudentFilterDeptId('');
+                            setStudentFilterBatchId('');
+                            setStudentFilterTrainerId('');
+                            setStudentFilterYear('');
+                            setStudentFilterStatus('');
+                            setStudentListSearchQuery('');
+                          }}
+                          className="px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600"
+                        >
+                          Clear Filters
+                        </button>
                       </div>
                     </div>
 
@@ -8920,14 +9072,7 @@ export default function App() {
                         </thead>
                         <tbody>
                           {adminStudents
-                            .filter(student => {
-                              if (studentFilterCollegeId && student.collegeId !== studentFilterCollegeId) return false;
-                              if (studentFilterDeptId && student.departmentId !== studentFilterDeptId) return false;
-                              if (studentFilterBatchId && student.batchId !== studentFilterBatchId) return false;
-                              if (studentFilterTrainerId && (student.trainerId || student.trainer_id) !== studentFilterTrainerId) return false;
-                              if (studentFilterYear && student.year !== studentFilterYear) return false;
-                              return true;
-                            })
+                            .filter(matchesStudentFilters)
                             .map(student => (
                             <tr key={student.id} className="border-b hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
                               <td className="py-3.5 px-2">
@@ -9655,124 +9800,41 @@ export default function App() {
               )}
 
               {activeAdminTab === 'training' && (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center bg-white dark:bg-slate-950 p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-                    <div>
-                      <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100">Training & Skill Development Tracks</h3>
-                      <p className="text-xs text-muted-foreground mt-1">Manage skill development programs, course tracks, and trainer allocations.</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {[
-                      { title: 'Quantitative Aptitude Masterclass', category: 'Aptitude', modules: 12, duration: '24 Hours', level: 'Intermediate', recommendedFor: 'Weak Aptitude Scores' },
-                      { title: 'Data Structures & Algorithms in Python/C++', category: 'Coding', modules: 20, duration: '40 Hours', level: 'Advanced', recommendedFor: 'Coding Gaps' },
-                      { title: 'Corporate Verbal & Logical Reasoning', category: 'Reasoning', modules: 8, duration: '16 Hours', level: 'Beginner', recommendedFor: 'CRT Preparation' },
-                      { title: 'Full Stack Engineering Core', category: 'Technical', modules: 15, duration: '30 Hours', level: 'Advanced', recommendedFor: 'Technical Skills' },
-                      { title: 'Corporate Interview Readiness & Etiquette', category: 'Communication', modules: 6, duration: '10 Hours', level: 'All Levels', recommendedFor: 'Mock Interview Prep' }
-                    ].map((track, idx) => (
-                      <div key={idx} className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-3">
-                        <div className="flex justify-between items-start">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-                            {track.category}
-                          </span>
-                          <span className="text-[10px] font-bold text-slate-500">{track.level}</span>
-                        </div>
-                        <h4 className="font-extrabold text-base text-slate-900 dark:text-white">{track.title}</h4>
-                        <div className="flex gap-4 text-xs text-muted-foreground">
-                          <span>{track.modules} Modules</span>
-                          <span>Duration: {track.duration}</span>
-                        </div>
-                        <div className="pt-2 text-[11px] text-indigo-600 dark:text-indigo-400 font-bold border-t border-slate-100 dark:border-slate-900">
-                          Recommended For: {track.recommendedFor}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="text-6xl mb-4">🎓</div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">Training Module</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Create and manage skill development programs, course tracks, and trainer allocations.
+                  </p>
+                  <span className="mt-4 px-4 py-2 bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 text-xs font-bold rounded-full border border-indigo-500/30">
+                    Coming Soon — Phase 2
+                  </span>
                 </div>
               )}
 
               {activeAdminTab === 'placement' && (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center bg-white dark:bg-slate-950 p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-                    <div>
-                      <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100">Corporate Placement Drives</h3>
-                      <p className="text-xs text-muted-foreground mt-1">Track upcoming company hiring drives, eligibility cutoffs, and candidates.</p>
-                    </div>
-                  </div>
-
-                  <div className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs text-left">
-                        <thead>
-                          <tr className="border-b text-muted-foreground uppercase tracking-wider font-semibold">
-                            <th className="py-3 px-2">Company Drive</th>
-                            <th>Role Target</th>
-                            <th>Package (LPA)</th>
-                            <th>Cutoff Score</th>
-                            <th>Drive Date</th>
-                            <th>Eligible Candidates</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {[
-                            { companyName: 'TCS Digital', role: 'System Engineer', package: '7.5 LPA', cutoffScore: '70%', driveDate: '2026-08-15', eligibleCount: 145, status: 'Active' },
-                            { companyName: 'Infosys Specialist', role: 'Power Programmer', package: '9.0 LPA', cutoffScore: '75%', driveDate: '2026-08-20', eligibleCount: 98, status: 'Upcoming' },
-                            { companyName: 'Wipro Turbo', role: 'Project Engineer', package: '6.5 LPA', cutoffScore: '65%', driveDate: '2026-08-25', eligibleCount: 180, status: 'Upcoming' },
-                            { companyName: 'Accenture Advanced', role: 'Application Associate', package: '5.4 LPA', cutoffScore: '60%', driveDate: '2026-09-01', eligibleCount: 210, status: 'Upcoming' }
-                          ].map((drive, idx) => (
-                            <tr key={idx} className="border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
-                              <td className="py-3.5 px-2 font-extrabold text-slate-800 dark:text-slate-200">{drive.companyName}</td>
-                              <td className="font-semibold">{drive.role}</td>
-                              <td className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">{drive.package}</td>
-                              <td className="font-bold">{drive.cutoffScore}</td>
-                              <td>{drive.driveDate}</td>
-                              <td className="font-bold text-indigo-600 dark:text-indigo-400">{drive.eligibleCount} Students</td>
-                              <td>
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                                  {drive.status}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="text-6xl mb-4">🏢</div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">Placement Drives</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Track company hiring drives, manage eligibility cutoffs, and connect students with recruiters.
+                  </p>
+                  <span className="mt-4 px-4 py-2 bg-violet-500/20 text-violet-600 dark:text-violet-300 text-xs font-bold rounded-full border border-violet-500/30">
+                    Coming Soon — Phase 2
+                  </span>
                 </div>
               )}
 
               {activeAdminTab === 'companies' && (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center bg-white dark:bg-slate-950 p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-                    <div>
-                      <h3 className="font-extrabold text-lg text-slate-800 dark:text-slate-100">Partner Companies & Corporate Clients</h3>
-                      <p className="text-xs text-muted-foreground mt-1">Manage corporate accounts and hiring partners.</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    {[
-                      { name: 'TCS', industry: 'IT & Software', location: 'Pan India', activeDrives: 2, totalHired: 120 },
-                      { name: 'Infosys', industry: 'IT Services', location: 'Bangalore / Hyderabad', activeDrives: 1, totalHired: 95 },
-                      { name: 'Wipro', industry: 'Technology', location: 'Pan India', activeDrives: 1, totalHired: 80 },
-                      { name: 'Cognizant', industry: 'IT & Consulting', location: 'Chennai / Pune', activeDrives: 1, totalHired: 110 }
-                    ].map((comp, idx) => (
-                      <div key={idx} className="p-6 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 bg-white dark:bg-slate-950 shadow-sm space-y-3">
-                        <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center font-black text-indigo-600 text-lg">
-                          {comp.name.charAt(0)}
-                        </div>
-                        <h4 className="font-extrabold text-base text-slate-900 dark:text-white">{comp.name}</h4>
-                        <div className="text-xs text-muted-foreground">{comp.industry}</div>
-                        <div className="text-xs font-semibold">{comp.location}</div>
-                        <div className="pt-3 border-t border-slate-100 dark:border-slate-900 flex justify-between text-xs font-bold">
-                          <span className="text-indigo-600 dark:text-indigo-400">{comp.activeDrives} Active Drives</span>
-                          <span className="text-emerald-600 dark:text-emerald-400">{comp.totalHired} Hired</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="text-6xl mb-4">🤝</div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">Partner Companies</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Manage corporate accounts, hiring partners, and company profiles for placement drives.
+                  </p>
+                  <span className="mt-4 px-4 py-2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 text-xs font-bold rounded-full border border-emerald-500/30">
+                    Coming Soon — Phase 2
+                  </span>
                 </div>
               )}
 
@@ -9809,26 +9871,28 @@ export default function App() {
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-                      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Aptitude</span>
-                        <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">78%</p>
-                      </div>
-                      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Coding</span>
-                        <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">68%</p>
-                      </div>
-                      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Communication</span>
-                        <p className="text-2xl font-black text-violet-600 dark:text-violet-400 mt-1">70%</p>
-                      </div>
-                      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span className="text-[10px] uppercase font-bold text-muted-foreground">Technical</span>
-                        <p className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">82%</p>
-                      </div>
-                      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border-2 border-indigo-500">
-                        <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400">Overall Score</span>
-                        <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">74.5%</p>
-                      </div>
+                      {isLoadingReports ? (
+                        Array(5).fill(0).map((_, i) => (
+                          <div key={i} className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 animate-pulse h-20" />
+                        ))
+                      ) : adminReportSummary ? (
+                        [
+                          { label: 'Total Students', value: adminReportSummary.totalStudents, color: 'text-indigo-600 dark:text-indigo-400' },
+                          { label: 'Total Exams', value: adminReportSummary.totalExams, color: 'text-emerald-600 dark:text-emerald-400' },
+                          { label: 'Avg Score', value: adminReportSummary.avgPercentage ? `${parseFloat(adminReportSummary.avgPercentage).toFixed(1)}%` : '—', color: 'text-violet-600 dark:text-violet-400' },
+                          { label: 'Pass Rate', value: adminReportSummary.passRate ? `${parseFloat(adminReportSummary.passRate).toFixed(1)}%` : '—', color: 'text-amber-600 dark:text-amber-400' },
+                          { label: 'Total Attempts', value: adminReportSummary.totalAttempts, color: 'text-blue-600 dark:text-blue-400' }
+                        ].map(stat => (
+                          <div key={stat.label} className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <span className="text-[10px] uppercase font-bold text-muted-foreground">{stat.label}</span>
+                            <p className={`text-2xl font-black mt-1 ${stat.color}`}>{stat.value ?? '—'}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="col-span-2 md:col-span-5 text-center py-8 text-muted-foreground">
+                          No data yet
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
@@ -16111,6 +16175,29 @@ export default function App() {
                           className="px-3 py-1.5 bg-violet-500/20 border border-violet-500/30 text-violet-300 text-[10px] font-bold rounded-lg hover:bg-violet-500/30"
                         >
                           ✏️ Edit Questions
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Delete batch "${batch.name}"?`)) return;
+                            try {
+                              const res = await fetch(`/api/faculty/question-batches/${batch.id}`, {
+                                method: 'DELETE',
+                                headers: { Authorization: `Bearer ${token}` }
+                              });
+                              const data = await res.json();
+                              if (res.ok) {
+                                showToast('Batch deleted', 'success');
+                                loadFacultyQuestionBatches();
+                              } else {
+                                showToast(data.error || 'Delete failed', 'error');
+                              }
+                            } catch {
+                              showToast('Network error', 'error');
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-red-500/20 border border-red-500/30 text-red-300 text-[10px] font-bold rounded-lg hover:bg-red-500/30"
+                        >
+                          🗑️ Delete Batch
                         </button>
                       </div>
                     </div>

@@ -1653,6 +1653,41 @@ app.put('/api/admin/question-batches/:id/reject', authenticateAdmin, requireOrgA
   }
 });
 
+app.delete('/api/admin/question-batches/:id', authenticateAdmin, requireOrgAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const orgId = getOrgId(req);
+
+    const batch = await query(
+      `SELECT id FROM question_batches WHERE id = $1 ${orgId ? 'AND org_id = $2' : ''}`,
+      orgId ? [id, orgId] : [id]
+    );
+    if (batch.rows.length === 0) {
+      return res.status(404).json({ error: 'Batch not found' });
+    }
+
+    const inUse = await query(
+      `SELECT COUNT(*) as count FROM question_bank WHERE batch_id = $1 AND usage_count > 0`,
+      [id]
+    );
+    const usageCount = parseInt(inUse.rows[0].count);
+    if (usageCount > 0) {
+      return res.status(409).json({
+        error: `Cannot delete: ${usageCount} questions from this batch are used in exams`
+      });
+    }
+
+    // question_bank_test_cases -> question_bank -> question_batches are all
+    // ON DELETE CASCADE (see auth-service/db.ts migrations 7-9), so deleting
+    // the batch row alone cleans up its questions and test cases.
+    await query(`DELETE FROM question_batches WHERE id = $1`, [id]);
+
+    res.json({ message: 'Question batch deleted' });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Health check endpoints for Kubernetes liveness and readiness probes
 app.get('/healthz', (_req, res) => {
   res.status(200).json({ status: 'ok', service: 'admin-service' });

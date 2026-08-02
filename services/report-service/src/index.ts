@@ -66,24 +66,46 @@ function requireOrgAdminForExport(req: AuthenticatedRequest, res: express.Respon
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'healthy', service: 'report-service' }));
 
-// Overall platform summary report
+// Overall platform summary report - org-scoped the same way as the export
+// endpoints (org_admin locked to own org, super_admin sees all or ?orgId=).
 app.get('/api/reports/summary', authenticate, async (req: AuthenticatedRequest, res) => {
   try {
-    const summary = {
-      totalAssessments: 45,
-      totalAttempts: 1250,
-      averagePercentage: 74.5,
-      passRate: 82.3,
-      topPerformingDepartment: 'Computer Science & Engineering',
-      skillCategories: [
-        { category: 'Aptitude', avgScore: 78, status: 'Strong' },
-        { category: 'Coding', avgScore: 68, status: 'Needs Focus' },
-        { category: 'Technical', avgScore: 75, status: 'Good' },
-        { category: 'Reasoning', avgScore: 82, status: 'Strong' },
-        { category: 'Communication', avgScore: 70, status: 'Average' }
-      ]
-    };
-    res.json(summary);
+    const orgId = req.user?.role === 'super_admin'
+      ? (req.query.orgId as string || null)
+      : (req.user?.orgId || null);
+
+    const [studentsRes, examsRes, attemptsRes] = await Promise.all([
+      query(
+        `SELECT COUNT(*) as count FROM users WHERE role = 'student' ${orgId ? 'AND college_id = $1' : ''}`,
+        orgId ? [orgId] : []
+      ),
+      query(
+        `SELECT COUNT(*) as count FROM exams ${orgId ? 'WHERE college_id = $1' : ''}`,
+        orgId ? [orgId] : []
+      ),
+      query(
+        `SELECT
+           COUNT(*) as total,
+           COUNT(*) FILTER (WHERE ea.passed = true) as passed,
+           AVG(ea.percentage) as avg_percentage
+         FROM exam_attempts ea
+         ${orgId ? 'JOIN users u ON u.id = ea.student_id' : ''}
+         WHERE ea.status = 'completed'
+         ${orgId ? 'AND u.college_id = $1' : ''}`,
+        orgId ? [orgId] : []
+      )
+    ]);
+
+    const totalAttempts = parseInt(attemptsRes.rows[0].total) || 0;
+    const passedAttempts = parseInt(attemptsRes.rows[0].passed) || 0;
+
+    res.json({
+      totalStudents: parseInt(studentsRes.rows[0].count) || 0,
+      totalExams: parseInt(examsRes.rows[0].count) || 0,
+      totalAttempts,
+      avgPercentage: attemptsRes.rows[0].avg_percentage ? parseFloat(attemptsRes.rows[0].avg_percentage) : 0,
+      passRate: totalAttempts > 0 ? (passedAttempts / totalAttempts) * 100 : 0
+    });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
